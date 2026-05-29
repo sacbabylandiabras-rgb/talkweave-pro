@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Trash2, Save, Pencil, Search, Layout, FileText, Settings, X, Image as ImageIcon, Upload } from "lucide-react";
+import { Loader2, Plus, Trash2, Save, Pencil, Search, Layout, FileText, Settings, X, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -338,34 +338,11 @@ export default function EmailTemplates() {
                       size="icon" 
                       variant="ghost" 
                       className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
-                      onClick={() => {
-                        const url = prompt("Insira a URL da imagem:");
-                        if (url) {
-                          const textarea = document.querySelector('textarea');
-                          if (textarea) {
-                            const start = textarea.selectionStart;
-                            const end = textarea.selectionEnd;
-                            const text = editing?.html || "";
-                            const before = text.substring(0, start);
-                            const after = text.substring(end);
-                            const newValue = before + `<img src="${url}" alt="imagem" style="max-width: 100%;" />` + after;
-                            if (editing) setEditing({ ...editing, html: newValue });
-                          }
-                        }
-                      }}
-                      title="Inserir imagem (URL)"
-                    >
-                      <ImageIcon className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploading}
-                      title="Fazer upload de imagem"
+                      title="Inserir imagem (Upload)"
                     >
-                      {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
                     </Button>
                     <input 
                       type="file" 
