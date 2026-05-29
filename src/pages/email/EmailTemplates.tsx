@@ -470,47 +470,47 @@ export default function EmailTemplates() {
                     </div>
                   </div>
 
-                  <div className=\"relative\">
+                  <div className="relative">
                     <button 
                       onClick={() => {
                         const cssPanel = document.getElementById('css-panel');
                         cssPanel?.classList.remove('hidden');
                       }}
-                      className=\"w-full p-4 flex items-center justify-between hover:bg-slate-50 transition-colors\"
+                      className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
                     >
-                      <span className=\"text-[11px] font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wide\">
-                        <Code className=\"w-3 h-3\" /> Global CSS
+                      <span className="text-[11px] font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wide">
+                        <Code className="w-3 h-3" /> Global CSS
                       </span>
-                      <ChevronDown className=\"w-3 h-3 text-slate-400\" />
+                      <ChevronDown className="w-3 h-3 text-slate-400" />
                     </button>
 
                     <div 
-                      id=\"css-panel\" 
-                      className=\"footer-panel hidden fixed inset-y-0 right-0 w-80 bg-white shadow-2xl z-50 flex flex-col border-l border-slate-200 animate-in slide-in-from-right duration-300\"
+                      id="css-panel" 
+                      className="footer-panel hidden fixed inset-y-0 right-0 w-80 bg-white shadow-2xl z-50 flex flex-col border-l border-slate-200 animate-in slide-in-from-right duration-300"
                     >
-                      <div className=\"p-4 border-b border-slate-100 flex items-center justify-between bg-white\">
+                      <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
                         <div>
-                          <h3 className=\"text-sm font-bold text-slate-900\">Global CSS</h3>
-                          <p className=\"text-[10px] text-slate-500 mt-0.5\">Add custom styles to your email using CSS.</p>
+                          <h3 className="text-sm font-bold text-slate-900">Global CSS</h3>
+                          <p className="text-[10px] text-slate-500 mt-0.5">Add custom styles to your email using CSS.</p>
                         </div>
                         <Button 
-                          variant=\"ghost\" 
-                          size=\"icon\" 
-                          className=\"h-8 w-8 rounded-full\"
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 rounded-full"
                           onClick={() => document.getElementById('css-panel')?.classList.add('hidden')}
                         >
-                          <X className=\"w-4 h-4\" />
+                          <X className="w-4 h-4" />
                         </Button>
                       </div>
-                      <div className=\"flex-1 bg-slate-900 p-0 overflow-hidden\">
+                      <div className="flex-1 bg-slate-900 p-0 overflow-hidden">
                         <textarea 
                           value={globalCss}
                           onChange={(e) => setGlobalCss(e.target.value)}
-                          className=\"w-full h-full text-[12px] font-mono p-4 bg-slate-900 text-indigo-300 focus:outline-none resize-none selection:bg-indigo-500/30\"
-                          placeholder=\"/* 
+                          className="w-full h-full text-[12px] font-mono p-4 bg-slate-900 text-indigo-300 focus:outline-none resize-none selection:bg-indigo-500/30"
+                          placeholder="/* 
   Example:
   p { color: red; }
-*/\"
+*/"
                           spellCheck={false}
                         ></textarea>
                       </div>
