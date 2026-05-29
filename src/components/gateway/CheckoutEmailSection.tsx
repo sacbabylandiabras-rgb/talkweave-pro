@@ -115,8 +115,10 @@ export default function CheckoutEmailSection() {
         setEmailVerification(data.email_verification);
         if (data.email_verification.status === "verified") {
           toast.success("Domínio verificado com sucesso!");
+        } else if (data.error) {
+          toast.error(`Erro: ${data.error}`);
         } else {
-          toast.info("DNS ainda não propagado. Tente novamente em alguns minutos.");
+          toast.info("DNS ainda não propagado ou registros incorretos. Verifique no seu provedor.");
         }
       }
     } catch (err: any) {
@@ -250,7 +252,10 @@ export default function CheckoutEmailSection() {
                         Configuração de DNS Necessária
                       </p>
                       <p className="text-[10px] text-blue-400/80">
-                        Adicione os registros abaixo no seu provedor de domínio para validar o envio.
+                        Adicione os registros abaixo no seu provedor de domínio (Cloudflare, GoDaddy, etc) para validar o envio.
+                      </p>
+                      <p className="text-[10px] text-blue-400/80 mt-1">
+                        <strong>Dica:</strong> Se o seu provedor de DNS já adiciona o domínio automaticamente, use apenas <code>resend._domainkey</code> como nome do registro DKIM.
                       </p>
                     </div>
                     

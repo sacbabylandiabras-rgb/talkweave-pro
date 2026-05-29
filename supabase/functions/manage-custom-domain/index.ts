@@ -554,6 +554,8 @@ serve(async (req) => {
               headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
             });
             
+            const verifyData = await resendRes.json();
+            
             // Re-fetch full status to get updated records/status
             const statusRes = await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}`, {
               headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
@@ -568,17 +570,32 @@ serve(async (req) => {
               }).eq("id", evData.id);
 
               return new Response(
-                JSON.stringify({ success: true, email_verification: fullData }),
+                JSON.stringify({ 
+                  success: resendRes.ok, 
+                  email_verification: fullData,
+                  error: resendRes.ok ? null : (verifyData.message || "Falha na verificação")
+                }),
                 { headers: { ...corsHeaders, "Content-Type": "application/json" } }
               );
+            } else {
+               return new Response(JSON.stringify({ 
+                 error: verifyData.message || "Erro ao consultar status no Resend" 
+               }), {
+                 status: 400,
+                 headers: { ...corsHeaders, "Content-Type": "application/json" },
+               });
             }
           }
         } catch (resendErr) {
           console.warn("Could not verify Resend status:", resendErr);
+          return new Response(JSON.stringify({ error: resendErr.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
       }
 
-      return new Response(JSON.stringify({ error: "Verification failed" }), {
+      return new Response(JSON.stringify({ error: "Configuração do Resend não encontrada" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
