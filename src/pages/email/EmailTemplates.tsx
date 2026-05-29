@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, Trash2, Save, Pencil, Search, Layout, FileText, Settings, X, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize, Minimize, Eraser, Type, MousePointer2, Link, Globe, Move, Square, Palette, Code, ChevronDown, ChevronUp } from "lucide-react";
+import ThemeEditor, { ThemeStyles, buildThemeCss } from "./ThemeEditor";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,7 @@ export default function EmailTemplates() {
   const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState("all");
+  const [themeStyles, setThemeStyles] = useState<ThemeStyles>({});
 
   const load = async () => {
     setLoading(true);
@@ -462,70 +464,8 @@ export default function EmailTemplates() {
                       <ChevronDown className="w-3 h-3 text-slate-400" />
                     </button>
                     
-                    <div id="theme-panel" className="footer-panel hidden p-4 bg-white space-y-6 border-t border-slate-100">
-                      {/* Colors Section */}
-                      <div className="space-y-4">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Colors</div>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-[10px] text-slate-500">Cor de Fundo</Label>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-slate-400 font-mono">#F8FAFC</span>
-                              <input 
-                                type="color" 
-                                className="w-6 h-6 p-0 border-0 bg-transparent cursor-pointer rounded overflow-hidden" 
-                                onChange={(e) => {
-                                  const editor = document.getElementById('email-editor');
-                                  if (editor) {
-                                    editor.style.backgroundColor = e.target.value;
-                                    if (editing) setEditing({ ...editing, html: editor.innerHTML });
-                                  }
-                                }}
-                              />
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <Label className="text-[10px] text-slate-500">Cor do Texto</Label>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-slate-400 font-mono">#1E293B</span>
-                              <input 
-                                type="color" 
-                                className="w-6 h-6 p-0 border-0 bg-transparent cursor-pointer rounded overflow-hidden" 
-                                onChange={(e) => {
-                                  const editor = document.getElementById('email-editor');
-                                  if (editor) {
-                                    editor.style.color = e.target.value;
-                                    if (editing) setEditing({ ...editing, html: editor.innerHTML });
-                                  }
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Font Section */}
-                      <div className="pt-4 border-t border-slate-100 space-y-4">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Typography</div>
-                        <div className="space-y-1.5">
-                          <Label className="text-[10px] text-slate-500">Família da Fonte</Label>
-                          <select 
-                            className="w-full h-8 text-xs bg-white border border-slate-200 rounded-md px-2"
-                            onChange={(e) => {
-                              const editor = document.getElementById('email-editor');
-                              if (editor) {
-                                editor.style.fontFamily = e.target.value;
-                                if (editing) setEditing({ ...editing, html: editor.innerHTML });
-                              }
-                            }}
-                          >
-                            <option value="Inter, sans-serif">Inter</option>
-                            <option value="Arial, sans-serif">Arial</option>
-                            <option value="Georgia, serif">Georgia</option>
-                            <option value="monospace">Monospace</option>
-                          </select>
-                        </div>
-                      </div>
+                    <div id="theme-panel" className="footer-panel hidden p-3 bg-slate-50 border-t border-slate-100 max-h-[400px] overflow-y-auto">
+                      <ThemeEditor styles={themeStyles} onChange={setThemeStyles} />
                     </div>
                   </div>
 
@@ -658,6 +598,7 @@ export default function EmailTemplates() {
                     .img-container.selected { outline: 2px solid #6366f1; border-style: solid !important; }
                     [contenteditable] img { transition: outline 0.2s; }
                     .img-container:hover { border-color: #6366f1 !important; }
+                    ${buildThemeCss(themeStyles)}
                   `}</style>
                   <div 
                     contentEditable
