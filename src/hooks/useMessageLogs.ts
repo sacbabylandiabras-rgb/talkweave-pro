@@ -298,13 +298,13 @@ const savedContactsApi = {
     return allContacts;
   },
   async upsert(token: string, data: Partial<SavedContact> & { phone: string; name: string; user_id: string }) {
-    await fetch(`${supabaseUrl}/rest/v1/saved_contacts`, {
+    await fetch(`${supabaseUrl}/rest/v1/saved_contacts?on_conflict=user_id,phone`, {
       method: "POST",
       headers: {
         apikey: supabaseKey,
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
-        Prefer: "resolution=merge-duplicates",
+        Prefer: "resolution=merge-duplicates,return=minimal",
       },
       body: JSON.stringify(data),
     });
