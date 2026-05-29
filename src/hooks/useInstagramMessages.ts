@@ -1,149 +1,140 @@
- import { useState, useEffect, useMemo, useCallback } from "react";
- import { supabase } from "@/integrations/supabase/client";
- import { InstagramEvent } from "./useInstagramEvents";
- import { useQuery, useQueryClient } from "@tanstack/react-query";
- 
-  export interface InstagramConversation {
-    ig_user_id: string;
-    username: string;
-    profile_pic_url?: string;
-    lastMessage: string;
-    lastTimestamp: string;
-    messages: InstagramEvent[];
-  }
- 
-  export function useInstagramMessages(selectedIgId?: string | null) {
-   const queryClient = useQueryClient();
-   const [realtimeMessages, setRealtimeMessages] = useState<InstagramEvent[]>([]);
-   const [userId, setUserId] = useState<string | null>(null);
-  const [contacts, setContacts] = useState<Array<{ ig_user_id: string; profile_pic_url: string | null }>>([]);
- 
-   useEffect(() => {
-     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id || null));
-   }, []);
- 
-   const { data: initialEvents = [], isLoading } = useQuery({
-     queryKey: ["instagram_dm_events", userId],
-     enabled: !!userId,
-     queryFn: async () => {
-       const { data, error } = await supabase
-         .from("instagram_events" as any)
-         .select("*")
-         .eq("user_id", userId)
-         .in("event_type", ["dm", "dm_sent", "story_reply"])
-         .order("created_at", { ascending: true });
-       if (error) throw error;
-       return (data || []) as unknown as InstagramEvent[];
-     },
-   });
+import { useState, useEffect, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { InstagramEvent } from "./useInstagramEvents";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+export interface InstagramConversation {
+  ig_user_id: string;
+  username: string;
+  profile_pic_url?: string;
+  lastMessage: string;
+  lastTimestamp: string;
+  messages: InstagramEvent[];
+}
+
+export function useInstagramMessages(selectedIgId?: string | null) {
+  const queryClient = useQueryClient();
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!userId) return;
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id || null));
+  }, []);
+
+  // ── Eventos (mensagens) ──────────────────────────────────────────────────
+  const { data: events = [], isLoading } = useQuery({
+    queryKey: ["instagram_dm_events", userId],
+    enabled: !!userId,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("instagram_events" as any)
+        .select("*")
+        .eq("user_id", userId)
+        .in("event_type", ["dm", "dm_sent", "story_reply", "comment", "follow"])
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data || []) as unknown as InstagramEvent[];
+    },
+  });
+
+  // ── Contatos (fotos/nomes) ───────────────────────────────────────────────
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["instagram_contacts", userId],
+    enabled: !!userId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from("instagram_contacts" as any)
-        .select("ig_user_id, profile_pic_url")
+        .select("ig_user_id, username, profile_pic_url")
         .eq("user_id", userId);
-      if (!cancelled && data) {
-        setContacts(data as any);
-      }
-    })();
-     // Also poll for changes periodically as profile pics might be updated by webhook
-     const interval = setInterval(async () => {
-       const { data } = await supabase
-         .from("instagram_contacts" as any)
-         .select("ig_user_id, profile_pic_url")
-         .eq("user_id", userId);
-       if (!cancelled && data) {
-         setContacts(data as any);
-       }
-     }, 10000);
+      if (error) throw error;
+      return (data || []) as { ig_user_id: string; username: string; profile_pic_url: string | null }[];
+    },
+  });
 
-     return () => { 
-       cancelled = true; 
-       clearInterval(interval);
-     };
-   }, [userId, initialEvents, selectedIgId]);
- 
-   useEffect(() => {
-     if (!userId) return;
- 
-     console.log("[InstagramMessages] Subscribing to realtime updates for user:", userId);
-      const channel = supabase
-        .channel(`instagram_realtime_dm_${userId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "instagram_events",
-            filter: `user_id=eq.${userId}`
-          },
-         (payload) => {
-            console.log("[InstagramMessages] Realtime event received:", payload.eventType);
-            queryClient.invalidateQueries({ queryKey: ["instagram_dm_events", userId] });
-         }
-       )
-       .subscribe((status) => {
-         console.log("[InstagramMessages] Realtime subscription status:", status);
-       });
- 
-     return () => {
-       console.log("[InstagramMessages] Unsubscribing from realtime");
-       supabase.removeChannel(channel);
-     };
-   }, [queryClient, userId]);
- 
-   const allMessages = useMemo(() => {
-     const combined = [...initialEvents];
-     // Add realtime messages if they are not already in initialEvents
-     realtimeMessages.forEach((msg) => {
-       if (!combined.find((m) => m.id === msg.id)) {
-         combined.push(msg);
-       }
-     });
-     return combined.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-   }, [initialEvents, realtimeMessages]);
- 
-    const conversationsWithProfile = useMemo(() => {
-      const map = new Map<string, InstagramConversation>();
-      const contactMap = new Map(contacts.map(c => [c.ig_user_id, c.profile_pic_url]));
-      
-      allMessages.forEach((msg) => {
-        const existing = map.get(msg.ig_user_id);
-        const profilePic = msg.payload?.sender?.profile_pic || 
-                          msg.payload?.message?.reply_to?.story?.url || 
-                          contactMap.get(msg.ig_user_id);
+  // ── Realtime ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!userId) return;
 
-        if (existing) {
-          existing.messages.push(msg);
-          existing.lastMessage = msg.comment_text;
-          existing.lastTimestamp = msg.created_at;
-          if (profilePic && !existing.profile_pic_url) {
-            existing.profile_pic_url = profilePic;
-          }
-        } else {
-          map.set(msg.ig_user_id, {
-            ig_user_id: msg.ig_user_id,
-            username: msg.username || msg.ig_user_id,
-            profile_pic_url: profilePic,
-            lastMessage: msg.comment_text,
-            lastTimestamp: msg.created_at,
-            messages: [msg],
-          });
+    const eventsChannel = supabase
+      .channel(`ig_events_${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "instagram_events", filter: `user_id=eq.${userId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["instagram_dm_events", userId] });
+        },
+      )
+      .subscribe();
+
+    const contactsChannel = supabase
+      .channel(`ig_contacts_${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "instagram_contacts", filter: `user_id=eq.${userId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["instagram_contacts", userId] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(eventsChannel);
+      supabase.removeChannel(contactsChannel);
+    };
+  }, [userId, queryClient]);
+
+  // ── Mapa de contatos ─────────────────────────────────────────────────────
+  const contactMap = useMemo(() => new Map(contacts.map((c) => [c.ig_user_id, c])), [contacts]);
+
+  // ── Agrupa mensagens em conversas ────────────────────────────────────────
+  const conversations = useMemo(() => {
+    const map = new Map<string, InstagramConversation>();
+
+    events.forEach((msg) => {
+      // Para mensagens enviadas (dm_sent), o ig_user_id é o destinatário
+      const contact = contactMap.get(msg.ig_user_id);
+      const profilePic =
+        contact?.profile_pic_url ||
+        msg.payload?.sender?.profile_pic ||
+        msg.payload?.message?.reply_to?.story?.url ||
+        null;
+      const resolvedUsername = contact?.username || msg.username || msg.ig_user_id;
+
+      const existing = map.get(msg.ig_user_id);
+      if (existing) {
+        existing.messages.push(msg);
+        existing.lastMessage = msg.comment_text || existing.lastMessage;
+        existing.lastTimestamp = msg.created_at;
+        // Atualiza foto se chegou agora
+        if (profilePic && !existing.profile_pic_url) {
+          existing.profile_pic_url = profilePic;
         }
-      });
- 
-      return Array.from(map.values()).sort((a, b) => 
-        new Date(b.lastTimestamp).getTime() - new Date(a.lastTimestamp).getTime()
-      );
-    }, [allMessages, contacts]);
- 
-    const selectedConversation = useMemo(() => {
-      if (!selectedIgId) return null;
-      return conversationsWithProfile.find(c => c.ig_user_id === selectedIgId) || null;
-    }, [conversationsWithProfile, selectedIgId]);
+        // Atualiza username se era só o ID
+        if (resolvedUsername !== msg.ig_user_id) {
+          existing.username = resolvedUsername;
+        }
+      } else {
+        map.set(msg.ig_user_id, {
+          ig_user_id: msg.ig_user_id,
+          username: resolvedUsername,
+          profile_pic_url: profilePic || undefined,
+          lastMessage: msg.comment_text || "",
+          lastTimestamp: msg.created_at,
+          messages: [msg],
+        });
+      }
+    });
 
-    return { conversations: conversationsWithProfile, selectedConversation, isLoading, allMessages };
- }
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.lastTimestamp).getTime() - new Date(a.lastTimestamp).getTime(),
+    );
+  }, [events, contactMap]);
+
+  const selectedConversation = useMemo(() => {
+    if (!selectedIgId) return null;
+    return conversations.find((c) => c.ig_user_id === selectedIgId) || null;
+  }, [conversations, selectedIgId]);
+
+  return { conversations, selectedConversation, isLoading };
+}
