@@ -109,7 +109,15 @@ export default function EmailTemplates() {
         const text = editing?.html || "";
         const before = text.substring(0, start);
         const after = text.substring(end);
-        const newValue = before + `<div style="text-align: center;"><img src="${publicUrl}" alt="imagem" style="max-width: 300px; height: auto; border-radius: 8px; cursor: pointer;" /></div>` + after;
+        const newValue = before + `
+          <div class="img-container" style="display: inline-block; position: relative; margin: 10px; line-height: 0;">
+            <img src="${publicUrl}" alt="imagem" style="width: 300px; height: auto; border-radius: 8px; cursor: pointer; display: block;" />
+            <div class="img-controls" contenteditable="false" style="position: absolute; top: 5px; right: 5px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; background: rgba(0,0,0,0.5); padding: 4px; border-radius: 4px;">
+              <button onclick="this.closest('.img-container').remove(); window.dispatchEvent(new CustomEvent('template-change'));" style="background: #ef4444; color: white; border: none; border-radius: 3px; padding: 2px 6px; cursor: pointer; font-size: 10px;">X</button>
+            </div>
+            <div class="resizer" contenteditable="false" style="position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; cursor: nwse-resize; background: #6366f1; border-radius: 50%;"></div>
+          </div>
+        ` + after;
         if (editing) setEditing({ ...editing, html: newValue });
       }
       toast.success("Imagem enviada com sucesso!");
@@ -507,15 +515,47 @@ export default function EmailTemplates() {
                   </div>
                   <Badge variant="outline" className="text-[10px] text-slate-400 bg-white">Modo HTML / Texto Rico</Badge>
                 </div>
-                <div className="flex-1 p-6 bg-white overflow-y-auto min-h-[500px] border-none">
+                <div className="flex-1 p-6 bg-white overflow-y-auto min-h-[500px] border-none relative">
+                  <style>{`
+                    .img-container:hover .img-controls { opacity: 1 !important; }
+                    [contenteditable] img { outline: 2px solid transparent; transition: outline 0.2s; }
+                    [contenteditable] img:hover { outline: 2px solid #6366f1; }
+                  `}</style>
                   <div 
                     contentEditable
+                    id="email-editor"
                     className="w-full h-full min-h-[450px] focus:outline-none prose prose-slate max-w-none"
                     onBlur={(e) => {
                       if (editing) setEditing({ ...editing, html: e.currentTarget.innerHTML });
                     }}
                     onInput={(e) => {
                       if (editing) setEditing({ ...editing, html: e.currentTarget.innerHTML });
+                    }}
+                    onMouseDown={(e) => {
+                      const target = e.target as HTMLElement;
+                      if (target.classList.contains('resizer')) {
+                        e.preventDefault();
+                        const container = target.parentElement;
+                        const img = container?.querySelector('img');
+                        if (!img) return;
+                        
+                        const startX = e.clientX;
+                        const startWidth = img.offsetWidth;
+                        
+                        const onMouseMove = (moveEvent: MouseEvent) => {
+                          const newWidth = startWidth + (moveEvent.clientX - startX);
+                          img.style.width = `${newWidth}px`;
+                        };
+                        
+                        const onMouseUp = () => {
+                          document.removeEventListener('mousemove', onMouseMove);
+                          document.removeEventListener('mouseup', onMouseUp);
+                          if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
+                        };
+                        
+                        document.addEventListener('mousemove', onMouseMove);
+                        document.addEventListener('mouseup', onMouseUp);
+                      }
                     }}
                     dangerouslySetInnerHTML={{ __html: editing?.html || "" }}
                   />
