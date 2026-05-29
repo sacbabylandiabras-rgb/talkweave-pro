@@ -284,7 +284,8 @@ export default function EmailTemplates() {
               </div>
               
               <div className="flex-1 overflow-y-auto">
-                <div className="p-4 space-y-6">
+                {/* Mostra as propriedades apenas se houver uma imagem selecionada */}
+                <div id="image-properties" className="p-4 space-y-6 hidden data-[visible=true]:block">
                   {/* Attributes Section */}
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -296,6 +297,7 @@ export default function EmailTemplates() {
                         <div className="relative">
                           <Link className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
                           <Input 
+                            id="img-link-input"
                             placeholder="https://exemplo.com"
                             className="h-8 pl-8 text-xs bg-white border-slate-200"
                             onChange={(e) => {
@@ -327,6 +329,7 @@ export default function EmailTemplates() {
                       <div className="space-y-1.5">
                         <Label className="text-[10px] text-slate-500">Largura (px)</Label>
                         <Input 
+                          id="img-width-input"
                           type="number"
                           placeholder="300"
                           className="h-8 text-xs bg-white border-slate-200"
@@ -386,6 +389,7 @@ export default function EmailTemplates() {
                     <div className="space-y-1.5">
                       <Label className="text-[10px] text-slate-500">Arredondar (px)</Label>
                       <Input 
+                        id="img-radius-input"
                         type="number"
                         placeholder="8"
                         className="h-8 text-xs bg-white border-slate-200"
@@ -404,10 +408,39 @@ export default function EmailTemplates() {
                   <div className="pt-6 border-t border-slate-200">
                     <Button variant="destructive" size="sm" className="w-full h-8 text-[11px] shadow-sm" onClick={() => {
                       const selected = document.querySelector('.img-container.selected');
-                      if (selected) { selected.remove(); if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" }); }
+                      if (selected) { 
+                        selected.remove(); 
+                        document.getElementById('image-properties')?.setAttribute('data-visible', 'false');
+                        if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" }); 
+                      }
                     }}>
-                      <Trash2 className="w-3 h-3 mr-2" /> Remover Objeto
+                      <Trash2 className="w-3 h-3 mr-2" /> Remover Imagem
                     </Button>
+                  </div>
+                </div>
+
+                {/* Default sidebar view when no image is selected */}
+                <div id="default-sidebar-view" className="p-4 space-y-6 data-[visible=false]:hidden" data-visible="true">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Título do Template</Label>
+                      <Input 
+                        value={editing?.name} 
+                        onChange={e => setEditing(editing ? { ...editing, name: e.target.value } : null)} 
+                        placeholder="Nome do template" 
+                        className="border-slate-200 bg-white shadow-sm h-8 text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Assunto</Label>
+                      <Input 
+                        value={editing?.subject} 
+                        onChange={e => setEditing(editing ? { ...editing, subject: e.target.value } : null)} 
+                        placeholder="Assunto do e-mail" 
+                        className="border-slate-200 bg-white shadow-sm h-8 text-xs"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -560,8 +593,34 @@ export default function EmailTemplates() {
                     onClick={(e) => {
                       const target = e.target as HTMLElement;
                       const container = target.closest('.img-container');
+                      
+                      // Remove selected class from all containers
                       document.querySelectorAll('.img-container').forEach(el => el.classList.remove('selected'));
-                      if (container) container.classList.add('selected');
+                      
+                      const propsBar = document.getElementById('image-properties');
+                      const defaultBar = document.getElementById('default-sidebar-view');
+
+                      if (container) {
+                        container.classList.add('selected');
+                        propsBar?.setAttribute('data-visible', 'true');
+                        defaultBar?.setAttribute('data-visible', 'false');
+                        
+                        // Populate inputs with current values
+                        const img = container.querySelector('img');
+                        const link = container.querySelector('a');
+                        if (img) {
+                          const widthInput = document.getElementById('img-width-input') as HTMLInputElement;
+                          const radiusInput = document.getElementById('img-radius-input') as HTMLInputElement;
+                          const linkInput = document.getElementById('img-link-input') as HTMLInputElement;
+                          
+                          if (widthInput) widthInput.value = img.style.width.replace('px', '');
+                          if (radiusInput) radiusInput.value = img.style.borderRadius.replace('px', '');
+                          if (linkInput) linkInput.value = link?.href || '';
+                        }
+                      } else {
+                        propsBar?.setAttribute('data-visible', 'false');
+                        defaultBar?.setAttribute('data-visible', 'true');
+                      }
                     }}
                     onMouseDown={(e) => {
                       const target = e.target as HTMLElement;
