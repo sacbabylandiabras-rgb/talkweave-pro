@@ -51,7 +51,7 @@ serve(async (req) => {
     // Pega instância padrão do usuário
     const { data: instance } = await adminClient
       .from('zapi_instances')
-      .select('zapi_instance_id, zapi_token, zapi_client_token')
+      .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, instance_name')
       .eq('user_id', user.id)
       .eq('is_active', true)
       .order('is_default', { ascending: false })
@@ -84,7 +84,18 @@ serve(async (req) => {
 
     let updated = 0;
     let updatedMeta = 0;
+    const provider = String(instance.api_provider || 'zapi').toLowerCase();
     const zapiBase = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`
+    const uazapiUrl = normalizeApiUrl(instance.evolution_api_url)
+    const uazapiToken = instance.evolution_api_key || instance.zapi_token || ''
+    const uazapiHeaders = {
+      'Content-Type': 'application/json',
+      token: uazapiToken,
+      apikey: uazapiToken,
+      Authorization: `Bearer ${uazapiToken}`,
+      instance: instance.instance_name || '',
+      'instance-name': instance.instance_name || '',
+    }
 
     for (const contact of contacts) {
       try {
@@ -96,7 +107,7 @@ serve(async (req) => {
         let isCommunity = false;
         let communityId = null;
 
-        if (isGroup) {
+        if (isGroup && !isUazapiProvider(provider)) {
           try {
             const metaRes = await fetch(`${zapiBase}/group-metadata/${phone}`, {
               headers: { 'client-token': instance.zapi_client_token || '' },
@@ -114,17 +125,41 @@ serve(async (req) => {
           }
         }
 
-        const endpoint = isGroup
-          ? `${zapiBase}/group-thumbnail/${phone}`
-          : `${zapiBase}/profile-picture?phone=${phone}`;
+        let url: string | null = null;
+        if (isUazapiProvider(provider)) {
+          const chatNumber = isGroup ? phone : phone.replace(/\D/g, '')
+          const detailsRes = await fetch(`${uazapiUrl}/chat/details`, {
+            method: 'POST',
+            headers: uazapiHeaders,
+            body: JSON.stringify({ number: chatNumber, preview: true }),
+            signal: AbortSignal.timeout(5000)
+          })
+          const detailsData = await detailsRes.json().catch(() => null)
+          url = detailsRes.ok ? extractUrl(detailsData) : null
 
-        const res = await fetch(endpoint, {
-          headers: { 'client-token': instance.zapi_client_token || '' },
-          signal: AbortSignal.timeout(5000)
-        })
+          if (!url && isGroup) {
+            const infoRes = await fetch(`${uazapiUrl}/group/info?token=${encodeURIComponent(uazapiToken)}&apikey=${encodeURIComponent(uazapiToken)}`, {
+              method: 'POST',
+              headers: uazapiHeaders,
+              body: JSON.stringify({ groupjid: chatNumber, getInviteLink: false }),
+              signal: AbortSignal.timeout(5000)
+            })
+            const infoData = await infoRes.json().catch(() => null)
+            url = infoRes.ok ? extractUrl(infoData) : null
+          }
+        } else {
+          const endpoint = isGroup
+            ? `${zapiBase}/group-thumbnail/${phone}`
+            : `${zapiBase}/profile-picture?phone=${phone}`;
 
-        const data = res.ok ? await res.json().catch(() => null) : null
-        const url = data?.link || data?.imgUrl || data?.profilePictureUrl || null
+          const res = await fetch(endpoint, {
+            headers: { 'client-token': instance.zapi_client_token || '' },
+            signal: AbortSignal.timeout(5000)
+          })
+
+          const data = res.ok ? await res.json().catch(() => null) : null
+          url = extractUrl(data)
+        }
 
         if (url) {
           await adminClient
