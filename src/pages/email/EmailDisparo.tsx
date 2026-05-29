@@ -100,8 +100,8 @@ export default function EmailDisparo() {
             <Input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Assunto do email" />
           </div>
           <div>
-            <Label>Mensagem (HTML)</Label>
-            <Textarea value={html} onChange={e => setHtml(e.target.value)} rows={12} placeholder="<p>Olá,</p><p>Seu conteúdo aqui...</p>" className="font-mono text-xs" />
+            <Label>Mensagem</Label>
+            <Textarea value={html} onChange={e => setHtml(e.target.value)} rows={12} placeholder="Digite sua mensagem aqui..." className="text-sm" />
           </div>
 
           <Button onClick={handleSend} disabled={sending} className="bg-primary hover:bg-primary/90">
