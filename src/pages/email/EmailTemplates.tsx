@@ -23,6 +23,7 @@ export default function EmailTemplates() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState("all");
   const [themeStyles, setThemeStyles] = useState<ThemeStyles>({});
+  const [globalCss, setGlobalCss] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -469,13 +470,11 @@ export default function EmailTemplates() {
                     </div>
                   </div>
 
-                  <div>
+                  <div className="relative">
                     <button 
                       onClick={() => {
                         const cssPanel = document.getElementById('css-panel');
-                        const isHidden = cssPanel?.classList.contains('hidden');
-                        document.querySelectorAll('.footer-panel').forEach(p => p.classList.add('hidden'));
-                        if (isHidden) cssPanel?.classList.remove('hidden');
+                        cssPanel?.classList.remove('hidden');
                       }}
                       className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
                     >
@@ -484,11 +483,37 @@ export default function EmailTemplates() {
                       </span>
                       <ChevronDown className="w-3 h-3 text-slate-400" />
                     </button>
-                    <div id="css-panel" className="footer-panel hidden p-4 bg-white border-t border-slate-100">
-                      <textarea 
-                        className="w-full h-32 text-[10px] font-mono p-2 bg-slate-900 text-slate-300 rounded-md"
-                        placeholder="/* Custom CSS here */"
-                      ></textarea>
+
+                    <div 
+                      id="css-panel" 
+                      className="footer-panel hidden fixed inset-y-0 right-0 w-80 bg-white shadow-2xl z-50 flex flex-col border-l border-slate-200 animate-in slide-in-from-right duration-300"
+                    >
+                      <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-900">Global CSS</h3>
+                          <p className="text-[10px] text-slate-500 mt-0.5">Add custom styles to your email using CSS.</p>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 rounded-full"
+                          onClick={() => document.getElementById('css-panel')?.classList.add('hidden')}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="flex-1 bg-slate-900 p-0 overflow-hidden">
+                        <textarea 
+                          value={globalCss}
+                          onChange={(e) => setGlobalCss(e.target.value)}
+                          className="w-full h-full text-[12px] font-mono p-4 bg-slate-900 text-indigo-300 focus:outline-none resize-none selection:bg-indigo-500/30"
+                          placeholder="/* 
+  Example:
+  p { color: red; }
+*/"
+                          spellCheck={false}
+                        ></textarea>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -598,7 +623,9 @@ export default function EmailTemplates() {
                     .img-container.selected { outline: 2px solid #6366f1; border-style: solid !important; }
                     [contenteditable] img { transition: outline 0.2s; }
                     .img-container:hover { border-color: #6366f1 !important; }
-                    ${buildThemeCss(themeStyles)}
+                     ${buildThemeCss(themeStyles)}
+                     ${globalCss}
+
                   `}</style>
                   <div 
                     contentEditable
