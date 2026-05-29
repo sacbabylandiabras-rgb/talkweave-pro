@@ -204,13 +204,13 @@ const buildUazapiHeaders = (token: unknown): Record<string, string> => {
       )
      }
  
-     type InstanceCfg = { provider: string; base: string; headers: Record<string, string>; uazapiUrl: string }
+      type InstanceCfg = { provider: string; base: string; headers: Record<string, string>; uazapiUrl: string; instanceName?: string }
      const instancesToTry: InstanceCfg[] = []
  
      if (instanceId) {
        const { data: specificInstance } = await adminClient
          .from('zapi_instances')
-         .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key')
+        .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, instance_name')
          .or(`id.eq.${instanceId},zapi_instance_id.eq.${instanceId}`)
          .eq('user_id', credentials.userId)
          .eq('is_active', true)
@@ -224,6 +224,7 @@ const buildUazapiHeaders = (token: unknown): Record<string, string> => {
              base: '',
               uazapiUrl: normalizeApiUrl(specificInstance.evolution_api_url),
               headers: buildUazapiHeaders(specificInstance.evolution_api_key || specificInstance.zapi_token),
+              instanceName: specificInstance.instance_name || undefined,
            })
          } else {
            instancesToTry.push({
@@ -237,7 +238,7 @@ const buildUazapiHeaders = (token: unknown): Record<string, string> => {
      } else {
        const { data: allInstances } = await adminClient
          .from('zapi_instances')
-         .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, is_default')
+          .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, instance_name, is_default')
          .eq('user_id', credentials.userId)
          .eq('is_active', true)
          .order('is_default', { ascending: false })
@@ -252,6 +253,7 @@ const buildUazapiHeaders = (token: unknown): Record<string, string> => {
                base: '',
                uazapiUrl: url,
                 headers: buildUazapiHeaders(inst.evolution_api_key || inst.zapi_token),
+                instanceName: inst.instance_name || undefined,
              })
            }
          } else if (inst.zapi_instance_id && inst.zapi_token) {
