@@ -107,6 +107,7 @@ const AgenteIA = () => {
   const [promptService, setPromptService] = useState("");
   const [promptClosing, setPromptClosing] = useState("");
   const [isActive, setIsActive] = useState(false);
+  const [disableInGroups, setDisableInGroups] = useState(false);
   const [provider] = useState<"anthropic">("anthropic");
   const [model, setModel] = useState("claude-sonnet-4-5-20250929");
   const [voice, setVoice] = useState("nova");
@@ -187,6 +188,7 @@ const AgenteIA = () => {
       setPromptService(config.prompt_service || "");
       setPromptClosing(config.prompt_closing || "");
       setIsActive(config.active);
+      setDisableInGroups(config.disable_in_groups === true);
       setModel(config.model);
       setVoice(config.voice || "nova");
       setVoiceProvider((config.voice_provider as any) || "openai");
@@ -208,6 +210,7 @@ const AgenteIA = () => {
       prompt_service: promptService,
       prompt_closing: promptClosing,
       active: isActive, 
+      disable_in_groups: disableInGroups,
       provider, 
       model,
       voice,
@@ -480,6 +483,16 @@ const AgenteIA = () => {
                       </p>
                     </div>
                     <Switch checked={isActive} onCheckedChange={setIsActive} />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/40">
+                    <div>
+                      <Label className="text-sm font-medium">Desativar envio em grupos</Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Quando ativado, o agente ignora mensagens recebidas em grupos
+                      </p>
+                    </div>
+                    <Switch checked={disableInGroups} onCheckedChange={setDisableInGroups} />
                   </div>
 
                   <div className="space-y-2">
