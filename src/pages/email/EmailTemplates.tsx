@@ -721,8 +721,48 @@ export default function EmailTemplates() {
                             onClick={() => {
                               const url = prompt("Cole a URL do vídeo do YouTube:");
                               if (url) {
-                                // Lógica para inserir placeholder de vídeo
-                                insertImageFromUrl(`https://img.youtube.com/vi/${url.split('v=')[1]?.split('&')[0] || url.split('/').pop()}/maxresdefault.jpg`);
+                                const videoId = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1];
+                                if (videoId) {
+                                  const thumbUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+                                  const editor = document.getElementById('email-editor');
+                                  if (editor) {
+                                    const videoHtml = `
+                                      <div class="img-container" style="display: table; position: relative; margin: 10px auto 10px 0; line-height: 0; border: 1px dashed #cbd5e1; padding: 4px; border-radius: 8px;">
+                                        <div style="position: relative; line-height: 0;">
+                                          <img src="${thumbUrl}" alt="YouTube Video" style="width: 480px; height: auto; border-radius: 4px; cursor: move; display: block;" draggable="true" data-youtube-id="${videoId}" />
+                                          <div contenteditable="false" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+                                            <div style="width: 60px; height: 42px; background: #ff0000; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                                              <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div class="img-controls" contenteditable="false" style="position: absolute; top: -12px; right: -12px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; z-index: 10;">
+                                          <button onclick="this.closest('.img-container').remove(); window.dispatchEvent(new CustomEvent('template-change'));" style="background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; display: flex; items-center; justify-content: center; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">✕</button>
+                                        </div>
+                                        <div class="resizer" contenteditable="false" style="position: absolute; bottom: -5px; right: -5px; width: 14px; height: 14px; cursor: nwse-resize; background: #6366f1; border: 2px solid white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 10;"></div>
+                                      </div>
+                                    `;
+                                    
+                                    const selection = window.getSelection();
+                                    if (selection && selection.rangeCount > 0 && editor.contains(selection.anchorNode)) {
+                                      const range = selection.getRangeAt(0);
+                                      range.deleteContents();
+                                      const div = document.createElement('div');
+                                      div.innerHTML = videoHtml.trim();
+                                      const frag = document.createDocumentFragment();
+                                      let node;
+                                      while (node = div.firstChild) {
+                                        frag.appendChild(node);
+                                      }
+                                      range.insertNode(frag);
+                                    } else {
+                                      editor.innerHTML += videoHtml;
+                                    }
+                                    if (editing) setEditing({ ...editing, html: editor.innerHTML });
+                                  }
+                                } else {
+                                  toast.error("URL do YouTube inválida");
+                                }
                               }
                               setImageLibraryOpen(false);
                             }}
