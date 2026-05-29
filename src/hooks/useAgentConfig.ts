@@ -13,6 +13,10 @@ interface AgentConfig {
   provider: "anthropic";
   model: string;
   voice?: string;
+  voice_provider?: "openai" | "elevenlabs";
+  elevenlabs_api_key?: string;
+  elevenlabs_voice_id?: string;
+  elevenlabs_voice_name?: string;
 }
 
 interface KnowledgeItem {
@@ -39,6 +43,10 @@ export function useAgentConfig() {
     provider: "anthropic",
     model: "claude-sonnet-4-5-20250929",
     voice: "nova",
+    voice_provider: "openai",
+    elevenlabs_api_key: "",
+    elevenlabs_voice_id: "",
+    elevenlabs_voice_name: "",
   });
   const [knowledge, setKnowledge] = useState<KnowledgeItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +90,10 @@ export function useAgentConfig() {
           provider: "anthropic",
           model: data.model || "claude-sonnet-4-5-20250929",
           voice: data.voice || "nova",
+          voice_provider: (data.voice_provider as any) || "openai",
+          elevenlabs_api_key: data.elevenlabs_api_key || "",
+          elevenlabs_voice_id: data.elevenlabs_voice_id || "",
+          elevenlabs_voice_name: data.elevenlabs_voice_name || "",
         });
       }
 
@@ -127,6 +139,10 @@ export function useAgentConfig() {
         provider: newConfig.provider ?? config.provider,
         model: newConfig.model ?? config.model,
         voice: newConfig.voice ?? config.voice ?? "nova",
+        voice_provider: newConfig.voice_provider ?? config.voice_provider ?? "openai",
+        elevenlabs_api_key: newConfig.elevenlabs_api_key ?? config.elevenlabs_api_key ?? "",
+        elevenlabs_voice_id: newConfig.elevenlabs_voice_id ?? config.elevenlabs_voice_id ?? "",
+        elevenlabs_voice_name: newConfig.elevenlabs_voice_name ?? config.elevenlabs_voice_name ?? "",
       };
 
       if (config.id) {

@@ -28,6 +28,9 @@ Deno.serve(async (req) => {
     const ALLOWED_VOICES = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"];
     const requestedVoice = String(body?.voice || "").trim().toLowerCase();
     const voice = ALLOWED_VOICES.includes(requestedVoice) ? requestedVoice : "nova";
+    const provider = String(body?.provider || "openai").trim().toLowerCase() === "elevenlabs" ? "elevenlabs" : "openai";
+    const elevenApiKey = String(body?.elevenlabs_api_key || "").trim();
+    const elevenVoiceId = String(body?.elevenlabs_voice_id || "").trim();
 
     if (!text) {
       return new Response(JSON.stringify({ error: "text é obrigatório" }), {
@@ -42,19 +45,43 @@ Deno.serve(async (req) => {
       );
     }
 
-    const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "tts-1",
-        input: text,
-        voice,
-        response_format: "mp3",
-      }),
-    });
+    let ttsRes: Response;
+    if (provider === "elevenlabs" && elevenApiKey && elevenVoiceId) {
+      ttsRes = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(elevenVoiceId)}?output_format=mp3_44100_128`,
+        {
+          method: "POST",
+          headers: {
+            "xi-api-key": elevenApiKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text,
+            model_id: "eleven_multilingual_v2",
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.75,
+              style: 0.3,
+              use_speaker_boost: true,
+            },
+          }),
+        },
+      );
+    } else {
+      ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "tts-1",
+          input: text,
+          voice,
+          response_format: "mp3",
+        }),
+      });
+    }
 
     if (!ttsRes.ok) {
       const errText = await ttsRes.text().catch(() => "");

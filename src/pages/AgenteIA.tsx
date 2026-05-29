@@ -35,6 +35,8 @@ import {
   Upload,
   Wrench,
   BarChart3,
+  Mic,
+  CheckCircle2,
 } from "lucide-react";
 
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
@@ -108,6 +110,13 @@ const AgenteIA = () => {
   const [provider] = useState<"anthropic">("anthropic");
   const [model, setModel] = useState("claude-sonnet-4-5-20250929");
   const [voice, setVoice] = useState("nova");
+  const [voiceProvider, setVoiceProvider] = useState<"openai" | "elevenlabs">("openai");
+  const [elevenApiKey, setElevenApiKey] = useState("");
+  const [elevenVoiceId, setElevenVoiceId] = useState("");
+  const [elevenVoiceName, setElevenVoiceName] = useState("");
+  const [cloneAudioFile, setCloneAudioFile] = useState<File | null>(null);
+  const [cloneName, setCloneName] = useState("");
+  const [cloning, setCloning] = useState(false);
 
   // FAQ form
   const [faqQuestion, setFaqQuestion] = useState("");
@@ -180,6 +189,10 @@ const AgenteIA = () => {
       setIsActive(config.active);
       setModel(config.model);
       setVoice(config.voice || "nova");
+      setVoiceProvider((config.voice_provider as any) || "openai");
+      setElevenApiKey(config.elevenlabs_api_key || "");
+      setElevenVoiceId(config.elevenlabs_voice_id || "");
+      setElevenVoiceName(config.elevenlabs_voice_name || "");
     }
   }, [loading, config]);
 
@@ -198,7 +211,58 @@ const AgenteIA = () => {
       provider, 
       model,
       voice,
+      voice_provider: voiceProvider,
+      elevenlabs_api_key: elevenApiKey,
+      elevenlabs_voice_id: elevenVoiceId,
+      elevenlabs_voice_name: elevenVoiceName,
     });
+  };
+
+  const handleCloneVoice = async () => {
+    if (!cloneAudioFile) {
+      toast({ title: "Selecione um arquivo de áudio", variant: "destructive" });
+      return;
+    }
+    if (!elevenApiKey.trim()) {
+      toast({ title: "Informe o Token de Voz Premium primeiro", variant: "destructive" });
+      return;
+    }
+    setCloning(true);
+    try {
+      const form = new FormData();
+      form.append("audio", cloneAudioFile);
+      form.append("api_key", elevenApiKey.trim());
+      form.append("name", cloneName.trim() || "Minha Voz");
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID;
+      const url = `https://${projectId}.supabase.co/functions/v1/clone-voice`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Falha ao clonar voz");
+
+      setElevenVoiceId(data.voice_id);
+      setElevenVoiceName(data.voice_name);
+      setVoiceProvider("elevenlabs");
+      setCloneAudioFile(null);
+      setCloneName("");
+      toast({ title: "Voz clonada com sucesso!", description: "Já está ativa nas respostas em áudio." });
+      // Persistir no agent_config para garantir consistência
+      await saveConfig({
+        voice_provider: "elevenlabs",
+        elevenlabs_api_key: elevenApiKey.trim(),
+        elevenlabs_voice_id: data.voice_id,
+        elevenlabs_voice_name: data.voice_name,
+      });
+    } catch (err: any) {
+      toast({ title: "Erro ao clonar voz", description: err?.message || String(err), variant: "destructive" });
+    } finally {
+      setCloning(false);
+    }
   };
 
   const handleAddFaq = async () => {
@@ -454,20 +518,89 @@ const AgenteIA = () => {
 
                   <div className="space-y-2">
                     <Label>Voz das respostas em áudio</Label>
-                    <Select value={voice} onValueChange={setVoice}>
+                    <Select value={voiceProvider} onValueChange={(v: any) => setVoiceProvider(v)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="nova">Feminina jovem (padrão)</SelectItem>
-                        <SelectItem value="shimmer">Feminina suave</SelectItem>
-                        <SelectItem value="alloy">Neutra equilibrada</SelectItem>
-                        <SelectItem value="echo">Masculina calma</SelectItem>
-                        <SelectItem value="onyx">Masculina grave</SelectItem>
-                        <SelectItem value="fable">Narrador (sotaque)</SelectItem>
+                        <SelectItem value="openai">Vozes padrão (gratuitas)</SelectItem>
+                        <SelectItem value="elevenlabs" disabled={!elevenVoiceId}>
+                          Voz personalizada (clonada){elevenVoiceName ? ` — ${elevenVoiceName}` : ""}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
+
+                    {voiceProvider === "openai" && (
+                      <Select value={voice} onValueChange={setVoice}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="nova">Feminina jovem (padrão)</SelectItem>
+                          <SelectItem value="shimmer">Feminina suave</SelectItem>
+                          <SelectItem value="alloy">Neutra equilibrada</SelectItem>
+                          <SelectItem value="echo">Masculina calma</SelectItem>
+                          <SelectItem value="onyx">Masculina grave</SelectItem>
+                          <SelectItem value="fable">Narrador (sotaque)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+
                     <p className="text-[11px] text-muted-foreground">
                       Voz usada quando o agente responde em áudio (mensagens de voz).
                     </p>
+
+                    <div className="mt-3 p-3 rounded-lg border border-dashed border-primary/30 bg-primary/5 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Mic className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-semibold">Clonar sua voz (Premium)</span>
+                        {elevenVoiceId && (
+                          <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400">
+                            <CheckCircle2 className="w-3 h-3" /> Voz ativa: {elevenVoiceName || elevenVoiceId.slice(0, 8)}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs">Token de Voz Premium</Label>
+                        <Input
+                          type="password"
+                          value={elevenApiKey}
+                          onChange={(e) => setElevenApiKey(e.target.value)}
+                          placeholder="Cole aqui seu token do provedor de voz"
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                          Necessário ter conta em uma plataforma de voz premium com clonagem instantânea. Cobrança ocorre na sua conta.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs">Nome da voz</Label>
+                        <Input
+                          value={cloneName}
+                          onChange={(e) => setCloneName(e.target.value)}
+                          placeholder="Ex: Minha voz"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs">Amostra de áudio (1-3 min, MP3/WAV/M4A)</Label>
+                        <Input
+                          type="file"
+                          accept="audio/*"
+                          onChange={(e) => setCloneAudioFile(e.target.files?.[0] || null)}
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                          Áudio limpo, sem ruído. Quanto mais natural a fala, melhor a clonagem.
+                        </p>
+                      </div>
+
+                      <Button
+                        onClick={handleCloneVoice}
+                        disabled={cloning || !cloneAudioFile || !elevenApiKey.trim()}
+                        size="sm"
+                        className="w-full"
+                      >
+                        {cloning ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                        {elevenVoiceId ? "Substituir voz clonada" : "Clonar minha voz"}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="space-y-4">
