@@ -104,23 +104,34 @@ function sanitizeSenderPhone(value: unknown): string {
 }
 
 function getInboundSenderMetadata(webhook: any, isGroup: boolean, participantPhone: string, chatId: string) {
+  const event = webhook?.event || webhook?.data?.event || {};
+  const message = webhook?.message || webhook?.msg || webhook?.data?.message || {};
   const senderPhone = sanitizeSenderPhone(
     isGroup
       ? firstTextValue(
           participantPhone,
+          event?.Sender,
+          event?.SenderPN,
           webhook?.participant,
           webhook?.participantPhone,
           webhook?.senderPhone,
           webhook?.sender?.phone,
-          webhook?.message?.sender?.phone,
+          message?.sender?.phone,
+          message?.senderPhone,
+          message?.participant,
+          message?.key?.participant,
           webhook?.author,
           webhook?.remoteParticipant,
         )
-      : firstTextValue(webhook?.senderPhone, webhook?.sender?.phone, webhook?.message?.sender?.phone, chatId),
+      : firstTextValue(webhook?.senderPhone, webhook?.sender?.phone, message?.sender?.phone, message?.senderPhone, chatId),
   );
 
   const senderName = firstTextValue(
     webhook?.senderName,
+    event?.Notify,
+    message?.senderName,
+    message?.pushName,
+    message?.notifyName,
     webhook?.participantName,
     webhook?.pushName,
     webhook?.notifyName,
@@ -128,8 +139,8 @@ function getInboundSenderMetadata(webhook: any, isGroup: boolean, participantPho
     webhook?.sender?.name,
     webhook?.sender?.pushName,
     webhook?.contact?.name,
-    webhook?.message?.sender?.name,
-    webhook?.message?.pushName,
+    message?.sender?.name,
+    message?.sender?.pushName,
   );
 
   const senderPhoto = firstTextValue(
@@ -144,9 +155,9 @@ function getInboundSenderMetadata(webhook: any, isGroup: boolean, participantPho
     webhook?.sender?.image,
     webhook?.contact?.profilePictureUrl,
     webhook?.contact?.photo,
-    webhook?.message?.sender?.profilePictureUrl,
-    webhook?.message?.sender?.imagePreview,
-    webhook?.message?.sender?.image,
+    message?.sender?.profilePictureUrl,
+    message?.sender?.imagePreview,
+    message?.sender?.image,
   );
 
   return { senderName, senderPhone, senderPhoto };
