@@ -593,8 +593,34 @@ export default function EmailTemplates() {
                     onClick={(e) => {
                       const target = e.target as HTMLElement;
                       const container = target.closest('.img-container');
+                      
+                      // Remove selected class from all containers
                       document.querySelectorAll('.img-container').forEach(el => el.classList.remove('selected'));
-                      if (container) container.classList.add('selected');
+                      
+                      const propsBar = document.getElementById('image-properties');
+                      const defaultBar = document.getElementById('default-sidebar-view');
+
+                      if (container) {
+                        container.classList.add('selected');
+                        propsBar?.setAttribute('data-visible', 'true');
+                        defaultBar?.setAttribute('data-visible', 'false');
+                        
+                        // Populate inputs with current values
+                        const img = container.querySelector('img');
+                        const link = container.querySelector('a');
+                        if (img) {
+                          const widthInput = document.getElementById('img-width-input') as HTMLInputElement;
+                          const radiusInput = document.getElementById('img-radius-input') as HTMLInputElement;
+                          const linkInput = document.getElementById('img-link-input') as HTMLInputElement;
+                          
+                          if (widthInput) widthInput.value = img.style.width.replace('px', '');
+                          if (radiusInput) radiusInput.value = img.style.borderRadius.replace('px', '');
+                          if (linkInput) linkInput.value = link?.href || '';
+                        }
+                      } else {
+                        propsBar?.setAttribute('data-visible', 'false');
+                        defaultBar?.setAttribute('data-visible', 'true');
+                      }
                     }}
                     onMouseDown={(e) => {
                       const target = e.target as HTMLElement;
