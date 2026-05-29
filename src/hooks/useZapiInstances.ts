@@ -71,11 +71,15 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
     // Filtros de segurança obrigatórios
     // Removendo instâncias de apanhador de grupo (warmup) de TODAS as listagens, exceto onde explicitamente solicitado
     if (isWarmup && !includeWarmup) return false;
-    
+
     // Se um provedor específico for solicitado, filtramos por ele (respeitando warmup acima)
     if (providerFilter) {
       return provider === providerFilter.toLowerCase();
     }
+
+    // UAZAPI é reservada exclusivamente para a página de extração de membros.
+    // Em qualquer outra listagem (sem providerFilter explícito), ocultamos.
+    if (provider === 'uazapi') return false;
 
     // Garante que instâncias Meta passem se não houver filtro ou se o filtro for meta
     if (provider === 'meta') return true;
