@@ -601,9 +601,62 @@ serve(async (req) => {
       });
     }
 
+    // DELETE_EMAIL — remove domain from Resend
+    if (action === "delete_email") {
+      if (!hostname) {
+        return new Response(JSON.stringify({ error: "hostname is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (!RESEND_API_KEY) {
+        return new Response(JSON.stringify({ error: "RESEND_API_KEY not configured" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const cleanHostname = hostname.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+
+      try {
+        const { data: evData } = await supabase
+          .from("email_domain_verifications")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("domain", cleanHostname)
+          .maybeSingle();
+
+        if (evData?.resend_domain_id) {
+          await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+          });
+        }
+
+        // Always try to remove from DB even if Resend call fails or domain not found there
+        await supabase
+          .from("email_domain_verifications")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("domain", cleanHostname);
+
+      } catch (err: any) {
+        console.error("Error deleting email domain:", err);
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // DELETE — remove domain from Vercel project
     if (action === "delete") {
-
       if (!hostname) {
         return new Response(JSON.stringify({ error: "hostname required" }), {
           status: 400,
