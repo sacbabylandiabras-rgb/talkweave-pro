@@ -521,6 +521,69 @@ serve(async (req) => {
       );
     }
 
+    // VERIFY_EMAIL — trigger verification on Resend
+    if (action === "verify_email") {
+      let cleanHostname = hostname?.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "") || null;
+
+      if (!cleanHostname) {
+        const { data: evs } = await supabase.from("email_domain_verifications").select("*").eq("user_id", user.id).order('created_at', { ascending: false }).limit(1);
+        if (evs && evs.length > 0) {
+          cleanHostname = evs[0].domain;
+        }
+      }
+
+      if (!cleanHostname) {
+        return new Response(JSON.stringify({ error: "No email domain configured" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (RESEND_API_KEY) {
+        try {
+          const { data: evData } = await supabase
+            .from("email_domain_verifications")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("domain", cleanHostname)
+            .maybeSingle();
+          
+          if (evData?.resend_domain_id) {
+            const resendRes = await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}/verify`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+            });
+            
+            // Re-fetch full status to get updated records/status
+            const statusRes = await fetch(`https://api.resend.com/domains/${evData.resend_domain_id}`, {
+              headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+            });
+            
+            if (statusRes.ok) {
+              const fullData = await statusRes.json();
+              await supabase.from("email_domain_verifications").update({
+                status: fullData.status,
+                dkim_records: fullData.records,
+                updated_at: new Date().toISOString(),
+              }).eq("id", evData.id);
+
+              return new Response(
+                JSON.stringify({ success: true, email_verification: fullData }),
+                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            }
+          }
+        } catch (resendErr) {
+          console.warn("Could not verify Resend status:", resendErr);
+        }
+      }
+
+      return new Response(JSON.stringify({ error: "Verification failed" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // DELETE — remove domain from Vercel project
     if (action === "delete") {
 
