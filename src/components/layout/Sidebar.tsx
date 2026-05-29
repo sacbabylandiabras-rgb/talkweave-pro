@@ -338,6 +338,20 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
           </>
         )}
 
+        {/* Email section */}
+        {activeWorkspace === "zapi" && (
+          <>
+            {!collapsed && (
+              <div className="px-2 pt-3 pb-1">
+                <span className="sidebar-section-label">Email</span>
+              </div>
+            )}
+            <ul className="space-y-0.5">
+              {emailMenuItems.map(renderItem)}
+            </ul>
+          </>
+        )}
+
         {/* Telegram section */}
         {activeWorkspace === "zapi" && (
           <>
