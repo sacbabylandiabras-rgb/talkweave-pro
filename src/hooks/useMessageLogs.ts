@@ -1140,6 +1140,7 @@ export const useMessageLogs = (
       if (log.response_sent && log.response_sent !== "__processing__") {
         if (isTechnicalMessageReference(log.response_sent)) return;
         if (isRedundantManualFlowEcho(log, messageLogs)) return;
+        if (/^\[Agente IA(:[^\]]*)?\]$/i.test(log.response_sent.trim())) return;
         const isSummary = /^\[Fluxo:.*\]$/.test(log.response_sent.trim());
         if (isSummary) {
           const hasDetailedFlowAround = messageLogs.some((candidate) => {
