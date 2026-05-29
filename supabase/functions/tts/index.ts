@@ -25,6 +25,9 @@ Deno.serve(async (req) => {
     const conversationId = String(body?.conversation_id || "default")
       .replace(/[^a-zA-Z0-9_-]/g, "_")
       .slice(0, 60) || "default";
+    const ALLOWED_VOICES = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"];
+    const requestedVoice = String(body?.voice || "").trim().toLowerCase();
+    const voice = ALLOWED_VOICES.includes(requestedVoice) ? requestedVoice : "nova";
 
     if (!text) {
       return new Response(JSON.stringify({ error: "text é obrigatório" }), {
@@ -48,7 +51,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "tts-1",
         input: text,
-        voice: "nova",
+        voice,
         response_format: "mp3",
       }),
     });

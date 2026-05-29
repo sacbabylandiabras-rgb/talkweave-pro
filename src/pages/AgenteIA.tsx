@@ -107,6 +107,7 @@ const AgenteIA = () => {
   const [isActive, setIsActive] = useState(false);
   const [provider] = useState<"anthropic">("anthropic");
   const [model, setModel] = useState("claude-sonnet-4-5-20250929");
+  const [voice, setVoice] = useState("nova");
 
   // FAQ form
   const [faqQuestion, setFaqQuestion] = useState("");
@@ -178,6 +179,7 @@ const AgenteIA = () => {
       setPromptClosing(config.prompt_closing || "");
       setIsActive(config.active);
       setModel(config.model);
+      setVoice(config.voice || "nova");
     }
   }, [loading, config]);
 
@@ -194,7 +196,8 @@ const AgenteIA = () => {
       prompt_closing: promptClosing,
       active: isActive, 
       provider, 
-      model 
+      model,
+      voice,
     });
   };
 
@@ -448,6 +451,24 @@ const AgenteIA = () => {
                   <p className="text-[11px] text-muted-foreground -mt-2">
                     Usando sua chave da Anthropic (ANTHROPIC_API_KEY). Cobrança ocorre direto na sua conta Anthropic.
                   </p>
+
+                  <div className="space-y-2">
+                    <Label>Voz das respostas em áudio</Label>
+                    <Select value={voice} onValueChange={setVoice}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nova">Feminina jovem (padrão)</SelectItem>
+                        <SelectItem value="shimmer">Feminina suave</SelectItem>
+                        <SelectItem value="alloy">Neutra equilibrada</SelectItem>
+                        <SelectItem value="echo">Masculina calma</SelectItem>
+                        <SelectItem value="onyx">Masculina grave</SelectItem>
+                        <SelectItem value="fable">Narrador (sotaque)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">
+                      Voz usada quando o agente responde em áudio (mensagens de voz).
+                    </p>
+                  </div>
 
                   <div className="space-y-4">
                     <div className="space-y-2">
