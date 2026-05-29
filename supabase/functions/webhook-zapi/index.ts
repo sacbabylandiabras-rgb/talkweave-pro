@@ -1332,8 +1332,7 @@ async function executeFlow(
     } else if (node.type === "agenteIA") {
       if (isGroup && node.data?.disable_in_groups === true) {
         console.log(`[Flow:agenteIA] Skipping group message for node ${node.id}: disable_in_groups enabled.`);
-        continue;
-      }
+      } else {
       const delaySeconds = Number(node.data.delaySeconds || 0);
       if (delaySeconds > 0) {
         await new Promise((resolve) => setTimeout(resolve, Math.min(delaySeconds, 25) * 1000));
