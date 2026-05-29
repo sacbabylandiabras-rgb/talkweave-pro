@@ -159,6 +159,7 @@ export default function EmailTemplates() {
   };
 
   const [imageLibraryOpen, setImageLibraryOpen] = useState(false);
+  const [realGalleryOpen, setRealGalleryOpen] = useState(false);
   const [imageLibrary, setImageLibrary] = useState<{name: string, url: string}[]>([]);
 
   const loadImages = async () => {
@@ -681,19 +682,76 @@ export default function EmailTemplates() {
                       <AlignRight className="w-4 h-4" />
                     </Button>
                     <div className="w-px h-4 bg-slate-200 mx-1" />
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
-                      onClick={() => {
-                        loadImages();
-                        setImageLibraryOpen(true);
-                      }}
-                      disabled={uploading}
-                      title="Inserir imagem"
-                    >
-                      {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
-                    </Button>
+                    <Dialog open={imageLibraryOpen} onOpenChange={setImageLibraryOpen}>
+                      <button 
+                        className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center rounded-md transition-colors"
+                        onClick={() => {
+                          loadImages();
+                          setImageLibraryOpen(true);
+                        }}
+                        disabled={uploading}
+                        title="Inserir mídia"
+                      >
+                        {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+                      </button>
+                      <DialogContent className="max-w-md overflow-hidden rounded-2xl border-0 shadow-2xl p-0">
+                        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
+                          <DialogTitle className="text-sm font-bold text-slate-900">Select Media Type</DialogTitle>
+                          <Button variant="ghost" size="icon" onClick={() => setImageLibraryOpen(false)} className="rounded-full h-8 w-8">
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <div className="p-4 grid grid-cols-3 gap-4 bg-slate-50/50">
+                          <button 
+                            onClick={() => {
+                              setImageLibraryOpen(false);
+                              // Aqui abriria a galeria que já criamos
+                              const galleryBtn = document.getElementById('trigger-gallery');
+                              galleryBtn?.click();
+                            }}
+                            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all group"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
+                              <ImageIcon className="w-5 h-5" />
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Imagem</span>
+                          </button>
+
+                          <button 
+                            onClick={() => {
+                              const url = prompt("Cole a URL do vídeo do YouTube:");
+                              if (url) {
+                                // Lógica para inserir placeholder de vídeo
+                                insertImageFromUrl(`https://img.youtube.com/vi/${url.split('v=')[1]?.split('&')[0] || url.split('/').pop()}/maxresdefault.jpg`);
+                              }
+                              setImageLibraryOpen(false);
+                            }}
+                            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white border border-slate-200 hover:border-red-500 hover:bg-red-50 transition-all group"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 group-hover:scale-110 transition-transform">
+                              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">YouTube</span>
+                          </button>
+
+                          <button 
+                            onClick={() => {
+                              const url = prompt("Cole a URL do post do X (Twitter):");
+                              setImageLibraryOpen(false);
+                            }}
+                            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white border border-slate-200 hover:border-black hover:bg-slate-100 transition-all group"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">X</span>
+                          </button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+
+                    {/* Botão invisível para triggar a galeria real */}
+                    <button id="trigger-gallery" className="hidden" onClick={() => setRealGalleryOpen(true)}></button>
                     <input 
                       type="file" 
                       ref={fileInputRef} 
@@ -846,8 +904,8 @@ export default function EmailTemplates() {
         </DialogContent>
       </Dialog>
 
-      {/* Galeria de Imagens Estilo Imagem Enviada */}
-      <Dialog open={imageLibraryOpen} onOpenChange={setImageLibraryOpen}>
+      {/* Galeria de Imagens Real */}
+      <Dialog open={realGalleryOpen} onOpenChange={setRealGalleryOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-0 overflow-hidden rounded-2xl border-0 shadow-2xl">
           <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
             <div className="flex items-center gap-3">
