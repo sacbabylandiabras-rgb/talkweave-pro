@@ -349,6 +349,11 @@ export function DashboardLayout() {
       "/instagram/automacao": "ig-automacao",
       "/instagram/contatos": "ig-contatos",
       "/instagram/configuracao": "ig-configuracao",
+      // Email routes
+      "/email/configuracao": "email-config",
+      "/email/caixa-entrada": "email-inbox",
+      "/email/disparo": "email-disparo",
+      "/email/templates": "email-templates",
       // Meta API routes
       "/meta/dashboard": "painel-meta",
       "/meta/templates": "templates-aprovados",
