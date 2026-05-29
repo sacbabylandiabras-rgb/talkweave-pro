@@ -993,6 +993,7 @@ serve(async (req) => {
             messages: [{ role: "user", content: agentInboundText || "Olá" }],
             user_id: userId,
             phone: phone,
+            user_sent_audio: !!incomingAudioUrl,
           }
         });
 
@@ -1016,6 +1017,20 @@ serve(async (req) => {
             aiDestination = numericId ? `${numericId}-group` : aiDestination;
           }
 
+          if (agentResponse?.use_audio === true && !buttons.length) {
+            try {
+              const { data: ttsData, error: ttsErr } = await supabase.functions.invoke("tts", {
+                body: { text: aiResponse, conversation_id: aiDestination },
+              });
+              if (!ttsErr && ttsData?.audio_url) {
+                await sendZapiText(instance, aiDestination, "", [], "global_agent", "audio", ttsData.audio_url, supabase, userId);
+              } else {
+                console.error("[AI Agent] TTS failed, fallback to text:", ttsErr);
+              }
+            } catch (e) {
+              console.error("[AI Agent] TTS exception:", e);
+            }
+          }
           await sendZapiText(instance, aiDestination, aiResponse, buttons, "global_agent", "text", "", supabase, userId);
         } else {
           console.error("[AI Agent] Error calling global agent-chat:", JSON.stringify(agentError));
@@ -1356,6 +1371,7 @@ async function executeFlow(
           skip_config: true,
           model: node.data.model || "claude-sonnet-4-6",
           sent_proof_ids: existingSentProofIds,
+          user_sent_audio: !!getIncomingAudioUrl(webhook),
         }
       });
 
@@ -1410,6 +1426,20 @@ async function executeFlow(
           aiDestination = numericId ? `${numericId}-group` : aiDestination;
         }
         
+        if (agentResponse?.use_audio === true && !buttons.length) {
+          try {
+            const { data: ttsData, error: ttsErr } = await supabase.functions.invoke("tts", {
+              body: { text: aiResponse, conversation_id: aiDestination },
+            });
+            if (!ttsErr && ttsData?.audio_url) {
+              await sendZapiText(instance, aiDestination, "", [], node.id, "audio", ttsData.audio_url, supabase, userId, flow.name);
+            } else {
+              console.error("[Flow:agenteIA] TTS failed, fallback to text:", ttsErr);
+            }
+          } catch (e) {
+            console.error("[Flow:agenteIA] TTS exception:", e);
+          }
+        }
         await sendZapiText(instance, aiDestination, aiResponse, buttons, node.id, "text", "", supabase, userId, flow.name);
         
         const nextEdgeForAgent = edges.find(

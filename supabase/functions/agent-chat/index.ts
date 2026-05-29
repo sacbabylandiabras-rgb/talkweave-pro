@@ -1683,6 +1683,7 @@ serve(async (req) => {
       system_prompt: customSystemPrompt,
       model: customModel,
       sent_proof_ids,
+      user_sent_audio,
     } = body;
     const incomingSentProofIds: string[] = Array.isArray(sent_proof_ids) ? sent_proof_ids.filter((x: any) => typeof x === "string") : [];
     const newlySentProofIds: string[] = [];
@@ -2223,6 +2224,34 @@ serve(async (req) => {
         url: checkoutUrl,
       };
     }
+
+    // Decide se a resposta deve ser entregue em áudio (TTS).
+    // Regras: nunca usar áudio se houver CTA/link, listas, números técnicos,
+    // ou se for muito longa. Usar áudio se o usuário mandou áudio, se for
+    // saudação curta ou conversacional (<3 frases).
+    try {
+      const sentenceCount = (safeReply.match(/[.!?…]+(\s|$)/g) || []).length || 1;
+      const hasLink = /https?:\/\//i.test(safeReply);
+      const hasList = /(^|\n)\s*([-*•]|\d+[\).])\s/.test(safeReply);
+      const hasManyNumbers = (safeReply.match(/\d/g) || []).length > 6;
+      const tooLong = safeReply.length > 320 || sentenceCount > 3;
+      const lastUserMsg = Array.isArray(messages)
+        ? [...messages].reverse().find((m: any) => m?.role === "user")?.content || ""
+        : "";
+      const isGreeting = /^(oi|ol[aá]|opa|bom dia|boa tarde|boa noite|e a[ií]|hey|hello)\b/i
+        .test(String(lastUserMsg).trim());
+      const shouldUseAudio =
+        !checkoutUrl &&
+        !hasLink &&
+        !hasList &&
+        !hasManyNumbers &&
+        !tooLong &&
+        (Boolean(user_sent_audio) || isGreeting || sentenceCount <= 3);
+      replyPayload.use_audio = shouldUseAudio;
+    } catch (_e) {
+      replyPayload.use_audio = false;
+    }
+
     if (newlySentProofIds.length > 0) {
       // Return the updated history (existing + newly sent), deduped
       const merged = Array.from(new Set([...incomingSentProofIds, ...newlySentProofIds]));
