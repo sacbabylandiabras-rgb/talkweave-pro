@@ -14,16 +14,55 @@ const normalizeApiUrl = (value: unknown): string => {
   return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`
 }
 
-const extractUrl = (payload: any): string | null => {
+const extractUrl = (payload: unknown): string | null => {
   if (!payload) return null
   if (Array.isArray(payload)) return extractUrl(payload[0])
-  const value = payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.ProfilePicture ||
-    payload?.ProfilePicUrl || payload?.imageUrl || payload?.picture || payload?.profilePicUrl || payload?.image ||
-    payload?.photo || payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl ||
-    payload?.data?.ProfilePicture || payload?.data?.picture || payload?.chat?.imagePreview || payload?.chat?.image ||
-    payload?.group?.image || payload?.group?.picture
-  const url = String(value || '').trim()
-  return /^https?:\/\//i.test(url) || url.startsWith('data:') ? url : null
+  if (typeof payload !== 'object') return null
+  const p = payload as Record<string, any>
+  const candidates = [
+    p.link, p.imgUrl, p.profilePictureUrl, p.ProfilePicture, p.ProfilePicUrl,
+    p.imageUrl, p.picture, p.profilePicUrl, p.image, p.photo,
+    p.data?.link, p.data?.imgUrl, p.data?.profilePictureUrl, p.data?.ProfilePicture, p.data?.picture,
+    p.chat?.imagePreview, p.chat?.image, p.group?.image, p.group?.picture,
+  ]
+  for (const value of candidates) {
+    if (typeof value !== 'string') continue
+    const url = value.trim()
+    if (/^https?:\/\//i.test(url) || url.startsWith('data:')) return url
+  }
+  return null
+}
+
+const normalizeGroupPhone = (raw: string): string =>
+  raw.endsWith('-group') ? `${raw.replace(/-group$/, '')}@g.us` : raw
+
+const requireEnv = (name: string): string => {
+  const v = Deno.env.get(name)
+  if (!v) throw new Error(`Missing required env var: ${name}`)
+  return v
+}
+
+const chunk = <T,>(arr: T[], size: number): T[][] => {
+  const out: T[][] = []
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
+  return out
+}
+
+const fetchWithRetry = async (
+  input: string,
+  init: RequestInit,
+  attempts = 2,
+): Promise<Response | null> => {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(input, { ...init, signal: AbortSignal.timeout(5000) })
+      if (res.ok || (res.status >= 400 && res.status < 500)) return res
+    } catch (e) {
+      if (i === attempts - 1) console.error(`fetch failed (${input}):`, (e as Error).message)
+    }
+    await new Promise(r => setTimeout(r, 250))
+  }
+  return null
 }
 
 serve(async (req) => {
@@ -32,8 +71,8 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabaseUrl = requireEnv('SUPABASE_URL')
+    const supabaseServiceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY')
     const adminClient = createClient(supabaseUrl, supabaseServiceKey)
 
     const authHeader = req.headers.get('authorization')
@@ -65,132 +104,106 @@ serve(async (req) => {
       })
     }
 
-    // Busca APENAS grupos sem metadata (is_community null)
-    // Prio 1: Começa com 120363, ou contém @g.us ou contém -group
+    // Busca APENAS grupos sem metadata (is_community null) com paginação real via range
+    const offset = page * limit
     const { data: contacts, error: contactsError } = await adminClient
       .from('saved_contacts')
       .select('phone, name, profile_picture_url, is_community')
       .eq('user_id', user.id)
       .is('is_community', null)
       .or('phone.like.120363%,phone.like.%@g.us,phone.like.%-group')
-      .limit(limit)
+      .range(offset, offset + limit - 1)
 
     if (contactsError) throw contactsError
-    if (!contacts?.length) {
+    if (contacts === null || contacts.length === 0) {
       return new Response(JSON.stringify({ message: 'All photos up to date', updated: 0, hasMore: false }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    let updated = 0;
-    let updatedMeta = 0;
+    let updated = 0
+    let updatedMeta = 0
     const provider = String(instance.api_provider || 'zapi').toLowerCase();
     const zapiBase = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`
     const uazapiUrl = normalizeApiUrl(instance.evolution_api_url)
     const uazapiToken = instance.evolution_api_key || instance.zapi_token || ''
-    const uazapiHeaders = {
+    // uazapi requires just a `token` header; mantemos apenas esse e o instance opcional
+    const uazapiHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       token: uazapiToken,
-      apikey: uazapiToken,
-      Authorization: `Bearer ${uazapiToken}`,
-      instance: instance.instance_name || '',
-      'instance-name': instance.instance_name || '',
     }
+    if (instance.instance_name) uazapiHeaders.instance = instance.instance_name
 
-    for (const contact of contacts) {
+    const syncContact = async (contact: { phone: string }) => {
       try {
-        const phone = contact.phone.endsWith('-group')
-          ? `${contact.phone.replace(/-group$/, '')}@g.us`
-          : contact.phone
-
-        const isGroup = phone.includes('@g.us');
-        let isCommunity = false;
-        let communityId = null;
+        const phone = normalizeGroupPhone(contact.phone)
+        const isGroup = phone.includes('@g.us')
+        let isCommunity = false
+        let communityId: string | null = null
 
         if (isGroup && !isUazapiProvider(provider)) {
-          try {
-            const metaRes = await fetch(`${zapiBase}/group-metadata/${phone}`, {
-              headers: { 'client-token': instance.zapi_client_token || '' },
-              signal: AbortSignal.timeout(5000)
-            });
-            const meta = metaRes.ok ? await metaRes.json().catch(() => null) : null;
-            if (meta) {
-              isCommunity = meta.isGroupAnnouncement === true || !!meta.communityId;
-              communityId = meta.communityId || null;
-              updatedMeta++;
-              console.log(`👥 Metadata for ${phone}: isCommunity=${isCommunity}, communityId=${communityId}`);
-            }
-          } catch (metaErr) {
-            console.error(`⚠️ Error fetching metadata for ${phone}:`, metaErr.message);
+          const metaRes = await fetchWithRetry(`${zapiBase}/group-metadata/${phone}`, {
+            headers: { 'client-token': instance.zapi_client_token || '' },
+          })
+          const meta = metaRes?.ok ? await metaRes.json().catch(() => null) : null
+          if (meta) {
+            isCommunity = meta.isGroupAnnouncement === true || !!meta.communityId
+            communityId = meta.communityId || null
+            updatedMeta++
           }
         }
 
-        let url: string | null = null;
+        let url: string | null = null
         if (isUazapiProvider(provider)) {
           const chatNumber = isGroup ? phone : phone.replace(/\D/g, '')
-          const detailsRes = await fetch(`${uazapiUrl}/chat/details`, {
+          const detailsRes = await fetchWithRetry(`${uazapiUrl}/chat/details`, {
             method: 'POST',
             headers: uazapiHeaders,
             body: JSON.stringify({ number: chatNumber, preview: true }),
-            signal: AbortSignal.timeout(5000)
           })
-          const detailsData = await detailsRes.json().catch(() => null)
-          url = detailsRes.ok ? extractUrl(detailsData) : null
+          url = detailsRes?.ok ? extractUrl(await detailsRes.json().catch(() => null)) : null
 
           if (!url && isGroup) {
-            const infoRes = await fetch(`${uazapiUrl}/group/info?token=${encodeURIComponent(uazapiToken)}&apikey=${encodeURIComponent(uazapiToken)}`, {
+            const infoRes = await fetchWithRetry(`${uazapiUrl}/group/info`, {
               method: 'POST',
               headers: uazapiHeaders,
               body: JSON.stringify({ groupjid: chatNumber, getInviteLink: false }),
-              signal: AbortSignal.timeout(5000)
             })
-            const infoData = await infoRes.json().catch(() => null)
-            url = infoRes.ok ? extractUrl(infoData) : null
+            url = infoRes?.ok ? extractUrl(await infoRes.json().catch(() => null)) : null
           }
         } else {
           const endpoint = isGroup
             ? `${zapiBase}/group-thumbnail/${phone}`
-            : `${zapiBase}/profile-picture?phone=${phone}`;
-
-          const res = await fetch(endpoint, {
+            : `${zapiBase}/profile-picture?phone=${phone}`
+          const res = await fetchWithRetry(endpoint, {
             headers: { 'client-token': instance.zapi_client_token || '' },
-            signal: AbortSignal.timeout(5000)
           })
-
-          const data = res.ok ? await res.json().catch(() => null) : null
-          url = extractUrl(data)
+          url = res?.ok ? extractUrl(await res.json().catch(() => null)) : null
         }
 
-        if (url) {
-          await adminClient
-            .from('saved_contacts')
-            .update({ 
-              profile_picture_url: url, 
-              is_community: isCommunity,
-              community_id: communityId,
-              updated_at: new Date().toISOString() 
-            })
-            .eq('phone', contact.phone)
-            .eq('user_id', user.id)
-          updated++
-        } else {
-          // Marca como tentado mesmo sem foto para não ficar retentando imediatamente
-          await adminClient
-            .from('saved_contacts')
-            .update({ 
-              is_community: isCommunity,
-              community_id: communityId,
-              updated_at: new Date().toISOString() 
-            })
-            .eq('phone', contact.phone)
-            .eq('user_id', user.id)
+        const updatePayload: Record<string, unknown> = {
+          is_community: isCommunity,
+          community_id: communityId,
+          updated_at: new Date().toISOString(),
         }
+        if (url) updatePayload.profile_picture_url = url
 
-        // Pequeno delay para evitar rate limit da Z-API
-        await new Promise(r => setTimeout(r, 100))
+        await adminClient
+          .from('saved_contacts')
+          .update(updatePayload)
+          .eq('phone', contact.phone)
+          .eq('user_id', user.id)
+
+        if (url) updated++
       } catch (e) {
-        console.error(`❌ Error syncing photo for ${contact.phone}:`, e.message)
+        console.error(`Error syncing photo for ${contact.phone}:`, (e as Error).message)
       }
+    }
+
+    // Processa em lotes paralelos para reduzir tempo total
+    for (const batch of chunk(contacts, 5)) {
+      await Promise.all(batch.map(syncContact))
+      await new Promise(r => setTimeout(r, 200))
     }
 
     const hasMore = contacts.length === limit;
@@ -199,6 +212,7 @@ serve(async (req) => {
       updatedPhotos: updated, 
       updatedMeta, 
       total: contacts.length,
+      page,
       hasMore
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
