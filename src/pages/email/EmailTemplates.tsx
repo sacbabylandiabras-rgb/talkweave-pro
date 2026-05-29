@@ -102,14 +102,9 @@ export default function EmailTemplates() {
         .from('template-media')
         .getPublicUrl(filePath);
 
-      const textarea = document.querySelector('textarea');
-      if (textarea) {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const text = editing?.html || "";
-        const before = text.substring(0, start);
-        const after = text.substring(end);
-        const newValue = before + `
+      const editor = document.getElementById('email-editor');
+      if (editor) {
+        const imgHtml = `
           <div class="img-container" style="display: inline-block; position: relative; margin: 10px; line-height: 0;">
             <img src="${publicUrl}" alt="imagem" style="width: 300px; height: auto; border-radius: 8px; cursor: pointer; display: block;" />
             <div class="img-controls" contenteditable="false" style="position: absolute; top: 5px; right: 5px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; background: rgba(0,0,0,0.5); padding: 4px; border-radius: 4px;">
@@ -117,8 +112,38 @@ export default function EmailTemplates() {
             </div>
             <div class="resizer" contenteditable="false" style="position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; cursor: nwse-resize; background: #6366f1; border-radius: 50%;"></div>
           </div>
-        ` + after;
-        if (editing) setEditing({ ...editing, html: newValue });
+        `;
+        
+        // Tenta inserir na posição do cursor se o editor estiver focado
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0 && editor.contains(selection.anchorNode)) {
+          const range = selection.getRangeAt(0);
+          range.deleteContents();
+          const div = document.createElement('div');
+          div.innerHTML = imgHtml.trim();
+          const frag = document.createDocumentFragment();
+          let node;
+          while (node = div.firstChild) {
+            frag.appendChild(node);
+          }
+          range.insertNode(frag);
+        } else {
+          // Se não houver seleção ou não estiver no editor, adiciona ao final
+          editor.innerHTML += imgHtml;
+        }
+        
+        if (editing) setEditing({ ...editing, html: editor.innerHTML });
+      } else if (editing) {
+        // Fallback caso o editor não esteja no DOM por algum motivo
+        setEditing({ ...editing, html: (editing.html || "") + `
+          <div class="img-container" style="display: inline-block; position: relative; margin: 10px; line-height: 0;">
+            <img src="${publicUrl}" alt="imagem" style="width: 300px; height: auto; border-radius: 8px; cursor: pointer; display: block;" />
+            <div class="img-controls" contenteditable="false" style="position: absolute; top: 5px; right: 5px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; background: rgba(0,0,0,0.5); padding: 4px; border-radius: 4px;">
+              <button onclick="this.closest('.img-container').remove(); window.dispatchEvent(new CustomEvent('template-change'));" style="background: #ef4444; color: white; border: none; border-radius: 3px; padding: 2px 6px; cursor: pointer; font-size: 10px;">X</button>
+            </div>
+            <div class="resizer" contenteditable="false" style="position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; cursor: nwse-resize; background: #6366f1; border-radius: 50%;"></div>
+          </div>
+        ` });
       }
       toast.success("Imagem enviada com sucesso!");
     } catch (err: any) {
@@ -329,16 +354,8 @@ export default function EmailTemplates() {
                       variant="ghost" 
                       className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
                       onClick={() => {
-                        const textarea = document.querySelector('textarea');
-                        if (textarea) {
-                          const start = textarea.selectionStart;
-                          const end = textarea.selectionEnd;
-                          const text = editing?.html || "";
-                          const before = text.substring(0, start);
-                          const after = text.substring(end);
-                          const newValue = before + "{{variável}}" + after;
-                          if (editing) setEditing({ ...editing, html: newValue });
-                        }
+                        document.execCommand('insertText', false, '{{variável}}');
+                        if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
                       }}
                       title="Adicionar variável"
                     >
@@ -401,17 +418,8 @@ export default function EmailTemplates() {
                       variant="ghost" 
                       className="h-8 w-8 text-slate-500 font-bold hover:text-indigo-600 hover:bg-indigo-50"
                       onClick={() => {
-                        const textarea = document.querySelector('textarea');
-                        if (textarea) {
-                          const start = textarea.selectionStart;
-                          const end = textarea.selectionEnd;
-                          const selected = (editing?.html || "").substring(start, end);
-                          if (!selected) return;
-                          const before = (editing?.html || "").substring(0, start);
-                          const after = (editing?.html || "").substring(end);
-                          const newValue = before + `<b>${selected}</b>` + after;
-                          if (editing) setEditing({ ...editing, html: newValue });
-                        }
+                        document.execCommand('bold', false);
+                        if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
                       }}
                       title="Negrito"
                     >
@@ -422,17 +430,8 @@ export default function EmailTemplates() {
                       variant="ghost" 
                       className="h-8 w-8 text-slate-500 italic font-serif hover:text-indigo-600 hover:bg-indigo-50"
                       onClick={() => {
-                        const textarea = document.querySelector('textarea');
-                        if (textarea) {
-                          const start = textarea.selectionStart;
-                          const end = textarea.selectionEnd;
-                          const selected = (editing?.html || "").substring(start, end);
-                          if (!selected) return;
-                          const before = (editing?.html || "").substring(0, start);
-                          const after = (editing?.html || "").substring(end);
-                          const newValue = before + `<i>${selected}</i>` + after;
-                          if (editing) setEditing({ ...editing, html: newValue });
-                        }
+                        document.execCommand('italic', false);
+                        if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
                       }}
                       title="Itálico"
                     >
@@ -444,6 +443,8 @@ export default function EmailTemplates() {
                 <div className="flex-1 p-6 bg-white overflow-y-auto min-h-[500px] border-none relative">
                   <style>{`
                     .img-container:hover .img-controls { opacity: 1 !important; }
+                    .img-container.selected .img-controls { opacity: 1 !important; }
+                    .img-container.selected { outline: 2px solid #6366f1; }
                     [contenteditable] img { outline: 2px solid transparent; transition: outline 0.2s; }
                     [contenteditable] img:hover { outline: 2px solid #6366f1; }
                   `}</style>
@@ -456,6 +457,17 @@ export default function EmailTemplates() {
                     }}
                     onInput={(e) => {
                       if (editing) setEditing({ ...editing, html: e.currentTarget.innerHTML });
+                    }}
+                    onClick={(e) => {
+                      const target = e.target as HTMLElement;
+                      const container = target.closest('.img-container');
+                      
+                      // Remove selected class from all containers
+                      document.querySelectorAll('.img-container').forEach(el => el.classList.remove('selected'));
+                      
+                      if (container) {
+                        container.classList.add('selected');
+                      }
                     }}
                     onMouseDown={(e) => {
                       const target = e.target as HTMLElement;
