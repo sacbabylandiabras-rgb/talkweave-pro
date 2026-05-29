@@ -2727,6 +2727,17 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
 
   const normalizedSelectedPhone = normalizeSelectedConversationPhone(selectedPhone);
   const selectedConversation = conversations.find((c) => c.phone === normalizedSelectedPhone) || null;
+  const displayedSelectedConversation = useMemo(
+    () =>
+      selectedConversation && manualProfilePic
+        ? { ...selectedConversation, profilePictureUrl: manualProfilePic }
+        : selectedConversation,
+    [selectedConversation, manualProfilePic],
+  );
+
+  useEffect(() => {
+    setManualProfilePic(null);
+  }, [normalizedSelectedPhone]);
 
   useEffect(() => {
     if (!selectedPhone) return;
@@ -2785,11 +2796,13 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
     const convInstanceId = conv?.preferredInstanceId;
 
     // Resolve o zapi_instance_id a partir do preferredInstanceId da conversa
-    let resolvedZapiInstanceId = selectedInstance?.zapi_instance_id || activeInstance?.zapi_instance_id || null;
+    let resolvedZapiInstanceId = selectedInstanceId !== "all" ? selectedInstance?.zapi_instance_id || null : null;
     if (convInstanceId) {
       const matchedInst = instances.find((i: any) => i.id === convInstanceId || i.zapi_instance_id === convInstanceId);
       if (matchedInst?.zapi_instance_id) {
         resolvedZapiInstanceId = matchedInst.zapi_instance_id;
+      } else if (/^[a-z0-9]{24,}$/i.test(convInstanceId)) {
+        resolvedZapiInstanceId = convInstanceId;
       }
     }
 
@@ -2801,8 +2814,9 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
     if (!force) {
       if (url) {
         toast({ title: "Foto atualizada", description: "Foto de perfil carregada com sucesso." });
+      } else {
+        toast({ title: "Sem foto disponível", description: "Não encontrei foto para essa conversa nas conexões disponíveis." });
       }
-      // Sem toast de erro — grupos sem foto é comportamento normal do WhatsApp
     }
   };
 
@@ -2877,7 +2891,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
             )}
             {showChat && (
               <ChatView
-                conversation={selectedConversation}
+                conversation={displayedSelectedConversation}
                 onBack={() => setSelectedPhone(null)}
                 isMobile={isMobile}
                 onSaveContact={handleSaveContact}
@@ -3086,24 +3100,24 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
 
         <ContactProfileDialog
           contact={
-            selectedConversation
+            displayedSelectedConversation
               ? ({
-                  phone: selectedConversation.phone,
-                  name: selectedConversation.contactName || "",
+                  phone: displayedSelectedConversation.phone,
+                  name: displayedSelectedConversation.contactName || "",
                   status: "ativo",
-                  messageCount: selectedConversation.messages.length,
-                  lastMessageDate: selectedConversation.lastTimestamp,
-                  firstContactDate: selectedConversation.messages[0]?.timestamp || null,
+                  messageCount: displayedSelectedConversation.messages.length,
+                  lastMessageDate: displayedSelectedConversation.lastTimestamp,
+                  firstContactDate: displayedSelectedConversation.messages[0]?.timestamp || null,
                   tags: [],
-                  profilePictureUrl: selectedConversation.profilePictureUrl || null,
-                  deal_value: (selectedConversation as any).deal_value,
-                  closing_date: (selectedConversation as any).closing_date,
-                  priority: (selectedConversation as any).priority,
-                  description: (selectedConversation as any).description,
-                  responsible_ids: (selectedConversation as any).responsible_ids,
-                  deal_metadata: (selectedConversation as any).deal_metadata,
-                  lastMessage: selectedConversation.lastMessage,
-                  agent_stage: selectedConversation.agent_stage,
+                  profilePictureUrl: displayedSelectedConversation.profilePictureUrl || null,
+                  deal_value: (displayedSelectedConversation as any).deal_value,
+                  closing_date: (displayedSelectedConversation as any).closing_date,
+                  priority: (displayedSelectedConversation as any).priority,
+                  description: (displayedSelectedConversation as any).description,
+                  responsible_ids: (displayedSelectedConversation as any).responsible_ids,
+                  deal_metadata: (displayedSelectedConversation as any).deal_metadata,
+                  lastMessage: displayedSelectedConversation.lastMessage,
+                  agent_stage: displayedSelectedConversation.agent_stage,
                 } as any)
               : null
           }
