@@ -191,17 +191,33 @@ const extractGroupName = (payload: any): string | null => {
       type InstanceCfg = { provider: string; base: string; headers: Record<string, string>; instanceName?: string }
      const instancesToTry: InstanceCfg[] = []
  
-     if (instanceId) {
-        const { data: specificInstance } = await adminClient
-         .from('zapi_instances')
-         .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, is_active')
-         .or(`id.eq.${instanceId},zapi_instance_id.eq.${instanceId}`)
-         .eq('user_id', credentials.userId)
-         .eq('api_provider', 'zapi')
-        .eq('is_active', true)
-         .maybeSingle()
+      if (instanceId) {
+        const sanitizedInstanceId = String(instanceId).replace(/[^a-zA-Z0-9_-]/g, '')
+        const selectInstanceFields = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, is_active'
+        let specificInstance: any = null
+        if (sanitizedInstanceId) {
+          const { data: byRowId } = await adminClient
+            .from('zapi_instances')
+            .select(selectInstanceFields)
+            .eq('id', sanitizedInstanceId)
+            .eq('user_id', credentials.userId)
+            .eq('api_provider', 'zapi')
+            .maybeSingle()
+
+          specificInstance = byRowId
+          if (!specificInstance) {
+            const { data: byProviderId } = await adminClient
+              .from('zapi_instances')
+              .select(selectInstanceFields)
+              .eq('zapi_instance_id', sanitizedInstanceId)
+              .eq('user_id', credentials.userId)
+              .eq('api_provider', 'zapi')
+              .maybeSingle()
+            specificInstance = byProviderId
+          }
+        }
  
-       if (specificInstance) {
+        if (specificInstance) {
           const provider = (specificInstance.api_provider || 'zapi').toLowerCase()
           instancesToTry.push({
             provider,

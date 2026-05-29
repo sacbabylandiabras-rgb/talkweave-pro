@@ -2801,7 +2801,9 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
       const matchedInst = instances.find((i: any) => i.id === convInstanceId || i.zapi_instance_id === convInstanceId);
       if (matchedInst?.zapi_instance_id) {
         resolvedZapiInstanceId = matchedInst.zapi_instance_id;
-      } else if (/^[a-z0-9]{24,}$/i.test(convInstanceId)) {
+      } else {
+        // Mesmo que a instância esteja fora da lista visível/inativa, a função valida o dono no servidor
+        // e precisa tentar a instância original da conversa para grupos.
         resolvedZapiInstanceId = convInstanceId;
       }
     }
