@@ -2891,7 +2891,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
             )}
             {showChat && (
               <ChatView
-                conversation={selectedConversation}
+                conversation={displayedSelectedConversation}
                 onBack={() => setSelectedPhone(null)}
                 isMobile={isMobile}
                 onSaveContact={handleSaveContact}
@@ -3100,24 +3100,24 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
 
         <ContactProfileDialog
           contact={
-            selectedConversation
+            displayedSelectedConversation
               ? ({
-                  phone: selectedConversation.phone,
-                  name: selectedConversation.contactName || "",
+                  phone: displayedSelectedConversation.phone,
+                  name: displayedSelectedConversation.contactName || "",
                   status: "ativo",
-                  messageCount: selectedConversation.messages.length,
-                  lastMessageDate: selectedConversation.lastTimestamp,
-                  firstContactDate: selectedConversation.messages[0]?.timestamp || null,
+                  messageCount: displayedSelectedConversation.messages.length,
+                  lastMessageDate: displayedSelectedConversation.lastTimestamp,
+                  firstContactDate: displayedSelectedConversation.messages[0]?.timestamp || null,
                   tags: [],
-                  profilePictureUrl: selectedConversation.profilePictureUrl || null,
-                  deal_value: (selectedConversation as any).deal_value,
-                  closing_date: (selectedConversation as any).closing_date,
-                  priority: (selectedConversation as any).priority,
-                  description: (selectedConversation as any).description,
-                  responsible_ids: (selectedConversation as any).responsible_ids,
-                  deal_metadata: (selectedConversation as any).deal_metadata,
-                  lastMessage: selectedConversation.lastMessage,
-                  agent_stage: selectedConversation.agent_stage,
+                  profilePictureUrl: displayedSelectedConversation.profilePictureUrl || null,
+                  deal_value: (displayedSelectedConversation as any).deal_value,
+                  closing_date: (displayedSelectedConversation as any).closing_date,
+                  priority: (displayedSelectedConversation as any).priority,
+                  description: (displayedSelectedConversation as any).description,
+                  responsible_ids: (displayedSelectedConversation as any).responsible_ids,
+                  deal_metadata: (displayedSelectedConversation as any).deal_metadata,
+                  lastMessage: displayedSelectedConversation.lastMessage,
+                  agent_stage: displayedSelectedConversation.agent_stage,
                 } as any)
               : null
           }
