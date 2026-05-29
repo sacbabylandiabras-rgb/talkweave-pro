@@ -250,7 +250,10 @@ export default function CheckoutEmailSection() {
                         Configuração de DNS Necessária
                       </p>
                       <p className="text-[10px] text-blue-400/80">
-                        Adicione os registros abaixo no seu provedor de domínio para validar o envio.
+                        Adicione os registros abaixo no seu provedor de domínio (Cloudflare, GoDaddy, etc) para validar o envio.
+                      </p>
+                      <p className="text-[10px] text-blue-400/80 mt-1">
+                        <strong>Dica:</strong> Se o seu provedor de DNS já adiciona o domínio automaticamente, use apenas <code>resend._domainkey</code> como nome do registro DKIM.
                       </p>
                     </div>
                     
