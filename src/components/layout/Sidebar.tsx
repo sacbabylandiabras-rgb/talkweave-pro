@@ -94,6 +94,13 @@ const zapiMenuItems = [
   { id: "produtos", label: "Produtos", icon: ShoppingBag, path: "/produtos" },
  ];
 
+const emailMenuItems = [
+  { id: "email-config", label: "Configuração", icon: Settings, path: "/email/configuracao" },
+  { id: "email-inbox", label: "Caixa de Entrada", icon: Mail, path: "/email/caixa-entrada" },
+  { id: "email-disparo", label: "Disparo", icon: Send, path: "/email/disparo" },
+  { id: "email-templates", label: "Templates", icon: LayoutTemplate, path: "/email/templates" },
+];
+
  const instagramMenuItems = [
    { id: "ig-dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/instagram/dashboard" },
     { id: "ig-mensagens", label: "Mensagens", icon: MessageCircle, path: "/instagram/mensagens" },
@@ -155,7 +162,6 @@ const gatewayMenuItems = [
   { id: "pay-products", label: "Produtos", icon: FileText, path: "/gateway-checkout/products" },
   { id: "pay-checkouts", label: "Checkouts", icon: CreditCard, path: "/gateway-checkout/checkouts" },
   { id: "pay-domain", label: "Domínio", icon: Globe, path: "/gateway-checkout/settings?tab=dominio" },
-  { id: "pay-email", label: "E-mail", icon: Mail, path: "/gateway-checkout/settings?tab=email" },
   { id: "pay-landing-pages", label: "Landing Pages", icon: LayoutTemplate, path: "/gateway-checkout/landing-pages" },
   { id: "pay-reports", label: "Relatórios", icon: BarChart3, path: "/gateway-checkout/reports" },
   { id: "pay-marketplace", label: "Marketplace", icon: ShoppingBag, path: "/gateway-checkout/marketplace" },
