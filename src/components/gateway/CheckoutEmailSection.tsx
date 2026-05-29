@@ -230,12 +230,21 @@ export default function CheckoutEmailSection() {
                   </div>
                   
                   <div className="space-y-3">
-                    {emailVerification.records.map((record: any, idx: number) => (
+                    {[
+                      ...emailVerification.records,
+                      {
+                        type: "TXT",
+                        name: "_dmarc",
+                        value: "v=DMARC1; p=none;",
+                        optional: true,
+                      },
+                    ].map((record: any, idx: number) => (
                       <div key={idx} className="p-3 rounded-lg border border-[#2A2A2A] bg-muted/20 space-y-2">
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-2">
                             <Badge variant="secondary" className="text-[9px] font-mono uppercase">{record.type}</Badge>
                             {record.priority && <Badge variant="outline" className="text-[9px]">Prioridade: {record.priority}</Badge>}
+                            {record.optional && <Badge variant="outline" className="text-[9px] border-muted-foreground/30 text-muted-foreground">Opcional</Badge>}
                           </div>
                           <div className="flex items-center gap-1.5">
                             <span className="text-[9px] text-muted-foreground">Nome:</span>
