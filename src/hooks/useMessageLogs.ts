@@ -701,8 +701,14 @@ export const useMessageLogs = (
 
         setLocalManualPhotos((prev) => {
           const next = new Map(prev);
-          if (finalUrl) next.set(zapiPhone, finalUrl);
-          else next.delete(zapiPhone);
+          // Indexar a foto sob todas as variantes do telefone para que a lista
+          // de conversas (que usa "<id>-group" ou o telefone normalizado) também
+          // encontre a URL recém-buscada.
+          const keys = new Set<string>([zapiPhone, phone]);
+          if (phone.endsWith("@g.us")) keys.add(`${phone.replace(/@g\.us$/, "")}-group`);
+          if (zapiPhone.endsWith("@g.us")) keys.add(`${zapiPhone.replace(/@g\.us$/, "")}-group`);
+          if (finalUrl) keys.forEach((k) => next.set(k, finalUrl));
+          else keys.forEach((k) => next.delete(k));
           return next;
         });
 
