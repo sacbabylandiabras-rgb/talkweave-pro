@@ -237,9 +237,14 @@ export default function CheckoutEmailSection() {
                 {emailVerification?.status === "verified" ? "Registrado" : "Registrar"}
               </Button>
               {emailVerification && (
-                <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={handleRefreshEmailStatus} disabled={statusChecking}>
-                  <RefreshCw className={`w-3.5 h-3.5 ${statusChecking ? 'animate-spin' : ''}`} />
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={handleRefreshEmailStatus} disabled={statusChecking}>
+                    <RefreshCw className={`w-3.5 h-3.5 ${statusChecking ? 'animate-spin' : ''}`} />
+                  </Button>
+                  <Button variant="outline" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleDeleteEmailDomain} disabled={emailSaving}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
               )}
             </div>
             <p className="text-[10px] text-muted-foreground mt-1">
