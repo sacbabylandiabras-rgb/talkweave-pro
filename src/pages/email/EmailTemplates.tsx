@@ -443,6 +443,8 @@ export default function EmailTemplates() {
                 <div className="flex-1 p-6 bg-white overflow-y-auto min-h-[500px] border-none relative">
                   <style>{`
                     .img-container:hover .img-controls { opacity: 1 !important; }
+                    .img-container.selected .img-controls { opacity: 1 !important; }
+                    .img-container.selected { outline: 2px solid #6366f1; }
                     [contenteditable] img { outline: 2px solid transparent; transition: outline 0.2s; }
                     [contenteditable] img:hover { outline: 2px solid #6366f1; }
                   `}</style>
@@ -455,6 +457,17 @@ export default function EmailTemplates() {
                     }}
                     onInput={(e) => {
                       if (editing) setEditing({ ...editing, html: e.currentTarget.innerHTML });
+                    }}
+                    onClick={(e) => {
+                      const target = e.target as HTMLElement;
+                      const container = target.closest('.img-container');
+                      
+                      // Remove selected class from all containers
+                      document.querySelectorAll('.img-container').forEach(el => el.classList.remove('selected'));
+                      
+                      if (container) {
+                        container.classList.add('selected');
+                      }
                     }}
                     onMouseDown={(e) => {
                       const target = e.target as HTMLElement;
