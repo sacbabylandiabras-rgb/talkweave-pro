@@ -243,7 +243,18 @@ serve(async (req) => {
       !!webhook?.listResponseMessage;
 
     const senderName = webhook?.senderName || webhook?.sender?.name || "";
-    const senderPhoto = webhook?.photo || webhook?.sender?.photo || "";
+    const senderPhoto =
+      webhook?.photo ||
+      webhook?.sender?.photo ||
+      webhook?.senderPhoto ||
+      webhook?.profilePicture ||
+      webhook?.sender?.imagePreview ||
+      webhook?.sender?.image ||
+      webhook?.chat?.imagePreview ||
+      webhook?.chat?.image ||
+      webhook?.message?.sender?.imagePreview ||
+      webhook?.message?.sender?.image ||
+      "";
     const senderPhone = participantPhone;
 
     let messageRaw =
