@@ -86,6 +86,72 @@ async function transcribeAudioUrl(audioUrl: string): Promise<string> {
   }
 }
 
+
+function firstTextValue(...values: unknown[]): string {
+  for (const value of values) {
+    const text = String(value || "").trim();
+    if (text && text.toLowerCase() !== "null" && text.toLowerCase() !== "undefined") return text;
+  }
+  return "";
+}
+
+function sanitizeSenderPhone(value: unknown): string {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (raw.toLowerCase().includes("@lid")) return raw.toLowerCase();
+  const digits = raw.replace(/\D/g, "");
+  return digits || raw;
+}
+
+function getInboundSenderMetadata(webhook: any, isGroup: boolean, participantPhone: string, chatId: string) {
+  const senderPhone = sanitizeSenderPhone(
+    isGroup
+      ? firstTextValue(
+          participantPhone,
+          webhook?.participant,
+          webhook?.participantPhone,
+          webhook?.senderPhone,
+          webhook?.sender?.phone,
+          webhook?.message?.sender?.phone,
+          webhook?.author,
+          webhook?.remoteParticipant,
+        )
+      : firstTextValue(webhook?.senderPhone, webhook?.sender?.phone, webhook?.message?.sender?.phone, chatId),
+  );
+
+  const senderName = firstTextValue(
+    webhook?.senderName,
+    webhook?.participantName,
+    webhook?.pushName,
+    webhook?.notifyName,
+    webhook?.authorName,
+    webhook?.sender?.name,
+    webhook?.sender?.pushName,
+    webhook?.contact?.name,
+    webhook?.message?.sender?.name,
+    webhook?.message?.pushName,
+  );
+
+  const senderPhoto = firstTextValue(
+    webhook?.photo,
+    webhook?.senderPhoto,
+    webhook?.profilePicture,
+    webhook?.profilePictureUrl,
+    webhook?.sender?.photo,
+    webhook?.sender?.profilePicture,
+    webhook?.sender?.profilePictureUrl,
+    webhook?.sender?.imagePreview,
+    webhook?.sender?.image,
+    webhook?.contact?.profilePictureUrl,
+    webhook?.contact?.photo,
+    webhook?.message?.sender?.profilePictureUrl,
+    webhook?.message?.sender?.imagePreview,
+    webhook?.message?.sender?.image,
+  );
+
+  return { senderName, senderPhone, senderPhoto };
+}
+
 function getIncomingAudioUrl(webhook: any): string {
   return String(
     webhook?.audio?.audioUrl ||
@@ -242,20 +308,7 @@ serve(async (req) => {
       !!webhook?.buttonReply ||
       !!webhook?.listResponseMessage;
 
-    const senderName = webhook?.senderName || webhook?.sender?.name || "";
-    const senderPhoto =
-      webhook?.photo ||
-      webhook?.sender?.photo ||
-      webhook?.senderPhoto ||
-      webhook?.profilePicture ||
-      webhook?.sender?.imagePreview ||
-      webhook?.sender?.image ||
-      webhook?.chat?.imagePreview ||
-      webhook?.chat?.image ||
-      webhook?.message?.sender?.imagePreview ||
-      webhook?.message?.sender?.image ||
-      "";
-    const senderPhone = participantPhone;
+    const { senderName, senderPhone, senderPhoto } = getInboundSenderMetadata(webhook, isGroup, participantPhone, chatId);
 
     let messageRaw =
       webhook?.buttonsResponseMessage?.message ||
@@ -313,9 +366,11 @@ serve(async (req) => {
 
     // Atualiza/insere contato com foto de perfil quando a mensagem é recebida
     try {
-      if (userId && !fromMe && phone) {
-        const contactPhone = String(phone).replace(/-group$/i, "").replace(/@.*$/, "");
-        if (contactPhone && !isGroup) {
+      if (userId && !fromMe) {
+        const contactPhone = isGroup
+          ? senderPhone
+          : sanitizeSenderPhone(phone || senderPhone);
+        if (contactPhone) {
           const contactPayload: Record<string, unknown> = {
             user_id: userId,
             phone: contactPhone,
@@ -759,6 +814,9 @@ serve(async (req) => {
                 instance_id: instanceId,
                 timestamp: new Date().toISOString(),
                 message_received: displayInboundMessage,
+                sender_name: senderName || null,
+                sender_phone: senderPhone || null,
+                sender_photo: senderPhoto || null,
                 response_sent: `[Agente IA: ${flow.name}]`,
                 keyword_matched: `__agent_flow_inbound__:${flow.id}:${messageId}`,
                 message_id: messageId,
@@ -788,6 +846,9 @@ serve(async (req) => {
                 instance_id: instanceId,
                 timestamp: new Date().toISOString(),
                 message_received: messageRaw,
+                sender_name: senderName || null,
+                sender_phone: senderPhone || null,
+                sender_photo: senderPhoto || null,
                 keyword_matched: `[Botão: ${buttonMatch.text}]`,
                 response_sent: `[Fluxo: ${flow.name}]`,
                 message_id: messageId,
@@ -830,6 +891,9 @@ serve(async (req) => {
               instance_id: instanceId,
               timestamp: new Date().toISOString(),
               message_received: messageRaw,
+              sender_name: senderName || null,
+              sender_phone: senderPhone || null,
+              sender_photo: senderPhoto || null,
               keyword_matched: `[Botão: ${buttonMatch.text}]`,
               response_sent: `[Fluxo: ${flow.name}]`,
               message_id: messageId,
@@ -973,6 +1037,9 @@ serve(async (req) => {
             instance_id: instanceId,
             timestamp: new Date().toISOString(),
             message_received: displayInboundMessage,
+            sender_name: senderName || null,
+            sender_phone: senderPhone || null,
+            sender_photo: senderPhoto || null,
             response_sent: `[Fluxo: ${flow.name}]`,
             keyword_matched: triggerKey,
             message_id: messageId,
@@ -1019,6 +1086,9 @@ serve(async (req) => {
             instance_id: instanceId,
             timestamp: new Date().toISOString(),
             message_received: displayInboundMessage,
+            sender_name: senderName || null,
+            sender_phone: senderPhone || null,
+            sender_photo: senderPhoto || null,
             response_sent: "[Agente IA global]",
             keyword_matched: `__global_agent_inbound__:${messageId}`,
             message_id: messageId,
@@ -1086,6 +1156,9 @@ serve(async (req) => {
           instance_id: instanceId,
           timestamp: new Date().toISOString(),
           message_received: displayInboundMessage,
+          sender_name: senderName || null,
+          sender_phone: senderPhone || null,
+          sender_photo: senderPhoto || null,
           message_id: messageId,
         });
       }
