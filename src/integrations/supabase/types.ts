@@ -19,6 +19,7 @@ export type Database = {
           active: boolean
           agent_name: string
           created_at: string
+          disable_in_groups: boolean
           id: string
           system_prompt: string
           updated_at: string
@@ -28,6 +29,7 @@ export type Database = {
           active?: boolean
           agent_name?: string
           created_at?: string
+          disable_in_groups?: boolean
           id?: string
           system_prompt?: string
           updated_at?: string
@@ -37,6 +39,7 @@ export type Database = {
           active?: boolean
           agent_name?: string
           created_at?: string
+          disable_in_groups?: boolean
           id?: string
           system_prompt?: string
           updated_at?: string
