@@ -84,6 +84,7 @@ Deno.serve(async (req) => {
         headers: {
           "Authorization": `Bearer ${RESEND_API_KEY}`,
           "Content-Type": "application/json",
+          "X-Resend-Region": "us-east-1",
         },
         body: JSON.stringify({ from, to: recipient, subject, html }),
       });
