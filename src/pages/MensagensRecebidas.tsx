@@ -2754,13 +2754,31 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
   const handleRefreshAll = async () => {
     setSyncing(true);
     try {
-      for (let i = 0; i < 5; i++) {
-        const { data } = await supabase.functions.invoke("sync-profile-photos", { body: { page: i } });
-        if (data && data.hasMore === false) break;
-      }
-      await refetch();
       clearFetchedPhotosCache();
-      toast({ title: "Fotos sincronizadas", description: "Fotos de perfil atualizadas." });
+
+      // Busca a foto de cada conversa visível usando a mesma rota individual
+      // (que respeita a instância correta de cada conversa/grupo).
+      const targets = conversations
+        .map((c) => c.phone)
+        .filter((p) => !!p && !p.includes("@lid"));
+
+      const concurrency = 5;
+      let cursor = 0;
+      const worker = async () => {
+        while (cursor < targets.length) {
+          const idx = cursor++;
+          const phone = targets[idx];
+          try {
+            await handleFetchPhoto(phone, true);
+          } catch {
+            // ignora falhas individuais
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: concurrency }, worker));
+
+      await refetch();
+      toast({ title: "Fotos sincronizadas", description: `${targets.length} conversas atualizadas.` });
     } catch {
       toast({ title: "Erro", variant: "destructive" });
     } finally {
