@@ -66,7 +66,7 @@ export function useInstagramMessages(selectedIgId?: string | null) {
         .select("ig_user_id, username, profile_pic_url")
         .eq("user_id", userId);
       if (error) throw error;
-      return (data || []) as { ig_user_id: string; username: string; profile_pic_url: string | null }[];
+      return (data || []) as unknown as { ig_user_id: string; username: string; profile_pic_url: string | null }[];
     },
   });
 
