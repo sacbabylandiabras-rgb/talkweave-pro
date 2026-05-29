@@ -2404,6 +2404,44 @@ export type Database = {
           },
         ]
       }
+      user_email_templates: {
+        Row: {
+          created_at: string
+          html: string
+          id: string
+          name: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          html?: string
+          id?: string
+          name: string
+          subject?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          html?: string
+          id?: string
+          name?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_email_templates_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
