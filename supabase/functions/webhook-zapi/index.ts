@@ -1371,7 +1371,7 @@ async function executeFlow(
           skip_config: true,
           model: node.data.model || "claude-sonnet-4-6",
           sent_proof_ids: existingSentProofIds,
-          user_sent_audio: !!incomingAudioUrl,
+          user_sent_audio: !!getIncomingAudioUrl(webhook),
         }
       });
 
