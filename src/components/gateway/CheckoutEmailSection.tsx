@@ -115,8 +115,10 @@ export default function CheckoutEmailSection() {
         setEmailVerification(data.email_verification);
         if (data.email_verification.status === "verified") {
           toast.success("Domínio verificado com sucesso!");
+        } else if (data.error) {
+          toast.error(`Erro: ${data.error}`);
         } else {
-          toast.info("DNS ainda não propagado. Tente novamente em alguns minutos.");
+          toast.info("DNS ainda não propagado ou registros incorretos. Verifique no seu provedor.");
         }
       }
     } catch (err: any) {
