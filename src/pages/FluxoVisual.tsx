@@ -3885,6 +3885,24 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </p>
                 </div>
 
+                <div className="flex items-center justify-between p-3 rounded-lg border border-purple-100 dark:border-purple-900/20 bg-purple-50/50 dark:bg-purple-900/5">
+                  <div className="pr-3">
+                    <Label className="text-sm font-semibold">Desativar envio em grupos</Label>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      Quando ativado, este bloco não responde mensagens recebidas em grupos.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={selectedNode.data.disable_in_groups === true}
+                    onCheckedChange={(checked) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, disable_in_groups: checked },
+                      })
+                    }
+                  />
+                </div>
+
                 <div className="p-3 rounded-lg border border-purple-100 bg-purple-50/50 dark:bg-purple-900/5 dark:border-purple-900/20">
                    <p className="text-[11px] text-purple-600 dark:text-purple-400 font-medium">
                      Dica: Você pode usar variáveis como {"{{nome}}"} no prompt para que a IA saiba o nome do cliente.
