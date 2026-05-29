@@ -1775,6 +1775,8 @@ export type Database = {
           document: string | null
           document_type: string | null
           email: string | null
+          email_sender_address: string | null
+          email_sender_name: string | null
           full_name: string | null
           id: string
           is_active: boolean
@@ -1800,6 +1802,8 @@ export type Database = {
           document?: string | null
           document_type?: string | null
           email?: string | null
+          email_sender_address?: string | null
+          email_sender_name?: string | null
           full_name?: string | null
           id: string
           is_active?: boolean
@@ -1825,6 +1829,8 @@ export type Database = {
           document?: string | null
           document_type?: string | null
           email?: string | null
+          email_sender_address?: string | null
+          email_sender_name?: string | null
           full_name?: string | null
           id?: string
           is_active?: boolean
