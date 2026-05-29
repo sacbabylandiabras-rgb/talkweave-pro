@@ -29,7 +29,7 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
   const { data: { user }, error } = await userClient.auth.getUser();
   if (error || !user) throw new Error('Unauthorized');
 
-  const instanceSelect = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, evolution_api_url, evolution_api_key, instance_type';
+  const instanceSelect = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_type';
   const uuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
   let q = admin.from('zapi_instances' as any)
@@ -49,7 +49,11 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
   if (!inst) {
     const r = await admin.from('zapi_instances' as any)
       .select(instanceSelect)
-      .eq('user_id', user.id).eq('is_active', true).limit(1).maybeSingle();
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .or('api_provider.eq.zapi,api_provider.eq.meta,api_provider.is.null')
+      .limit(1)
+      .maybeSingle();
     inst = r.data as any;
   }
 
@@ -81,8 +85,6 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
     clientToken: inst.zapi_client_token,
     apiProvider: inst.api_provider || 'zapi',
     instanceType: inst.instance_type,
-    evolutionUrl: inst.evolution_api_url,
-    evolutionKey: inst.evolution_api_key,
   };
 }
 
@@ -470,31 +472,6 @@ Deno.serve(async (req) => {
        return new Response(JSON.stringify({ error: 'Ação não suportada para Meta API' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Graceful fallbacks for UAZAPI provider — most Z-API chat actions are not
-    // 1:1 mapped, so we return empty/neutral payloads to avoid noisy UI errors.
-    // Profile pictures are handled by the dedicated `get-profile-picture` function.
-    if (creds.apiProvider === 'uazapi' || creds.apiProvider === 'uazapi_warmup') {
-      const ok = (data: any) =>
-        new Response(JSON.stringify({ success: true, data }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      switch (action) {
-        case 'tag-colors': return ok([]);
-        case 'list-tags': return ok([]);
-        case 'status': return ok({ connected: true });
-        case 'metadata':
-        case 'get-metadata-contact':
-        case 'get-profile-picture':
-        case 'metadata-group':
-        case 'light-group-metadata':
-          return ok(null);
-        default:
-          return new Response(JSON.stringify({ success: true, data: null }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-      }
-    }
-
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
     let finalPayload = payload;
 
@@ -503,13 +480,7 @@ Deno.serve(async (req) => {
       finalPayload = { ...payload, messageId: resolvedMessageId };
     }
 
-    let base = "https://api.z-api.io/instances/" + creds.instanceId + "/token/" + creds.token;
-    
-    if (creds.apiProvider === 'evolution' && creds.evolutionUrl) {
-      base = creds.evolutionUrl.replace(/\/$/, '') + "/instances/" + creds.instanceId + "/token/" + creds.token;
-    } else if (creds.apiProvider === 'uazapi' && creds.evolutionUrl) {
-      base = creds.evolutionUrl.replace(/\/$/, '');
-    }
+    const base = "https://api.z-api.io/instances/" + creds.instanceId + "/token/" + creds.token;
 
     const ep = endpointFor(action, phone, finalPayload, creds.apiProvider);
     
@@ -525,7 +496,6 @@ Deno.serve(async (req) => {
       headers: {
         'Content-Type': 'application/json',
         'Client-Token': creds.clientToken || '',
-        'apikey': creds.evolutionKey || '',
       },
     };
     if (ep.body) init.body = JSON.stringify(ep.body);
