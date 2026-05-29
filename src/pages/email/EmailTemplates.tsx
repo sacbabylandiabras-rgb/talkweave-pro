@@ -117,8 +117,8 @@ export default function EmailTemplates() {
                 <Input value={editing.subject} onChange={e => setEditing({ ...editing, subject: e.target.value })} placeholder="Assunto padrão" />
               </div>
               <div>
-                <Label>HTML</Label>
-                <Textarea value={editing.html} onChange={e => setEditing({ ...editing, html: e.target.value })} rows={14} className="font-mono text-xs" />
+                <Label>Mensagem</Label>
+                <Textarea value={editing.html} onChange={e => setEditing({ ...editing, html: e.target.value })} rows={14} className="text-sm" placeholder="Digite sua mensagem aqui..." />
               </div>
             </div>
           )}
