@@ -518,20 +518,89 @@ const AgenteIA = () => {
 
                   <div className="space-y-2">
                     <Label>Voz das respostas em áudio</Label>
-                    <Select value={voice} onValueChange={setVoice}>
+                    <Select value={voiceProvider} onValueChange={(v: any) => setVoiceProvider(v)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="nova">Feminina jovem (padrão)</SelectItem>
-                        <SelectItem value="shimmer">Feminina suave</SelectItem>
-                        <SelectItem value="alloy">Neutra equilibrada</SelectItem>
-                        <SelectItem value="echo">Masculina calma</SelectItem>
-                        <SelectItem value="onyx">Masculina grave</SelectItem>
-                        <SelectItem value="fable">Narrador (sotaque)</SelectItem>
+                        <SelectItem value="openai">Vozes padrão (gratuitas)</SelectItem>
+                        <SelectItem value="elevenlabs" disabled={!elevenVoiceId}>
+                          Voz personalizada (clonada){elevenVoiceName ? ` — ${elevenVoiceName}` : ""}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
+
+                    {voiceProvider === "openai" && (
+                      <Select value={voice} onValueChange={setVoice}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="nova">Feminina jovem (padrão)</SelectItem>
+                          <SelectItem value="shimmer">Feminina suave</SelectItem>
+                          <SelectItem value="alloy">Neutra equilibrada</SelectItem>
+                          <SelectItem value="echo">Masculina calma</SelectItem>
+                          <SelectItem value="onyx">Masculina grave</SelectItem>
+                          <SelectItem value="fable">Narrador (sotaque)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+
                     <p className="text-[11px] text-muted-foreground">
                       Voz usada quando o agente responde em áudio (mensagens de voz).
                     </p>
+
+                    <div className="mt-3 p-3 rounded-lg border border-dashed border-primary/30 bg-primary/5 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Mic className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-semibold">Clonar sua voz (Premium)</span>
+                        {elevenVoiceId && (
+                          <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400">
+                            <CheckCircle2 className="w-3 h-3" /> Voz ativa: {elevenVoiceName || elevenVoiceId.slice(0, 8)}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs">Token de Voz Premium</Label>
+                        <Input
+                          type="password"
+                          value={elevenApiKey}
+                          onChange={(e) => setElevenApiKey(e.target.value)}
+                          placeholder="Cole aqui seu token do provedor de voz"
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                          Necessário ter conta em uma plataforma de voz premium com clonagem instantânea. Cobrança ocorre na sua conta.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs">Nome da voz</Label>
+                        <Input
+                          value={cloneName}
+                          onChange={(e) => setCloneName(e.target.value)}
+                          placeholder="Ex: Minha voz"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs">Amostra de áudio (1-3 min, MP3/WAV/M4A)</Label>
+                        <Input
+                          type="file"
+                          accept="audio/*"
+                          onChange={(e) => setCloneAudioFile(e.target.files?.[0] || null)}
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                          Áudio limpo, sem ruído. Quanto mais natural a fala, melhor a clonagem.
+                        </p>
+                      </div>
+
+                      <Button
+                        onClick={handleCloneVoice}
+                        disabled={cloning || !cloneAudioFile || !elevenApiKey.trim()}
+                        size="sm"
+                        className="w-full"
+                      >
+                        {cloning ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                        {elevenVoiceId ? "Substituir voz clonada" : "Clonar minha voz"}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="space-y-4">
