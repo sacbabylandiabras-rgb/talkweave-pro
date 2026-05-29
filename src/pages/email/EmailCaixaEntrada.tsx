@@ -41,6 +41,23 @@ export default function EmailCaixaEntrada() {
     setLoading(false);
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("resend_webhook_events")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setRows((prev) => prev.filter((r) => r.id !== id));
+      toast.success("Email apagado com sucesso");
+    } catch (error: any) {
+      console.error("Error deleting email event:", error);
+      toast.error("Erro ao apagar email");
+    }
+  };
+
   useEffect(() => { load(); }, []);
 
   return (
