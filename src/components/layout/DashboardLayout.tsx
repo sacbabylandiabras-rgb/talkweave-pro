@@ -341,7 +341,6 @@ export function DashboardLayout() {
       "/gateway-checkout/my-affiliations": "pay-my-affiliations",
       "/gateway-checkout/affiliates": "pay-affiliates",
       "/agente-ia": "agente-ia",
-      "/criar-grupos": "criar-grupos",
       "/canais": "canais",
       // Instagram routes
       "/instagram/dashboard": "ig-dashboard",
