@@ -22,6 +22,7 @@ export default function EmailTemplates() {
   const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState("all");
+  const [themeStyles, setThemeStyles] = useState<ThemeStyles>({});
 
   const load = async () => {
     setLoading(true);
