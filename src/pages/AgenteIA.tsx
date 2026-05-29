@@ -452,6 +452,24 @@ const AgenteIA = () => {
                     Usando sua chave da Anthropic (ANTHROPIC_API_KEY). Cobrança ocorre direto na sua conta Anthropic.
                   </p>
 
+                  <div className="space-y-2">
+                    <Label>Voz das respostas em áudio</Label>
+                    <Select value={voice} onValueChange={setVoice}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nova">Feminina jovem (padrão)</SelectItem>
+                        <SelectItem value="shimmer">Feminina suave</SelectItem>
+                        <SelectItem value="alloy">Neutra equilibrada</SelectItem>
+                        <SelectItem value="echo">Masculina calma</SelectItem>
+                        <SelectItem value="onyx">Masculina grave</SelectItem>
+                        <SelectItem value="fable">Narrador (sotaque)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">
+                      Voz usada quando o agente responde em áudio (mensagens de voz).
+                    </p>
+                  </div>
+
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label className="flex items-center gap-2">
