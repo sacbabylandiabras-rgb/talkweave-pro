@@ -17,7 +17,9 @@ export default function EmailTemplates() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Template | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [search, setSearch] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState("all");
 
   const load = async () => {
