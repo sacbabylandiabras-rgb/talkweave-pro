@@ -6,6 +6,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const isUazapiProvider = (provider: string) => provider === 'uazapi' || provider === 'uazapi_warmup'
+
+const normalizeApiUrl = (value: unknown): string => {
+  const raw = String(value || '').trim().replace(/\/+$/, '')
+  if (!raw) return ''
+  return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`
+}
+
+const extractUrl = (payload: any): string | null => {
+  if (!payload) return null
+  if (Array.isArray(payload)) return extractUrl(payload[0])
+  const value = payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.ProfilePicture ||
+    payload?.ProfilePicUrl || payload?.imageUrl || payload?.picture || payload?.profilePicUrl || payload?.image ||
+    payload?.photo || payload?.data?.link || payload?.data?.imgUrl || payload?.data?.profilePictureUrl ||
+    payload?.data?.ProfilePicture || payload?.data?.picture || payload?.chat?.imagePreview || payload?.chat?.image ||
+    payload?.group?.image || payload?.group?.picture
+  const url = String(value || '').trim()
+  return /^https?:\/\//i.test(url) || url.startsWith('data:') ? url : null
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
