@@ -143,22 +143,36 @@ function getInboundSenderMetadata(webhook: any, isGroup: boolean, participantPho
     message?.sender?.pushName,
   );
 
-  const senderPhoto = firstTextValue(
-    webhook?.photo,
-    webhook?.senderPhoto,
-    webhook?.profilePicture,
-    webhook?.profilePictureUrl,
-    webhook?.sender?.photo,
-    webhook?.sender?.profilePicture,
-    webhook?.sender?.profilePictureUrl,
-    webhook?.sender?.imagePreview,
-    webhook?.sender?.image,
-    webhook?.contact?.profilePictureUrl,
-    webhook?.contact?.photo,
-    message?.sender?.profilePictureUrl,
-    message?.sender?.imagePreview,
-    message?.sender?.image,
-  );
+  const senderPhoto = isGroup
+    ? firstTextValue(
+        webhook?.senderPhoto,
+        webhook?.participantPhoto,
+        webhook?.authorPhoto,
+        webhook?.sender?.photo,
+        webhook?.sender?.profilePicture,
+        webhook?.sender?.profilePictureUrl,
+        webhook?.sender?.imagePreview,
+        webhook?.sender?.image,
+        message?.sender?.profilePictureUrl,
+        message?.sender?.imagePreview,
+        message?.sender?.image,
+      )
+    : firstTextValue(
+        webhook?.photo,
+        webhook?.senderPhoto,
+        webhook?.profilePicture,
+        webhook?.profilePictureUrl,
+        webhook?.sender?.photo,
+        webhook?.sender?.profilePicture,
+        webhook?.sender?.profilePictureUrl,
+        webhook?.sender?.imagePreview,
+        webhook?.sender?.image,
+        webhook?.contact?.profilePictureUrl,
+        webhook?.contact?.photo,
+        message?.sender?.profilePictureUrl,
+        message?.sender?.imagePreview,
+        message?.sender?.image,
+      );
 
   return { senderName, senderPhone, senderPhoto };
 }

@@ -94,6 +94,18 @@ const formatPhone = (phone?: string | null) => {
   return phone;
 };
 
+const getHttpAvatarUrl = (value?: string | null) => {
+  const url = String(value || "").trim();
+  if (!url || url === "null" || url === "undefined") return null;
+  return /^https?:\/\//i.test(url) ? url : null;
+};
+
+const sameAvatarUrl = (a?: string | null, b?: string | null) => {
+  const left = getHttpAvatarUrl(a);
+  const right = getHttpAvatarUrl(b);
+  return !!left && !!right && left === right;
+};
+
 const looksLikePhoneOrId = (value: string) => {
   const trimmed = value.trim();
   if (!trimmed) return true;
@@ -1567,20 +1579,14 @@ const ChatView = (props: ChatViewProps) => {
                   ? savedContacts.get(rawSenderPhone) || savedContacts.get(senderPhone) || savedContacts.get(`+${senderPhone}`)
                   : null;
                 const senderDisplayName = msg.sender_name || senderContact?.name || null;
-                const senderPhoto =
-                  msg.sender_photo &&
-                  msg.sender_photo !== "null" &&
-                  msg.sender_photo !== "undefined" &&
-                  /^https?:\/\//i.test(msg.sender_photo)
-                    ? msg.sender_photo
-                    : senderContact?.profile_picture_url &&
-                        senderContact.profile_picture_url !== "null" &&
-                        senderContact.profile_picture_url !== "undefined" &&
-                        /^https?:\/\//i.test(senderContact.profile_picture_url)
-                      ? senderContact.profile_picture_url
-                      : isGroupPhone(conversation.phone)
-                        ? null
-                        : conversation.profilePictureUrl;
+                const messageSenderPhoto = getHttpAvatarUrl(msg.sender_photo);
+                const savedSenderPhoto = getHttpAvatarUrl(senderContact?.profile_picture_url);
+                const groupConversationPhoto = getHttpAvatarUrl(conversation.profilePictureUrl);
+                const senderPhoto = isGroupPhone(conversation.phone)
+                  ? savedSenderPhoto && !sameAvatarUrl(savedSenderPhoto, groupConversationPhoto)
+                    ? savedSenderPhoto
+                    : null
+                  : messageSenderPhoto || savedSenderPhoto || groupConversationPhoto;
 
                 return (
                   <div key={msg.id} className="mb-2">
@@ -2791,11 +2797,11 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
         savedContacts.get(raw) ||
         savedContacts.get(numeric) ||
         savedContacts.get(`+${numeric}`);
-      const hasPhoto =
-        existing?.profile_picture_url &&
-        /^https?:\/\//i.test(existing.profile_picture_url);
-      const hasSenderPhoto =
-        (m as any).sender_photo && /^https?:\/\//i.test(String((m as any).sender_photo));
+      const groupPhoto = getHttpAvatarUrl(selectedConversation.profilePictureUrl);
+      const existingPhoto = getHttpAvatarUrl(existing?.profile_picture_url);
+      const messageSenderPhoto = getHttpAvatarUrl((m as any).sender_photo);
+      const hasPhoto = existingPhoto && !sameAvatarUrl(existingPhoto, groupPhoto);
+      const hasSenderPhoto = messageSenderPhoto && !sameAvatarUrl(messageSenderPhoto, groupPhoto);
       if (hasPhoto || hasSenderPhoto) continue;
       targets.push(numeric);
     }
