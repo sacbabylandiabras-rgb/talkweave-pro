@@ -89,7 +89,17 @@ export default function EmailCaixaEntrada() {
                     <p className="text-sm font-medium truncate">{r.subject || "(sem assunto)"}</p>
                     <p className="text-xs text-muted-foreground truncate">{r.recipient} {r.sender && `• de ${r.sender}`}</p>
                   </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">{new Date(r.created_at).toLocaleString("pt-BR")}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">{new Date(r.created_at).toLocaleString("pt-BR")}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDelete(r.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
