@@ -131,24 +131,6 @@ const extractGroupName = (payload: any): string | null => {
   return null
 }
 
-const isUazapiProvider = (provider: string) => provider === 'uazapi' || provider === 'uazapi_warmup'
-
-const normalizeApiUrl = (value: unknown): string => {
-  const raw = String(value || '').trim().replace(/\/+$/, '')
-  if (!raw) return ''
-  return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`
-}
-
-const buildUazapiHeaders = (token: unknown): Record<string, string> => {
-  const apiToken = String(token || '').trim()
-  return {
-    'Content-Type': 'application/json',
-    token: apiToken,
-    apikey: apiToken,
-    Authorization: `Bearer ${apiToken}`,
-  }
-}
-
  // In-memory cache to prevent storming external APIs
  const cache = new Map<string, { data: any, timestamp: number }>()
  const CACHE_TTL = 30000 // 30 seconds
