@@ -1436,16 +1436,21 @@ async function executeFlow(
         if (agentResponse?.use_audio === true && !buttons.length) {
           try {
             let nodeVoice = String(node.data?.voice || "").trim();
-            if (!nodeVoice) {
-              const { data: ac } = await supabase
-                .from("agent_config")
-                .select("voice")
-                .eq("user_id", userId)
-                .maybeSingle();
-              nodeVoice = ac?.voice || "nova";
-            }
+            const { data: ac } = await supabase
+              .from("agent_config")
+              .select("voice, voice_provider, elevenlabs_api_key, elevenlabs_voice_id")
+              .eq("user_id", userId)
+              .maybeSingle();
+            if (!nodeVoice) nodeVoice = ac?.voice || "nova";
             const { data: ttsData, error: ttsErr } = await supabase.functions.invoke("tts", {
-              body: { text: aiResponse, conversation_id: aiDestination, voice: nodeVoice },
+              body: {
+                text: aiResponse,
+                conversation_id: aiDestination,
+                voice: nodeVoice,
+                provider: ac?.voice_provider || "openai",
+                elevenlabs_api_key: ac?.elevenlabs_api_key || "",
+                elevenlabs_voice_id: ac?.elevenlabs_voice_id || "",
+              },
             });
             if (!ttsErr && ttsData?.audio_url) {
               await sendZapiText(instance, aiDestination, "", [], node.id, "audio", ttsData.audio_url, supabase, userId, flow.name);
