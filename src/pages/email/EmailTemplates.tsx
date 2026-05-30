@@ -1220,6 +1220,18 @@ export default function EmailTemplates() {
                       editorHtmlDraftRef.current = e.currentTarget.innerHTML;
                     }}
                     onDragOver={(e) => e.preventDefault()}
+                    onDragStart={(e) => {
+                      const target = e.target as HTMLElement;
+                      const btnBlock = target.closest('.btn-block') as HTMLElement | null;
+                      if (btnBlock) {
+                        btnBlock.classList.add('dragging');
+                        try { e.dataTransfer?.setData('text/plain', btnBlock.id || 'btn'); } catch {}
+                        if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+                      }
+                    }}
+                    onDragEnd={() => {
+                      document.querySelectorAll('.btn-block.dragging').forEach((el) => el.classList.remove('dragging'));
+                    }}
                     onDrop={(e) => {
                       const target = e.target as HTMLElement;
                       const container = document.querySelector('.img-container.dragging, .btn-block.dragging') as HTMLElement;
