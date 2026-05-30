@@ -27,6 +27,24 @@ const replaceVars = (txt: string, vars: Record<string, string>) => {
   return result;
 };
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
+const COMMON_EMAIL_DOMAINS = new Set(["gmail", "hotmail", "outlook", "yahoo", "icloud", "live", "msn"]);
+
+const normalizeEmailInput = (value: string) => {
+  const email = String(value || "").trim().replace(/\s+/g, "").toLowerCase();
+  if (!email.includes("@")) return email;
+
+  const [local, domain = ""] = email.split("@");
+  if (!local || !domain) return email;
+
+  // Common Instagram DM typo: user sends "nome@gmail" instead of "nome@gmail.com".
+  if (!domain.includes(".") && COMMON_EMAIL_DOMAINS.has(domain)) {
+    return `${local}@${domain}.com`;
+  }
+
+  return email;
+};
+
 const buildWrapUrl = (autoName: string, userId: string, fromUsername: string) => {
   return (originalUrl: string, btnTitle: string) => {
     const trackBase = "https://go.zaplynxpro.online/r";
@@ -61,7 +79,7 @@ const getCollectTypeForNode = (node: any, edges: any[]) => {
 const isValidCollectInput = (type: string, text: string) => {
   const value = (text || "").trim();
   if (!value) return false;
-  if (type === "email") return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(value);
+  if (type === "email") return EMAIL_REGEX.test(normalizeEmailInput(value));
   if (type === "whatsapp") return value.replace(/\D/g, "").length >= 8;
   if (type === "name") return value.length >= 2;
   return false;
@@ -231,8 +249,8 @@ const executeIgEmailNode = async (
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const recipient = String(leadEvent?.comment_text || "").trim();
-  if (!recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(recipient)) {
+  const recipient = normalizeEmailInput(leadEvent?.comment_text || "");
+  if (!recipient || !EMAIL_REGEX.test(recipient)) {
     console.warn(`[webhook-instagram] igEmail: no valid captured email for user ${userId} / ig ${igUserId}`);
     return;
   }
@@ -295,14 +313,17 @@ const executeIgEmailNode = async (
       return;
     }
     if (j?.id) {
-      await supabase.from("sent_emails_mapping").insert({
+      const mappingResult = await supabase.from("sent_emails_mapping").insert({
         email_id: j.id,
         user_id: userId,
         subject,
         html,
         recipient,
       });
-      await supabase.from("resend_webhook_events").insert({
+      if (mappingResult.error) {
+        console.warn(`[webhook-instagram] igEmail mapping insert skipped:`, mappingResult.error);
+      }
+      const eventResult = await supabase.from("resend_webhook_events").insert({
         user_id: userId,
         event_type: "email.sent",
         email_id: j.id,
@@ -315,6 +336,9 @@ const executeIgEmailNode = async (
           data: { email_id: j.id, to: [recipient], from, subject, html },
         },
       });
+      if (eventResult.error) {
+        console.warn(`[webhook-instagram] igEmail event insert skipped:`, eventResult.error);
+      }
     }
     console.log(`[webhook-instagram] igEmail sent to ${recipient} (id=${j?.id})`);
   } catch (e) {
@@ -927,8 +951,12 @@ serve(async (req) => {
                                 event_type: leadType,
                                 ig_user_id: senderId,
                                 username: senderUsername,
-                                comment_text: dmText,
-                                payload: { automation_id: auto.id },
+                                comment_text: ac.type === "email" ? normalizeEmailInput(dmText) : dmText,
+                                payload: {
+                                  automation_id: auto.id,
+                                  collected_value: ac.type === "email" ? normalizeEmailInput(dmText) : dmText,
+                                  ...(ac.type === "email" && normalizeEmailInput(dmText) !== dmText ? { original_value: dmText } : {}),
+                                },
                               });
                               // Mark the awaiting_collect as consumed
                               await supabase
