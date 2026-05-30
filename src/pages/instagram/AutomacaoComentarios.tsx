@@ -165,6 +165,7 @@ export default function AutomacaoComentarios() {
   const [waTemplates, setWaTemplates] = useState<any[]>([]);
   const [waFlows, setWaFlows] = useState<any[]>([]);
   const [waInstances, setWaInstances] = useState<any[]>([]);
+  const [emailTemplates, setEmailTemplates] = useState<Array<{ id: string; name: string; subject: string; html: string }>>([]);
 
   // Fetch WhatsApp resources for the igWhatsApp node
   useEffect(() => {
@@ -187,6 +188,12 @@ export default function AutomacaoComentarios() {
       setWaTemplates(tpl || []);
       setWaFlows(flows || []);
       setWaInstances(inst || []);
+      const { data: emailTpls } = await (supabase as any)
+        .from("user_email_templates")
+        .select("id, name, subject, html")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      setEmailTemplates((emailTpls as any) || []);
     };
     fetchWaResources();
   }, []);
@@ -1215,6 +1222,42 @@ export default function AutomacaoComentarios() {
             Envia um email para o endereço capturado no bloco "Enviar DM" (Capturar Email).
             Configure seu domínio verificado em Perfil → Email para que os envios funcionem.
           </div>
+
+          {emailTemplates.length > 0 && (
+            <div>
+              <Label>Usar modelo salvo</Label>
+              <Select
+                value={selectedNode.data.templateId || ""}
+                onValueChange={(id) => {
+                  const t = emailTemplates.find((x) => x.id === id);
+                  if (!t) return;
+                  setSelectedNode({
+                    ...selectedNode,
+                    data: {
+                      ...selectedNode.data,
+                      templateId: t.id,
+                      subject: t.subject || "",
+                      message: t.html || "",
+                    },
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar um modelo de email" />
+                </SelectTrigger>
+                <SelectContent>
+                  {emailTemplates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Ao selecionar, o assunto e a mensagem serão preenchidos automaticamente. Você ainda pode editar abaixo.
+              </p>
+            </div>
+          )}
 
           <div>
             <Label>Remetente (alias antes do @)</Label>
