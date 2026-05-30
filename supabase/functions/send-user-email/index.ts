@@ -86,11 +86,11 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
           "X-Resend-Region": "us-east-1",
         },
-        body: JSON.stringify({ 
-          from, 
-          to: recipient, 
-          subject, 
-          text: messageBody // Send as plain text as requested
+        body: JSON.stringify({
+          from,
+          to: recipient,
+          subject,
+          html: messageBody,
         }),
       });
       const j = await r.json().catch(() => ({}));
