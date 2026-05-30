@@ -437,7 +437,7 @@ const executeIgEmailNode = async (
     return;
   }
   const html = /<[a-z][\s\S]*>/i.test(rawBody)
-    ? rawBody
+    ? inlineEmailCss(rawBody)
     : `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#0f172a;white-space:pre-wrap;">${rawBody.replace(/</g, "&lt;")}</div>`;
 
   try {
