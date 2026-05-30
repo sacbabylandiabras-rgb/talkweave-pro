@@ -1233,6 +1233,16 @@ export default function EmailTemplates() {
                     onClick={(e) => {
                       const target = e.target as HTMLElement;
                       const container = target.closest('.img-container');
+                      const btnBlock = target.closest('.btn-block') as HTMLElement | null;
+
+                      // Hide all button controls, then show the clicked one
+                      document.querySelectorAll('.btn-block .btn-controls').forEach((el) => {
+                        (el as HTMLElement).style.display = 'none';
+                      });
+                      if (btnBlock) {
+                        const ctrls = btnBlock.querySelector('.btn-controls') as HTMLElement | null;
+                        if (ctrls) ctrls.style.display = 'flex';
+                      }
                       
                       // Remove selected class from all containers
                       document.querySelectorAll('.img-container').forEach(el => el.classList.remove('selected'));
