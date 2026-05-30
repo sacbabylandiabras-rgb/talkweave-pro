@@ -95,6 +95,7 @@ export default function EmailTemplates() {
     });
   };
   const [globalCss, setGlobalCss] = useState("");
+  const [customHtml, setCustomHtml] = useState("");
   const [pageStyle, setPageStyle] = useState({ backgroundColor: "#f8fafc", width: 600, padding: 20 });
 
   const showButtonControls = (btnBlock: HTMLElement | null) => {
