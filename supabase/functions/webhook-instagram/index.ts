@@ -214,6 +214,114 @@ const executeIgWhatsAppNode = async (
   console.log(`[webhook-instagram] WhatsApp message sent to ${cleanPhone} via ${zapiCreds.zapi_instance_id}:`, responseText.slice(0, 300));
 };
 
+const executeIgEmailNode = async (
+  nodeData: any,
+  userId: string,
+  igUserId: string,
+  fromUsername: string,
+  supabase: any,
+) => {
+  // Fetch the captured email for this IG user
+  const { data: leadEvent } = await supabase
+    .from("instagram_events")
+    .select("comment_text")
+    .eq("user_id", userId)
+    .eq("event_type", "lead_email")
+    .eq("ig_user_id", igUserId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const recipient = String(leadEvent?.comment_text || "").trim();
+  if (!recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(recipient)) {
+    console.warn(`[webhook-instagram] igEmail: no valid captured email for user ${userId} / ig ${igUserId}`);
+    return;
+  }
+
+  const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+  if (!RESEND_API_KEY) {
+    console.error("[webhook-instagram] igEmail: RESEND_API_KEY missing");
+    return;
+  }
+
+  // Lookup user's verified email domain
+  const { data: domainData } = await supabase
+    .from("email_domain_verifications")
+    .select("domain, status")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!domainData?.domain) {
+    console.error(`[webhook-instagram] igEmail: no verified domain for user ${userId}`);
+    return;
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, email_sender_name")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const fromAlias = String(nodeData.fromAlias || "contato").replace(/[^a-z0-9._-]/gi, "") || "contato";
+  const senderName = String(nodeData.senderName || "").trim()
+    || (profile as any)?.email_sender_name
+    || profile?.full_name
+    || "ZapLynx";
+  const from = `${senderName} <${fromAlias}@${domainData.domain}>`;
+
+  const subject = replaceVars(String(nodeData.subject || "").trim(), { username: fromUsername });
+  const rawBody = replaceVars(String(nodeData.message || "").trim(), { username: fromUsername });
+  if (!subject || !rawBody) {
+    console.warn(`[webhook-instagram] igEmail: subject or message empty for user ${userId}`);
+    return;
+  }
+  const html = /<[a-z][\s\S]*>/i.test(rawBody)
+    ? rawBody
+    : `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#0f172a;white-space:pre-wrap;">${rawBody.replace(/</g, "&lt;")}</div>`;
+
+  try {
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+        "X-Resend-Region": "us-east-1",
+      },
+      body: JSON.stringify({ from, to: recipient, subject, html }),
+    });
+    const j: any = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      console.error(`[webhook-instagram] igEmail send failed for ${recipient}:`, j);
+      return;
+    }
+    if (j?.id) {
+      await supabase.from("sent_emails_mapping").insert({
+        email_id: j.id,
+        user_id: userId,
+        subject,
+        html,
+        recipient,
+      });
+      await supabase.from("resend_webhook_events").insert({
+        user_id: userId,
+        event_type: "email.sent",
+        email_id: j.id,
+        recipient,
+        sender: from,
+        subject,
+        raw_payload: {
+          type: "email.sent",
+          source: "webhook-instagram",
+          data: { email_id: j.id, to: [recipient], from, subject, html },
+        },
+      });
+    }
+    console.log(`[webhook-instagram] igEmail sent to ${recipient} (id=${j?.id})`);
+  } catch (e) {
+    console.error(`[webhook-instagram] igEmail exception:`, e);
+  }
+};
+
  const logInstagramEvent = async (supabase: any, params: {
    userId: string;
    eventType: string;
