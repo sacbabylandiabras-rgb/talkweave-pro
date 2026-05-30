@@ -106,6 +106,60 @@ export default function EmailTemplates() {
     if (ctrls) ctrls.style.display = 'flex';
   };
 
+  const commitEditorDraft = () => {
+    if (!editorRef.current) return;
+    editorHtmlDraftRef.current = editorRef.current.innerHTML;
+  };
+
+  const caretRangeFromPoint = (x: number, y: number) => {
+    const doc = document as Document & {
+      caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+      caretRangeFromPoint?: (x: number, y: number) => Range | null;
+    };
+    if (doc.caretRangeFromPoint) return doc.caretRangeFromPoint(x, y);
+    const position = doc.caretPositionFromPoint?.(x, y);
+    if (!position) return null;
+    const range = document.createRange();
+    range.setStart(position.offsetNode, position.offset);
+    range.collapse(true);
+    return range;
+  };
+
+  const moveEditableBlockToPoint = (block: HTMLElement, x: number, y: number) => {
+    const editor = editorRef.current;
+    if (!editor || !editor.contains(block)) return false;
+
+    const marker = document.createComment('moving-block');
+    block.parentNode?.insertBefore(marker, block);
+    const range = caretRangeFromPoint(x, y);
+    if (!range || !editor.contains(range.commonAncestorContainer)) {
+      marker.parentNode?.replaceChild(block, marker);
+      return false;
+    }
+
+    let dropTarget = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+      ? range.commonAncestorContainer as HTMLElement
+      : range.commonAncestorContainer.parentElement;
+    if (dropTarget?.closest('.btn-controls')) {
+      marker.parentNode?.replaceChild(block, marker);
+      return false;
+    }
+    const targetBlock = dropTarget?.closest('.btn-block, .img-container') as HTMLElement | null;
+    if (targetBlock && targetBlock !== block) {
+      const rect = targetBlock.getBoundingClientRect();
+      if (y > rect.top + rect.height / 2) targetBlock.after(block);
+      else targetBlock.before(block);
+    } else {
+      range.insertNode(block);
+    }
+
+    marker.remove();
+    block.classList.remove('dragging');
+    showButtonControls(block.classList.contains('btn-block') ? block : null);
+    commitEditorDraft();
+    return true;
+  };
+
   const load = async () => {
     setLoading(true);
     const { data } = await (supabase as any)
