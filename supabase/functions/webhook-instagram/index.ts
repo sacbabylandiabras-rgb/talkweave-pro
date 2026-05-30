@@ -45,6 +45,124 @@ const normalizeEmailInput = (value: string) => {
   return email;
 };
 
+const DEFAULT_EMAIL_CSS_VARS: Record<string, string> = {
+  "--color-background-secondary": "#f8fafc",
+  "--color-background-primary": "#ffffff",
+  "--color-border-tertiary": "#e2e8f0",
+  "--color-text-primary": "#0A0F1E",
+  "--color-text-secondary": "#475569",
+  "--border-radius-lg": "18px",
+  "--border-radius-md": "12px",
+};
+
+const normalizeCssValue = (value: string, vars: Record<string, string>) =>
+  String(value || "")
+    .replace(/var\(\s*(--[\w-]+)\s*(?:,\s*([^\)]+))?\)/g, (_match, name, fallback) => {
+      return vars[name] || String(fallback || "").trim();
+    })
+    .replace(/(-?\d*\.?\d+)rem\b/g, (_match, amount) => `${Math.round(Number(amount) * 16 * 100) / 100}px`);
+
+const appendCss = (map: Map<string, string>, key: string, value: string) => {
+  const clean = value.trim().replace(/;+$/g, "");
+  if (!clean) return;
+  map.set(key, [map.get(key), clean].filter(Boolean).join(";"));
+};
+
+const sanitizeCssBlock = (declarations: string, vars: Record<string, string>) =>
+  String(declarations || "")
+    .split(";")
+    .map((part) => {
+      const idx = part.indexOf(":");
+      if (idx < 0) return "";
+      const prop = part.slice(0, idx).trim();
+      const value = normalizeCssValue(part.slice(idx + 1).trim(), vars);
+      if (!prop || !value) return "";
+      return `${prop}:${value}`;
+    })
+    .filter(Boolean)
+    .join(";");
+
+const inlineEmailCss = (html: string) => {
+  const input = String(html || "");
+  const styleBlocks = Array.from(input.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)).map((m) => m[1]);
+  if (!styleBlocks.length) return input;
+
+  const vars = { ...DEFAULT_EMAIL_CSS_VARS };
+  const css = styleBlocks.join("\n").replace(/\/\*[\s\S]*?\*\//g, "");
+  const ruleRegex = /([^{}]+)\{([^{}]+)\}/g;
+  const tagStyles = new Map<string, string>();
+  const classStyles = new Map<string, string>();
+  const idStyles = new Map<string, string>();
+
+  appendCss(classStyles, "sr-only", "position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0");
+
+  let match: RegExpExecArray | null;
+  while ((match = ruleRegex.exec(css))) {
+    const selectors = match[1].split(",").map((s) => s.trim()).filter(Boolean);
+    const block = sanitizeCssBlock(match[2], vars);
+    if (!block) continue;
+
+    for (const selector of selectors) {
+      if (selector === ":root") {
+        for (const declaration of match[2].split(";")) {
+          const idx = declaration.indexOf(":");
+          const name = declaration.slice(0, idx).trim();
+          const value = declaration.slice(idx + 1).trim();
+          if (idx > 0 && name.startsWith("--") && value) vars[name] = value;
+        }
+        continue;
+      }
+
+      const simple = selector.replace(/\s+/g, " ").trim();
+      if (simple.startsWith("@") || /[>+~:\[]/.test(simple)) continue;
+
+      const descendantTag = simple.match(/^(?:\.[\w-]+|#[\w-]+)\s+([a-z][\w-]*)$/i);
+      if (descendantTag) {
+        appendCss(tagStyles, descendantTag[1].toLowerCase(), block);
+        continue;
+      }
+
+      const classMatch = simple.match(/^\.([\w-]+)$/);
+      if (classMatch) {
+        appendCss(classStyles, classMatch[1], block);
+        continue;
+      }
+
+      const idMatch = simple.match(/^#([\w-]+)$/);
+      if (idMatch) {
+        appendCss(idStyles, idMatch[1], block);
+        continue;
+      }
+
+      if (/^[a-z][\w-]*$/i.test(simple)) {
+        appendCss(tagStyles, simple.toLowerCase(), block);
+      }
+    }
+  }
+
+  const withoutStyles = input.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "");
+  return withoutStyles.replace(/<([a-zA-Z][\w:-]*)([^<>]*?)>/g, (full, tagName, attrs = "") => {
+    const tag = String(tagName).toLowerCase();
+    const id = String(attrs).match(/\sid=(['"])(.*?)\1/i)?.[2] || "";
+    const classAttr = String(attrs).match(/\sclass=(['"])(.*?)\1/i)?.[2] || "";
+    const existingStyle = String(attrs).match(/\sstyle=(['"])([\s\S]*?)\1/i)?.[2] || "";
+    const collected: string[] = [];
+
+    if (tagStyles.has(tag)) collected.push(tagStyles.get(tag)!);
+    if (id && idStyles.has(id)) collected.push(idStyles.get(id)!);
+    for (const className of classAttr.split(/\s+/).filter(Boolean)) {
+      if (classStyles.has(className)) collected.push(classStyles.get(className)!);
+    }
+
+    if (!collected.length) return full;
+    const mergedStyle = [...collected, existingStyle].filter(Boolean).join(";").replace(/;{2,}/g, ";").replace(/"/g, "&quot;");
+    const nextAttrs = /\sstyle=(['"])[\s\S]*?\1/i.test(String(attrs))
+      ? String(attrs).replace(/\sstyle=(['"])[\s\S]*?\1/i, ` style="${mergedStyle}"`)
+      : `${attrs} style="${mergedStyle}"`;
+    return `<${tagName}${nextAttrs}>`;
+  });
+};
+
 const buildWrapUrl = (autoName: string, userId: string, fromUsername: string) => {
   return (originalUrl: string, btnTitle: string) => {
     const trackBase = "https://go.zaplynxpro.online/r";
@@ -319,7 +437,7 @@ const executeIgEmailNode = async (
     return;
   }
   const html = /<[a-z][\s\S]*>/i.test(rawBody)
-    ? rawBody
+    ? inlineEmailCss(rawBody)
     : `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#0f172a;white-space:pre-wrap;">${rawBody.replace(/</g, "&lt;")}</div>`;
 
   try {
