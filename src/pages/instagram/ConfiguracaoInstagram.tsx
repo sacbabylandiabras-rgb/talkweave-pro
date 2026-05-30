@@ -257,6 +257,7 @@ export default function ConfiguracaoInstagram() {
       </Card>
 
       {/* Webhook URL */}
+      {isAdmin && (
       <Card className="border-border">
         <CardHeader>
           <CardTitle className="text-sm">Webhook (automático)</CardTitle>
@@ -285,8 +286,10 @@ export default function ConfiguracaoInstagram() {
           </p>
         </CardContent>
       </Card>
+      )}
 
       {/* Redirect URI for Developer Console */}
+      {isAdmin && (
       <Card className="border-border">
         <CardHeader>
           <CardTitle className="text-sm">URI de Redirecionamento (para o Meta Developer)</CardTitle>
@@ -303,6 +306,7 @@ export default function ConfiguracaoInstagram() {
           </p>
         </CardContent>
       </Card>
+      )}
 
       {/* Permissions */}
       <Card className="border-border">
