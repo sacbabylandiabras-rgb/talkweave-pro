@@ -895,6 +895,14 @@ export default function EmailTemplates() {
                                   if (!raw) return;
                                   html = raw;
                                 }
+                                if (html === "__BUTTON_BLOCK__") {
+                                  const btnId = `btn-${Math.random().toString(36).slice(2, 9)}`;
+                                  const inpId = `inp-${btnId}`;
+                                  html = `<div class="btn-block" contenteditable="false" style="margin: 12px 0;">`
+                                    + `<div style="margin-bottom: 8px;"><a id="${btnId}" href="#" contenteditable="true" style="display: inline-block; background: #6366f1; color: #ffffff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">Click me</a></div>`
+                                    + `<input id="${inpId}" type="url" placeholder="Cole um link" value="" oninput="(function(e){var a=document.getElementById('${btnId}');if(a){a.setAttribute('href', e.target.value||'#');}})(event)" style="width: 100%; max-width: 280px; padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; background: #f8fafc; color: #475569; outline: none;" />`
+                                    + `</div><p></p>`;
+                                }
                                 insertHtmlAtEditorCursor(html);
                               }}
                             >
