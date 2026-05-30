@@ -317,6 +317,7 @@ const executeFlow = async (params: {
       try {
         const dmText = replaceVars(d.message || "", { username: context.senderUsername, text: context.inputText || "" });
         const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
+        const collectType = d.collectWhatsapp ? "whatsapp" : d.collectEmail ? "email" : d.collectName ? "name" : null;
 
         const buildButtonPayload = (text: string, buttons: any[]) => {
           const templateBtns = buttons.slice(0, 3).map((b: any) => {
@@ -364,11 +365,20 @@ const executeFlow = async (params: {
                 igUserId: context.senderId,
                 username: context.senderUsername,
                 text: dmText,
-                payload: { automation_id: auto.id, type: "automation", comment_id: context.commentId }
+                payload: {
+                  automation_id: auto.id,
+                  type: "automation",
+                  comment_id: context.commentId,
+                  ...(collectType ? { awaiting_collect: { automation_id: auto.id, node_id: node.id, type: collectType } } : {}),
+                }
               });
             }
          }
       } catch (e) { console.error("Flow DM failed:", e); }
+      // If this DM expects user input, pause the flow here — execution resumes when the reply arrives.
+      if (d.collectWhatsapp || d.collectEmail || d.collectName) {
+        return;
+      }
     }
 
     if (node.type === "igDelay") {
@@ -384,7 +394,7 @@ const executeFlow = async (params: {
 
     // Traversal
     const buttons = (node.data?.buttons || []).filter((b: any) => b.title);
-    if (node.type === "igDM" && (buttons.length > 0 || node.data?.collectWhatsapp || node.data?.collectEmail)) {
+    if (node.type === "igDM" && buttons.length > 0) {
         const bottomChildren = getOutgoing(node.id, "source-bottom");
         for (const child of bottomChildren) await runNode(child);
         return;
@@ -690,6 +700,77 @@ serve(async (req) => {
                     // Run automations only for incoming messages (not echoes)
                     if (eventType !== "dm_sent") {
                       const { data: automations } = await supabase.from("instagram_automations").select("*").eq("user_id", cred.user_id).eq("active", true);
+
+                      // Check if there's a paused flow awaiting this user's input (collect whatsapp/email/name)
+                      let resumed = false;
+                      try {
+                        const { data: pendingList } = await supabase
+                          .from("instagram_events")
+                          .select("id, payload")
+                          .eq("user_id", cred.user_id)
+                          .eq("event_type", "dm_sent")
+                          .eq("ig_user_id", senderId)
+                          .order("created_at", { ascending: false })
+                          .limit(10);
+
+                        const pending = (pendingList || []).find((r: any) => r?.payload?.awaiting_collect);
+                        const ac = pending?.payload?.awaiting_collect;
+                        if (ac && ac.automation_id && ac.node_id && ac.type) {
+                          const auto = (automations || []).find((a: any) => a.id === ac.automation_id);
+                          if (auto) {
+                            const p = JSON.parse(auto.dm_message || "");
+                            if (p.__flow__) {
+                              // Log lead event so igWhatsApp node can pick up the phone
+                              const leadType = ac.type === "whatsapp"
+                                ? "lead_whatsapp"
+                                : ac.type === "email" ? "lead_email" : "lead_name";
+                              await supabase.from("instagram_events").insert({
+                                user_id: cred.user_id,
+                                event_type: leadType,
+                                ig_user_id: senderId,
+                                username: senderUsername,
+                                comment_text: dmText,
+                                payload: { automation_id: auto.id },
+                              });
+                              // Mark the awaiting_collect as consumed
+                              await supabase
+                                .from("instagram_events")
+                                .update({ payload: { ...pending.payload, awaiting_collect: null, awaiting_collect_consumed: true } })
+                                .eq("id", pending.id);
+
+                              // Resume from children connected via the matching collect-* handle
+                              const handleId = `collect-${ac.type}`;
+                              const childIds = (p.edges || [])
+                                .filter((e: any) => e.source === ac.node_id && e.sourceHandle === handleId)
+                                .map((e: any) => e.target);
+                              for (const childId of childIds) {
+                                await executeFlow({
+                                  auto,
+                                  nodes: p.nodes,
+                                  edges: p.edges,
+                                  startNodeId: childId,
+                                  context: {
+                                    userId: cred.user_id,
+                                    igPageId,
+                                    senderId,
+                                    senderUsername,
+                                    accessToken: cleanAccessToken,
+                                    inputText: dmText,
+                                    triggerType: "dm",
+                                  },
+                                  supabase,
+                                });
+                              }
+                              resumed = true;
+                            }
+                          }
+                        }
+                      } catch (resumeErr) {
+                        console.error("[webhook-instagram] Resume flow error:", resumeErr);
+                      }
+
+                      if (resumed) continue;
+
                       for (const auto of (automations || [])) {
                           try {
                               const p = JSON.parse(auto.dm_message || "");
