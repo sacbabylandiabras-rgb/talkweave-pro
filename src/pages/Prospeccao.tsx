@@ -131,18 +131,20 @@ export default function Prospeccao() {
     const loader = new Loader({
       apiKey: GOOGLE_MAPS_API_KEY,
       version: "weekly",
-      libraries: ["places", "marker"],
     });
-    loader.load().then(() => {
+    Promise.all([
+      loader.importLibrary("maps"),
+      loader.importLibrary("marker"),
+    ]).then(([{ Map, InfoWindow }]) => {
       if (!mapDivRef.current) return;
-      mapRef.current = new google.maps.Map(mapDivRef.current, {
+      mapRef.current = new Map(mapDivRef.current, {
         center: { lat: -14.235, lng: -51.9253 }, // Brasil
         zoom: 4,
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
       });
-      infoWindowRef.current = new google.maps.InfoWindow();
+      infoWindowRef.current = new InfoWindow();
       setMapsReady(true);
     }).catch((e) => {
       console.error(e);
