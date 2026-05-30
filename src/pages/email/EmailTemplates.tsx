@@ -682,6 +682,72 @@ export default function EmailTemplates() {
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="h-8 px-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-1 rounded-md transition-colors"
+                          title="Inserir bloco"
+                        >
+                          <Square className="w-4 h-4" />
+                          <ChevronDown className="w-3 h-3" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-52">
+                        {(() => {
+                          const cols = (n: number) => {
+                            const cells = Array.from({ length: n })
+                              .map(() => `<td style="vertical-align: top; padding: 8px; width: ${100 / n}%;"><p>Coluna</p></td>`) 
+                              .join("");
+                            return `<table style="width: 100%; border-collapse: collapse; margin: 12px 0;"><tbody><tr>${cells}</tr></tbody></table><p></p>`;
+                          };
+                          const blocks: { label: string; html: string }[] = [
+                            { label: "Button", html: `<p><a href="#" style="display: inline-block; background: #6366f1; color: #ffffff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">Click me</a></p>` },
+                            { label: "Divider", html: `<hr style="border: none; border-top: 1px solid #e2e8f0; margin: 16px 0;" />` },
+                            { label: "Section", html: `<div style="padding: 24px; background: #f8fafc; border-radius: 8px; margin: 12px 0;"><p>Section content</p></div>` },
+                            { label: "2 columns", html: cols(2) },
+                            { label: "3 columns", html: cols(3) },
+                            { label: "4 columns", html: cols(4) },
+                            { label: "Social links", html: `<p style="text-align: center; margin: 16px 0;"><a href="#" style="margin: 0 8px; text-decoration: none;">Facebook</a><a href="#" style="margin: 0 8px; text-decoration: none;">Instagram</a><a href="#" style="margin: 0 8px; text-decoration: none;">X</a><a href="#" style="margin: 0 8px; text-decoration: none;">YouTube</a></p>` },
+                            { label: "Unsubscribe footer", html: `<p style="text-align: center; color: #64748b; font-size: 12px; margin-top: 32px;">Você está recebendo este e-mail porque se inscreveu na nossa lista.<br/><a href="{{unsubscribe_url}}" style="color: #64748b; text-decoration: underline;">Cancelar inscrição</a></p>` },
+                            { label: "HTML", html: `__PROMPT_HTML__` },
+                            { label: "Code", html: `<pre style="background: #0f172a; color: #e2e8f0; padding: 12px 16px; border-radius: 8px; font-family: monospace; font-size: 13px; overflow: auto;"><code>// seu código aqui</code></pre><p></p>` },
+                          ];
+                          return blocks.map((b) => (
+                            <DropdownMenuItem
+                              key={b.label}
+                              className="cursor-pointer text-[13px]"
+                              onClick={() => {
+                                const editor = document.getElementById('email-editor');
+                                if (!editor) return;
+                                let html = b.html;
+                                if (html === "__PROMPT_HTML__") {
+                                  const raw = prompt("Cole o HTML personalizado:");
+                                  if (!raw) return;
+                                  html = raw;
+                                }
+                                const selection = window.getSelection();
+                                if (selection && selection.rangeCount > 0 && editor.contains(selection.anchorNode)) {
+                                  const range = selection.getRangeAt(0);
+                                  range.deleteContents();
+                                  const div = document.createElement('div');
+                                  div.innerHTML = html;
+                                  const frag = document.createDocumentFragment();
+                                  let node;
+                                  while ((node = div.firstChild)) frag.appendChild(node);
+                                  range.insertNode(frag);
+                                } else {
+                                  editor.innerHTML += html;
+                                }
+                                if (editing) setEditing({ ...editing, html: editor.innerHTML });
+                              }}
+                            >
+                              {b.label}
+                            </DropdownMenuItem>
+                          ));
+                        })()}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <Button 
                       size="icon" 
                       variant="ghost" 
