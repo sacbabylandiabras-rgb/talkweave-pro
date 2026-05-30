@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader } from "@googlemaps/js-api-loader";
+/// <reference types="google.maps" />
+import { useEffect, useRef, useState } from "react";
+import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -128,13 +129,10 @@ export default function Prospeccao() {
 
   // Init Google Maps
   useEffect(() => {
-    const loader = new Loader({
-      apiKey: GOOGLE_MAPS_API_KEY,
-      version: "weekly",
-    });
+    setOptions({ key: GOOGLE_MAPS_API_KEY, v: "weekly" });
     Promise.all([
-      loader.importLibrary("maps"),
-      loader.importLibrary("marker"),
+      importLibrary("maps"),
+      importLibrary("marker"),
     ]).then(([{ Map, InfoWindow }]) => {
       if (!mapDivRef.current) return;
       mapRef.current = new Map(mapDivRef.current, {
