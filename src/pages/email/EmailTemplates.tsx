@@ -311,7 +311,20 @@ export default function EmailTemplates() {
     }
 
     const block = blockMap[type];
-    insertHtmlAtEditorCursor(`<${block.tag}>${selectedHtml || block.fallback}</${block.tag}><p></p>`);
+    if (selectedText || selectedHtml) {
+      insertHtmlAtEditorCursor(`<${block.tag}>${selectedHtml || selectedText}</${block.tag}><p></p>`);
+      return;
+    }
+
+    const editor = getEditor();
+    const before = editor?.innerHTML;
+    document.execCommand('formatBlock', false, `<${block.tag}>`);
+    if (editor && editor.innerHTML !== before) {
+      if (editing) setEditing({ ...editing, html: editor.innerHTML });
+      saveEditorSelection();
+    } else {
+      insertHtmlAtEditorCursor(`<${block.tag}>${block.fallback}</${block.tag}><p></p>`);
+    }
   };
 
   const filteredList = list.filter(t => {
