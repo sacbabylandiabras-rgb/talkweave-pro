@@ -58,6 +58,15 @@ const getCollectTypeForNode = (node: any, edges: any[]) => {
   return null;
 };
 
+const isValidCollectInput = (type: string, text: string) => {
+  const value = (text || "").trim();
+  if (!value) return false;
+  if (type === "email") return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(value);
+  if (type === "whatsapp") return value.replace(/\D/g, "").length >= 8;
+  if (type === "name") return value.length >= 2;
+  return false;
+};
+
 
 const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) => {
   try {
