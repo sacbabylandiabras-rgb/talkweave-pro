@@ -33,6 +33,11 @@ const STATUS_COLORS: Record<string, string> = {
   "email.delivery_delayed": "bg-yellow-500/15 text-yellow-400",
 };
 
+const getPayloadHtml = (payload: any) =>
+  typeof payload?.data?.html === "string" && payload.data.html.trim()
+    ? payload.data.html
+    : null;
+
 export default function EmailCaixaEntrada() {
   const [rows, setRows] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,16 +76,38 @@ export default function EmailCaixaEntrada() {
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    if (!selectedEmail?.email_id) { setBodyHtml(null); return; }
+    if (!selectedEmail?.email_id) { setBodyHtml(getPayloadHtml(selectedEmail?.raw_payload)); return; }
     setBodyLoading(true);
     setBodyHtml(null);
     (async () => {
+      const payloadHtml = getPayloadHtml(selectedEmail.raw_payload);
+      if (payloadHtml) {
+        setBodyHtml(payloadHtml);
+        setBodyLoading(false);
+        return;
+      }
+
       const { data } = await (supabase as any)
         .from("sent_emails_mapping")
         .select("html")
         .eq("email_id", selectedEmail.email_id)
         .maybeSingle();
-      setBodyHtml((data as any)?.html || null);
+      let html = (data as any)?.html || null;
+
+      if (!html) {
+        const { data: sentEvent } = await (supabase as any)
+          .from("resend_webhook_events")
+          .select("raw_payload")
+          .eq("email_id", selectedEmail.email_id)
+          .eq("event_type", "email.sent")
+          .not("raw_payload->data->>html", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        html = getPayloadHtml((sentEvent as any)?.raw_payload);
+      }
+
+      setBodyHtml(html);
       setBodyLoading(false);
     })();
   }, [selectedEmail]);
