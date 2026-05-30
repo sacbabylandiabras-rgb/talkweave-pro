@@ -333,7 +333,7 @@ const executeFlow = async (params: {
       try {
         const dmText = replaceVars(d.message || "", { username: context.senderUsername, text: context.inputText || "" });
         const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
-        const collectType = d.collectWhatsapp ? "whatsapp" : d.collectEmail ? "email" : d.collectName ? "name" : null;
+        const collectType = getCollectTypeForNode(node, edges);
 
         const buildButtonPayload = (text: string, buttons: any[]) => {
           const templateBtns = buttons.slice(0, 3).map((b: any) => {
@@ -392,7 +392,7 @@ const executeFlow = async (params: {
          }
       } catch (e) { console.error("Flow DM failed:", e); }
       // If this DM expects user input, pause the flow here — execution resumes when the reply arrives.
-      if (d.collectWhatsapp || d.collectEmail || d.collectName) {
+      if (getCollectTypeForNode(node, edges)) {
         return;
       }
     }
