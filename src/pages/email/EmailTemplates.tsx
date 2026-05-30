@@ -22,6 +22,7 @@ export default function EmailTemplates() {
   const [uploading, setUploading] = useState(false);
   const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorSelectionRef = useRef<Range | null>(null);
   const [tab, setTab] = useState("all");
   const [themeStyles, setThemeStyles] = useState<ThemeStyles>({});
   const [globalCss, setGlobalCss] = useState("");
@@ -210,6 +211,119 @@ export default function EmailTemplates() {
       }
       if (editing) setEditing({ ...editing, html: editor.innerHTML });
       setImageLibraryOpen(false);
+    }
+  };
+
+  const getEditor = () => document.getElementById('email-editor') as HTMLElement | null;
+
+  const saveEditorSelection = () => {
+    const editor = getEditor();
+    const selection = window.getSelection();
+    if (!editor || !selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    if (editor.contains(range.commonAncestorContainer)) {
+      editorSelectionRef.current = range.cloneRange();
+    }
+  };
+
+  const restoreEditorSelection = () => {
+    const editor = getEditor();
+    if (!editor) return null;
+
+    editor.focus();
+    const selection = window.getSelection();
+    const savedRange = editorSelectionRef.current;
+    let range: Range;
+
+    if (savedRange && editor.contains(savedRange.commonAncestorContainer)) {
+      range = savedRange.cloneRange();
+    } else {
+      range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+    }
+
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    return range;
+  };
+
+  const escapeHtml = (value: string) =>
+    value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  const insertHtmlAtEditorCursor = (html: string) => {
+    const editor = getEditor();
+    const range = restoreEditorSelection();
+    if (!editor || !range) return;
+
+    range.deleteContents();
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = html;
+    const fragment = document.createDocumentFragment();
+    let lastNode: ChildNode | null = null;
+    let node: ChildNode | null;
+    while ((node = wrapper.firstChild)) {
+      lastNode = fragment.appendChild(node);
+    }
+    range.insertNode(fragment);
+
+    if (lastNode) {
+      const nextRange = document.createRange();
+      nextRange.setStartAfter(lastNode);
+      nextRange.collapse(true);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(nextRange);
+      editorSelectionRef.current = nextRange.cloneRange();
+    }
+
+    if (editing) setEditing({ ...editing, html: editor.innerHTML });
+  };
+
+  const insertTextAtEditorCursor = (text: string) => insertHtmlAtEditorCursor(escapeHtml(text));
+
+  const applyTextBlock = (type: "text" | "title" | "subtitle" | "heading" | "bullet" | "numbered") => {
+    const range = restoreEditorSelection();
+    if (!range) return;
+
+    const selectedText = range.toString().trim();
+    const selectedHtmlContainer = document.createElement('div');
+    selectedHtmlContainer.appendChild(range.cloneContents());
+    const selectedHtml = selectedHtmlContainer.innerHTML.trim();
+
+    const blockMap = {
+      text: { tag: "p", fallback: "Text" },
+      title: { tag: "h1", fallback: "Title" },
+      subtitle: { tag: "h2", fallback: "Subtitle" },
+      heading: { tag: "h3", fallback: "Heading" },
+    } as const;
+
+    if (type === "bullet" || type === "numbered") {
+      const items = (selectedText || "List item")
+        .split(/\n+/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .map((item) => `<li>${escapeHtml(item)}</li>`)
+        .join("");
+      insertHtmlAtEditorCursor(`<${type === "bullet" ? "ul" : "ol"}>${items}</${type === "bullet" ? "ul" : "ol"}><p></p>`);
+      return;
+    }
+
+    const block = blockMap[type];
+    if (selectedText || selectedHtml) {
+      insertHtmlAtEditorCursor(`<${block.tag}>${selectedHtml || selectedText}</${block.tag}><p></p>`);
+      return;
+    }
+
+    const editor = getEditor();
+    const before = editor?.innerHTML;
+    document.execCommand('formatBlock', false, `<${block.tag}>`);
+    if (editor && editor.innerHTML !== before) {
+      if (editing) setEditing({ ...editing, html: editor.innerHTML });
+      saveEditorSelection();
+    } else {
+      insertHtmlAtEditorCursor(`<${block.tag}>${block.fallback}</${block.tag}><p></p>`);
     }
   };
 
@@ -636,7 +750,7 @@ export default function EmailTemplates() {
             <div className="flex-1 p-4 md:p-8 flex flex-col gap-4 overflow-y-auto">
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full min-h-[500px]">
                 <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-t-2xl">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1" onMouseDownCapture={saveEditorSelection}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
@@ -671,10 +785,7 @@ export default function EmailTemplates() {
                               <DropdownMenuItem
                                 key={it.value}
                                 className="cursor-pointer text-[13px] flex flex-col items-start gap-0"
-                                onClick={() => {
-                                  document.execCommand('insertText', false, it.value);
-                                  if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
-                                }}
+                                onClick={() => insertTextAtEditorCursor(it.value)}
                               >
                                 <span>{it.label}</span>
                                 <span className="text-[10px] text-slate-400 font-mono">{it.value}</span>
@@ -689,8 +800,7 @@ export default function EmailTemplates() {
                               const name = prompt("Nome da variável personalizada (sem espaços):");
                               if (!name) return;
                               const clean = name.trim().replace(/\s+/g, "_");
-                              document.execCommand('insertText', false, `{{${clean}}}`);
-                              if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
+                              insertTextAtEditorCursor(`{{${clean}}}`);
                             }}
                           >
                             + Criar variável personalizada
@@ -711,31 +821,16 @@ export default function EmailTemplates() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="w-44">
                         {[
-                          { label: "Text", cmd: () => document.execCommand('formatBlock', false, '<p>'), cls: "text-[14px]" },
-                          { label: "Title", cmd: () => document.execCommand('formatBlock', false, '<h1>'), cls: "text-[20px] font-bold" },
-                          { label: "Subtitle", cmd: () => document.execCommand('formatBlock', false, '<h2>'), cls: "text-[16px] font-semibold" },
-                          { label: "Heading", cmd: () => document.execCommand('formatBlock', false, '<h3>'), cls: "text-[14px] font-semibold" },
-                          { label: "Bullet list", cmd: () => document.execCommand('insertUnorderedList', false), cls: "text-[13px]" },
-                          { label: "Numbered list", cmd: () => document.execCommand('insertOrderedList', false), cls: "text-[13px]" },
+                          { label: "Text", type: "text", cls: "text-[14px]" },
+                          { label: "Title", type: "title", cls: "text-[20px] font-bold" },
+                          { label: "Subtitle", type: "subtitle", cls: "text-[16px] font-semibold" },
+                          { label: "Heading", type: "heading", cls: "text-[14px] font-semibold" },
+                          { label: "Bullet list", type: "bullet", cls: "text-[13px]" },
+                          { label: "Numbered list", type: "numbered", cls: "text-[13px]" },
                         ].map((opt) => (
                           <DropdownMenuItem
                             key={opt.label}
-                            onClick={() => {
-                              const editor = document.getElementById('email-editor') as HTMLElement | null;
-                              if (editor) {
-                                const sel = window.getSelection();
-                                if (!sel || sel.rangeCount === 0 || !editor.contains(sel.anchorNode)) {
-                                  editor.focus();
-                                  const range = document.createRange();
-                                  range.selectNodeContents(editor);
-                                  range.collapse(false);
-                                  sel?.removeAllRanges();
-                                  sel?.addRange(range);
-                                }
-                              }
-                              opt.cmd();
-                              if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
-                            }}
+                            onClick={() => applyTextBlock(opt.type as "text" | "title" | "subtitle" | "heading" | "bullet" | "numbered")}
                             className={`cursor-pointer ${opt.cls}`}
                           >
                             {opt.label}
@@ -787,20 +882,7 @@ export default function EmailTemplates() {
                                   if (!raw) return;
                                   html = raw;
                                 }
-                                const selection = window.getSelection();
-                                if (selection && selection.rangeCount > 0 && editor.contains(selection.anchorNode)) {
-                                  const range = selection.getRangeAt(0);
-                                  range.deleteContents();
-                                  const div = document.createElement('div');
-                                  div.innerHTML = html;
-                                  const frag = document.createDocumentFragment();
-                                  let node;
-                                  while ((node = div.firstChild)) frag.appendChild(node);
-                                  range.insertNode(frag);
-                                } else {
-                                  editor.innerHTML += html;
-                                }
-                                if (editing) setEditing({ ...editing, html: editor.innerHTML });
+                                insertHtmlAtEditorCursor(html);
                               }}
                             >
                               {b.label}
@@ -1011,10 +1093,11 @@ export default function EmailTemplates() {
                     id="email-editor"
                     className="focus:outline-none prose prose-slate max-w-none"
 
-                    onBlur={(e) => {
-                      if (editing) setEditing({ ...editing, html: e.currentTarget.innerHTML });
-                    }}
+                    onBlur={saveEditorSelection}
+                    onMouseUp={saveEditorSelection}
+                    onKeyUp={saveEditorSelection}
                     onInput={(e) => {
+                      saveEditorSelection();
                       if (editing) setEditing({ ...editing, html: e.currentTarget.innerHTML });
                     }}
                     onDragOver={(e) => e.preventDefault()}
