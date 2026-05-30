@@ -1219,7 +1219,7 @@ export default function EmailTemplates() {
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
                       const target = e.target as HTMLElement;
-                      const container = document.querySelector('.img-container.dragging') as HTMLElement;
+                      const container = document.querySelector('.img-container.dragging, .btn-block.dragging') as HTMLElement;
                       if (container) {
                         e.preventDefault();
                         const range = document.caretRangeFromPoint(e.clientX, e.clientY);
@@ -1285,6 +1285,12 @@ export default function EmailTemplates() {
                       } else if (container && !target.closest('.img-controls')) {
                         // Iniciar arraste manual
                         container.classList.add('dragging');
+                      } else {
+                        const btnBlock = target.closest('.btn-block') as HTMLElement | null;
+                        // Only drag when grabbing the wrapper itself, not its inputs/controls
+                        if (btnBlock && target === btnBlock) {
+                          btnBlock.classList.add('dragging');
+                        }
                       }
                     }}
                   />
