@@ -1099,6 +1099,8 @@ export default function EmailTemplates() {
                   `}</style>
                   <div 
                     contentEditable
+                    suppressContentEditableWarning
+                    ref={editorRef}
                     id="email-editor"
                     className="focus:outline-none prose prose-slate max-w-none"
 
@@ -1180,7 +1182,6 @@ export default function EmailTemplates() {
                         container.classList.add('dragging');
                       }
                     }}
-                    dangerouslySetInnerHTML={{ __html: editing?.html || "" }}
                   />
                 </div>
               </div>
