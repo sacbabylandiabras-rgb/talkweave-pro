@@ -186,21 +186,13 @@ serve(async (req) => {
           return new Response(JSON.stringify({ error: 'UAZAPI URL/Token não configurados' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
-        const uazRes = await fetch(`${apiUrl}/instance/status?token=${encodeURIComponent(apiToken)}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
-        });
-        const uazRaw = await uazRes.text();
-        let uazData: any = {};
-        try { uazData = JSON.parse(uazRaw); } catch { uazData = { message: uazRaw }; }
-        const status = String(uazData?.instance?.status || uazData?.status || '').toLowerCase();
-        const connected = uazData?.connected === true || uazData?.loggedIn === true || status === 'connected';
+        const { connected, status, raw } = await fetchUazapiStatus(apiUrl, apiToken, (instance as any).instance_name);
         const normalized = {
           connected,
           session: connected,
           smartphoneConnected: connected,
           status,
-          raw: uazData,
+          raw,
         };
         return new Response(JSON.stringify({ success: true, data: normalized }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -277,22 +269,13 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      const uazRes = await fetch(`${apiUrl}/instance/status?token=${encodeURIComponent(apiToken)}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json', token: apiToken },
-      });
-      const uazRaw = await uazRes.text();
-      let uazData: any = {};
-      try { uazData = JSON.parse(uazRaw); } catch { uazData = { message: uazRaw }; }
-
-      const status = String(uazData?.instance?.status || uazData?.status || '').toLowerCase();
-      const connected = uazData?.connected === true || uazData?.loggedIn === true || status === 'connected' || status === 'open';
+      const { connected, status, raw } = await fetchUazapiStatus(apiUrl, apiToken, (activeInstance as any).instance_name);
       const normalized = {
         connected,
         session: connected,
         smartphoneConnected: connected,
         status,
-        raw: uazData,
+        raw,
       };
 
       return new Response(JSON.stringify({ success: true, data: normalized }),
