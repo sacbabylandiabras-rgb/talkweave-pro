@@ -42,6 +42,31 @@ const buildWrapUrl = (autoName: string, userId: string, fromUsername: string) =>
   };
 };
 
+const getCollectTypeForNode = (node: any, edges: any[]) => {
+  const data = node?.data || {};
+  if (data.collectWhatsapp) return "whatsapp";
+  if (data.collectEmail) return "email";
+  if (data.collectName) return "name";
+
+  const collectHandle = (edges || [])
+    .filter((edge: any) => edge.source === node?.id)
+    .map((edge: any) => String(edge.sourceHandle || ""))
+    .find((handle: string) => handle.startsWith("collect-"));
+
+  const type = collectHandle?.replace("collect-", "");
+  if (type === "whatsapp" || type === "email" || type === "name") return type;
+  return null;
+};
+
+const isValidCollectInput = (type: string, text: string) => {
+  const value = (text || "").trim();
+  if (!value) return false;
+  if (type === "email") return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(value);
+  if (type === "whatsapp") return value.replace(/\D/g, "").length >= 8;
+  if (type === "name") return value.length >= 2;
+  return false;
+};
+
 
 const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) => {
   try {
@@ -317,7 +342,7 @@ const executeFlow = async (params: {
       try {
         const dmText = replaceVars(d.message || "", { username: context.senderUsername, text: context.inputText || "" });
         const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
-        const collectType = d.collectWhatsapp ? "whatsapp" : d.collectEmail ? "email" : d.collectName ? "name" : null;
+        const collectType = getCollectTypeForNode(node, edges);
 
         const buildButtonPayload = (text: string, buttons: any[]) => {
           const templateBtns = buttons.slice(0, 3).map((b: any) => {
@@ -376,7 +401,7 @@ const executeFlow = async (params: {
          }
       } catch (e) { console.error("Flow DM failed:", e); }
       // If this DM expects user input, pause the flow here — execution resumes when the reply arrives.
-      if (d.collectWhatsapp || d.collectEmail || d.collectName) {
+      if (getCollectTypeForNode(node, edges)) {
         return;
       }
     }
@@ -640,6 +665,7 @@ serve(async (req) => {
                   const senderUsername = event.sender?.username || senderId;
                   const dmText = event.message?.text || "";
                   const isStory = !!(event.message?.reply_to?.story || event.message?.story);
+                  const isEcho = event.message?.is_echo === true || event.message?.is_self === true || senderId === igPageId;
                   
                   // Only log if it's a message event (has message, postback, etc.)
                   if (event.message || event.postback) {
@@ -663,7 +689,7 @@ serve(async (req) => {
                     let targetUsername = senderUsername;
 
                     // If the sender is the Page itself, it's an outgoing message (echo)
-                    if (senderId === igPageId) {
+                    if (isEcho) {
                       eventType = "dm_sent";
                       targetIgId = event.recipient?.id || event.recipient?.[0]?.id;
                       
@@ -731,6 +757,12 @@ serve(async (req) => {
                         const pending = (pendingList || []).find((r: any) => r?.payload?.awaiting_collect);
                         const ac = pending?.payload?.awaiting_collect;
                         if (ac && ac.automation_id && ac.node_id && ac.type) {
+                          if (!isValidCollectInput(ac.type, dmText)) {
+                            console.log(`[webhook-instagram] Waiting for valid ${ac.type} input before resuming flow`);
+                            resumed = true;
+                            continue;
+                          }
+
                           const auto = (automations || []).find((a: any) => a.id === ac.automation_id);
                           if (auto) {
                             const p = JSON.parse(auto.dm_message || "");
