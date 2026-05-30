@@ -1098,6 +1098,9 @@ export default function EmailTemplates() {
                        margin: 0 auto;
                        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
                        min-height: 100%;
+                        direction: ltr;
+                        unicode-bidi: plaintext;
+                        text-align: left;
                      }
                   `}</style>
                   <div 
@@ -1105,6 +1108,8 @@ export default function EmailTemplates() {
                     suppressContentEditableWarning
                     ref={editorRef}
                     id="email-editor"
+                    dir="ltr"
+                    style={{ direction: "ltr", unicodeBidi: "plaintext", textAlign: "left" }}
                     className="focus:outline-none prose prose-slate max-w-none"
 
                     onBlur={saveEditorSelection}
@@ -1112,7 +1117,7 @@ export default function EmailTemplates() {
                     onKeyUp={saveEditorSelection}
                     onInput={(e) => {
                       saveEditorSelection();
-                      if (editing) setEditing({ ...editing, html: e.currentTarget.innerHTML });
+                      editorHtmlDraftRef.current = e.currentTarget.innerHTML;
                     }}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
