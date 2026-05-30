@@ -39,25 +39,32 @@ async function sendMetaCapi(pixel: any, payload: {
   customer: any;
   event_id?: string;
   source_url?: string;
+  fbc?: string | null;
+  fbp?: string | null;
+  action_source?: string;
+  custom_data?: Record<string, any>;
 }) {
   const pixelId = pixel.pixel_id;
   const token = pixel.api_token;
   if (!pixelId || !token) return { skipped: "missing_credentials" };
 
   const userData = await buildUserData(payload.customer);
+  if (payload.fbc) (userData as any).fbc = payload.fbc;
+  if (payload.fbp) (userData as any).fbp = payload.fbp;
   const testEventCode = (pixel.extra_config || {}).test_event_code;
 
   const body: any = {
     data: [{
       event_name: payload.event,
       event_time: Math.floor(Date.now() / 1000),
-      action_source: "website",
+      action_source: payload.action_source || "website",
       event_source_url: payload.source_url || undefined,
       event_id: payload.event_id || undefined,
       user_data: userData,
       custom_data: {
         currency: payload.currency,
         value: payload.value,
+        ...(payload.custom_data || {}),
       },
     }],
   };
@@ -96,10 +103,12 @@ async function sendTikTokCapi(pixel: any, payload: any) {
         email: userData.em?.[0],
         phone: userData.ph?.[0],
         external_id: userData.external_id?.[0],
+        ttclid: payload.ttclid || undefined,
       },
       properties: {
         currency: payload.currency,
         value: payload.value,
+        ...(payload.custom_data || {}),
       },
     }],
   };
@@ -117,7 +126,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { user_id, event, value, currency, customer, event_id, source_url } = await req.json();
+    const { user_id, event, value, currency, customer, event_id, source_url,
+      fbc: bodyFbc, fbp: bodyFbp, ttclid: bodyTtclid, action_source: bodyActionSource,
+      custom_data: bodyCustomData, phone: bodyPhone } = await req.json();
     if (!user_id || !event) {
       return new Response(JSON.stringify({ error: "user_id and event are required" }), {
         status: 400,
@@ -129,6 +140,42 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // Auto-lookup attribution data from last link_click of this phone (last 30 days)
+    let fbc = bodyFbc || null;
+    let fbp = bodyFbp || null;
+    let ttclid = bodyTtclid || null;
+    let customData: Record<string, any> = { ...(bodyCustomData || {}) };
+    const lookupPhone = bodyPhone || customer?.phone;
+    if (lookupPhone) {
+      const cleanPhone = String(lookupPhone).replace(/\D/g, "");
+      try {
+        const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: clicks } = await supabase
+          .from("link_clicks")
+          .select("phone, fbc, fbp, ttclid, gclid, utm_source, utm_medium, utm_campaign, utm_content, utm_term, campaign_id")
+          .eq("user_id", user_id)
+          .gte("created_at", since)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        const match = (clicks || []).find((c: any) =>
+          c.phone ? String(c.phone).replace(/\D/g, "") === cleanPhone : false
+        ) || (clicks || []).find((c: any) => c.fbc || c.ttclid || c.utm_campaign);
+        if (match) {
+          fbc = fbc || match.fbc || null;
+          fbp = fbp || match.fbp || null;
+          ttclid = ttclid || match.ttclid || null;
+          if (match.utm_source && !customData.utm_source) customData.utm_source = match.utm_source;
+          if (match.utm_medium && !customData.utm_medium) customData.utm_medium = match.utm_medium;
+          if (match.utm_campaign && !customData.utm_campaign) customData.utm_campaign = match.utm_campaign;
+          if (match.utm_content && !customData.utm_content) customData.utm_content = match.utm_content;
+          if (match.utm_term && !customData.utm_term) customData.utm_term = match.utm_term;
+          if (match.campaign_id && !customData.internal_campaign_id) customData.internal_campaign_id = match.campaign_id;
+        }
+      } catch (lerr) {
+        console.error("attribution lookup error:", lerr);
+      }
+    }
 
     const { data: pixels } = await supabase
       .from("gateway_pixels")
@@ -152,6 +199,11 @@ Deno.serve(async (req) => {
         customer,
         event_id,
         source_url,
+        fbc,
+        fbp,
+        ttclid,
+        action_source: bodyActionSource || (fbc || ttclid ? "chat" : "website"),
+        custom_data: customData,
       };
 
       const baseLog: any = {

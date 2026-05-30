@@ -26,6 +26,19 @@ serve(async (req) => {
   const campaignId = url.searchParams.get('cid')
   const sendId = url.searchParams.get('cs')
 
+  // Ad-attribution params (captured from ad URLs and forwarded into the WhatsApp link)
+  const fbclid = url.searchParams.get('fbclid')
+  const fbp = url.searchParams.get('fbp')
+  const ttclid = url.searchParams.get('ttclid')
+  const gclid = url.searchParams.get('gclid')
+  const utmSource = url.searchParams.get('utm_source')
+  const utmMedium = url.searchParams.get('utm_medium')
+  const utmCampaign = url.searchParams.get('utm_campaign')
+  const utmContent = url.searchParams.get('utm_content')
+  const utmTerm = url.searchParams.get('utm_term')
+  // Build fbc per Meta spec: fb.1.<unix_ms>.<fbclid>
+  const fbc = fbclid ? `fb.1.${Date.now()}.${fbclid}` : null
+
   if (!destUrl) {
     return new Response('Missing url parameter', { status: 400, headers: corsHeaders })
   }
@@ -118,6 +131,16 @@ serve(async (req) => {
           user_agent: userAgent,
           referer,
           destination_url: destUrl,
+          fbclid,
+          fbp,
+          fbc,
+          ttclid,
+          gclid,
+          utm_source: utmSource,
+          utm_medium: utmMedium,
+          utm_campaign: utmCampaign,
+          utm_content: utmContent,
+          utm_term: utmTerm,
         })
       } catch (lerr) {
         console.error('Error inserting link_clicks:', lerr)
