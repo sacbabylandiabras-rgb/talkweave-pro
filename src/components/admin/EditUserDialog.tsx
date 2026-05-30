@@ -102,16 +102,21 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
     if (!user) return;
     setLoading(true);
     try {
-      const { error } = await supabase.from("profiles").update({
-        subscription_status: subscriptionStatus,
-        subscription_expires_at: expiresAt?.toISOString() || null,
-        max_instances: Number.isFinite(maxInstances) && maxInstances >= 0 ? maxInstances : 1,
-        plan_id: (planId === 'none' || planId === 'custom') ? null : planId,
-        custom_plan_value:
-          planId === 'custom' && customPlanValue
-            ? Math.round(parseFloat(customPlanValue.replace(',', '.')) * 100)
-            : null,
-      } as any).eq("id", user.id);
+      const { error } = await supabase.functions.invoke("admin-update-profile", {
+        body: {
+          userId: user.id,
+          patch: {
+            subscription_status: subscriptionStatus,
+            subscription_expires_at: expiresAt?.toISOString() || null,
+            max_instances: Number.isFinite(maxInstances) && maxInstances >= 0 ? maxInstances : 1,
+            plan_id: (planId === 'none' || planId === 'custom') ? null : planId,
+            custom_plan_value:
+              planId === 'custom' && customPlanValue
+                ? Math.round(parseFloat(customPlanValue.replace(',', '.')) * 100)
+                : null,
+          },
+        },
+      });
       if (error) throw error;
       toast({ title: "Usuário atualizado", description: "As informações do usuário foram atualizadas com sucesso." });
       onSuccess();

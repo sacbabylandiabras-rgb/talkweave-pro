@@ -78,10 +78,9 @@ export const useAdminUsers = () => {
 
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_active: !currentStatus })
-        .eq("id", userId);
+      const { error } = await supabase.functions.invoke("admin-update-profile", {
+        body: { userId, patch: { is_active: !currentStatus } },
+      });
 
       if (error) throw error;
 
@@ -178,14 +177,16 @@ export const useAdminUsers = () => {
      deleteUser,
      activateUserSubscription: async (userId: string) => {
        try {
-         const { error } = await supabase
-           .from("profiles")
-           .update({ 
-             is_active: true,
-             subscription_status: 'active',
-             subscription_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-           } as any)
-           .eq("id", userId);
+          const { error } = await supabase.functions.invoke("admin-update-profile", {
+            body: {
+              userId,
+              patch: {
+                is_active: true,
+                subscription_status: 'active',
+                subscription_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+              },
+            },
+          });
  
          if (error) throw error;
  
