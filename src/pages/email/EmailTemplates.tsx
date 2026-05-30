@@ -1224,6 +1224,11 @@ export default function EmailTemplates() {
                     onBlur={saveEditorSelection}
                     onMouseUp={saveEditorSelection}
                     onKeyUp={saveEditorSelection}
+                    onMouseDownCapture={(e) => {
+                      const target = e.target as HTMLElement;
+                      const btnBlock = target.closest('.btn-block') as HTMLElement | null;
+                      if (btnBlock) showButtonControls(btnBlock);
+                    }}
                     onInput={(e) => {
                       saveEditorSelection();
                       editorHtmlDraftRef.current = e.currentTarget.innerHTML;
