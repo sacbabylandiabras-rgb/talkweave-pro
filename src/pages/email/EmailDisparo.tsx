@@ -18,6 +18,7 @@ export default function EmailDisparo() {
   const [subject, setSubject] = useState("");
   const [html, setHtml] = useState("");
   const [fromAlias, setFromAlias] = useState("contato");
+  const [senderName, setSenderName] = useState("");
   const [sending, setSending] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
 
@@ -28,6 +29,15 @@ export default function EmailDisparo() {
         .select("id,name,subject,html")
         .order("created_at", { ascending: false });
       setTemplates((data as Template[]) || []);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await (supabase as any)
+          .from("profiles")
+          .select("email_sender_name, full_name")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (profile) setSenderName(profile.email_sender_name || profile.full_name || "");
+      }
     })();
   }, []);
 
@@ -52,7 +62,7 @@ export default function EmailDisparo() {
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-user-email", {
-        body: { to: all, subject, html, fromAlias },
+        body: { to: all, subject, html, fromAlias, senderName: senderName.trim() || undefined },
       });
       if (error) throw error;
       const sent = (data as any)?.sent || 0;
