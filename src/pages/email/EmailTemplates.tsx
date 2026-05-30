@@ -813,31 +813,16 @@ export default function EmailTemplates() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="w-44">
                         {[
-                          { label: "Text", cmd: () => document.execCommand('formatBlock', false, '<p>'), cls: "text-[14px]" },
-                          { label: "Title", cmd: () => document.execCommand('formatBlock', false, '<h1>'), cls: "text-[20px] font-bold" },
-                          { label: "Subtitle", cmd: () => document.execCommand('formatBlock', false, '<h2>'), cls: "text-[16px] font-semibold" },
-                          { label: "Heading", cmd: () => document.execCommand('formatBlock', false, '<h3>'), cls: "text-[14px] font-semibold" },
-                          { label: "Bullet list", cmd: () => document.execCommand('insertUnorderedList', false), cls: "text-[13px]" },
-                          { label: "Numbered list", cmd: () => document.execCommand('insertOrderedList', false), cls: "text-[13px]" },
+                          { label: "Text", type: "text", cls: "text-[14px]" },
+                          { label: "Title", type: "title", cls: "text-[20px] font-bold" },
+                          { label: "Subtitle", type: "subtitle", cls: "text-[16px] font-semibold" },
+                          { label: "Heading", type: "heading", cls: "text-[14px] font-semibold" },
+                          { label: "Bullet list", type: "bullet", cls: "text-[13px]" },
+                          { label: "Numbered list", type: "numbered", cls: "text-[13px]" },
                         ].map((opt) => (
                           <DropdownMenuItem
                             key={opt.label}
-                            onClick={() => {
-                              const editor = document.getElementById('email-editor') as HTMLElement | null;
-                              if (editor) {
-                                const sel = window.getSelection();
-                                if (!sel || sel.rangeCount === 0 || !editor.contains(sel.anchorNode)) {
-                                  editor.focus();
-                                  const range = document.createRange();
-                                  range.selectNodeContents(editor);
-                                  range.collapse(false);
-                                  sel?.removeAllRanges();
-                                  sel?.addRange(range);
-                                }
-                              }
-                              opt.cmd();
-                              if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
-                            }}
+                            onClick={() => applyTextBlock(opt.type as "text" | "title" | "subtitle" | "heading" | "bullet" | "numbered")}
                             className={`cursor-pointer ${opt.cls}`}
                           >
                             {opt.label}
