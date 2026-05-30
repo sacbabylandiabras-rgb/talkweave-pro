@@ -37,6 +37,8 @@ export default function EmailCaixaEntrada() {
   const [rows, setRows] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState<EventRow | null>(null);
+  const [bodyHtml, setBodyHtml] = useState<string | null>(null);
+  const [bodyLoading, setBodyLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -68,13 +70,20 @@ export default function EmailCaixaEntrada() {
 
   useEffect(() => { load(); }, []);
 
-  const getEmailContent = (email: EventRow) => {
-    const data = email.raw_payload?.data;
-    if (!data) return "Conteúdo não disponível";
-    
-    // Resend sends the body content in the webhook payload data
-    return data.text || data.html || "Este evento não contém o corpo da mensagem.";
-  };
+  useEffect(() => {
+    if (!selectedEmail?.email_id) { setBodyHtml(null); return; }
+    setBodyLoading(true);
+    setBodyHtml(null);
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("sent_emails_mapping")
+        .select("html")
+        .eq("email_id", selectedEmail.email_id)
+        .maybeSingle();
+      setBodyHtml((data as any)?.html || null);
+      setBodyLoading(false);
+    })();
+  }, [selectedEmail]);
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
@@ -164,9 +173,22 @@ export default function EmailCaixaEntrada() {
 
               <div className="space-y-2">
                 <p className="text-sm font-semibold border-b pb-1">Mensagem:</p>
-                <div className="p-4 rounded-md border bg-white text-black text-sm whitespace-pre-wrap font-sans min-h-[100px]">
-                  {getEmailContent(selectedEmail)}
-                </div>
+                {bodyLoading ? (
+                  <div className="flex items-center justify-center min-h-[120px] border rounded-md">
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : bodyHtml ? (
+                  <iframe
+                    title="email-body"
+                    srcDoc={bodyHtml}
+                    sandbox=""
+                    className="w-full min-h-[400px] rounded-md border bg-white"
+                  />
+                ) : (
+                  <div className="p-4 rounded-md border bg-white text-black text-sm min-h-[100px]">
+                    Corpo do email não disponível (enviado antes do registro de histórico).
+                  </div>
+                )}
               </div>
             </div>
           )}
