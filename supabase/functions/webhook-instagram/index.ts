@@ -757,6 +757,12 @@ serve(async (req) => {
                         const pending = (pendingList || []).find((r: any) => r?.payload?.awaiting_collect);
                         const ac = pending?.payload?.awaiting_collect;
                         if (ac && ac.automation_id && ac.node_id && ac.type) {
+                          if (!isValidCollectInput(ac.type, dmText)) {
+                            console.log(`[webhook-instagram] Waiting for valid ${ac.type} input before resuming flow`);
+                            resumed = true;
+                            continue;
+                          }
+
                           const auto = (automations || []).find((a: any) => a.id === ac.automation_id);
                           if (auto) {
                             const p = JSON.parse(auto.dm_message || "");
