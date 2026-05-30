@@ -933,7 +933,6 @@ export default function EmailTemplates() {
                                     + `<select data-c="size" onchange="(${updFn})()" title="Tamanho" style="${inputStyle} cursor: pointer;"><option value="small">P</option><option value="medium" selected>M</option><option value="large">G</option></select>`
                                     + `<select data-c="align" onchange="(${updFn})()" title="Alinhamento" style="${inputStyle} cursor: pointer;"><option value="left" selected>◧</option><option value="center">▣</option><option value="right">◨</option></select>`
                                     + `</div></div><p></p>`;
-                                 }
                                 }
                                 insertHtmlAtEditorCursor(html);
                               }}
