@@ -122,6 +122,21 @@ const triggerOfficialWhatsAppFlow = async (
   }
 };
 
+const normalizeWhatsAppPhone = (value: string) => {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("55") || digits.length > 11) return digits;
+  // Instagram leads in this app are mostly Brazilian; accept local numbers typed without DDI.
+  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
+  return digits;
+};
+
+const isUsableZapiInstance = (instance: any) => {
+  const provider = String(instance?.api_provider || "zapi").toLowerCase();
+  const type = String(instance?.instance_type || "").toLowerCase();
+  return provider === "zapi" && type !== "mobile" && !!instance?.zapi_instance_id && !!instance?.zapi_token && !!instance?.zapi_client_token;
+};
+
 const executeIgWhatsAppNode = async (
   nodeData: any,
   collectedPhone: string | null,
@@ -144,20 +159,36 @@ const executeIgWhatsAppNode = async (
     phone = leadEvent?.comment_text || null;
   }
   if (!phone) return;
-  const cleanPhone = phone.replace(/\D/g, "");
+  const cleanPhone = normalizeWhatsAppPhone(phone);
   if (cleanPhone.length < 8) return;
 
   const wantedInstance = nodeData.instanceId || null;
   let zapiCreds: any = null;
   if (wantedInstance) {
-    const { data } = await supabase.from("zapi_instances").select("*").or("id.eq." + wantedInstance + ",zapi_instance_id.eq." + wantedInstance).eq("user_id", userId).eq("is_active", true).maybeSingle();
-    zapiCreds = data;
+    const { data } = await supabase
+      .from("zapi_instances")
+      .select("*")
+      .or("id.eq." + wantedInstance + ",zapi_instance_id.eq." + wantedInstance)
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .maybeSingle();
+    zapiCreds = isUsableZapiInstance(data) ? data : null;
   }
   if (!zapiCreds) {
-    const { data } = await supabase.from("zapi_instances").select("*").eq("user_id", userId).eq("is_default", true).maybeSingle();
-    zapiCreds = data;
+    const { data } = await supabase
+      .from("zapi_instances")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .order("is_default", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .limit(20);
+    zapiCreds = (data || []).find(isUsableZapiInstance) || null;
   }
-  if (!zapiCreds) return;
+  if (!zapiCreds) {
+    console.error(`[webhook-instagram] No active web WhatsApp instance found for user ${userId}`);
+    return;
+  }
 
   const baseUrl = "https://api.z-api.io/instances/" + zapiCreds.zapi_instance_id + "/token/" + zapiCreds.zapi_token;
   const sendType = nodeData.sendType || "text";
@@ -168,11 +199,19 @@ const executeIgWhatsAppNode = async (
   }
 
   const message = replaceVars(nodeData.message || "", { username: fromUsername });
-  await fetch(baseUrl + "/send-text", {
+  if (!message.trim()) return;
+
+  const response = await fetch(baseUrl + "/send-text", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Client-Token": zapiCreds.zapi_client_token },
     body: JSON.stringify({ phone: cleanPhone, message }),
   });
+  const responseText = await response.text();
+  if (!response.ok) {
+    console.error(`[webhook-instagram] WhatsApp send failed for ${cleanPhone}:`, responseText);
+    return;
+  }
+  console.log(`[webhook-instagram] WhatsApp message sent to ${cleanPhone} via ${zapiCreds.zapi_instance_id}:`, responseText.slice(0, 300));
 };
 
  const logInstagramEvent = async (supabase: any, params: {
