@@ -71,11 +71,13 @@ export default function EmailTemplates() {
         wrap.innerHTML = raw;
         // For each button block, remove the input and unwrap the anchor's container div
         wrap.querySelectorAll('.btn-block').forEach((block) => {
-          block.querySelectorAll('input').forEach((el) => el.remove());
+          const align = (block as HTMLElement).style.textAlign || 'left';
+          block.querySelectorAll('input, select, button').forEach((el) => el.remove());
           const anchor = block.querySelector('a');
           if (anchor) {
             const p = document.createElement('p');
             p.style.margin = '12px 0';
+            p.style.textAlign = align;
             p.appendChild(anchor);
             block.replaceWith(p);
           } else {
