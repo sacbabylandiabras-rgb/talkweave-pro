@@ -45,6 +45,27 @@ Deno.serve(async (req) => {
       });
     }
 
+    const isFullDoc = /<!doctype|<html[\s>]/i.test(messageBody);
+    const looksLikeHtml = /<\/?[a-z][\s\S]*?>/i.test(messageBody);
+    const inner = looksLikeHtml
+      ? messageBody
+      : messageBody.split(/\n{2,}/).map(p => `<p style="margin:0 0 12px;">${p.replace(/\n/g, "<br/>")}</p>`).join("");
+    const finalHtml = isFullDoc ? messageBody : `<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>${subject.replace(/[<>]/g, "")}</title>
+<style>
+body { margin:0; padding:0; background-color:#f8fafc; -webkit-text-size-adjust:100%; }
+.email-wrap { max-width:600px; margin:0 auto; padding:24px; background:#ffffff; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color:#0f172a; line-height:1.6; font-size:14px; }
+.email-wrap img { max-width:100%; height:auto; }
+.email-wrap a { color:#6366f1; }
+</style>
+</head>
+<body><div class="email-wrap">${inner}</div></body>
+</html>`;
+
     const admin = createClient(supabaseUrl, serviceKey);
 
     const { data: domainData } = await admin
@@ -90,7 +111,7 @@ Deno.serve(async (req) => {
           from,
           to: recipient,
           subject,
-          html: messageBody,
+          html: finalHtml,
         }),
       });
       const j = await r.json().catch(() => ({}));
