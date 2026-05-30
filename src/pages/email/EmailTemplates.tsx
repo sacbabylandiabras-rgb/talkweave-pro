@@ -22,6 +22,7 @@ export default function EmailTemplates() {
   const [uploading, setUploading] = useState(false);
   const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorSelectionRef = useRef<Range | null>(null);
   const [tab, setTab] = useState("all");
   const [themeStyles, setThemeStyles] = useState<ThemeStyles>({});
   const [globalCss, setGlobalCss] = useState("");
@@ -211,6 +212,111 @@ export default function EmailTemplates() {
       if (editing) setEditing({ ...editing, html: editor.innerHTML });
       setImageLibraryOpen(false);
     }
+  };
+
+  const getEditor = () => document.getElementById('email-editor') as HTMLElement | null;
+
+  const syncEditorHtml = () => {
+    const editor = getEditor();
+    if (editing && editor) setEditing({ ...editing, html: editor.innerHTML });
+  };
+
+  const saveEditorSelection = () => {
+    const editor = getEditor();
+    const selection = window.getSelection();
+    if (!editor || !selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    if (editor.contains(range.commonAncestorContainer)) {
+      editorSelectionRef.current = range.cloneRange();
+    }
+  };
+
+  const restoreEditorSelection = () => {
+    const editor = getEditor();
+    if (!editor) return null;
+
+    editor.focus();
+    const selection = window.getSelection();
+    const savedRange = editorSelectionRef.current;
+    let range: Range;
+
+    if (savedRange && editor.contains(savedRange.commonAncestorContainer)) {
+      range = savedRange.cloneRange();
+    } else {
+      range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+    }
+
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    return range;
+  };
+
+  const escapeHtml = (value: string) =>
+    value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  const insertHtmlAtEditorCursor = (html: string) => {
+    const editor = getEditor();
+    const range = restoreEditorSelection();
+    if (!editor || !range) return;
+
+    range.deleteContents();
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = html;
+    const fragment = document.createDocumentFragment();
+    let lastNode: ChildNode | null = null;
+    let node: ChildNode | null;
+    while ((node = wrapper.firstChild)) {
+      lastNode = fragment.appendChild(node);
+    }
+    range.insertNode(fragment);
+
+    if (lastNode) {
+      const nextRange = document.createRange();
+      nextRange.setStartAfter(lastNode);
+      nextRange.collapse(true);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(nextRange);
+      editorSelectionRef.current = nextRange.cloneRange();
+    }
+
+    if (editing) setEditing({ ...editing, html: editor.innerHTML });
+  };
+
+  const insertTextAtEditorCursor = (text: string) => insertHtmlAtEditorCursor(escapeHtml(text));
+
+  const applyTextBlock = (type: "text" | "title" | "subtitle" | "heading" | "bullet" | "numbered") => {
+    const range = restoreEditorSelection();
+    if (!range) return;
+
+    const selectedText = range.toString().trim();
+    const selectedHtmlContainer = document.createElement('div');
+    selectedHtmlContainer.appendChild(range.cloneContents());
+    const selectedHtml = selectedHtmlContainer.innerHTML.trim();
+
+    const blockMap = {
+      text: { tag: "p", fallback: "Text" },
+      title: { tag: "h1", fallback: "Title" },
+      subtitle: { tag: "h2", fallback: "Subtitle" },
+      heading: { tag: "h3", fallback: "Heading" },
+    } as const;
+
+    if (type === "bullet" || type === "numbered") {
+      const items = (selectedText || "List item")
+        .split(/\n+/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .map((item) => `<li>${escapeHtml(item)}</li>`)
+        .join("");
+      insertHtmlAtEditorCursor(`<${type === "bullet" ? "ul" : "ol"}>${items}</${type === "bullet" ? "ul" : "ol"}><p></p>`);
+      return;
+    }
+
+    const block = blockMap[type];
+    insertHtmlAtEditorCursor(`<${block.tag}>${selectedHtml || block.fallback}</${block.tag}><p></p>`);
   };
 
   const filteredList = list.filter(t => {
