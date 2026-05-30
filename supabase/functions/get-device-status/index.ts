@@ -22,6 +22,88 @@ const normalizeZapiStatus = (raw: any) => {
   };
 };
 
+// Robust UAZAPI / Evolution connection detection, mirroring get-whatsapp-groups.
+const detectUazapiConnection = (j: any): { connected: boolean; status: string } => {
+  const statusRaw =
+    j?.instance?.status ||
+    j?.status?.checked_instance?.connection_status ||
+    j?.status?.connection_status ||
+    j?.status ||
+    j?.connectionStatus ||
+    j?.state ||
+    j?.instance?.state ||
+    j?.instance?.connectionStatus ||
+    '';
+  let status = typeof statusRaw === 'string' ? statusRaw.toLowerCase() : '';
+  if (
+    !status &&
+    (j?.connected === true ||
+      j?.instance?.connected === true ||
+      j?.status?.connected === true ||
+      j?.status?.loggedIn === true ||
+      j?.status?.checked_instance?.connection_status === 'connected')
+  ) {
+    status = 'open';
+  }
+  const negativeStates = ['disconnected', 'disconnect', 'closed', 'close', 'logout', 'logged_out', 'loggedout', 'offline', 'refused', 'connecting'];
+  const isDisconnected =
+    j?.connected === false ||
+    j?.loggedIn === false ||
+    j?.status?.connected === false ||
+    j?.status?.loggedIn === false ||
+    j?.instance?.connected === false ||
+    negativeStates.some((s) => status === s || status.includes(s));
+  const connected =
+    !isDisconnected &&
+    (j?.connected === true ||
+      j?.loggedIn === true ||
+      j?.status?.connected === true ||
+      j?.status?.loggedIn === true ||
+      j?.instance?.connected === true ||
+      j?.status?.checked_instance?.connection_status === 'connected' ||
+      ['connected', 'open', 'online', 'logged_in', 'loggedin', 'connected_in', 'true'].some(
+        (s) => status === s || status.includes(s),
+      ));
+  return { connected, status };
+};
+
+const fetchUazapiStatus = async (apiUrl: string, apiToken: string, instanceName?: string | null) => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    token: apiToken,
+    apikey: apiToken,
+    Authorization: `Bearer ${apiToken}`,
+  };
+  const endpoints = ['/instance/status', '/status', '/instance', '/instance/connectionStatus'];
+  if (instanceName) {
+    endpoints.unshift(`/instance/status/${instanceName}`);
+    endpoints.unshift(`/instance/connectionStatus/${instanceName}`);
+  }
+  let lastRaw: any = null;
+  for (const ep of endpoints) {
+    try {
+      const separator = ep.includes('?') ? '&' : '?';
+      const url = `${apiUrl}${ep}${separator}token=${encodeURIComponent(apiToken)}&apikey=${encodeURIComponent(apiToken)}`;
+      const r = await fetch(url, { method: 'GET', headers });
+      if (!r.ok) continue;
+      const j = await r.json().catch(() => null);
+      if (!j) continue;
+      lastRaw = j;
+      const { connected, status } = detectUazapiConnection(j);
+      console.log(`[get-device-status] UAZAPI ${ep} -> connected=${connected} status=${status}`);
+      if (connected) return { connected: true, status, raw: j };
+      // Keep trying further endpoints; UAZAPI sometimes only reports correctly on /instance.
+    } catch (e) {
+      console.log(`[get-device-status] UAZAPI ${ep} error:`, String(e));
+    }
+  }
+  if (lastRaw) {
+    const { connected, status } = detectUazapiConnection(lastRaw);
+    return { connected, status, raw: lastRaw };
+  }
+  return { connected: false, status: 'disconnected', raw: null };
+};
+
 const parseJsonResponse = async (response: Response) => {
   const text = await response.text();
   if (!text) return {};
