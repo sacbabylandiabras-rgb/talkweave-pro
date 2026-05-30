@@ -564,6 +564,10 @@ const executeFlow = async (params: {
       await executeIgWhatsAppNode(d, null, context.userId, context.senderId, context.senderUsername, supabase);
     }
 
+    if (node.type === "igEmail") {
+      await executeIgEmailNode(d, context.userId, context.senderId, context.senderUsername, supabase);
+    }
+
     // Traversal
     const buttons = (node.data?.buttons || []).filter((b: any) => b.title);
     if (node.type === "igDM" && buttons.length > 0) {
