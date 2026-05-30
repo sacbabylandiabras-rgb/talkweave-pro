@@ -951,8 +951,12 @@ serve(async (req) => {
                                 event_type: leadType,
                                 ig_user_id: senderId,
                                 username: senderUsername,
-                                comment_text: dmText,
-                                payload: { automation_id: auto.id },
+                                comment_text: ac.type === "email" ? normalizeEmailInput(dmText) : dmText,
+                                payload: {
+                                  automation_id: auto.id,
+                                  collected_value: ac.type === "email" ? normalizeEmailInput(dmText) : dmText,
+                                  ...(ac.type === "email" && normalizeEmailInput(dmText) !== dmText ? { original_value: dmText } : {}),
+                                },
                               });
                               // Mark the awaiting_collect as consumed
                               await supabase
