@@ -80,11 +80,11 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
 
   return {
     userId: user.id,
-    instanceId: inst.zapi_instance_id,
-    token: inst.zapi_token,
-    clientToken: inst.zapi_client_token,
-    apiProvider: inst.api_provider || 'zapi',
-    instanceType: inst.instance_type,
+    instanceId: inst?.zapi_instance_id ?? null,
+    token: inst?.zapi_token ?? null,
+    clientToken: inst?.zapi_client_token ?? null,
+    apiProvider: inst?.api_provider || 'zapi',
+    instanceType: inst?.instance_type,
   };
 }
 
