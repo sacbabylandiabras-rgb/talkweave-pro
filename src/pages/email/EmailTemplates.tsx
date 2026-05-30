@@ -216,11 +216,6 @@ export default function EmailTemplates() {
 
   const getEditor = () => document.getElementById('email-editor') as HTMLElement | null;
 
-  const syncEditorHtml = () => {
-    const editor = getEditor();
-    if (editing && editor) setEditing({ ...editing, html: editor.innerHTML });
-  };
-
   const saveEditorSelection = () => {
     const editor = getEditor();
     const selection = window.getSelection();
