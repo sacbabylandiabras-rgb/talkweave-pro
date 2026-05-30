@@ -51,6 +51,7 @@ import {
   Camera,
   Tag,
   Mail,
+  Search as SearchIcon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -81,7 +82,8 @@ const zapiMenuItems = [
   
   { id: "contatos", label: "Contatos", icon: Users, path: "/contatos" },
   { id: "relatorio", label: "Relatório", icon: BarChart3, path: "/relatorio" },
-  
+  { id: "prospeccao", label: "Prospecção", icon: SearchIcon, path: "/prospeccao" },
+
   { id: "extrair-membros", label: "Extrair Membros", icon: UserPlus, path: "/extrair-membros" },
   { id: "comunidades", label: "Comunidades", icon: Building2, path: "/comunidades" },
   { id: "canais", label: "Canais", icon: Hash, path: "/canais" },
