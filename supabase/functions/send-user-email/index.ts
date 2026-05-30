@@ -25,6 +25,7 @@ const replaceCssVars = (value: string) =>
 const cleanEditorArtifacts = (html: string) => replaceCssVars(html)
   .replace(/<div\b[^>]*class=["'][^"']*\bimg-controls\b[^"']*["'][\s\S]*?<\/div>/gi, "")
   .replace(/<div\b[^>]*class=["'][^"']*\bresizer\b[^"']*["'][\s\S]*?<\/div>/gi, "")
+  .replace(/<([a-z][\w:-]*)\b[^>]*class=["'][^"']*\bsr-only\b[^"']*["'][^>]*>[\s\S]*?<\/\1>/gi, "")
   .replace(/\s(?:contenteditable|draggable)=["'][^"']*["']/gi, "")
   .replace(/\s(?:onclick|onmousedown|oninput|onchange)=["'][\s\S]*?["']/gi, "")
   .replace(/\sclass=["']([^"']*)\b(?:selected|dragging)\b([^"']*)["']/gi, (_m, a, b) => {
@@ -165,6 +166,7 @@ Deno.serve(async (req) => {
     const subject = String(body?.subject || "").trim();
     const messageBody = String(body?.html || body?.text || "").trim();
     const fromAlias = String(body?.fromAlias || "contato").replace(/[^a-z0-9._-]/gi, "");
+    const overrideSenderName = String(body?.senderName || "").trim();
 
     if (!to.length || !subject || !messageBody) {
       return new Response(JSON.stringify({ error: "Campos obrigatórios: to, subject, html ou text" }), {
@@ -196,7 +198,7 @@ Deno.serve(async (req) => {
       .eq("id", userId)
       .maybeSingle();
 
-    const senderName = (profile as any)?.email_sender_name || profile?.full_name || "ZapLynx";
+    const senderName = overrideSenderName || (profile as any)?.email_sender_name || profile?.full_name || "ZapLynx";
     const from = `${senderName} <${fromAlias}@${domainData.domain}>`;
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
