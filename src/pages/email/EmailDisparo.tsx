@@ -5,14 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Template { id: string; name: string; subject: string; html: string; }
 
 export default function EmailDisparo() {
-  const [to, setTo] = useState("");
+  const [recipients, setRecipients] = useState<string[]>([]);
+  const [toInput, setToInput] = useState("");
   const [subject, setSubject] = useState("");
   const [html, setHtml] = useState("");
   const [fromAlias, setFromAlias] = useState("contato");
@@ -37,19 +38,24 @@ export default function EmailDisparo() {
   };
 
   const handleSend = async () => {
-    const recipients = to.split(/[\s,;\n]+/).map(s => s.trim()).filter(Boolean);
-    if (!recipients.length || !subject.trim() || !html.trim()) {
+    const pending = toInput.split(/[\s,;\n]+/).map(s => s.trim()).filter(Boolean);
+    const all = Array.from(new Set([...recipients, ...pending]));
+    if (!all.length || !subject.trim() || !html.trim()) {
       toast.error("Preencha destinatários, assunto e mensagem.");
       return;
+    }
+    if (pending.length) {
+      setRecipients(all);
+      setToInput("");
     }
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-user-email", {
-        body: { to: recipients, subject, html, fromAlias },
+        body: { to: all, subject, html, fromAlias },
       });
       if (error) throw error;
       const sent = (data as any)?.sent || 0;
-      const total = (data as any)?.total || recipients.length;
+      const total = (data as any)?.total || all.length;
       toast.success(`${sent}/${total} email(s) enviado(s).`);
       if (sent < total) {
         const failed = ((data as any)?.results || []).filter((r: any) => !r.ok);
@@ -62,11 +68,22 @@ export default function EmailDisparo() {
     }
   };
 
+  const addFromInput = () => {
+    const parts = toInput.split(/[\s,;\n]+/).map(s => s.trim()).filter(Boolean);
+    if (!parts.length) return;
+    setRecipients(prev => Array.from(new Set([...prev, ...parts])));
+    setToInput("");
+  };
+
+  const removeRecipient = (email: string) => {
+    setRecipients(prev => prev.filter(e => e !== email));
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold">Disparo de Email</h1>
-        <p className="text-sm text-muted-foreground">Envie emails para um ou vários destinatários (separe por vírgula, ponto-e-vírgula ou linha).</p>
+        <p className="text-sm text-muted-foreground">Envie emails para um ou vários destinatários — cada e-mail vira um bloco separado.</p>
       </div>
 
       <Card>
@@ -93,7 +110,48 @@ export default function EmailDisparo() {
 
           <div>
             <Label>Destinatários</Label>
-            <Textarea value={to} onChange={e => setTo(e.target.value)} placeholder="email1@exemplo.com, email2@exemplo.com" rows={3} />
+            <div className="min-h-[44px] flex flex-wrap items-center gap-2 rounded-md border border-input bg-background px-2 py-2 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+              {recipients.map(email => (
+                <span
+                  key={email}
+                  className="inline-flex items-center gap-1 rounded-md bg-primary/10 text-primary text-xs font-medium px-2 py-1"
+                >
+                  {email}
+                  <button
+                    type="button"
+                    onClick={() => removeRecipient(email)}
+                    className="hover:bg-primary/20 rounded p-0.5"
+                    aria-label={`Remover ${email}`}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+              <input
+                value={toInput}
+                onChange={e => setToInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" || e.key === "Tab" || e.key === "," || e.key === ";") {
+                    e.preventDefault();
+                    addFromInput();
+                  } else if (e.key === "Backspace" && !toInput && recipients.length) {
+                    setRecipients(prev => prev.slice(0, -1));
+                  }
+                }}
+                onBlur={addFromInput}
+                onPaste={e => {
+                  const text = e.clipboardData.getData("text");
+                  if (/[\s,;\n]/.test(text)) {
+                    e.preventDefault();
+                    const parts = text.split(/[\s,;\n]+/).map(s => s.trim()).filter(Boolean);
+                    if (parts.length) setRecipients(prev => Array.from(new Set([...prev, ...parts])));
+                  }
+                }}
+                placeholder={recipients.length ? "" : "Digite um e-mail e pressione Enter"}
+                className="flex-1 min-w-[180px] bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Pressione Enter, Tab ou cole vários para adicionar como blocos.</p>
           </div>
           <div>
             <Label>Assunto</Label>
