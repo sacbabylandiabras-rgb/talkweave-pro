@@ -28,6 +28,68 @@ export default function EmailTemplates() {
   const loadedEditingIdRef = useRef<string | null>(null);
   const [tab, setTab] = useState("all");
   const [themeStyles, setThemeStyles] = useState<ThemeStyles>({});
+
+  // Builds the editable button block HTML used both on insert and on re-hydration
+  const buildButtonBlockHtml = (opts?: { text?: string; url?: string; color?: string; size?: string; align?: string }) => {
+    const text = opts?.text ?? 'Click me';
+    const url = opts?.url ?? '';
+    const color = opts?.color ?? '#6366f1';
+    const size = opts?.size ?? 'medium';
+    const align = opts?.align ?? 'left';
+    const btnId = `btn-${Math.random().toString(36).slice(2, 9)}`;
+    const wrapId = `wrap-${btnId}`;
+    const SZ: Record<string, { p: string; f: string }> = {
+      small: { p: '6px 14px', f: '12px' },
+      medium: { p: '10px 20px', f: '14px' },
+      large: { p: '14px 28px', f: '16px' },
+    };
+    const sz = SZ[size] || SZ.medium;
+    const sizesLit = `{small:{p:'6px 14px',f:'12px'},medium:{p:'10px 20px',f:'14px'},large:{p:'14px 28px',f:'16px'}}`;
+    const updFn = `function(){var a=document.getElementById('${btnId}');var w=document.getElementById('${wrapId}');if(!a||!w)return;var t=w.querySelector('[data-c=text]').value;var u=w.querySelector('[data-c=url]').value;var c=w.querySelector('[data-c=color]').value;var s=w.querySelector('[data-c=size]').value;var al=w.querySelector('[data-c=align]').value;var SZ=${sizesLit};var sz=SZ[s]||SZ.medium;a.textContent=t||'Click me';a.setAttribute('href',u||'#');a.style.background=c;a.style.padding=sz.p;a.style.fontSize=sz.f;a.setAttribute('data-btn-text',t);a.setAttribute('data-btn-url',u);a.setAttribute('data-btn-color',c);a.setAttribute('data-btn-size',s);a.setAttribute('data-btn-align',al);w.style.textAlign=al;}`;
+    const inputStyle = `padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; background: #f8fafc; color: #475569; outline: none;`;
+    const esc = (s: string) => String(s).replace(/"/g, '&quot;');
+    const sizeOptions = ['small','medium','large'].map(v => `<option value="${v}"${v===size?' selected':''}>${v==='small'?'P':v==='medium'?'M':'G'}</option>`).join('');
+    const alignOptions = ['left','center','right'].map(v => `<option value="${v}"${v===align?' selected':''}>${v==='left'?'◧':v==='center'?'▣':'◨'}</option>`).join('');
+    return (
+      `<div class="btn-block" id="${wrapId}" draggable="true" contenteditable="false" style="margin: 12px 0; text-align: ${align}; cursor: move;">`
+      + `<div style="margin-bottom: 10px;"><a id="${btnId}" href="${esc(url || '#')}" data-btn="1" data-btn-text="${esc(text)}" data-btn-url="${esc(url)}" data-btn-color="${esc(color)}" data-btn-size="${esc(size)}" data-btn-align="${esc(align)}" style="display: inline-block; background: ${color}; color: #ffffff; padding: ${sz.p}; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: ${sz.f};">${esc(text)}</a></div>`
+      + `<div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px; background: #f1f5f9; border-radius: 6px;">`
+      + `<input data-c="text" type="text" placeholder="Texto do botão" value="${esc(text)}" oninput="(${updFn})()" style="${inputStyle} flex: 1; min-width: 140px;" />`
+      + `<input data-c="url" type="url" placeholder="Cole um link" value="${esc(url)}" oninput="(${updFn})()" style="${inputStyle} flex: 1; min-width: 160px;" />`
+      + `<input data-c="color" type="color" value="${esc(color)}" oninput="(${updFn})()" title="Cor" style="width: 36px; height: 30px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 2px; background: #ffffff; cursor: pointer;" />`
+      + `<select data-c="size" onchange="(${updFn})()" title="Tamanho" style="${inputStyle} cursor: pointer;">${sizeOptions}</select>`
+      + `<select data-c="align" onchange="(${updFn})()" title="Alinhamento" style="${inputStyle} cursor: pointer;">${alignOptions}</select>`
+      + `</div></div>`
+    );
+  };
+
+  // Re-hydrate saved button anchors back into editable button blocks
+  const rehydrateButtons = (root: HTMLElement) => {
+    const anchors = root.querySelectorAll('a[data-btn="1"]');
+    anchors.forEach((aEl) => {
+      const a = aEl as HTMLAnchorElement;
+      // Skip if already inside an editable btn-block
+      if (a.closest('.btn-block')) return;
+      const wrapper = a.closest('p') as HTMLElement | null;
+      const align = (wrapper?.style.textAlign) || a.getAttribute('data-btn-align') || 'left';
+      const html = buildButtonBlockHtml({
+        text: a.getAttribute('data-btn-text') || a.textContent || 'Click me',
+        url: a.getAttribute('data-btn-url') || a.getAttribute('href') || '',
+        color: a.getAttribute('data-btn-color') || '#6366f1',
+        size: a.getAttribute('data-btn-size') || 'medium',
+        align,
+      });
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      const block = tmp.firstElementChild as HTMLElement;
+      if (!block) return;
+      if (wrapper && wrapper.parentElement) {
+        wrapper.replaceWith(block);
+      } else {
+        a.replaceWith(block);
+      }
+    });
+  };
   const [globalCss, setGlobalCss] = useState("");
   const [pageStyle, setPageStyle] = useState({ backgroundColor: "#f8fafc", width: 600, padding: 20 });
 
