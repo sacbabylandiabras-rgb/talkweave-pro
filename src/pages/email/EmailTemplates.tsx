@@ -52,15 +52,15 @@ export default function EmailTemplates() {
     const sizeOptions = ['small','medium','large'].map(v => `<option value="${v}"${v===size?' selected':''}>${v==='small'?'P':v==='medium'?'M':'G'}</option>`).join('');
     const alignOptions = ['left','center','right'].map(v => `<option value="${v}"${v===align?' selected':''}>${v==='left'?'◧':v==='center'?'▣':'◨'}</option>`).join('');
     return (
-      `<div class="btn-block" id="${wrapId}" draggable="true" contenteditable="false" onmousedown="(${openFn})(event)" onclick="(${openFn})(event)" style="margin: 12px 0; text-align: ${align};">`
-      + `<div class="btn-handle" title="Arraste para mover" style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; margin-bottom: 6px; background: #e2e8f0; color: #475569; border-radius: 4px; font-size: 11px; cursor: move; user-select: none;">⋮⋮ Arrastar botão</div><div style="height: 0;"></div>`
+      `<div class="btn-block" id="${wrapId}" draggable="false" contenteditable="false" onmousedown="(${openFn})(event)" onclick="(${openFn})(event)" style="margin: 12px 0; text-align: ${align};">`
+      + `<div class="btn-handle" draggable="true" data-drag-handle="button" title="Arraste para mover" style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; margin-bottom: 6px; background: #e2e8f0; color: #475569; border-radius: 4px; font-size: 11px; cursor: move; user-select: none;">⋮⋮ Arrastar botão</div><div style="height: 0;"></div>`
       + `<div style="margin-bottom: 10px;"><a id="${btnId}" href="${esc(url || '#')}" onclick="event.preventDefault();return false;" data-btn="1" data-btn-text="${esc(text)}" data-btn-url="${esc(url)}" data-btn-color="${esc(color)}" data-btn-size="${esc(size)}" data-btn-align="${esc(align)}" style="display: inline-block; background: ${color}; color: #ffffff; padding: ${sz.p}; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: ${sz.f}; cursor: pointer;">${esc(text)}</a></div>`
-      + `<div class="btn-controls" style="display: none; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px; background: #f1f5f9; border-radius: 6px;">`
-      + `<input data-c="text" type="text" placeholder="Texto do botão" value="${esc(text)}" oninput="(${updFn})()" style="${inputStyle} flex: 1; min-width: 140px;" />`
-      + `<input data-c="url" type="url" placeholder="Cole um link" value="${esc(url)}" oninput="(${updFn})()" style="${inputStyle} flex: 1; min-width: 160px;" />`
-      + `<input data-c="color" type="color" value="${esc(color)}" oninput="(${updFn})()" title="Cor" style="width: 36px; height: 30px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 2px; background: #ffffff; cursor: pointer;" />`
-      + `<select data-c="size" onchange="(${updFn})()" title="Tamanho" style="${inputStyle} cursor: pointer;">${sizeOptions}</select>`
-      + `<select data-c="align" onchange="(${updFn})()" title="Alinhamento" style="${inputStyle} cursor: pointer;">${alignOptions}</select>`
+      + `<div class="btn-controls" draggable="false" style="display: none; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px; background: #f1f5f9; border-radius: 6px;">`
+      + `<input draggable="false" data-c="text" type="text" placeholder="Texto do botão" value="${esc(text)}" oninput="(${updFn})()" style="${inputStyle} flex: 1; min-width: 140px;" />`
+      + `<input draggable="false" data-c="url" type="url" placeholder="Cole um link" value="${esc(url)}" oninput="(${updFn})()" style="${inputStyle} flex: 1; min-width: 160px;" />`
+      + `<input draggable="false" data-c="color" type="color" value="${esc(color)}" oninput="(${updFn})()" title="Cor" style="width: 36px; height: 30px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 2px; background: #ffffff; cursor: pointer;" />`
+      + `<select draggable="false" data-c="size" onchange="(${updFn})()" title="Tamanho" style="${inputStyle} cursor: pointer;">${sizeOptions}</select>`
+      + `<select draggable="false" data-c="align" onchange="(${updFn})()" title="Alinhamento" style="${inputStyle} cursor: pointer;">${alignOptions}</select>`
       + `</div></div>`
     );
   };
