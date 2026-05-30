@@ -25,6 +25,7 @@ const replaceCssVars = (value: string) =>
 const cleanEditorArtifacts = (html: string) => replaceCssVars(html)
   .replace(/<div\b[^>]*class=["'][^"']*\bimg-controls\b[^"']*["'][\s\S]*?<\/div>/gi, "")
   .replace(/<div\b[^>]*class=["'][^"']*\bresizer\b[^"']*["'][\s\S]*?<\/div>/gi, "")
+  .replace(/<([a-z][\w:-]*)\b[^>]*class=["'][^"']*\bsr-only\b[^"']*["'][^>]*>[\s\S]*?<\/\1>/gi, "")
   .replace(/\s(?:contenteditable|draggable)=["'][^"']*["']/gi, "")
   .replace(/\s(?:onclick|onmousedown|oninput|onchange)=["'][\s\S]*?["']/gi, "")
   .replace(/\sclass=["']([^"']*)\b(?:selected|dragging)\b([^"']*)["']/gi, (_m, a, b) => {
