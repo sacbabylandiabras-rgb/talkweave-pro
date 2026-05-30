@@ -53,7 +53,7 @@ export default function EmailTemplates() {
     return (
       `<div class="btn-block" id="${wrapId}" draggable="true" contenteditable="false" style="margin: 12px 0; text-align: ${align}; cursor: move;">`
       + `<div style="margin-bottom: 10px;"><a id="${btnId}" href="${esc(url || '#')}" data-btn="1" data-btn-text="${esc(text)}" data-btn-url="${esc(url)}" data-btn-color="${esc(color)}" data-btn-size="${esc(size)}" data-btn-align="${esc(align)}" style="display: inline-block; background: ${color}; color: #ffffff; padding: ${sz.p}; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: ${sz.f};">${esc(text)}</a></div>`
-      + `<div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px; background: #f1f5f9; border-radius: 6px;">`
+      + `<div class="btn-controls" style="display: none; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px; background: #f1f5f9; border-radius: 6px;">`
       + `<input data-c="text" type="text" placeholder="Texto do botão" value="${esc(text)}" oninput="(${updFn})()" style="${inputStyle} flex: 1; min-width: 140px;" />`
       + `<input data-c="url" type="url" placeholder="Cole um link" value="${esc(url)}" oninput="(${updFn})()" style="${inputStyle} flex: 1; min-width: 160px;" />`
       + `<input data-c="color" type="color" value="${esc(color)}" oninput="(${updFn})()" title="Cor" style="width: 36px; height: 30px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 2px; background: #ffffff; cursor: pointer;" />`
@@ -1233,6 +1233,16 @@ export default function EmailTemplates() {
                     onClick={(e) => {
                       const target = e.target as HTMLElement;
                       const container = target.closest('.img-container');
+                      const btnBlock = target.closest('.btn-block') as HTMLElement | null;
+
+                      // Hide all button controls, then show the clicked one
+                      document.querySelectorAll('.btn-block .btn-controls').forEach((el) => {
+                        (el as HTMLElement).style.display = 'none';
+                      });
+                      if (btnBlock) {
+                        const ctrls = btnBlock.querySelector('.btn-controls') as HTMLElement | null;
+                        if (ctrls) ctrls.style.display = 'flex';
+                      }
                       
                       // Remove selected class from all containers
                       document.querySelectorAll('.img-container').forEach(el => el.classList.remove('selected'));
