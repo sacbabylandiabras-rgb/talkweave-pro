@@ -287,8 +287,33 @@ const executeIgEmailNode = async (
     || "ZapLynx";
   const from = `${senderName} <${fromAlias}@${domainData.domain}>`;
 
-  const subject = replaceVars(String(nodeData.subject || "").trim(), { username: fromUsername });
-  const rawBody = replaceVars(String(nodeData.message || "").trim(), { username: fromUsername });
+  let sourceSubject = String(nodeData.subject || "");
+  let sourceBody = String(nodeData.message || "");
+
+  // When a saved template is selected, always load the original template at send time.
+  // This preserves the exact HTML/CSS/layout from the email builder instead of relying
+  // on the node preview/editor copy, which can make the email look unformatted.
+  const templateId = String(nodeData.templateId || "").trim();
+  if (templateId) {
+    const { data: template, error: templateError } = await supabase
+      .from("user_email_templates")
+      .select("subject, html")
+      .eq("id", templateId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (templateError) {
+      console.warn(`[webhook-instagram] igEmail template lookup failed:`, templateError);
+    }
+
+    if (template?.html) {
+      sourceSubject = String(template.subject || sourceSubject);
+      sourceBody = String(template.html || sourceBody);
+    }
+  }
+
+  const subject = replaceVars(sourceSubject.trim(), { username: fromUsername });
+  const rawBody = replaceVars(sourceBody.trim(), { username: fromUsername });
   if (!subject || !rawBody) {
     console.warn(`[webhook-instagram] igEmail: subject or message empty for user ${userId}`);
     return;
