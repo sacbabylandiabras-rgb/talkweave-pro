@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Loader2, Send, X } from "lucide-react";
+import { Loader2, Send, X, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Link } from "react-router-dom";
 
 interface Template { id: string; name: string; subject: string; html: string; }
 
@@ -95,17 +96,24 @@ export default function EmailDisparo() {
               <Input value={fromAlias} onChange={e => setFromAlias(e.target.value)} placeholder="contato" />
               <p className="text-xs text-muted-foreground mt-1">ex.: {fromAlias}@seudominio.com</p>
             </div>
-            {templates.length > 0 && (
-              <div className="md:col-span-2">
-                <Label>Usar template</Label>
+            <div className="md:col-span-2">
+              <Label className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> Usar template</Label>
+              {templates.length > 0 ? (
                 <Select onValueChange={applyTemplate}>
                   <SelectTrigger><SelectValue placeholder="Escolha um template salvo" /></SelectTrigger>
                   <SelectContent>
                     {templates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
-              </div>
-            )}
+              ) : (
+                <div className="flex items-center justify-between gap-2 rounded-md border border-dashed border-input bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                  <span>Nenhum template salvo ainda.</span>
+                  <Link to="/email/templates" className="text-primary font-medium hover:underline">
+                    Criar template
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
