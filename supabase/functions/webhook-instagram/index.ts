@@ -656,6 +656,7 @@ serve(async (req) => {
                   const senderUsername = event.sender?.username || senderId;
                   const dmText = event.message?.text || "";
                   const isStory = !!(event.message?.reply_to?.story || event.message?.story);
+                  const isEcho = event.message?.is_echo === true || event.message?.is_self === true || senderId === igPageId;
                   
                   // Only log if it's a message event (has message, postback, etc.)
                   if (event.message || event.postback) {
@@ -679,7 +680,7 @@ serve(async (req) => {
                     let targetUsername = senderUsername;
 
                     // If the sender is the Page itself, it's an outgoing message (echo)
-                    if (senderId === igPageId) {
+                    if (isEcho) {
                       eventType = "dm_sent";
                       targetIgId = event.recipient?.id || event.recipient?.[0]?.id;
                       
