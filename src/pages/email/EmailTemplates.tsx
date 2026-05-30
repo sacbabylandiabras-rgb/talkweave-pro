@@ -292,39 +292,28 @@ export default function EmailTemplates() {
     selectedHtmlContainer.appendChild(range.cloneContents());
     const selectedHtml = selectedHtmlContainer.innerHTML.trim();
 
-    const blockMap = {
-      text: { tag: "p", fallback: "Text" },
-      title: { tag: "h1", fallback: "Title" },
-      subtitle: { tag: "h2", fallback: "Subtitle" },
-      heading: { tag: "h3", fallback: "Heading" },
+    const styleMap = {
+      text: { tag: "p", style: "margin: 0 0 12px; font-size: 14px; line-height: 1.6;", fallback: "Text" },
+      title: { tag: "h1", style: "margin: 0 0 16px; font-size: 28px; font-weight: 700; line-height: 1.2;", fallback: "Title" },
+      subtitle: { tag: "h2", style: "margin: 0 0 12px; font-size: 20px; font-weight: 600; line-height: 1.3;", fallback: "Subtitle" },
+      heading: { tag: "h3", style: "margin: 0 0 10px; font-size: 16px; font-weight: 600; line-height: 1.4;", fallback: "Heading" },
     } as const;
 
     if (type === "bullet" || type === "numbered") {
+      const tag = type === "bullet" ? "ul" : "ol";
       const items = (selectedText || "List item")
         .split(/\n+/)
         .map((item) => item.trim())
         .filter(Boolean)
         .map((item) => `<li>${escapeHtml(item)}</li>`)
         .join("");
-      insertHtmlAtEditorCursor(`<${type === "bullet" ? "ul" : "ol"}>${items}</${type === "bullet" ? "ul" : "ol"}><p></p>`);
+      insertHtmlAtEditorCursor(`<${tag} style="margin: 0 0 12px; padding-left: 24px;">${items}</${tag}><p></p>`);
       return;
     }
 
-    const block = blockMap[type];
-    if (selectedText || selectedHtml) {
-      insertHtmlAtEditorCursor(`<${block.tag}>${selectedHtml || selectedText}</${block.tag}><p></p>`);
-      return;
-    }
-
-    const editor = getEditor();
-    const before = editor?.innerHTML;
-    document.execCommand('formatBlock', false, `<${block.tag}>`);
-    if (editor && editor.innerHTML !== before) {
-      if (editing) setEditing({ ...editing, html: editor.innerHTML });
-      saveEditorSelection();
-    } else {
-      insertHtmlAtEditorCursor(`<${block.tag}>${block.fallback}</${block.tag}><p></p>`);
-    }
+    const block = styleMap[type];
+    const inner = selectedHtml || escapeHtml(selectedText) || block.fallback;
+    insertHtmlAtEditorCursor(`<${block.tag} style="${block.style}">${inner}</${block.tag}><p></p>`);
   };
 
   const filteredList = list.filter(t => {
