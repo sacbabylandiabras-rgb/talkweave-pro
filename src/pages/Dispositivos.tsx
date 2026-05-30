@@ -1887,7 +1887,7 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
       const ext = imageFile.name.split(".").pop() || "jpg";
-      const filePath = `profile-pictures/${user.id}/${Date.now()}.${ext}`;
+      const filePath = `${user.id}/profile-pictures/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("template-media").upload(filePath, imageFile, { upsert: true });
       if (upErr) throw upErr;
       const { data: pub } = supabase.storage.from("template-media").getPublicUrl(filePath);
