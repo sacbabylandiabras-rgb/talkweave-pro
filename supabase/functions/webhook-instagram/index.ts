@@ -27,6 +27,24 @@ const replaceVars = (txt: string, vars: Record<string, string>) => {
   return result;
 };
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
+const COMMON_EMAIL_DOMAINS = new Set(["gmail", "hotmail", "outlook", "yahoo", "icloud", "live", "msn"]);
+
+const normalizeEmailInput = (value: string) => {
+  const email = String(value || "").trim().replace(/\s+/g, "").toLowerCase();
+  if (!email.includes("@")) return email;
+
+  const [local, domain = ""] = email.split("@");
+  if (!local || !domain) return email;
+
+  // Common Instagram DM typo: user sends "nome@gmail" instead of "nome@gmail.com".
+  if (!domain.includes(".") && COMMON_EMAIL_DOMAINS.has(domain)) {
+    return `${local}@${domain}.com`;
+  }
+
+  return email;
+};
+
 const buildWrapUrl = (autoName: string, userId: string, fromUsername: string) => {
   return (originalUrl: string, btnTitle: string) => {
     const trackBase = "https://go.zaplynxpro.online/r";
@@ -61,7 +79,7 @@ const getCollectTypeForNode = (node: any, edges: any[]) => {
 const isValidCollectInput = (type: string, text: string) => {
   const value = (text || "").trim();
   if (!value) return false;
-  if (type === "email") return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(value);
+  if (type === "email") return EMAIL_REGEX.test(normalizeEmailInput(value));
   if (type === "whatsapp") return value.replace(/\D/g, "").length >= 8;
   if (type === "name") return value.length >= 2;
   return false;
