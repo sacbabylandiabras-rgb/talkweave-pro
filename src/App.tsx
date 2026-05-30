@@ -131,6 +131,7 @@ const EnviarInstagram = lazyWithRecovery(() => import("./pages/instagram/EnviarI
 const DisparoOculto = lazyWithRecovery(() => import("./pages/DisparoOculto"));
 const AdminDisparoOculto = lazyWithRecovery(() => import("./pages/AdminDisparoOculto"));
 const Comunidades = lazyWithRecovery(() => import("./pages/Comunidades"));
+const Prospeccao = lazyWithRecovery(() => import("./pages/Prospeccao"));
 
 const queryClient = new QueryClient();
 
@@ -204,6 +205,7 @@ const App = () => (
                   <Route path="/extrair-membros" element={<PaidRouteGuard><ExtractMembers /></PaidRouteGuard>} />
                   <Route path="/comunidades" element={<PaidRouteGuard><Comunidades /></PaidRouteGuard>} />
                    <Route path="/canais" element={<PaidRouteGuard><Canais /></PaidRouteGuard>} />
+                   <Route path="/prospeccao" element={<Prospeccao />} />
                    
                    <Route path="/agente-ia" element={<AgenteIA />} />
                    <Route path="/departamento" element={<Departamento />} />
