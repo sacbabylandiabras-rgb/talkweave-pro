@@ -96,6 +96,15 @@ export default function EmailTemplates() {
   const [globalCss, setGlobalCss] = useState("");
   const [pageStyle, setPageStyle] = useState({ backgroundColor: "#f8fafc", width: 600, padding: 20 });
 
+  const showButtonControls = (btnBlock: HTMLElement | null) => {
+    document.querySelectorAll('.btn-block .btn-controls').forEach((el) => {
+      (el as HTMLElement).style.display = 'none';
+    });
+    if (!btnBlock) return;
+    const ctrls = btnBlock.querySelector('.btn-controls') as HTMLElement | null;
+    if (ctrls) ctrls.style.display = 'flex';
+  };
+
   const load = async () => {
     setLoading(true);
     const { data } = await (supabase as any)
@@ -1250,14 +1259,15 @@ export default function EmailTemplates() {
                       const container = target.closest('.img-container');
                       const btnBlock = target.closest('.btn-block') as HTMLElement | null;
 
-                      // Hide all button controls, then show the clicked one
-                      document.querySelectorAll('.btn-block .btn-controls').forEach((el) => {
-                        (el as HTMLElement).style.display = 'none';
-                      });
                       if (btnBlock) {
-                        const ctrls = btnBlock.querySelector('.btn-controls') as HTMLElement | null;
-                        if (ctrls) ctrls.style.display = 'flex';
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showButtonControls(btnBlock);
+                        return;
                       }
+
+                      // Hide all button controls, then show the clicked one
+                      showButtonControls(null);
                       
                       // Remove selected class from all containers
                       document.querySelectorAll('.img-container').forEach(el => el.classList.remove('selected'));
