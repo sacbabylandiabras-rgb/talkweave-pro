@@ -171,7 +171,15 @@ export default function AutomacaoComentarios() {
       const [{ data: tpl }, { data: flows }, { data: inst }] = await Promise.all([
         supabase.from("message_templates").select("id, name, category, type, content").eq("user_id", user.id).eq("active", true).order("name"),
         supabase.from("flow_automations").select("id, name, keyword").eq("user_id", user.id).eq("active", true).order("name"),
-        (supabase as any).from("zapi_instances").select("id, instance_name, api_provider, is_default").eq("user_id", user.id).eq("is_active", true).order("instance_name"),
+        (supabase as any)
+          .from("zapi_instances")
+          .select("id, instance_name, api_provider, instance_type, is_default")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .eq("api_provider", "zapi")
+          .neq("instance_type", "mobile")
+          .order("is_default", { ascending: false })
+          .order("instance_name"),
       ]);
       setWaTemplates(tpl || []);
       setWaFlows(flows || []);
