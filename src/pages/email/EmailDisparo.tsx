@@ -83,7 +83,7 @@ export default function EmailDisparo() {
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold">Disparo de Email</h1>
-        <p className="text-sm text-muted-foreground">Envie emails para um ou vários destinatários (separe por vírgula, ponto-e-vírgula ou linha).</p>
+        <p className="text-sm text-muted-foreground">Envie emails para um ou vários destinatários — cada e-mail vira um bloco separado.</p>
       </div>
 
       <Card>
