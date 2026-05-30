@@ -249,8 +249,8 @@ const executeIgEmailNode = async (
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const recipient = String(leadEvent?.comment_text || "").trim();
-  if (!recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(recipient)) {
+  const recipient = normalizeEmailInput(leadEvent?.comment_text || "");
+  if (!recipient || !EMAIL_REGEX.test(recipient)) {
     console.warn(`[webhook-instagram] igEmail: no valid captured email for user ${userId} / ig ${igUserId}`);
     return;
   }
@@ -313,14 +313,17 @@ const executeIgEmailNode = async (
       return;
     }
     if (j?.id) {
-      await supabase.from("sent_emails_mapping").insert({
+      const mappingResult = await supabase.from("sent_emails_mapping").insert({
         email_id: j.id,
         user_id: userId,
         subject,
         html,
         recipient,
       });
-      await supabase.from("resend_webhook_events").insert({
+      if (mappingResult.error) {
+        console.warn(`[webhook-instagram] igEmail mapping insert skipped:`, mappingResult.error);
+      }
+      const eventResult = await supabase.from("resend_webhook_events").insert({
         user_id: userId,
         event_type: "email.sent",
         email_id: j.id,
@@ -333,6 +336,9 @@ const executeIgEmailNode = async (
           data: { email_id: j.id, to: [recipient], from, subject, html },
         },
       });
+      if (eventResult.error) {
+        console.warn(`[webhook-instagram] igEmail event insert skipped:`, eventResult.error);
+      }
     }
     console.log(`[webhook-instagram] igEmail sent to ${recipient} (id=${j?.id})`);
   } catch (e) {
