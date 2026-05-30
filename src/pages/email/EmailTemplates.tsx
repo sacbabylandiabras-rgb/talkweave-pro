@@ -1333,9 +1333,12 @@ export default function EmailTemplates() {
                       const btnBlock = target.closest('.btn-block') as HTMLElement | null;
 
                       if (btnBlock) {
+                        showButtonControls(btnBlock);
+                        if (target.closest('.btn-controls')) {
+                          return;
+                        }
                         e.preventDefault();
                         e.stopPropagation();
-                        showButtonControls(btnBlock);
                         return;
                       }
 
