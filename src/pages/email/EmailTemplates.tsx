@@ -185,16 +185,26 @@ export default function EmailTemplates() {
     const key = editing.id || "__new__";
     if (loadedEditingIdRef.current !== key) {
       loadedEditingIdRef.current = key;
-      editorHtmlDraftRef.current = editing.html || "";
+      const extractInner = (raw: string) => {
+        if (!raw) return "";
+        if (!/<html|<!doctype/i.test(raw)) return raw;
+        try {
+          const doc = new DOMParser().parseFromString(raw, "text/html");
+          const inner = doc.getElementById("email-editor");
+          return inner ? inner.innerHTML : (doc.body?.innerHTML || raw);
+        } catch { return raw; }
+      };
+      const innerHtml = extractInner(editing.html || "");
+      editorHtmlDraftRef.current = innerHtml;
       if (editorRef.current) {
-        editorRef.current.innerHTML = editing.html || "";
+        editorRef.current.innerHTML = innerHtml;
         rehydrateButtons(editorRef.current);
         editorHtmlDraftRef.current = editorRef.current.innerHTML;
       } else {
         // Editor not mounted yet; retry on next tick
         requestAnimationFrame(() => {
           if (editorRef.current) {
-            editorRef.current.innerHTML = editing.html || "";
+            editorRef.current.innerHTML = innerHtml;
             rehydrateButtons(editorRef.current);
             editorHtmlDraftRef.current = editorRef.current.innerHTML;
           }
