@@ -56,7 +56,7 @@ const addInlineStyle = (tag: string, css: string) => {
 
 const inlineEmailCss = (html: string, css: string) => {
   let output = html;
-  const rules = normalizeEmailCss(css).matchAll(/([^{}@]+)\{([^{}]+)\}/g);
+  const rules = Array.from(normalizeEmailCss(css).matchAll(/([^{}@]+)\{([^{}]+)\}/g)).reverse();
 
   for (const rule of rules) {
     const selectors = rule[1].split(",").map((s) => s.trim()).filter(Boolean);
@@ -118,6 +118,8 @@ body { margin:0; padding:0; background-color:#f8fafc; -webkit-text-size-adjust:1
 .cta-btn { background:#0A0F1E; color:#1DFAC8; border-color:#1DFAC8; }
 @media (max-width: 640px) { .feature-grid { display:block !important; } .feature-card { margin-bottom:12px !important; } }
 `;
+  const allCss = `${baseCss}\n${styleBlocks.join("\n")}`;
+  const inlinedBodyContent = inlineEmailCss(bodyContent, allCss);
 
   return `<!doctype html>
 <html lang="pt-BR">
@@ -125,9 +127,9 @@ body { margin:0; padding:0; background-color:#f8fafc; -webkit-text-size-adjust:1
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>${safeTitle}</title>
-<style>${baseCss}\n${styleBlocks.join("\n")}</style>
+<style>${allCss}</style>
 </head>
-<body>${bodyContent}</body>
+<body>${inlinedBodyContent}</body>
 </html>`;
 };
 
