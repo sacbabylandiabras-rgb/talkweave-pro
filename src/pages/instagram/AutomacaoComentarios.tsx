@@ -165,6 +165,7 @@ export default function AutomacaoComentarios() {
   const [waTemplates, setWaTemplates] = useState<any[]>([]);
   const [waFlows, setWaFlows] = useState<any[]>([]);
   const [waInstances, setWaInstances] = useState<any[]>([]);
+  const [emailTemplates, setEmailTemplates] = useState<Array<{ id: string; name: string; subject: string; html: string }>>([]);
 
   // Fetch WhatsApp resources for the igWhatsApp node
   useEffect(() => {
@@ -187,6 +188,12 @@ export default function AutomacaoComentarios() {
       setWaTemplates(tpl || []);
       setWaFlows(flows || []);
       setWaInstances(inst || []);
+      const { data: emailTpls } = await (supabase as any)
+        .from("user_email_templates")
+        .select("id, name, subject, html")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      setEmailTemplates((emailTpls as any) || []);
     };
     fetchWaResources();
   }, []);
