@@ -1038,8 +1038,8 @@ export default function EmailTemplates() {
                           };
                           const blocks: { label: string; html: string }[] = [
                             { label: "Button", html: `__BUTTON_BLOCK__` },
-                            { label: "Divider", html: `<hr style="border: none; border-top: 1px solid #e2e8f0; margin: 16px 0;" />` },
-                            { label: "Section", html: `<div style="padding: 24px; background: #f8fafc; border-radius: 8px; margin: 12px 0;"><p>Section content</p></div>` },
+                            { label: "Divider", html: `<hr contenteditable="false" style="border: none; border-top: 1px solid #e2e8f0; margin: 16px 0; display: block;" /><p><br/></p>` },
+                            { label: "Section", html: `<div style="padding: 24px; background: #f8fafc; border-radius: 8px; margin: 12px 0;"><p>Section content</p></div><p><br/></p>` },
                             { label: "2 columns", html: cols(2) },
                             { label: "3 columns", html: cols(3) },
                             { label: "4 columns", html: cols(4) },
