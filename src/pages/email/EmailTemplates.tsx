@@ -24,6 +24,7 @@ export default function EmailTemplates() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorSelectionRef = useRef<Range | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
+  const editorHtmlDraftRef = useRef("");
   const loadedEditingIdRef = useRef<string | null>(null);
   const [tab, setTab] = useState("all");
   const [themeStyles, setThemeStyles] = useState<ThemeStyles>({});
@@ -49,6 +50,7 @@ export default function EmailTemplates() {
     const key = editing.id || "__new__";
     if (loadedEditingIdRef.current !== key) {
       loadedEditingIdRef.current = key;
+      editorHtmlDraftRef.current = editing.html || "";
       if (editorRef.current) {
         editorRef.current.innerHTML = editing.html || "";
       } else {
@@ -70,10 +72,11 @@ export default function EmailTemplates() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
       
+      const currentHtml = editorRef.current?.innerHTML ?? editorHtmlDraftRef.current ?? editing.html;
       const payload = { 
         name: editing.name, 
         subject: editing.subject, 
-        html: editing.html,
+        html: currentHtml,
         category: editing.category || "Marketing"
       };
 
@@ -298,7 +301,7 @@ export default function EmailTemplates() {
       editorSelectionRef.current = nextRange.cloneRange();
     }
 
-    if (editing) setEditing({ ...editing, html: editor.innerHTML });
+    editorHtmlDraftRef.current = editor.innerHTML;
   };
 
   const insertTextAtEditorCursor = (text: string) => insertHtmlAtEditorCursor(escapeHtml(text));
@@ -1095,6 +1098,9 @@ export default function EmailTemplates() {
                        margin: 0 auto;
                        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
                        min-height: 100%;
+                        direction: ltr;
+                        unicode-bidi: plaintext;
+                        text-align: left;
                      }
                   `}</style>
                   <div 
@@ -1102,6 +1108,8 @@ export default function EmailTemplates() {
                     suppressContentEditableWarning
                     ref={editorRef}
                     id="email-editor"
+                    dir="ltr"
+                    style={{ direction: "ltr", unicodeBidi: "plaintext", textAlign: "left" }}
                     className="focus:outline-none prose prose-slate max-w-none"
 
                     onBlur={saveEditorSelection}
@@ -1109,7 +1117,7 @@ export default function EmailTemplates() {
                     onKeyUp={saveEditorSelection}
                     onInput={(e) => {
                       saveEditorSelection();
-                      if (editing) setEditing({ ...editing, html: e.currentTarget.innerHTML });
+                      editorHtmlDraftRef.current = e.currentTarget.innerHTML;
                     }}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
