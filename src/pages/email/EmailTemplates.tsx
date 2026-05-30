@@ -1058,9 +1058,8 @@ export default function EmailTemplates() {
                                 if (!editor) return;
                                 let html = b.html;
                                 if (html === "__PROMPT_HTML__") {
-                                  const raw = prompt("Cole o HTML personalizado:");
-                                  if (!raw) return;
-                                  html = raw;
+                                  document.getElementById('html-panel')?.classList.remove('hidden');
+                                  return;
                                 }
                                 if (html === "__BUTTON_BLOCK__") {
                                   html = buildButtonBlockHtml() + `<p></p>`;
