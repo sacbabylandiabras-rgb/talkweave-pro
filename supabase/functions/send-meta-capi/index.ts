@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
         const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
         const { data: clicks } = await supabase
           .from("link_clicks")
-          .select("fbc, fbp, ttclid, gclid, utm_source, utm_medium, utm_campaign, utm_content, utm_term, campaign_id")
+          .select("phone, fbc, fbp, ttclid, gclid, utm_source, utm_medium, utm_campaign, utm_content, utm_term, campaign_id")
           .eq("user_id", user_id)
           .gte("created_at", since)
           .order("created_at", { ascending: false })
