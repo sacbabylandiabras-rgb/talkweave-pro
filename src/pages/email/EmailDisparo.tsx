@@ -101,12 +101,17 @@ export default function EmailDisparo() {
         <CardHeader><CardTitle className="text-sm">Novo envio</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="md:col-span-1">
+            <div>
+              <Label>Nome do remetente</Label>
+              <Input value={senderName} onChange={e => setSenderName(e.target.value)} placeholder="Ex: Equipe ZapLynx" />
+              <p className="text-xs text-muted-foreground mt-1">Nome exibido na caixa de entrada</p>
+            </div>
+            <div>
               <Label>Remetente (prefixo)</Label>
               <Input value={fromAlias} onChange={e => setFromAlias(e.target.value)} placeholder="contato" />
               <p className="text-xs text-muted-foreground mt-1">ex.: {fromAlias}@seudominio.com</p>
             </div>
-            <div className="md:col-span-2">
+            <div>
               <Label className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> Usar template</Label>
               {templates.length > 0 ? (
                 <Select onValueChange={applyTemplate}>
