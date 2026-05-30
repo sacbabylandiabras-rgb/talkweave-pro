@@ -45,13 +45,14 @@ export default function EmailTemplates() {
     };
     const sz = SZ[size] || SZ.medium;
     const sizesLit = `{small:{p:'6px 14px',f:'12px'},medium:{p:'10px 20px',f:'14px'},large:{p:'14px 28px',f:'16px'}}`;
+    const openFn = `function(ev){if(ev&&ev.target&&ev.target.closest&&ev.target.closest('.btn-controls'))return;var w=document.getElementById('${wrapId}');document.querySelectorAll('.btn-block .btn-controls').forEach(function(el){el.style.display='none'});var c=w&&w.querySelector('.btn-controls');if(c)c.style.display='flex';}`;
     const updFn = `function(){var a=document.getElementById('${btnId}');var w=document.getElementById('${wrapId}');if(!a||!w)return;var t=w.querySelector('[data-c=text]').value;var u=w.querySelector('[data-c=url]').value;var c=w.querySelector('[data-c=color]').value;var s=w.querySelector('[data-c=size]').value;var al=w.querySelector('[data-c=align]').value;var SZ=${sizesLit};var sz=SZ[s]||SZ.medium;a.textContent=t||'Click me';a.setAttribute('href',u||'#');a.style.background=c;a.style.padding=sz.p;a.style.fontSize=sz.f;a.setAttribute('data-btn-text',t);a.setAttribute('data-btn-url',u);a.setAttribute('data-btn-color',c);a.setAttribute('data-btn-size',s);a.setAttribute('data-btn-align',al);w.style.textAlign=al;}`;
     const inputStyle = `padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; background: #f8fafc; color: #475569; outline: none;`;
     const esc = (s: string) => String(s).replace(/"/g, '&quot;');
     const sizeOptions = ['small','medium','large'].map(v => `<option value="${v}"${v===size?' selected':''}>${v==='small'?'P':v==='medium'?'M':'G'}</option>`).join('');
     const alignOptions = ['left','center','right'].map(v => `<option value="${v}"${v===align?' selected':''}>${v==='left'?'◧':v==='center'?'▣':'◨'}</option>`).join('');
     return (
-      `<div class="btn-block" id="${wrapId}" draggable="true" contenteditable="false" style="margin: 12px 0; text-align: ${align};">`
+      `<div class="btn-block" id="${wrapId}" draggable="true" contenteditable="false" onmousedown="(${openFn})(event)" onclick="(${openFn})(event)" style="margin: 12px 0; text-align: ${align};">`
       + `<div class="btn-handle" title="Arraste para mover" style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; margin-bottom: 6px; background: #e2e8f0; color: #475569; border-radius: 4px; font-size: 11px; cursor: move; user-select: none;">⋮⋮ Arrastar botão</div><div style="height: 0;"></div>`
       + `<div style="margin-bottom: 10px;"><a id="${btnId}" href="${esc(url || '#')}" onclick="event.preventDefault();return false;" data-btn="1" data-btn-text="${esc(text)}" data-btn-url="${esc(url)}" data-btn-color="${esc(color)}" data-btn-size="${esc(size)}" data-btn-align="${esc(align)}" style="display: inline-block; background: ${color}; color: #ffffff; padding: ${sz.p}; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: ${sz.f}; cursor: pointer;">${esc(text)}</a></div>`
       + `<div class="btn-controls" style="display: none; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px; background: #f1f5f9; border-radius: 6px;">`
