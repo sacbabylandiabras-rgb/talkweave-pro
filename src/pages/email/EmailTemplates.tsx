@@ -51,7 +51,7 @@ export default function EmailTemplates() {
     const sizeOptions = ['small','medium','large'].map(v => `<option value="${v}"${v===size?' selected':''}>${v==='small'?'P':v==='medium'?'M':'G'}</option>`).join('');
     const alignOptions = ['left','center','right'].map(v => `<option value="${v}"${v===align?' selected':''}>${v==='left'?'◧':v==='center'?'▣':'◨'}</option>`).join('');
     return (
-      `<div class="btn-block" id="${wrapId}" draggable="true" contenteditable="false" style="margin: 12px 0; text-align: ${align}; cursor: move;">`
+      `<div class="btn-block" id="${wrapId}" draggable="true" contenteditable="false" style="margin: 12px 0; text-align: ${align};">`
       + `<div style="margin-bottom: 10px;"><a id="${btnId}" href="${esc(url || '#')}" data-btn="1" data-btn-text="${esc(text)}" data-btn-url="${esc(url)}" data-btn-color="${esc(color)}" data-btn-size="${esc(size)}" data-btn-align="${esc(align)}" style="display: inline-block; background: ${color}; color: #ffffff; padding: ${sz.p}; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: ${sz.f};">${esc(text)}</a></div>`
       + `<div class="btn-controls" style="display: none; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px; background: #f1f5f9; border-radius: 6px;">`
       + `<input data-c="text" type="text" placeholder="Texto do botão" value="${esc(text)}" oninput="(${updFn})()" style="${inputStyle} flex: 1; min-width: 140px;" />`
