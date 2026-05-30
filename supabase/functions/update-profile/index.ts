@@ -112,11 +112,50 @@ Deno.serve(async (req) => {
     }
 
 
-    // Z-API (default)
-    const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
-    const finalInstanceId = instanceId || credentials.instanceId;
-    const finalToken = token || credentials.token;
-    const finalClientToken = clientToken || credentials.clientToken;
+    const providerNorm = String(provider || 'zapi').toLowerCase();
+
+    // ─── UAZAPI ──────────────────────────────────────────────────────────────
+    if (providerNorm === 'uazapi') {
+      const baseUrl = (apiUrl || Deno.env.get('UAZAPI_SERVER_URL') || '').replace(/\/$/, '');
+      const adminToken = apiKey || token || Deno.env.get('UAZAPI_ADMIN_TOKEN') || '';
+      if (!baseUrl || !adminToken) {
+        return buildDisconnectedResponse();
+      }
+      const endpoint = type === 'name' ? `${baseUrl}/instance/updateName` : `${baseUrl}/instance/updateProfilePicture`;
+      const payload = type === 'name'
+        ? { name: String(value) }
+        : { image: String(value) };
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', token: adminToken },
+        body: JSON.stringify(payload),
+      });
+      const data = await resp.json().catch(() => ({}));
+      console.log(`✅ UAZAPI ${type} response ${resp.status}`, data);
+      if (isDisconnectedError(data)) return buildDisconnectedResponse();
+      if (!resp.ok || data?.error) {
+        throw new Error(data?.error || data?.message || `Erro do servidor: ${resp.status}`);
+      }
+      return new Response(JSON.stringify({ success: true, data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Z-API (default) — only fetch user credentials when not provided explicitly
+    let finalInstanceId = instanceId;
+    let finalToken = token;
+    let finalClientToken = clientToken;
+    if (!finalInstanceId || !finalToken || !finalClientToken) {
+      try {
+        const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+        finalInstanceId = finalInstanceId || credentials.instanceId;
+        finalToken = finalToken || credentials.token;
+        finalClientToken = finalClientToken || credentials.clientToken;
+      } catch (credErr) {
+        console.warn('⚠️ Sem credenciais padrão configuradas:', credErr);
+        return buildDisconnectedResponse();
+      }
+    }
 
     const baseZapi = `https://api.z-api.io/instances/${finalInstanceId}/token/${finalToken}`;
     const zapiHeaders = {
