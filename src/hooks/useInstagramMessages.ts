@@ -79,17 +79,10 @@ export function useInstagramMessages(selectedIgId?: string | null) {
       fetchedPicsCache.add(cacheKey);
 
       try {
-        const { data } = await supabase.functions.invoke("ig-profile-pic", {
-          body: null,
-          headers: {},
-          method: "GET",
+        const { data, error } = await supabase.functions.invoke("ig-profile-pic", {
+          body: { ig_user_id: igUserId, user_id: userId },
         });
-        // Invoca via fetch direto pois a função é GET com query params
-        const res = await fetch(
-          `${(supabase as any).supabaseUrl}/functions/v1/ig-profile-pic?ig_user_id=${igUserId}&user_id=${userId}`,
-          { headers: { Authorization: `Bearer ${(supabase as any).supabaseKey}` } },
-        );
-        if (res.ok) {
+        if (!error && data) {
           // O banco já foi atualizado pela função — invalida o cache de contatos
           queryClient.invalidateQueries({ queryKey: ["instagram_contacts", userId] });
         }
