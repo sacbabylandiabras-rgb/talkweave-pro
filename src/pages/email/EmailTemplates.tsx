@@ -136,6 +136,11 @@ export default function EmailTemplates() {
       marker.parentNode?.replaceChild(block, marker);
       return false;
     }
+    if (block.contains(range.commonAncestorContainer)) {
+      marker.parentNode?.replaceChild(block, marker);
+      block.classList.remove('dragging');
+      return false;
+    }
 
     let dropTarget = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
       ? range.commonAncestorContainer as HTMLElement
