@@ -42,6 +42,22 @@ const buildWrapUrl = (autoName: string, userId: string, fromUsername: string) =>
   };
 };
 
+const getCollectTypeForNode = (node: any, edges: any[]) => {
+  const data = node?.data || {};
+  if (data.collectWhatsapp) return "whatsapp";
+  if (data.collectEmail) return "email";
+  if (data.collectName) return "name";
+
+  const collectHandle = (edges || [])
+    .filter((edge: any) => edge.source === node?.id)
+    .map((edge: any) => String(edge.sourceHandle || ""))
+    .find((handle: string) => handle.startsWith("collect-"));
+
+  const type = collectHandle?.replace("collect-", "");
+  if (type === "whatsapp" || type === "email" || type === "name") return type;
+  return null;
+};
+
 
 const fetchInstagramUserProfile = async (igUserId: string, accessToken: string) => {
   try {
