@@ -1223,6 +1223,42 @@ export default function AutomacaoComentarios() {
             Configure seu domínio verificado em Perfil → Email para que os envios funcionem.
           </div>
 
+          {emailTemplates.length > 0 && (
+            <div>
+              <Label>Usar modelo salvo</Label>
+              <Select
+                value={selectedNode.data.templateId || ""}
+                onValueChange={(id) => {
+                  const t = emailTemplates.find((x) => x.id === id);
+                  if (!t) return;
+                  setSelectedNode({
+                    ...selectedNode,
+                    data: {
+                      ...selectedNode.data,
+                      templateId: t.id,
+                      subject: t.subject || "",
+                      message: t.html || "",
+                    },
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar um modelo de email" />
+                </SelectTrigger>
+                <SelectContent>
+                  {emailTemplates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Ao selecionar, o assunto e a mensagem serão preenchidos automaticamente. Você ainda pode editar abaixo.
+              </p>
+            </div>
+          )}
+
           <div>
             <Label>Remetente (alias antes do @)</Label>
             <Input
