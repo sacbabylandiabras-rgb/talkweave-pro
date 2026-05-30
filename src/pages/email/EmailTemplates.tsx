@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface Template { id: string; name: string; subject: string; html: string; updated_at: string; category?: string; }
 
@@ -648,6 +649,39 @@ export default function EmailTemplates() {
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="h-8 px-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-1 rounded-md transition-colors"
+                          title="Estilo de texto"
+                        >
+                          <Type className="w-4 h-4" />
+                          <ChevronDown className="w-3 h-3" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-44">
+                        {[
+                          { label: "Text", cmd: () => document.execCommand('formatBlock', false, 'p'), cls: "text-[14px]" },
+                          { label: "Title", cmd: () => document.execCommand('formatBlock', false, 'h1'), cls: "text-[20px] font-bold" },
+                          { label: "Subtitle", cmd: () => document.execCommand('formatBlock', false, 'h2'), cls: "text-[16px] font-semibold" },
+                          { label: "Heading", cmd: () => document.execCommand('formatBlock', false, 'h3'), cls: "text-[14px] font-semibold" },
+                          { label: "Bullet list", cmd: () => document.execCommand('insertUnorderedList', false), cls: "text-[13px]" },
+                          { label: "Numbered list", cmd: () => document.execCommand('insertOrderedList', false), cls: "text-[13px]" },
+                        ].map((opt) => (
+                          <DropdownMenuItem
+                            key={opt.label}
+                            onClick={() => {
+                              opt.cmd();
+                              if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
+                            }}
+                            className={`cursor-pointer ${opt.cls}`}
+                          >
+                            {opt.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <Button 
                       size="icon" 
                       variant="ghost" 
