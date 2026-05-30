@@ -1208,6 +1208,100 @@ export default function AutomacaoComentarios() {
       );
     }
 
+    if (type === "igEmail") {
+      return (
+        <div className="space-y-4">
+          <div className="text-xs text-muted-foreground p-3 bg-muted/40 rounded">
+            Envia um email para o endereço capturado no bloco "Enviar DM" (Capturar Email).
+            Configure seu domínio verificado em Perfil → Email para que os envios funcionem.
+          </div>
+
+          <div>
+            <Label>Remetente (alias antes do @)</Label>
+            <Input
+              value={selectedNode.data.fromAlias || "contato"}
+              onChange={(e) =>
+                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, fromAlias: e.target.value } })
+              }
+              placeholder="contato"
+            />
+          </div>
+
+          <div>
+            <Label>Nome do remetente (opcional)</Label>
+            <Input
+              value={selectedNode.data.senderName || ""}
+              onChange={(e) =>
+                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, senderName: e.target.value } })
+              }
+              placeholder="Sua marca"
+            />
+          </div>
+
+          <div>
+            <Label>Assunto</Label>
+            <Input
+              value={selectedNode.data.subject || ""}
+              onChange={(e) =>
+                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, subject: e.target.value } })
+              }
+              placeholder="Olá {{nome_usuario}}, obrigado pelo contato!"
+            />
+            <div className="flex gap-1 mt-1">
+              {["nome_usuario"].map((v) => (
+                <Button
+                  key={v}
+                  size="sm"
+                  variant="outline"
+                  className="text-xs h-6 gap-1"
+                  onClick={() =>
+                    setSelectedNode({
+                      ...selectedNode,
+                      data: { ...selectedNode.data, subject: (selectedNode.data.subject || "") + `{{${v}}}` },
+                    })
+                  }
+                >
+                  <Variable className="w-3 h-3" />
+                  {v}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label>Mensagem (HTML ou texto)</Label>
+            <Textarea
+              value={selectedNode.data.message || ""}
+              onChange={(e) =>
+                setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, message: e.target.value } })
+              }
+              placeholder="Olá {{nome_usuario}}, tudo bem? ..."
+              rows={8}
+            />
+            <div className="flex gap-1 mt-1">
+              {["nome_usuario"].map((v) => (
+                <Button
+                  key={v}
+                  size="sm"
+                  variant="outline"
+                  className="text-xs h-6 gap-1"
+                  onClick={() =>
+                    setSelectedNode({
+                      ...selectedNode,
+                      data: { ...selectedNode.data, message: (selectedNode.data.message || "") + `{{${v}}}` },
+                    })
+                  }
+                >
+                  <Variable className="w-3 h-3" />
+                  {v}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return null;
   };
 
