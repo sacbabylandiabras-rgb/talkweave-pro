@@ -637,18 +637,67 @@ export default function EmailTemplates() {
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full min-h-[500px]">
                 <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-t-2xl">
                   <div className="flex items-center gap-1">
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
-                      onClick={() => {
-                        document.execCommand('insertText', false, '{{variável}}');
-                        if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
-                      }}
-                      title="Adicionar variável"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="h-8 px-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-1 rounded-md transition-colors"
+                          title="Inserir variável"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <ChevronDown className="w-3 h-3" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-56">
+                        {[
+                          { group: "Contato", items: [
+                            { label: "Nome", value: "{{contato.nome}}" },
+                            { label: "E-mail", value: "{{contato.email}}" },
+                            { label: "Telefone", value: "{{contato.telefone}}" },
+                            { label: "Empresa", value: "{{contato.empresa}}" },
+                          ]},
+                          { group: "Remetente", items: [
+                            { label: "Nome do remetente", value: "{{remetente.nome}}" },
+                            { label: "E-mail do remetente", value: "{{remetente.email}}" },
+                          ]},
+                          { group: "Sistema", items: [
+                            { label: "Data atual", value: "{{data.hoje}}" },
+                            { label: "Link de cancelamento", value: "{{unsubscribe_url}}" },
+                          ]},
+                        ].map((g) => (
+                          <div key={g.group}>
+                            <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-slate-400 font-bold">{g.group}</div>
+                            {g.items.map((it) => (
+                              <DropdownMenuItem
+                                key={it.value}
+                                className="cursor-pointer text-[13px] flex flex-col items-start gap-0"
+                                onClick={() => {
+                                  document.execCommand('insertText', false, it.value);
+                                  if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
+                                }}
+                              >
+                                <span>{it.label}</span>
+                                <span className="text-[10px] text-slate-400 font-mono">{it.value}</span>
+                              </DropdownMenuItem>
+                            ))}
+                          </div>
+                        ))}
+                        <div className="border-t border-slate-100 mt-1 pt-1">
+                          <DropdownMenuItem
+                            className="cursor-pointer text-[13px] text-indigo-600 font-medium"
+                            onClick={() => {
+                              const name = prompt("Nome da variável personalizada (sem espaços):");
+                              if (!name) return;
+                              const clean = name.trim().replace(/\s+/g, "_");
+                              document.execCommand('insertText', false, `{{${clean}}}`);
+                              if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
+                            }}
+                          >
+                            + Criar variável personalizada
+                          </DropdownMenuItem>
+                        </div>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
