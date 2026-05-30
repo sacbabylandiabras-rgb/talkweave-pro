@@ -80,11 +80,11 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
 
   return {
     userId: user.id,
-    instanceId: inst.zapi_instance_id,
-    token: inst.zapi_token,
-    clientToken: inst.zapi_client_token,
-    apiProvider: inst.api_provider || 'zapi',
-    instanceType: inst.instance_type,
+    instanceId: inst?.zapi_instance_id ?? null,
+    token: inst?.zapi_token ?? null,
+    clientToken: inst?.zapi_client_token ?? null,
+    apiProvider: inst?.api_provider || 'zapi',
+    instanceType: inst?.instance_type,
   };
 }
 
@@ -462,6 +462,14 @@ Deno.serve(async (req) => {
     if (!action) throw new Error('Missing action');
 
     const creds = await resolveCreds(req, instanceDbId || undefined);
+
+    if (!creds.instanceId || !creds.token) {
+      // No connected instance: return empty/sane defaults for read-only actions
+      if (action === 'tag-colors') return new Response(JSON.stringify({ data: {} }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (action === 'list-tags') return new Response(JSON.stringify([]), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (action === 'status') return new Response(JSON.stringify({ data: { connected: false } }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Nenhuma conexão WhatsApp configurada' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     if (creds.apiProvider === 'meta') {
        // Gracefully return empty data for actions not supported by Meta yet
