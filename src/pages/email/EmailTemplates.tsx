@@ -65,6 +65,28 @@ export default function EmailTemplates() {
   const openNew = () => setEditing({ id: "", name: "", subject: "", html: "", updated_at: "", category: "Marketing" });
 
   const save = async () => {
+    const sanitizeForEmail = (raw: string) => {
+      try {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = raw;
+        // For each button block, remove the input and unwrap the anchor's container div
+        wrap.querySelectorAll('.btn-block').forEach((block) => {
+          block.querySelectorAll('input').forEach((el) => el.remove());
+          const anchor = block.querySelector('a');
+          if (anchor) {
+            const p = document.createElement('p');
+            p.style.margin = '12px 0';
+            p.appendChild(anchor);
+            block.replaceWith(p);
+          } else {
+            block.remove();
+          }
+        });
+        return wrap.innerHTML;
+      } catch {
+        return raw;
+      }
+    };
     if (!editing) return;
     if (!editing.name.trim()) { toast.error("Informe o nome do template"); return; }
     setSaving(true);
