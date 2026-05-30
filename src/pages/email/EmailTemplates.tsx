@@ -301,7 +301,7 @@ export default function EmailTemplates() {
       editorSelectionRef.current = nextRange.cloneRange();
     }
 
-    if (editing) setEditing({ ...editing, html: editor.innerHTML });
+    editorHtmlDraftRef.current = editor.innerHTML;
   };
 
   const insertTextAtEditorCursor = (text: string) => insertHtmlAtEditorCursor(escapeHtml(text));
