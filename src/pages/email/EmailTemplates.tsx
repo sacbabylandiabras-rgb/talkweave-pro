@@ -80,14 +80,16 @@ export default function EmailTemplates() {
         align,
       });
       const tmp = document.createElement('div');
-      tmp.innerHTML = html;
+      tmp.innerHTML = html + '<p><br/></p>';
       const block = tmp.firstElementChild as HTMLElement;
+      const trailing = tmp.lastElementChild as HTMLElement;
       if (!block) return;
-      if (wrapper && wrapper.parentElement) {
-        wrapper.replaceWith(block);
-      } else {
-        a.replaceWith(block);
-      }
+      const target = (wrapper && wrapper.parentElement) ? wrapper : a;
+      const parent = target.parentElement;
+      if (!parent) return;
+      parent.insertBefore(block, target);
+      if (trailing) parent.insertBefore(trailing, target);
+      target.remove();
     });
   };
   const [globalCss, setGlobalCss] = useState("");
