@@ -115,10 +115,16 @@ export default function EmailTemplates() {
       editorHtmlDraftRef.current = editing.html || "";
       if (editorRef.current) {
         editorRef.current.innerHTML = editing.html || "";
+        rehydrateButtons(editorRef.current);
+        editorHtmlDraftRef.current = editorRef.current.innerHTML;
       } else {
         // Editor not mounted yet; retry on next tick
         requestAnimationFrame(() => {
-          if (editorRef.current) editorRef.current.innerHTML = editing.html || "";
+          if (editorRef.current) {
+            editorRef.current.innerHTML = editing.html || "";
+            rehydrateButtons(editorRef.current);
+            editorHtmlDraftRef.current = editorRef.current.innerHTML;
+          }
         });
       }
     }
