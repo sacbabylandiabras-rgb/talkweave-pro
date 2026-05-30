@@ -240,10 +240,30 @@ export default function EmailTemplates() {
       
       const rawHtml = editorRef.current?.innerHTML ?? editorHtmlDraftRef.current ?? editing.html;
       const currentHtml = sanitizeForEmail(rawHtml || "");
+      const themeCss = (() => { try { return buildThemeCss(themeStyles) || ""; } catch { return ""; } })();
+      const wrappedHtml = `<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>${(editing.subject || editing.name || "Email").replace(/[<>]/g, "")}</title>
+<style>
+body { margin: 0; padding: 0; background-color: ${pageStyle.backgroundColor}; -webkit-text-size-adjust: 100%; }
+#email-editor { background-color: #ffffff; width: 100%; max-width: ${pageStyle.width}px; padding: ${pageStyle.padding}px; margin: 0 auto; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; line-height: 1.6; }
+#email-editor img { max-width: 100%; height: auto; }
+#email-editor a { color: inherit; }
+${themeCss}
+${globalCss}
+</style>
+</head>
+<body>
+<div id="email-editor">${currentHtml}</div>
+</body>
+</html>`;
       const payload = { 
         name: editing.name, 
         subject: editing.subject, 
-        html: currentHtml,
+        html: wrappedHtml,
         category: editing.category || "Marketing"
       };
 
