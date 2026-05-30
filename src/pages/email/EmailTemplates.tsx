@@ -23,6 +23,8 @@ export default function EmailTemplates() {
   const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorSelectionRef = useRef<Range | null>(null);
+  const editorRef = useRef<HTMLDivElement | null>(null);
+  const loadedEditingIdRef = useRef<string | null>(null);
   const [tab, setTab] = useState("all");
   const [themeStyles, setThemeStyles] = useState<ThemeStyles>({});
   const [globalCss, setGlobalCss] = useState("");
@@ -39,6 +41,24 @@ export default function EmailTemplates() {
   };
 
   useEffect(() => { load(); }, []);
+
+  // Initialize editor content only when opening a different template,
+  // to avoid React rewriting innerHTML on every keystroke (which reverses cursor).
+  useEffect(() => {
+    if (!editing) { loadedEditingIdRef.current = null; return; }
+    const key = editing.id || "__new__";
+    if (loadedEditingIdRef.current !== key) {
+      loadedEditingIdRef.current = key;
+      if (editorRef.current) {
+        editorRef.current.innerHTML = editing.html || "";
+      } else {
+        // Editor not mounted yet; retry on next tick
+        requestAnimationFrame(() => {
+          if (editorRef.current) editorRef.current.innerHTML = editing.html || "";
+        });
+      }
+    }
+  }, [editing?.id, editing]);
 
   const openNew = () => setEditing({ id: "", name: "", subject: "", html: "", updated_at: "", category: "Marketing" });
 
