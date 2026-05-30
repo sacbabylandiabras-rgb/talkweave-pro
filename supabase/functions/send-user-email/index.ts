@@ -38,6 +38,54 @@ const extractBody = (html: string) => {
   return html.replace(/<!doctype[^>]*>/gi, "").replace(/<\/?html\b[^>]*>/gi, "").replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi, "");
 };
 
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeAttr = (value: string) => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+const normalizeEmailCss = (css: string) => replaceCssVars(css)
+  .replace(/\/\*[\s\S]*?\*\//g, "")
+  .replace(/(-?\d*\.?\d+)rem\b/g, (_m, n) => `${Math.round(Number(n) * 16)}px`);
+
+const addInlineStyle = (tag: string, css: string) => {
+  const cleanCss = normalizeEmailCss(css).replace(/\s+/g, " ").trim().replace(/;?$/, ";");
+  const styleMatch = tag.match(/\sstyle=(['"])([\s\S]*?)\1/i);
+  if (styleMatch) {
+    const existing = styleMatch[2].trim().replace(/;?$/, ";");
+    return tag.replace(styleMatch[0], ` style="${escapeAttr(`${cleanCss} ${existing}`)}"`);
+  }
+  return tag.replace(/\s*\/?>$/, (end) => ` style="${escapeAttr(cleanCss)}"${end}`);
+};
+
+const inlineEmailCss = (html: string, css: string) => {
+  let output = html;
+  const rules = normalizeEmailCss(css).matchAll(/([^{}@]+)\{([^{}]+)\}/g);
+
+  for (const rule of rules) {
+    const selectors = rule[1].split(",").map((s) => s.trim()).filter(Boolean);
+    const declarations = rule[2].trim();
+    if (!declarations) continue;
+
+    for (const selector of selectors) {
+      if (!selector || selector.includes(":") || selector.includes("[") || selector.includes(">") || selector.includes("+")) continue;
+      const simple = selector.replace(/^#email-editor\s+/, "").trim();
+      const idMatch = simple.match(/^#([\w-]+)$/);
+      const classMatch = simple.match(/^\.([\w-]+)$/);
+      const tagMatch = simple.match(/^(?:\.[\w-]+\s+|#\w[\w-]*\s+)?([a-z][\w:-]*)$/i);
+
+      if (idMatch) {
+        const id = escapeRegExp(idMatch[1]);
+        output = output.replace(new RegExp(`<([a-z][\\w:-]*)([^>]*\\sid=(['"])${id}\\3[^>]*)>`, "gi"), (tag) => addInlineStyle(tag, declarations));
+      } else if (classMatch) {
+        const cls = escapeRegExp(classMatch[1]);
+        output = output.replace(new RegExp(`<([a-z][\\w:-]*)([^>]*\\sclass=(['"])(?=[^'"]*\\b${cls}\\b)[^'"]*\\3[^>]*)>`, "gi"), (tag) => addInlineStyle(tag, declarations));
+      } else if (tagMatch) {
+        const tagName = escapeRegExp(tagMatch[1]);
+        output = output.replace(new RegExp(`<${tagName}\\b[^>]*>`, "gi"), (tag) => addInlineStyle(tag, declarations));
+      }
+    }
+  }
+
+  return output;
+};
+
 const buildFinalHtml = (raw: string, subject: string) => {
   const styleBlocks: string[] = [];
   const withoutStyles = cleanEditorArtifacts(raw).replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, (_match, css) => {
