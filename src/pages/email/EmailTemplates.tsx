@@ -156,6 +156,7 @@ export default function EmailTemplates() {
           block.querySelectorAll('input, select, button').forEach((el) => el.remove());
           const anchor = block.querySelector('a');
           if (anchor) {
+            anchor.removeAttribute('onclick');
             const p = document.createElement('p');
             p.style.margin = '12px 0';
             p.style.textAlign = align;
