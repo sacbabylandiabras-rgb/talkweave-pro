@@ -324,13 +324,14 @@ export default function EmailTemplates() {
 
     if (type === "bullet" || type === "numbered") {
       const tag = type === "bullet" ? "ul" : "ol";
+      const listStyle = type === "bullet" ? "disc" : "decimal";
       const items = (selectedText || "List item")
         .split(/\n+/)
         .map((item) => item.trim())
         .filter(Boolean)
-        .map((item) => `<li>${escapeHtml(item)}</li>`)
+        .map((item) => `<li style="margin: 0 0 4px;">${escapeHtml(item)}</li>`)
         .join("");
-      insertHtmlAtEditorCursor(`<${tag} style="margin: 0 0 12px; padding-left: 24px;">${items}</${tag}><p></p>`);
+      insertHtmlAtEditorCursor(`<${tag} style="margin: 0 0 12px; padding-left: 24px; list-style-type: ${listStyle}; list-style-position: outside;">${items}</${tag}><p></p>`);
       return;
     }
 
