@@ -1085,10 +1085,11 @@ export default function EmailTemplates() {
                     id="email-editor"
                     className="focus:outline-none prose prose-slate max-w-none"
 
-                    onBlur={(e) => {
-                      if (editing) setEditing({ ...editing, html: e.currentTarget.innerHTML });
-                    }}
+                    onBlur={saveEditorSelection}
+                    onMouseUp={saveEditorSelection}
+                    onKeyUp={saveEditorSelection}
                     onInput={(e) => {
+                      saveEditorSelection();
                       if (editing) setEditing({ ...editing, html: e.currentTarget.innerHTML });
                     }}
                     onDragOver={(e) => e.preventDefault()}
