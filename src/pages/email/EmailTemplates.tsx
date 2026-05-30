@@ -874,20 +874,7 @@ export default function EmailTemplates() {
                                   if (!raw) return;
                                   html = raw;
                                 }
-                                const selection = window.getSelection();
-                                if (selection && selection.rangeCount > 0 && editor.contains(selection.anchorNode)) {
-                                  const range = selection.getRangeAt(0);
-                                  range.deleteContents();
-                                  const div = document.createElement('div');
-                                  div.innerHTML = html;
-                                  const frag = document.createDocumentFragment();
-                                  let node;
-                                  while ((node = div.firstChild)) frag.appendChild(node);
-                                  range.insertNode(frag);
-                                } else {
-                                  editor.innerHTML += html;
-                                }
-                                if (editing) setEditing({ ...editing, html: editor.innerHTML });
+                                insertHtmlAtEditorCursor(html);
                               }}
                             >
                               {b.label}
