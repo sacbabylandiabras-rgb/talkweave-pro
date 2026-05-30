@@ -643,6 +643,21 @@ serve(async (req) => {
                   
                   // Only log if it's a message event (has message, postback, etc.)
                   if (event.message || event.postback) {
+                    // Dedup: Meta retries the same webhook. Skip if we've already logged this mid.
+                    const mid = event.message?.mid || event.postback?.mid;
+                    if (mid) {
+                      const { data: existing } = await supabase
+                        .from("instagram_events")
+                        .select("id")
+                        .eq("user_id", cred.user_id)
+                        .eq("payload->message->>mid", mid)
+                        .limit(1)
+                        .maybeSingle();
+                      if (existing) {
+                        console.log(`[webhook-instagram] Skipping duplicate event mid=${mid}`);
+                        continue;
+                      }
+                    }
                     let eventType = isStory ? "story_reply" : "dm";
                     let targetIgId = senderId;
                     let targetUsername = senderUsername;
