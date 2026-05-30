@@ -72,7 +72,8 @@ export default function EmailTemplates() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
       
-      const currentHtml = editorRef.current?.innerHTML ?? editorHtmlDraftRef.current ?? editing.html;
+      const rawHtml = editorRef.current?.innerHTML ?? editorHtmlDraftRef.current ?? editing.html;
+      const currentHtml = sanitizeForEmail(rawHtml || "");
       const payload = { 
         name: editing.name, 
         subject: editing.subject, 
