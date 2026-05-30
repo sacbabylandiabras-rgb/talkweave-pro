@@ -1252,6 +1252,9 @@ export default function EmailTemplates() {
                     .img-container:hover .img-controls { opacity: 1 !important; }
                     .img-container.selected .img-controls { opacity: 1 !important; }
                     .img-container.selected { outline: 2px solid #6366f1; border-style: solid !important; }
+                     .btn-block.dragging, .img-container.dragging { opacity: 0.45; outline: 2px dashed #6366f1; }
+                     .btn-block .btn-handle { touch-action: none; }
+                     .btn-block .btn-controls input, .btn-block .btn-controls select { user-select: auto; }
                     [contenteditable] img { transition: outline 0.2s; }
                     .img-container:hover { border-color: #6366f1 !important; }
                      ${buildThemeCss(themeStyles)}
