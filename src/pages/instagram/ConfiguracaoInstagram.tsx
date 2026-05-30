@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const INSTAGRAM_APP_ID = "1629147191696096";
 const REDIRECT_URI = "https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/meta-oauth-callback";
@@ -16,6 +17,12 @@ export default function ConfiguracaoInstagram() {
   const [accountName, setAccountName] = useState("");
   const [profilePicUrl, setProfilePicUrl] = useState("");
   const [checkingStatus, setCheckingStatus] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
+  const { isAdmin } = useUserRole(currentUserId);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id));
+  }, []);
 
   const webhookUrl = `https://yodgjxdekuraxquxkxhx.supabase.co/functions/v1/webhook-instagram`;
   const verifyToken = "zaplynx_ig_verify_2024";
@@ -250,6 +257,7 @@ export default function ConfiguracaoInstagram() {
       </Card>
 
       {/* Webhook URL */}
+      {isAdmin && (
       <Card className="border-border">
         <CardHeader>
           <CardTitle className="text-sm">Webhook (automático)</CardTitle>
@@ -278,8 +286,10 @@ export default function ConfiguracaoInstagram() {
           </p>
         </CardContent>
       </Card>
+      )}
 
       {/* Redirect URI for Developer Console */}
+      {isAdmin && (
       <Card className="border-border">
         <CardHeader>
           <CardTitle className="text-sm">URI de Redirecionamento (para o Meta Developer)</CardTitle>
@@ -296,6 +306,7 @@ export default function ConfiguracaoInstagram() {
           </p>
         </CardContent>
       </Card>
+      )}
 
       {/* Permissions */}
       <Card className="border-border">
