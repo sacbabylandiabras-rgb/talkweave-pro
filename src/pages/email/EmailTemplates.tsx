@@ -1395,8 +1395,7 @@ export default function EmailTemplates() {
                         container.classList.add('dragging');
                       } else {
                         const btnBlock = target.closest('.btn-block') as HTMLElement | null;
-                        // Only drag when grabbing the wrapper itself, not its inputs/controls
-                        if (btnBlock && target === btnBlock) {
+                        if (btnBlock && target.closest('.btn-handle')) {
                           btnBlock.classList.add('dragging');
                         }
                       }
