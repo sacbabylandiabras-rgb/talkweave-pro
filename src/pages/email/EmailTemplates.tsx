@@ -742,7 +742,7 @@ export default function EmailTemplates() {
             <div className="flex-1 p-4 md:p-8 flex flex-col gap-4 overflow-y-auto">
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full min-h-[500px]">
                 <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-t-2xl">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1" onMouseDownCapture={saveEditorSelection}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
@@ -777,10 +777,7 @@ export default function EmailTemplates() {
                               <DropdownMenuItem
                                 key={it.value}
                                 className="cursor-pointer text-[13px] flex flex-col items-start gap-0"
-                                onClick={() => {
-                                  document.execCommand('insertText', false, it.value);
-                                  if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
-                                }}
+                                onClick={() => insertTextAtEditorCursor(it.value)}
                               >
                                 <span>{it.label}</span>
                                 <span className="text-[10px] text-slate-400 font-mono">{it.value}</span>
@@ -795,8 +792,7 @@ export default function EmailTemplates() {
                               const name = prompt("Nome da variável personalizada (sem espaços):");
                               if (!name) return;
                               const clean = name.trim().replace(/\s+/g, "_");
-                              document.execCommand('insertText', false, `{{${clean}}}`);
-                              if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
+                              insertTextAtEditorCursor(`{{${clean}}}`);
                             }}
                           >
                             + Criar variável personalizada
