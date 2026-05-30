@@ -54,6 +54,7 @@ const ExtractMembers = () => {
 
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [busca, setBusca] = useState("");
+  const [groupSearch, setGroupSearch] = useState("");
   const [phoneToAdd, setPhoneToAdd] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [participants, setParticipants] = useState<any[]>([]);
@@ -63,6 +64,18 @@ const ExtractMembers = () => {
   const [deviceStatus, setDeviceStatus] = useState<Record<string, boolean>>({});
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId) ?? null;
+
+  const filteredGroups = useMemo(() => {
+    const q = groupSearch.trim().toLowerCase();
+    if (!q) return groups;
+    return groups.filter((g) => {
+      const name = String(g.nome || "").toLowerCase();
+      const type = String(
+        g.typeLabel || (g.isChannel ? "Canal" : g.isCommunity ? "Comunidade" : "Grupo"),
+      ).toLowerCase();
+      return name.includes(q) || type.includes(q);
+    });
+  }, [groups, groupSearch]);
 
   useEffect(() => {
     const checkStatuses = async () => {
@@ -280,11 +293,30 @@ const ExtractMembers = () => {
                   <SelectValue placeholder="Escolha um item para gerenciar" />
                 </SelectTrigger>
                 <SelectContent className="max-h-80">
-                  {groups.map((g) => (
-                    <SelectItem key={g.id} value={g.id}>
-                      {g.typeLabel || (g.isChannel ? "Canal" : g.isCommunity ? "Comunidade" : "Grupo")} · {g.nome}
-                    </SelectItem>
-                  ))}
+                  <div className="sticky top-0 z-10 bg-popover p-2 border-b">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Pesquisar grupo ou comunidade..."
+                        value={groupSearch}
+                        onChange={(e) => setGroupSearch(e.target.value)}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        className="h-8 pl-7 text-xs"
+                      />
+                    </div>
+                  </div>
+                  {filteredGroups.length === 0 ? (
+                    <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                      Nenhum resultado para "{groupSearch}"
+                    </div>
+                  ) : (
+                    filteredGroups.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>
+                        {g.typeLabel || (g.isChannel ? "Canal" : g.isCommunity ? "Comunidade" : "Grupo")} · {g.nome}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             )}
