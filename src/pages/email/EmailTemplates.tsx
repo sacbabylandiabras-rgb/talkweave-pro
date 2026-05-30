@@ -989,20 +989,7 @@ export default function EmailTemplates() {
                                   html = raw;
                                 }
                                 if (html === "__BUTTON_BLOCK__") {
-                                  const btnId = `btn-${Math.random().toString(36).slice(2, 9)}`;
-                                  const wrapId = `wrap-${btnId}`;
-                                  const sizes = `{small:{p:'6px 14px',f:'12px'},medium:{p:'10px 20px',f:'14px'},large:{p:'14px 28px',f:'16px'}}`;
-                                  const updFn = `function(){var a=document.getElementById('${btnId}');var w=document.getElementById('${wrapId}');if(!a||!w)return;var t=w.querySelector('[data-c=text]').value;var u=w.querySelector('[data-c=url]').value;var c=w.querySelector('[data-c=color]').value;var s=w.querySelector('[data-c=size]').value;var al=w.querySelector('[data-c=align]').value;var SZ=${sizes};var sz=SZ[s]||SZ.medium;a.textContent=t||'Click me';a.setAttribute('href',u||'#');a.style.background=c;a.style.padding=sz.p;a.style.fontSize=sz.f;w.style.textAlign=al;}`;
-                                  const inputStyle = `padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; background: #f8fafc; color: #475569; outline: none;`;
-                                  html = `<div class="btn-block" id="${wrapId}" contenteditable="false" style="margin: 12px 0; text-align: left;">`
-                                    + `<div style="margin-bottom: 10px;"><a id="${btnId}" href="#" style="display: inline-block; background: #6366f1; color: #ffffff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px;">Click me</a></div>`
-                                    + `<div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px; background: #f1f5f9; border-radius: 6px;">`
-                                    + `<input data-c="text" type="text" placeholder="Texto do botão" value="Click me" oninput="(${updFn})()" style="${inputStyle} flex: 1; min-width: 140px;" />`
-                                    + `<input data-c="url" type="url" placeholder="Cole um link" value="" oninput="(${updFn})()" style="${inputStyle} flex: 1; min-width: 160px;" />`
-                                    + `<input data-c="color" type="color" value="#6366f1" oninput="(${updFn})()" title="Cor" style="width: 36px; height: 30px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 2px; background: #ffffff; cursor: pointer;" />`
-                                    + `<select data-c="size" onchange="(${updFn})()" title="Tamanho" style="${inputStyle} cursor: pointer;"><option value="small">P</option><option value="medium" selected>M</option><option value="large">G</option></select>`
-                                    + `<select data-c="align" onchange="(${updFn})()" title="Alinhamento" style="${inputStyle} cursor: pointer;"><option value="left" selected>◧</option><option value="center">▣</option><option value="right">◨</option></select>`
-                                    + `</div></div><p></p>`;
+                                  html = buildButtonBlockHtml() + `<p></p>`;
                                 }
                                 insertHtmlAtEditorCursor(html);
                               }}
