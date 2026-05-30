@@ -228,7 +228,10 @@ Deno.serve(async (req) => {
       if (r.ok && j?.id) {
         await admin.from("sent_emails_mapping").insert({
           email_id: j.id,
-          user_id: userId
+          user_id: userId,
+          subject,
+          html: finalHtml,
+          recipient,
         });
       }
       results.push({ to: recipient, ok: r.ok, error: r.ok ? undefined : (j?.message || j?.error || `HTTP ${r.status}`), id: j?.id });
