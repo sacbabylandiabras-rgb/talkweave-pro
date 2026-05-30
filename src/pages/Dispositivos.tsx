@@ -1710,12 +1710,46 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
   const [previewUrl, setPreviewUrl] = useState("");
   const [updating, setUpdating] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [statusMap, setStatusMap] = useState<Record<string, boolean>>({});
+  const [checkingStatus, setCheckingStatus] = useState(false);
 
-  // Pré-seleciona todas as instâncias quando abrir / quando a lista mudar
+  // Ao abrir: checa status de cada instância e pré-seleciona apenas as conectadas
   useEffect(() => {
-    if (open) {
-      setSelectedIds(instances.map((i) => i.id));
-    }
+    if (!open) return;
+    let cancelled = false;
+    setCheckingStatus(true);
+    setStatusMap({});
+    setSelectedIds(instances.map((i) => i.id)); // fallback enquanto checa
+
+    (async () => {
+      const entries = await Promise.all(
+        instances.map(async (inst) => {
+          try {
+            const { data } = await supabase.functions.invoke('get-device-status', {
+              body: { instanceId: inst.id },
+            });
+            const connected = Boolean(data?.data?.connected ?? data?.connected);
+            return [inst.id, connected] as const;
+          } catch {
+            return [inst.id, false] as const;
+          }
+        }),
+      );
+      if (cancelled) return;
+      const map = Object.fromEntries(entries);
+      setStatusMap(map);
+      const connectedIds = instances.filter((i) => map[i.id]).map((i) => i.id);
+      // Se houver pelo menos uma conectada, mantém só elas. Se nenhuma estiver conectada,
+      // mantém a seleção atual para o usuário decidir.
+      if (connectedIds.length > 0) {
+        setSelectedIds(connectedIds);
+      }
+      setCheckingStatus(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, instances]);
 
   const targetInstances = instances.filter((i) => selectedIds.includes(i.id));
@@ -1886,13 +1920,22 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Instâncias ({selectedIds.length}/{instances.length})</Label>
-              <Button type="button" variant="ghost" size="sm" onClick={toggleAll} disabled={updating}>
-                {allSelected ? "Desmarcar todas" : "Selecionar todas"}
-              </Button>
+              <div className="flex items-center gap-2">
+                {checkingStatus && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Verificando conexão...
+                  </span>
+                )}
+                <Button type="button" variant="ghost" size="sm" onClick={toggleAll} disabled={updating}>
+                  {allSelected ? "Desmarcar todas" : "Selecionar todas"}
+                </Button>
+              </div>
             </div>
             <div className="max-h-40 overflow-y-auto border border-border rounded-md p-2 space-y-1 bg-muted/20">
               {instances.map((inst) => {
                 const checked = selectedIds.includes(inst.id);
+                const isConnected = statusMap[inst.id];
+                const knownStatus = inst.id in statusMap;
                 return (
                   <label
                     key={inst.id}
@@ -1906,10 +1949,20 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
                       className="accent-primary"
                     />
                     <span className="flex-1 truncate">{inst.instance_name || inst.zapi_instance_id}</span>
+                    {knownStatus && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isConnected ? 'bg-emerald-500/15 text-emerald-500' : 'bg-red-500/15 text-red-500'}`}>
+                        {isConnected ? 'Conectado' : 'Desconectado'}
+                      </span>
+                    )}
                   </label>
                 );
               })}
             </div>
+            {!checkingStatus && Object.keys(statusMap).length > 0 && Object.values(statusMap).every((v) => !v) && (
+              <p className="text-xs text-red-500">
+                Nenhum dispositivo está conectado. Reconecte ao menos um WhatsApp antes de atualizar o perfil.
+              </p>
+            )}
           </div>
 
           {/* Name */}
