@@ -95,6 +95,7 @@ export default function EmailTemplates() {
     });
   };
   const [globalCss, setGlobalCss] = useState("");
+  const [customHtml, setCustomHtml] = useState("");
   const [pageStyle, setPageStyle] = useState({ backgroundColor: "#f8fafc", width: 600, padding: 20 });
 
   const showButtonControls = (btnBlock: HTMLElement | null) => {
@@ -920,6 +921,56 @@ export default function EmailTemplates() {
                         ></textarea>
                       </div>
                     </div>
+
+                    <div
+                      id="html-panel"
+                      className="footer-panel hidden fixed inset-y-0 right-0 w-80 bg-white shadow-2xl z-50 flex flex-col border-l border-slate-200 animate-in slide-in-from-right duration-300"
+                    >
+                      <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-900">HTML personalizado</h3>
+                          <p className="text-[10px] text-slate-500 mt-0.5">Cole o HTML que deseja inserir no e-mail.</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full"
+                          onClick={() => document.getElementById('html-panel')?.classList.add('hidden')}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="flex-1 bg-slate-900 p-0 overflow-hidden">
+                        <textarea
+                          value={customHtml}
+                          onChange={(e) => setCustomHtml(e.target.value)}
+                          className="w-full h-full text-[12px] font-mono p-4 bg-slate-900 text-indigo-300 focus:outline-none resize-none selection:bg-indigo-500/30"
+                          placeholder={"<!-- Exemplo:\n<div style=\"padding:16px;background:#f1f5f9;border-radius:8px\">\n  <p>Meu bloco</p>\n</div>\n-->"}
+                          spellCheck={false}
+                        ></textarea>
+                      </div>
+                      <div className="p-3 border-t border-slate-100 flex items-center justify-end gap-2 bg-white">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => document.getElementById('html-panel')?.classList.add('hidden')}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            const html = customHtml.trim();
+                            if (!html) return;
+                            insertHtmlAtEditorCursor(html);
+                            setCustomHtml("");
+                            document.getElementById('html-panel')?.classList.add('hidden');
+                          }}
+                        >
+                          Inserir
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1057,9 +1108,8 @@ export default function EmailTemplates() {
                                 if (!editor) return;
                                 let html = b.html;
                                 if (html === "__PROMPT_HTML__") {
-                                  const raw = prompt("Cole o HTML personalizado:");
-                                  if (!raw) return;
-                                  html = raw;
+                                  document.getElementById('html-panel')?.classList.remove('hidden');
+                                  return;
                                 }
                                 if (html === "__BUTTON_BLOCK__") {
                                   html = buildButtonBlockHtml() + `<p></p>`;
