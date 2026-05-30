@@ -317,6 +317,7 @@ const executeFlow = async (params: {
       try {
         const dmText = replaceVars(d.message || "", { username: context.senderUsername, text: context.inputText || "" });
         const dmButtons = (d.buttons || []).filter((b: any) => b.title && (b.url || b.type === "reply"));
+        const collectType = d.collectWhatsapp ? "whatsapp" : d.collectEmail ? "email" : d.collectName ? "name" : null;
 
         const buildButtonPayload = (text: string, buttons: any[]) => {
           const templateBtns = buttons.slice(0, 3).map((b: any) => {
@@ -364,11 +365,20 @@ const executeFlow = async (params: {
                 igUserId: context.senderId,
                 username: context.senderUsername,
                 text: dmText,
-                payload: { automation_id: auto.id, type: "automation", comment_id: context.commentId }
+                payload: {
+                  automation_id: auto.id,
+                  type: "automation",
+                  comment_id: context.commentId,
+                  ...(collectType ? { awaiting_collect: { automation_id: auto.id, node_id: node.id, type: collectType } } : {}),
+                }
               });
             }
          }
       } catch (e) { console.error("Flow DM failed:", e); }
+      // If this DM expects user input, pause the flow here — execution resumes when the reply arrives.
+      if (d.collectWhatsapp || d.collectEmail || d.collectName) {
+        return;
+      }
     }
 
     if (node.type === "igDelay") {
@@ -384,7 +394,7 @@ const executeFlow = async (params: {
 
     // Traversal
     const buttons = (node.data?.buttons || []).filter((b: any) => b.title);
-    if (node.type === "igDM" && (buttons.length > 0 || node.data?.collectWhatsapp || node.data?.collectEmail)) {
+    if (node.type === "igDM" && buttons.length > 0) {
         const bottomChildren = getOutgoing(node.id, "source-bottom");
         for (const child of bottomChildren) await runNode(child);
         return;
