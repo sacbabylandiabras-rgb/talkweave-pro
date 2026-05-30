@@ -65,6 +65,28 @@ export default function EmailTemplates() {
   const openNew = () => setEditing({ id: "", name: "", subject: "", html: "", updated_at: "", category: "Marketing" });
 
   const save = async () => {
+    const sanitizeForEmail = (raw: string) => {
+      try {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = raw;
+        // For each button block, remove the input and unwrap the anchor's container div
+        wrap.querySelectorAll('.btn-block').forEach((block) => {
+          block.querySelectorAll('input').forEach((el) => el.remove());
+          const anchor = block.querySelector('a');
+          if (anchor) {
+            const p = document.createElement('p');
+            p.style.margin = '12px 0';
+            p.appendChild(anchor);
+            block.replaceWith(p);
+          } else {
+            block.remove();
+          }
+        });
+        return wrap.innerHTML;
+      } catch {
+        return raw;
+      }
+    };
     if (!editing) return;
     if (!editing.name.trim()) { toast.error("Informe o nome do template"); return; }
     setSaving(true);
@@ -72,7 +94,8 @@ export default function EmailTemplates() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
       
-      const currentHtml = editorRef.current?.innerHTML ?? editorHtmlDraftRef.current ?? editing.html;
+      const rawHtml = editorRef.current?.innerHTML ?? editorHtmlDraftRef.current ?? editing.html;
+      const currentHtml = sanitizeForEmail(rawHtml || "");
       const payload = { 
         name: editing.name, 
         subject: editing.subject, 
@@ -871,7 +894,7 @@ export default function EmailTemplates() {
                             return `<table style="width: 100%; border-collapse: collapse; margin: 12px 0;"><tbody><tr>${cells}</tr></tbody></table><p></p>`;
                           };
                           const blocks: { label: string; html: string }[] = [
-                            { label: "Button", html: `<p><a href="#" style="display: inline-block; background: #6366f1; color: #ffffff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">Click me</a></p>` },
+                            { label: "Button", html: `__BUTTON_BLOCK__` },
                             { label: "Divider", html: `<hr style="border: none; border-top: 1px solid #e2e8f0; margin: 16px 0;" />` },
                             { label: "Section", html: `<div style="padding: 24px; background: #f8fafc; border-radius: 8px; margin: 12px 0;"><p>Section content</p></div>` },
                             { label: "2 columns", html: cols(2) },
@@ -894,6 +917,14 @@ export default function EmailTemplates() {
                                   const raw = prompt("Cole o HTML personalizado:");
                                   if (!raw) return;
                                   html = raw;
+                                }
+                                if (html === "__BUTTON_BLOCK__") {
+                                  const btnId = `btn-${Math.random().toString(36).slice(2, 9)}`;
+                                  const inpId = `inp-${btnId}`;
+                                  html = `<div class="btn-block" contenteditable="false" style="margin: 12px 0;">`
+                                    + `<div style="margin-bottom: 8px;"><a id="${btnId}" href="#" contenteditable="true" style="display: inline-block; background: #6366f1; color: #ffffff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">Click me</a></div>`
+                                    + `<input id="${inpId}" type="url" placeholder="Cole um link" value="" oninput="(function(e){var a=document.getElementById('${btnId}');if(a){a.setAttribute('href', e.target.value||'#');}})(event)" style="width: 100%; max-width: 280px; padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; background: #f8fafc; color: #475569; outline: none;" />`
+                                    + `</div><p></p>`;
                                 }
                                 insertHtmlAtEditorCursor(html);
                               }}
