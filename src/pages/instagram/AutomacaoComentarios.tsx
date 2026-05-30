@@ -78,6 +78,7 @@ import { IGRespostaNode } from "@/components/flow/ig/IGRespostaNode";
 import { IGDMNode } from "@/components/flow/ig/IGDMNode";
 import { IGDelayNode } from "@/components/flow/ig/IGDelayNode";
 import { IGWhatsAppNode } from "@/components/flow/ig/IGWhatsAppNode";
+import { IGEmailNode } from "@/components/flow/ig/IGEmailNode";
 import { supabase } from "@/integrations/supabase/client";
 
 const nodeTypes: NodeTypes = {
@@ -86,6 +87,7 @@ const nodeTypes: NodeTypes = {
   igDM: IGDMNode,
   igDelay: IGDelayNode,
   igWhatsApp: IGWhatsAppNode,
+  igEmail: IGEmailNode,
 };
 
 const defaultNodes: Node[] = [
@@ -138,6 +140,7 @@ const blocosDisponiveis = [
    { type: "igDM", label: "Enviar DM", icon: Send, description: "Mensagem direta no Instagram" },
    { type: "igDelay", label: "Espera", icon: Clock, description: "Aguardar um tempo" },
    { type: "igWhatsApp", label: "WhatsApp", icon: MessageSquare, description: "Enviar para o WhatsApp" },
+   { type: "igEmail", label: "Email", icon: Mail, description: "Enviar email via Resend" },
 ];
 
 export default function AutomacaoComentarios() {
@@ -476,6 +479,7 @@ export default function AutomacaoComentarios() {
         igDM: "Enviar DM",
         igDelay: "Espera",
         igWhatsApp: "Enviar WhatsApp",
+        igEmail: "Enviar Email",
       };
 
       const newNode: Node = {
