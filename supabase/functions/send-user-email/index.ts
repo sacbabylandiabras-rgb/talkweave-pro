@@ -226,12 +226,31 @@ Deno.serve(async (req) => {
       });
       const j = await r.json().catch(() => ({}));
       if (r.ok && j?.id) {
-        await admin.from("sent_emails_mapping").insert({
+        const { error: mappingError } = await admin.from("sent_emails_mapping").insert({
           email_id: j.id,
           user_id: userId,
           subject,
           html: finalHtml,
           recipient,
+        });
+
+        if (mappingError) {
+          console.warn("sent_emails_mapping full insert failed, retrying minimal insert:", mappingError.message);
+          await admin.from("sent_emails_mapping").insert({ email_id: j.id, user_id: userId });
+        }
+
+        await admin.from("resend_webhook_events").insert({
+          user_id: userId,
+          event_type: "email.sent",
+          email_id: j.id,
+          recipient,
+          sender: from,
+          subject,
+          raw_payload: {
+            type: "email.sent",
+            source: "send-user-email",
+            data: { email_id: j.id, to: [recipient], from, subject, html: finalHtml },
+          },
         });
       }
       results.push({ to: recipient, ok: r.ok, error: r.ok ? undefined : (j?.message || j?.error || `HTTP ${r.status}`), id: j?.id });
