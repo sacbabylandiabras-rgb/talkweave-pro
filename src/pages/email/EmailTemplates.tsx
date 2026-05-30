@@ -1295,27 +1295,36 @@ export default function EmailTemplates() {
                     onDragOver={(e) => e.preventDefault()}
                     onDragStart={(e) => {
                       const target = e.target as HTMLElement;
+                      if (target.closest('.btn-controls')) {
+                        e.preventDefault();
+                        return;
+                      }
                       const btnBlock = target.closest('.btn-block') as HTMLElement | null;
                       if (btnBlock) {
+                        if (!target.closest('.btn-handle')) {
+                          e.preventDefault();
+                          return;
+                        }
                         btnBlock.classList.add('dragging');
                         try { e.dataTransfer?.setData('text/plain', btnBlock.id || 'btn'); } catch {}
+                        if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+                        return;
+                      }
+                      const imgContainer = target.closest('.img-container') as HTMLElement | null;
+                      if (imgContainer && !target.closest('.img-controls') && !target.classList.contains('resizer')) {
+                        imgContainer.classList.add('dragging');
+                        try { e.dataTransfer?.setData('text/plain', imgContainer.className || 'img'); } catch {}
                         if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
                       }
                     }}
                     onDragEnd={() => {
-                      document.querySelectorAll('.btn-block.dragging').forEach((el) => el.classList.remove('dragging'));
+                      document.querySelectorAll('.btn-block.dragging, .img-container.dragging').forEach((el) => el.classList.remove('dragging'));
                     }}
                     onDrop={(e) => {
-                      const target = e.target as HTMLElement;
                       const container = document.querySelector('.img-container.dragging, .btn-block.dragging') as HTMLElement;
                       if (container) {
                         e.preventDefault();
-                        const range = document.caretRangeFromPoint(e.clientX, e.clientY);
-                        if (range) {
-                          range.insertNode(container);
-                          container.classList.remove('dragging');
-                          if (editing) setEditing({ ...editing, html: document.getElementById('email-editor')?.innerHTML || "" });
-                        }
+                        moveEditableBlockToPoint(container, e.clientX, e.clientY);
                       }
                     }}
                     onClick={(e) => {
