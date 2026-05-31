@@ -89,12 +89,12 @@ interface FluxoTelegramItem {
 
 function IniciarNode({ data }: any) {
   return (
-    <div className="relative px-4 py-3 rounded-xl border border-border/70 bg-card shadow-sm w-[220px]">
-      <div className="flex items-center gap-2 mb-1.5">
-        <PlayCircle className="h-3.5 w-3.5 text-primary" strokeWidth={2.2} />
-        <div className="text-[13px] font-semibold text-foreground/90">Iniciar</div>
+    <div className="relative px-6 py-5 rounded-2xl border border-border/70 bg-card shadow-md w-[320px]">
+      <div className="flex items-center gap-2 mb-3">
+        <PlayCircle className="h-4 w-4 text-primary" strokeWidth={2.2} />
+        <div className="text-[15px] font-semibold text-foreground">Iniciar</div>
       </div>
-      <p className="text-[10.5px] text-muted-foreground/80 leading-snug mb-3">
+      <p className="text-[13px] text-muted-foreground leading-snug mb-5">
         O gatilho é responsável por acionar a automação
       </p>
       <button
@@ -103,9 +103,9 @@ function IniciarNode({ data }: any) {
           e.stopPropagation();
           data?.onAddTrigger?.();
         }}
-        className="w-full inline-flex items-center justify-center gap-1.5 text-[11px] font-medium py-1.5 rounded-md border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition"
+        className="w-full inline-flex items-center justify-center gap-2 text-[14px] font-normal py-3 rounded-lg border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition"
       >
-        Novo gatilho <Plus className="h-3 w-3" />
+        Novo gatilho <Plus className="h-3.5 w-3.5" />
       </button>
       <button
         type="button"
@@ -113,14 +113,14 @@ function IniciarNode({ data }: any) {
           e.stopPropagation();
           data?.onAddTrigger?.();
         }}
-        className="mt-1.5 w-full text-[10px] text-primary/80 hover:text-primary hover:underline text-right"
+        className="mt-3 w-full text-[12px] text-primary hover:underline text-right"
       >
         Primeiro gatilho
       </button>
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-2 !h-2 !bg-primary/70 !border !border-background"
+        className="!w-3 !h-3 !bg-background !border-2 !border-muted-foreground/40"
       />
     </div>
   );
