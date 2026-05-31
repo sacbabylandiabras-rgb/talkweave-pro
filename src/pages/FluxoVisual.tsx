@@ -1929,12 +1929,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           if (!o) setIsSelectingPreGroups(false);
         }}
         onConfirm={handleConfirmSend}
-        mode={mode}
+        mode={(isTelegramMode ? "contacts" : mode) as "contacts" | "groups" | "meta"}
       />
       <FlowTemplatesDialog
         open={showTemplatesDialog}
         onOpenChange={setShowTemplatesDialog}
-        mode={mode}
+        mode={(isTelegramMode ? "contacts" : mode) as "contacts" | "groups" | "meta"}
         onSelect={handleSelectTemplate}
         onStartBlank={handleStartBlank}
       />
@@ -2313,13 +2313,13 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         open={showContactsDialog}
         onOpenChange={setShowContactsDialog}
         onConfirm={handleConfirmSend}
-        mode={mode}
+        mode={(isTelegramMode ? "contacts" : mode) as "contacts" | "groups" | "meta"}
       />
 
       <FlowTemplatesDialog
         open={showTemplatesDialog}
         onOpenChange={setShowTemplatesDialog}
-        mode={mode}
+        mode={(isTelegramMode ? "contacts" : mode) as "contacts" | "groups" | "meta"}
         onSelect={handleSelectTemplate}
         onStartBlank={handleStartBlank}
       />
