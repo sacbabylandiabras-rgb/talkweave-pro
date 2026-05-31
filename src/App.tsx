@@ -249,6 +249,7 @@ const App = () => (
                   <Route path="/telegram/traqueamento" element={<TelegramPlaceholder title="Traqueamento" description="Configure pixels e eventos de conversão." />} />
                   <Route path="/telegram/links-traqueamento" element={<TelegramLinksTraqueamento />} />
                   <Route path="/telegram/links-utm" element={<TelegramLinksUtm />} />
+                  <Route path="/telegram/fluxo" element={<FluxoTelegram />} />
                   {/* Email routes */}
                   <Route path="/email/configuracao" element={<EmailConfiguracao />} />
                   <Route path="/email/caixa-entrada" element={<EmailCaixaEntrada />} />
