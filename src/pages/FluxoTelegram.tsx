@@ -488,6 +488,7 @@ const nodeTypes: NodeTypes = {
   step: StepNode,
   intervalo: IntervaloNode,
   mensagem: MensagemNode,
+  pagamento: PagamentoNode,
 };
 
 /* --------------------------- Block catalog -------------------------- */
