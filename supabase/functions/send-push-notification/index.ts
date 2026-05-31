@@ -220,6 +220,12 @@ Deno.serve(async (req) => {
 
     const telegramPromise = (async () => {
       try {
+        // Relatórios são apenas para o dono do BOT no app (push/web-push).
+        // Nunca devem ser entregues como mensagem dentro do chat do bot
+        // — isso vazaria dados de vendas para os clientes finais.
+        if (event_type === "report") {
+          return { skipped: true, reason: "report event - telegram suppressed" };
+        }
         const { data: bot } = await supabase
           .from("telegram_bots")
           .select("bot_token")
