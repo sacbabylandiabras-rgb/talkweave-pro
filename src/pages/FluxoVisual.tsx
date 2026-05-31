@@ -2254,11 +2254,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                         <div key={msg.id + idx} className={`flex ${msg.direction === 'received' ? 'justify-start' : 'justify-end'} mb-[1px]`}>
                           <div className={`max-w-[80%] rounded-[7.5px] shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] relative ${
                             msg.direction === 'received'
-                              ? 'bg-white rounded-tl-[3px]'
-                              : 'bg-[#D9FDD3] rounded-tr-[3px]'
+                              ? (isTelegramMode ? 'bg-[#f1f1f1]' : 'bg-white rounded-tl-[3px]')
+                              : (isTelegramMode ? 'bg-[#effdde]' : 'bg-[#D9FDD3] rounded-tr-[3px]')
                           }`}>
                             {/* Tail */}
-                            {idx === 0 || getPreviewMessages()[idx - 1]?.direction !== msg.direction ? (
+                            {!isTelegramMode && (idx === 0 || getPreviewMessages()[idx - 1]?.direction !== msg.direction) ? (
                               <div className={`absolute top-0 w-[8px] h-[13px] ${
                                 msg.direction === 'received' ? '-left-[8px]' : '-right-[8px]'
                               }`}>
