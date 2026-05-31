@@ -808,6 +808,21 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     fetchFluxos();
   }, [isGroupsMode, isTelegramMode]);
 
+  useEffect(() => {
+    if (isTelegramMode) {
+      const fetchBots = async () => {
+        const { data, error } = await supabase
+          .from("telegram_bots")
+          .select("id, username, first_name")
+          .eq("active", true);
+        if (!error && data) {
+          setTelegramBots(data as TelegramBot[]);
+        }
+      };
+      fetchBots();
+    }
+  }, [isTelegramMode]);
+
    const fetchTagsForEditor = useCallback(async () => {
      const activeInstances = instances.filter(i => (i.api_provider || 'zapi') === 'zapi' && i.is_active);
      if (activeInstances.length === 0) return;
