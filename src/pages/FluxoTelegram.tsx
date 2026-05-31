@@ -1961,14 +1961,21 @@ function BlockEditor({
   }
 
   if (kind === "texto") {
-    const variant: "texto" | "midia" | "atraso" = d.contentVariant || "texto";
+    const variant: "texto" | "midia" | "botoes" | "atraso" = d.contentVariant || "texto";
     const options = [
       {
         id: "texto" as const,
         icon: Type,
         title: "Texto",
-        desc: "Adicione texto simples e botões",
+        desc: "Adicione uma mensagem simples",
         color: "text-sky-500 bg-sky-500/10",
+      },
+      {
+        id: "botoes" as const,
+        icon: MousePointerClick,
+        title: "Botões",
+        desc: "Envie uma mensagem com botões inline",
+        color: "text-violet-500 bg-violet-500/10",
       },
       {
         id: "midia" as const,
