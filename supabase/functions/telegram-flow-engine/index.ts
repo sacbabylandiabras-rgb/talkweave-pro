@@ -322,6 +322,79 @@ async function runFlow({
         return;
       }
 
+      // === Payment block ===
+      else if (kind === "pagamento" || node.type === "pagamento" || node.type === "blocoPagamento") {
+        const rawAmount = String(data.amount ?? data.value ?? "0").replace(/\./g, "").replace(",", ".");
+        const amountCents = Math.round(parseFloat(rawAmount || "0") * 100);
+        if (!amountCents || amountCents <= 0) {
+          console.warn("[engine] payment block missing amount", node.id);
+          const nextEdge = nextEdgeFor(edges, node.id, "pending") || nextEdgeFor(edges, node.id);
+          currentId = nextEdge?.target || null;
+          continue;
+        }
+
+        try {
+          const resp = await fetch(
+            `${Deno.env.get("SUPABASE_URL")}/functions/v1/gateway-flow-charge`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
+              body: JSON.stringify({
+                userId: bot.user_id,
+                amount: amountCents,
+                description: data.description || "Pagamento via Telegram",
+                customerName: variables?.user?.first_name || "Cliente Telegram",
+              }),
+            },
+          );
+          const charge = await resp.json().catch(() => ({}));
+          const brCode: string = charge?.brCode || "";
+          const qrImage: string = charge?.qrCodeImage || "";
+
+          const amountLabel = (amountCents / 100).toFixed(2).replace(".", ",");
+          const caption =
+            `💳 *Pagamento de R$ ${amountLabel}*\n\n` +
+            (brCode
+              ? `Copie o código Pix abaixo e pague no seu app do banco:\n\n\`${brCode}\``
+              : "Não foi possível gerar a cobrança no momento. Tente novamente em instantes.");
+
+          if (qrImage && /^https?:\/\//i.test(qrImage)) {
+            await tgApi(bot.bot_token, "sendPhoto", {
+              chat_id: chatId,
+              photo: qrImage,
+              caption,
+              parse_mode: "Markdown",
+            });
+          } else {
+            await tgApi(bot.bot_token, "sendMessage", {
+              chat_id: chatId,
+              text: caption,
+              parse_mode: "Markdown",
+            });
+          }
+
+          variables.payment = {
+            amount: amountCents,
+            brCode,
+            externalId: charge?.externalId || null,
+            status: "pending",
+          };
+        } catch (e) {
+          console.error("[engine] payment generation failed", (e as Error).message);
+          await tgApi(bot.bot_token, "sendMessage", {
+            chat_id: chatId,
+            text: "Não conseguimos gerar a cobrança no momento. Tente novamente.",
+          });
+        }
+
+        const nextEdge = nextEdgeFor(edges, node.id, "pending") || nextEdgeFor(edges, node.id);
+        currentId = nextEdge?.target || null;
+        continue;
+      }
+
       // Default: just walk to next
     } catch (e) {
       console.error("[engine] node error", node.id, (e as Error).message);
