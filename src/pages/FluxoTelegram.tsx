@@ -358,7 +358,12 @@ export default function FluxoTelegram() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [addOpenForSource, setAddOpenForSource] = useState<string | null>(null);
   const [pendingDrop, setPendingDrop] = useState<
-    | { sourceId: string; sourceHandle: string | null; position: { x: number; y: number } }
+    | {
+        sourceId: string;
+        sourceHandle: string | null;
+        position: { x: number; y: number };
+        screen: { x: number; y: number };
+      }
     | null
   >(null);
   const rfWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -814,6 +819,7 @@ export default function FluxoTelegram() {
                 sourceId: start.nodeId,
                 sourceHandle: start.handleId,
                 position,
+                screen: { x: clientX - bounds.left, y: clientY - bounds.top },
               });
             }}
             onNodeClick={(_, n) => {
@@ -844,6 +850,56 @@ export default function FluxoTelegram() {
               <p>Desempenho do flow estará disponível em breve.</p>
             </div>
           </div>
+        )}
+
+        {/* Floating block picker (drop on pane) */}
+        {pendingDrop && tab === "fluxo" && (
+          <>
+            <div
+              className="absolute inset-0 z-40"
+              onClick={() => setPendingDrop(null)}
+            />
+            <div
+              className="absolute z-50 w-[240px] bg-card border rounded-xl shadow-xl py-1.5 animate-in fade-in zoom-in-95"
+              style={{
+                left: Math.max(8, pendingDrop.screen.x - 12),
+                top: Math.max(8, pendingDrop.screen.y - 12),
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {BLOCKS.map((b) => {
+                const Icon = b.icon;
+                return (
+                  <button
+                    key={b.kind}
+                    onClick={() =>
+                      addBlockAtPosition(
+                        pendingDrop.sourceId,
+                        pendingDrop.sourceHandle,
+                        pendingDrop.position,
+                        b,
+                      )
+                    }
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 text-[13px] text-left hover:bg-primary/5 transition group"
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      <Icon className="h-4 w-4 text-primary shrink-0" />
+                      <span className="truncate">{b.label}</span>
+                    </span>
+                    <Plus className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                  </button>
+                );
+              })}
+              <div className="border-t mt-1 pt-1 px-1.5">
+                <button
+                  onClick={() => setPendingDrop(null)}
+                  className="w-full text-center text-[12px] py-1.5 rounded-md text-muted-foreground hover:bg-muted transition"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </>
         )}
 
         {/* Floating action bar */}
@@ -930,11 +986,10 @@ export default function FluxoTelegram() {
 
       {/* Add block dialog */}
       <Dialog
-        open={!!addOpenForSource || !!pendingDrop}
+        open={!!addOpenForSource}
         onOpenChange={(o) => {
           if (!o) {
             setAddOpenForSource(null);
-            setPendingDrop(null);
           }
         }}
       >
@@ -951,18 +1006,7 @@ export default function FluxoTelegram() {
               return (
                 <button
                   key={b.kind}
-                  onClick={() => {
-                    if (pendingDrop) {
-                      addBlockAtPosition(
-                        pendingDrop.sourceId,
-                        pendingDrop.sourceHandle,
-                        pendingDrop.position,
-                        b,
-                      );
-                    } else if (addOpenForSource) {
-                      addBlockAfter(addOpenForSource, b);
-                    }
-                  }}
+                  onClick={() => addOpenForSource && addBlockAfter(addOpenForSource, b)}
                   className="border rounded-lg p-3 text-left hover:border-primary/40 hover:bg-primary/5 transition"
                 >
                   <div className="flex items-center gap-2 mb-1">
