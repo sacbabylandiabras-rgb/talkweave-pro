@@ -496,10 +496,10 @@ async function runFlow({
       // === IA block (pontual) ===
       else if (kind === "ia" || node.type === "ia") {
         try {
-          const apiKey = Deno.env.get("LOVABLE_API_KEY");
-          if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
+          const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+          if (!apiKey) throw new Error("ANTHROPIC_API_KEY ausente");
 
-          const model = String(data.model || "google/gemini-3-flash-preview");
+          const model = String(data.model || "claude-sonnet-4-5-20250929");
           const systemPrompt = renderTemplate(String(data.systemPrompt || "Você é um atendente prestativo."), variables);
           const knowledge = renderTemplate(String(data.knowledge || ""), variables);
           const userInput = renderTemplate(
@@ -513,39 +513,39 @@ async function runFlow({
             console.warn("[engine] IA block sem input", node.id);
           }
 
-          const messages: Array<{ role: string; content: string }> = [
-            {
-              role: "system",
-              content: knowledge
-                ? `${systemPrompt}\n\nBase de conhecimento (use como referência ao responder):\n${knowledge}`
-                : systemPrompt,
-            },
-            { role: "user", content: userInput || "(mensagem vazia)" },
-          ];
+          const systemContent = knowledge
+            ? `${systemPrompt}\n\nBase de conhecimento (use como referência ao responder):\n${knowledge}`
+            : systemPrompt;
 
           // Typing indicator while a IA pensa
           try {
             await tgApi(bot.bot_token, "sendChatAction", { chat_id: chatId, action: "typing" });
           } catch (_) {}
 
-          const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Lovable-API-Key": apiKey,
+              "x-api-key": apiKey,
+              "anthropic-version": "2023-06-01",
             },
-            body: JSON.stringify({ model, messages }),
+            body: JSON.stringify({
+              model,
+              max_tokens: 1024,
+              system: systemContent,
+              messages: [{ role: "user", content: userInput || "(mensagem vazia)" }],
+            }),
           });
 
           if (!aiRes.ok) {
             const errText = await aiRes.text().catch(() => "");
-            console.error("[engine] IA gateway error", aiRes.status, errText);
-            if (aiRes.status === 429) {
+            console.error("[engine] Claude API error", aiRes.status, errText);
+            if (aiRes.status === 429 || aiRes.status === 529) {
               await tgApi(bot.bot_token, "sendMessage", {
                 chat_id: chatId,
                 text: "Muitas requisições no momento. Tente novamente em instantes.",
               });
-            } else if (aiRes.status === 402) {
+            } else if (aiRes.status === 401 || aiRes.status === 402) {
               await tgApi(bot.bot_token, "sendMessage", {
                 chat_id: chatId,
                 text: "O agente está temporariamente indisponível.",
@@ -553,8 +553,13 @@ async function runFlow({
             }
           } else {
             const aiData = await aiRes.json().catch(() => ({}));
-            const reply: string =
-              aiData?.choices?.[0]?.message?.content?.toString().trim() || "";
+            const reply: string = Array.isArray(aiData?.content)
+              ? aiData.content
+                  .filter((b: any) => b?.type === "text")
+                  .map((b: any) => b?.text || "")
+                  .join("\n")
+                  .trim()
+              : "";
             variables[saveAs] = reply;
             if (sendReply && reply) {
               await tgApi(bot.bot_token, "sendMessage", {
