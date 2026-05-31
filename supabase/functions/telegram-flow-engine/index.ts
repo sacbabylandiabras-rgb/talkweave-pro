@@ -382,7 +382,7 @@ async function runFlow({
           let cardCheckoutUrl = "";
           if (acceptCard) {
             try {
-              const productName = String(data.description || "Pagamento").slice(0, 80);
+              const productName = String(resolvedDescription || data.description || "Pagamento").slice(0, 80);
               const priceReais = amountCents / 100;
               const shortUser = String(bot.user_id).replace(/-/g, "").slice(0, 8);
               const shortNode = String(node.id).replace(/[^a-z0-9]/gi, "").slice(0, 10).toLowerCase();
