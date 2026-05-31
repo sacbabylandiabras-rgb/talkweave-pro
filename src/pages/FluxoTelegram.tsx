@@ -347,10 +347,7 @@ function MensagemNode({ id, data, selected }: any) {
 
       {(() => {
         const btns: any[] = Array.isArray(data?.buttons) ? data.buttons : [];
-        const nextBtns = btns
-          .map((b, i) => ({ b, i }))
-          .filter(({ b }) => !b?.url);
-        if (nextBtns.length === 0) {
+        if (btns.length === 0) {
           return (
             <Handle
               type="source"
@@ -360,27 +357,48 @@ function MensagemNode({ id, data, selected }: any) {
             />
           );
         }
+        const hasNext = btns.some((b) => !b?.url);
         return (
           <div className="border-t border-border/60 px-4 py-2 space-y-1.5">
-            {nextBtns.map(({ b, i }) => {
-              const handleId = String(b.callback_data || `btn_${i + 1}`);
+            {btns.map((b, i) => {
+              const isLink = !!b?.url;
+              const handleId = String(b?.callback_data || `btn_${i + 1}`);
               return (
                 <div
-                  key={handleId}
+                  key={isLink ? `lnk_${i}` : handleId}
                   className="relative rounded-md border border-border/60 bg-muted/30 px-2.5 py-1.5 text-[12px] text-card-foreground flex items-center justify-between gap-2"
                 >
-                  <span className="truncate">{b.title || `Botão ${i + 1}`}</span>
-                  <span className="text-[10px] text-muted-foreground">→</span>
-                  <Handle
-                    type="source"
-                    position={Position.Right}
-                    id={handleId}
-                    className="!w-3.5 !h-3.5 !bg-primary !border-2 !border-background !shadow-md"
-                    style={{ right: -7, top: "50%" }}
-                  />
+                  <span className="truncate flex items-center gap-1.5">
+                    {isLink && <LinkIcon className="h-3 w-3 text-violet-500 shrink-0" />}
+                    {b?.title || `Botão ${i + 1}`}
+                  </span>
+                  {isLink ? (
+                    <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">
+                      {b.url}
+                    </span>
+                  ) : (
+                    <>
+                      <span className="text-[10px] text-muted-foreground">→</span>
+                      <Handle
+                        type="source"
+                        position={Position.Right}
+                        id={handleId}
+                        className="!w-3.5 !h-3.5 !bg-primary !border-2 !border-background !shadow-md"
+                        style={{ right: -7, top: "50%" }}
+                      />
+                    </>
+                  )}
                 </div>
               );
             })}
+            {!hasNext && (
+              <Handle
+                type="source"
+                position={Position.Right}
+                className="!w-4 !h-4 !bg-primary !border-2 !border-background !shadow-md"
+                style={{ right: -8, top: "50%" }}
+              />
+            )}
           </div>
         );
       })()}
