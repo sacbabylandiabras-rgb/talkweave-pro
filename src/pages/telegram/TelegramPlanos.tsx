@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Pencil, Settings2, Calendar, Search, Globe, ChevronDown, Bot, Link2, Image as ImageIcon, AudioLines, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,15 @@ interface PlanRow {
 }
 
 export default function TelegramPlanos() {
-  const [plans] = useState<PlanRow[]>([]);
+  const [plans, setPlans] = useState<PlanRow[]>(() => {
+    try {
+      const raw = localStorage.getItem("telegram_planos");
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("telegram_planos", JSON.stringify(plans)); } catch {}
+  }, [plans]);
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
 
@@ -81,6 +89,18 @@ export default function TelegramPlanos() {
       toast.error("Informe o título do plano");
       return;
     }
+    const cycleLabel: Record<string, string> = {
+      daily: "Diário", weekly: "Semanal", monthly: "Mensal", yearly: "Anual", lifetime: "Vitalício",
+    };
+    const newPlan: PlanRow = {
+      id: `plan_${Date.now()}`,
+      title: planTitle.trim(),
+      price: planPrice ? `R$ ${planPrice}` : "R$ 0,00",
+      charge: cycleLabel[billingType] || billingType,
+      cycle: cycles || "0",
+      message: ctaButton || "-",
+    };
+    setPlans((prev) => [newPlan, ...prev]);
     toast.success("Plano criado com sucesso!");
     setOpenCreate(false);
     setPlanTitle("");
