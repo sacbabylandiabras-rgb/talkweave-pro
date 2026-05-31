@@ -2991,18 +2991,22 @@ function BlockEditor({
                     inputId="tool-previa-upload"
                     mediaUrl={d.tools?.previaMediaUrl}
                     mediaName={d.tools?.previaMediaName}
+                    mediaFiles={d.tools?.previaMediaFiles}
                     caption={d.tools?.previaCaption}
                     uploading={!!d.tools?._previaUploading}
                     onChange={(patch) =>
-                      onPatch((curr: any) => ({
-                        tools: { ...(curr?.tools || {}), ...patch },
-                      }))
+                      onPatch((curr: any) => {
+                        const currentTools = curr?.tools || {};
+                        const toolPatch = typeof patch === "function" ? patch(currentTools) : patch;
+                        return { tools: { ...currentTools, ...toolPatch } };
+                      })
                     }
                     fields={{
                       url: "previaMediaUrl",
                       name: "previaMediaName",
                       type: "previaMediaType",
                       caption: "previaCaption",
+                      files: "previaMediaFiles",
                       uploading: "_previaUploading",
                     }}
                   />
@@ -3036,18 +3040,22 @@ function BlockEditor({
                     inputId="tool-prova-upload"
                     mediaUrl={d.tools?.provaSocialMediaUrl}
                     mediaName={d.tools?.provaSocialMediaName}
+                    mediaFiles={d.tools?.provaSocialMediaFiles}
                     caption={d.tools?.provaSocialCaption}
                     uploading={!!d.tools?._provaSocialUploading}
                     onChange={(patch) =>
-                      onPatch((curr: any) => ({
-                        tools: { ...(curr?.tools || {}), ...patch },
-                      }))
+                      onPatch((curr: any) => {
+                        const currentTools = curr?.tools || {};
+                        const toolPatch = typeof patch === "function" ? patch(currentTools) : patch;
+                        return { tools: { ...currentTools, ...toolPatch } };
+                      })
                     }
                     fields={{
                       url: "provaSocialMediaUrl",
                       name: "provaSocialMediaName",
                       type: "provaSocialMediaType",
                       caption: "provaSocialCaption",
+                      files: "provaSocialMediaFiles",
                       uploading: "_provaSocialUploading",
                     }}
                   />
