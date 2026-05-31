@@ -324,7 +324,20 @@ async function runFlow({
 
       // === Payment block ===
       else if (kind === "pagamento" || node.type === "pagamento" || node.type === "blocoPagamento") {
-        const rawAmount = String(data.amount ?? data.value ?? "0").replace(/\./g, "").replace(",", ".");
+        let resolvedAmount = data.amount;
+        let resolvedDescription = data.description;
+        if (data.pricingMode === "plan" && data.planId) {
+          const { data: plan } = await admin
+            .from("gateway_plans")
+            .select("name, price")
+            .eq("id", data.planId)
+            .maybeSingle();
+          if (plan) {
+            resolvedAmount = String(plan.price);
+            resolvedDescription = resolvedDescription || plan.name;
+          }
+        }
+        const rawAmount = String(resolvedAmount ?? data.value ?? "0").replace(/\./g, "").replace(",", ".");
         const amountCents = Math.round(parseFloat(rawAmount || "0") * 100);
         if (!amountCents || amountCents <= 0) {
           console.warn("[engine] payment block missing amount", node.id);
@@ -346,7 +359,7 @@ async function runFlow({
               body: JSON.stringify({
                 userId: bot.user_id,
                 amount: amountCents,
-                description: data.description || "Pagamento via Telegram",
+                description: resolvedDescription || "Pagamento via Telegram",
                 customerName: variables?.user?.first_name || "Cliente Telegram",
               }),
             },
