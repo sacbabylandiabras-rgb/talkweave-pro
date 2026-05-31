@@ -1178,6 +1178,7 @@ const BLOCK_MENU: MenuItem[] = [
   { label: "Gerar pagamento", icon: CreditCard, iconClass: "text-emerald-500", kind: "pagamento" },
   { label: "Intervalo", icon: Clock, iconClass: "text-amber-500", kind: "atraso" },
   { label: "Grupo", icon: Users, iconClass: "text-emerald-500", kind: "grupo" },
+  { label: "Agente de IA", icon: Sparkles, iconClass: "text-fuchsia-500", kind: "ia" },
 ];
 
 /* ---------------------------- Helpers ----------------------------- */
