@@ -896,6 +896,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     setKeywordFluxo("");
     setFluxoAtivo(true);
     setCurrentFluxoId(null);
+    setSelectedBotId(null);
     setNodes(initialNodes);
     setEdges(initialEdges);
     setShowTemplatesDialog(false);
