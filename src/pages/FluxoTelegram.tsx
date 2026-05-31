@@ -72,6 +72,7 @@ import {
   FolderOpen,
   Copy,
   Type,
+  Upload,
 } from "lucide-react";
 
 /* ----------------------------- Types ----------------------------- */
