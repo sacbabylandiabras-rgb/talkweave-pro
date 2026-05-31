@@ -115,6 +115,7 @@ const emailMenuItems = [
 
 const telegramMenuItems = [
   { id: "tg-dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/telegram/dashboard" },
+  { id: "tg-fluxo", label: "Fluxo Visual", icon: Workflow, path: "/telegram/fluxo" },
 ];
 
 const telegramBotSubItems = [

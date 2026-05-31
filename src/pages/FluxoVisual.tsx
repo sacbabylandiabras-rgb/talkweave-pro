@@ -643,19 +643,28 @@ interface FlowAutomation {
 }
 
 interface FluxoVisualProps {
-  mode?: "contacts" | "groups" | "meta";
+  mode?: "contacts" | "groups" | "meta" | "telegram";
 }
 
 export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}) {
   const isGroupsMode = mode === "groups";
   const isMetaMode = false;
-  const pageTitle = isGroupsMode ? "Fluxo Grupos" : "Fluxos Visuais";
-  const pageSubtitle = isGroupsMode 
-    ? "Crie automações visuais para grupos do WhatsApp" 
-    : "Crie automações visuais disparadas por palavra-chave";
-  const emptyHelp = isGroupsMode
-    ? "Crie seu primeiro fluxo visual para grupos"
-    : "Crie seu primeiro fluxo visual para automatizar conversas no WhatsApp";
+  const isTelegramMode = mode === "telegram";
+  const pageTitle = isTelegramMode
+    ? "Fluxo Telegram"
+    : isGroupsMode
+      ? "Fluxo Grupos"
+      : "Fluxos Visuais";
+  const pageSubtitle = isTelegramMode
+    ? "Crie automações visuais para bots do Telegram"
+    : isGroupsMode
+      ? "Crie automações visuais para grupos do WhatsApp"
+      : "Crie automações visuais disparadas por palavra-chave";
+  const emptyHelp = isTelegramMode
+    ? "Crie seu primeiro fluxo visual para o Telegram"
+    : isGroupsMode
+      ? "Crie seu primeiro fluxo visual para grupos"
+      : "Crie seu primeiro fluxo visual para automatizar conversas no WhatsApp";
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -761,7 +770,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const fetchFluxos = async () => {
     try {
       setLoading(true);
-      const category = isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts');
+      const category = isTelegramMode ? 'telegram' : (isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts'));
       const { data, error } = await (supabase as any)
         .from('flow_automations')
         .select('*')
@@ -788,7 +797,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
   useEffect(() => {
     fetchFluxos();
-  }, [isGroupsMode]);
+  }, [isGroupsMode, isTelegramMode]);
 
    const fetchTagsForEditor = useCallback(async () => {
      const activeInstances = instances.filter(i => (i.api_provider || 'zapi') === 'zapi' && i.is_active);
@@ -898,7 +907,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           nodes: fluxo.nodes,
           edges: fluxo.edges,
           active: false,
-          category: isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts'),
+          category: isTelegramMode ? 'telegram' : (isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts')),
         });
 
       if (error) throw error;
@@ -1227,7 +1236,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         nodes: serializedNodes,
         edges: serializedEdges,
         active: fluxoAtivo,
-          category: isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts'),
+          category: isTelegramMode ? 'telegram' : (isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts')),
       };
 
       if (currentFluxoId) {
@@ -1920,12 +1929,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           if (!o) setIsSelectingPreGroups(false);
         }}
         onConfirm={handleConfirmSend}
-        mode={mode}
+        mode={(isTelegramMode ? "contacts" : mode) as "contacts" | "groups" | "meta"}
       />
       <FlowTemplatesDialog
         open={showTemplatesDialog}
         onOpenChange={setShowTemplatesDialog}
-        mode={mode}
+        mode={(isTelegramMode ? "contacts" : mode) as "contacts" | "groups" | "meta"}
         onSelect={handleSelectTemplate}
         onStartBlank={handleStartBlank}
       />
@@ -2304,13 +2313,13 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         open={showContactsDialog}
         onOpenChange={setShowContactsDialog}
         onConfirm={handleConfirmSend}
-        mode={mode}
+        mode={(isTelegramMode ? "contacts" : mode) as "contacts" | "groups" | "meta"}
       />
 
       <FlowTemplatesDialog
         open={showTemplatesDialog}
         onOpenChange={setShowTemplatesDialog}
-        mode={mode}
+        mode={(isTelegramMode ? "contacts" : mode) as "contacts" | "groups" | "meta"}
         onSelect={handleSelectTemplate}
         onStartBlank={handleStartBlank}
       />
