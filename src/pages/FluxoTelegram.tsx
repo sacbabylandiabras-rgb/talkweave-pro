@@ -633,6 +633,8 @@ function nodeFromBlock(block: BlockDef, position: { x: number; y: number }): Nod
     type:
       block.kind === "atraso"
         ? "intervalo"
+        : block.kind === "pagamento"
+        ? "pagamento"
         : block.kind === "texto"
         ? "mensagem"
         : "step",
@@ -692,6 +694,8 @@ function summaryFor(data: any): string {
       }
     case "condicao":
       return `${data.variable} ${data.operator} ${data.value}`;
+    case "pagamento":
+      return `R$ ${data.amount || "0,00"}`;
     default:
       return "";
   }
