@@ -114,6 +114,7 @@ export default function TelegramPlanos() {
   const [openPix, setOpenPix] = useState(false);
   const [openConfig, setOpenConfig] = useState(false);
   const [openCreate, setOpenCreate] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // PIX
   const [preMsg, setPreMsg] = useState("Aguarde um momento enquanto preparamos tudo :)");
@@ -161,25 +162,76 @@ export default function TelegramPlanos() {
     const priceNum = parseFloat(
       (planPrice || "0").replace(/\./g, "").replace(",", "."),
     );
-    const { error } = await supabase.from("gateway_plans" as any).insert({
-      product_id: productId,
+    const payload = {
       name: planTitle.trim(),
       price: isFinite(priceNum) ? priceNum : 0,
       billing_cycle: billingType,
       description: ctaButton || null,
-      status: true,
-    });
-    if (error) {
-      console.error(error);
-      toast.error("Erro ao criar plano");
-      return;
+    };
+    if (editingId) {
+      const { error } = await supabase
+        .from("gateway_plans" as any)
+        .update(payload)
+        .eq("id", editingId);
+      if (error) {
+        console.error(error);
+        toast.error("Erro ao atualizar plano");
+        return;
+      }
+      toast.success("Plano atualizado!");
+    } else {
+      const { error } = await supabase
+        .from("gateway_plans" as any)
+        .insert({ ...payload, product_id: productId, status: true });
+      if (error) {
+        console.error(error);
+        toast.error("Erro ao criar plano");
+        return;
+      }
+      toast.success("Plano criado com sucesso!");
     }
     await reload(productId);
-    toast.success("Plano criado com sucesso!");
     setOpenCreate(false);
+    setEditingId(null);
     setPlanTitle("");
     setPlanPrice("");
     setCtaButton("");
+  }
+
+  async function openEdit(planId: string) {
+    const { data } = await supabase
+      .from("gateway_plans" as any)
+      .select("id, name, price, billing_cycle, description")
+      .eq("id", planId)
+      .maybeSingle();
+    if (!data) {
+      toast.error("Plano não encontrado");
+      return;
+    }
+    const p = data as any;
+    setEditingId(p.id);
+    setPlanTitle(p.name || "");
+    setPlanPrice(
+      Number(p.price || 0).toFixed(2).replace(".", ","),
+    );
+    setBillingType(p.billing_cycle || "daily");
+    setCtaButton(p.description || "");
+    setOpenCreate(true);
+  }
+
+  async function deletePlan(planId: string) {
+    if (!confirm("Excluir este plano?")) return;
+    const { error } = await supabase
+      .from("gateway_plans" as any)
+      .delete()
+      .eq("id", planId);
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao excluir plano");
+      return;
+    }
+    if (productId) await reload(productId);
+    toast.success("Plano excluído");
   }
 
   return (
@@ -225,7 +277,17 @@ export default function TelegramPlanos() {
           <Button variant="outline" size="sm" onClick={() => setOpenConfig(true)}>
             <Settings2 className="w-3.5 h-3.5 mr-1.5" /> Configuração de Planos
           </Button>
-          <Button size="sm" onClick={() => setOpenCreate(true)}>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditingId(null);
+              setPlanTitle("");
+              setPlanPrice("");
+              setCtaButton("");
+              setBillingType("daily");
+              setOpenCreate(true);
+            }}
+          >
             <Plus className="w-4 h-4 mr-1.5" /> Criar Novo Plano
           </Button>
         </div>
@@ -326,7 +388,17 @@ export default function TelegramPlanos() {
                     <td className="px-5 py-3 text-foreground/90">{p.cycle}</td>
                     <td className="px-5 py-3 text-foreground/90">{p.message}</td>
                     <td className="px-5 py-3 text-right">
-                      <Button size="sm" variant="ghost">Editar</Button>
+                      <Button size="sm" variant="ghost" onClick={() => openEdit(p.id)}>
+                        Editar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => deletePlan(p.id)}
+                      >
+                        Excluir
+                      </Button>
                     </td>
                   </tr>
                 ))
@@ -414,10 +486,16 @@ export default function TelegramPlanos() {
       </Dialog>
 
       {/* === Modal: Criar Plano === */}
-      <Dialog open={openCreate} onOpenChange={setOpenCreate}>
+      <Dialog
+        open={openCreate}
+        onOpenChange={(o) => {
+          setOpenCreate(o);
+          if (!o) setEditingId(null);
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Criar Plano</DialogTitle>
+            <DialogTitle>{editingId ? "Editar Plano" : "Criar Plano"}</DialogTitle>
             <DialogDescription>
               Configure os detalhes do plano de pagamento para seu bot e atraia mais assinantes
             </DialogDescription>
@@ -637,7 +715,7 @@ export default function TelegramPlanos() {
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpenCreate(false)}>Cancelar</Button>
-            <Button onClick={createPlan}>Criar plano</Button>
+            <Button onClick={createPlan}>{editingId ? "Salvar alterações" : "Criar plano"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
