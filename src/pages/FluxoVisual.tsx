@@ -5839,6 +5839,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               content: "",
               ...(sel.description ? { description: sel.description } : {}),
               ...(sel.extraData || {}),
+              isTelegram: isTelegramMode,
             },
           };
           setNodes((nds) => nds.concat(newNode));
