@@ -35,6 +35,41 @@ const tgApi = async (token: string, method: string, body: any) => {
   return json;
 };
 
+const sendTelegramMedia = async (
+  token: string,
+  chatId: number | string,
+  mediaUrl: string,
+  mediaType: string,
+  caption?: string,
+) => {
+  if (mediaType === "photo") {
+    return tgApi(token, "sendPhoto", {
+      chat_id: chatId,
+      photo: mediaUrl,
+      ...(caption ? { caption } : {}),
+    });
+  }
+  if (mediaType === "video") {
+    return tgApi(token, "sendVideo", {
+      chat_id: chatId,
+      video: mediaUrl,
+      ...(caption ? { caption } : {}),
+    });
+  }
+  if (mediaType === "audio") {
+    return tgApi(token, "sendAudio", {
+      chat_id: chatId,
+      audio: mediaUrl,
+      ...(caption ? { caption } : {}),
+    });
+  }
+  return tgApi(token, "sendDocument", {
+    chat_id: chatId,
+    document: mediaUrl,
+    ...(caption ? { caption } : {}),
+  });
+};
+
 const renderTemplate = (tpl: string, vars: Record<string, any>) =>
   (tpl || "").replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, k) => {
     const parts = String(k).split(".");
@@ -604,38 +639,28 @@ async function runFlow({
             // Se a IA acionou uma ferramenta com mídia anexada, envie a mídia agora.
             if (iaNextHandle) {
               const prefix = iaNextHandle === "previa" ? "previa" : "provaSocial";
-              const mediaUrl: string = String((toolsCfg as any)[`${prefix}MediaUrl`] || "");
-              const mediaType: string = String((toolsCfg as any)[`${prefix}MediaType`] || "");
-              const caption: string = renderTemplate(
-                String((toolsCfg as any)[`${prefix}Caption`] || ""),
-                variables,
-              );
-              if (mediaUrl) {
+              const mediaFiles = Array.isArray((toolsCfg as any)[`${prefix}MediaFiles`])
+                ? (toolsCfg as any)[`${prefix}MediaFiles`]
+                : [];
+              const filesToSend = mediaFiles.length
+                ? mediaFiles
+                : (toolsCfg as any)[`${prefix}MediaUrl`]
+                ? [
+                    {
+                      url: (toolsCfg as any)[`${prefix}MediaUrl`],
+                      type: (toolsCfg as any)[`${prefix}MediaType`] || "document",
+                      caption: (toolsCfg as any)[`${prefix}Caption`] || "",
+                    },
+                  ]
+                : [];
+              if (filesToSend.length) {
                 try {
-                  if (mediaType === "photo") {
-                    await tgApi(bot.bot_token, "sendPhoto", {
-                      chat_id: chatId,
-                      photo: mediaUrl,
-                      ...(caption ? { caption } : {}),
-                    });
-                  } else if (mediaType === "video") {
-                    await tgApi(bot.bot_token, "sendVideo", {
-                      chat_id: chatId,
-                      video: mediaUrl,
-                      ...(caption ? { caption } : {}),
-                    });
-                  } else if (mediaType === "audio") {
-                    await tgApi(bot.bot_token, "sendAudio", {
-                      chat_id: chatId,
-                      audio: mediaUrl,
-                      ...(caption ? { caption } : {}),
-                    });
-                  } else {
-                    await tgApi(bot.bot_token, "sendDocument", {
-                      chat_id: chatId,
-                      document: mediaUrl,
-                      ...(caption ? { caption } : {}),
-                    });
+                  for (const file of filesToSend) {
+                    const mediaUrl = String(file?.url || "");
+                    if (!mediaUrl) continue;
+                    const mediaType = String(file?.type || "document");
+                    const caption = renderTemplate(String(file?.caption || ""), variables);
+                    await sendTelegramMedia(bot.bot_token, chatId, mediaUrl, mediaType, caption);
                   }
                 } catch (mErr) {
                   console.error("[engine] IA tool media send failed", (mErr as Error).message);
