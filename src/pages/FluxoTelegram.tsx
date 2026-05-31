@@ -72,6 +72,7 @@ import {
   FolderOpen,
   Copy,
   Type,
+  Upload,
 } from "lucide-react";
 
 /* ----------------------------- Types ----------------------------- */
@@ -1571,6 +1572,62 @@ function BlockEditor({
                 placeholder="https://..."
                 className="mt-1 h-9"
               />
+              <div className="mt-2 flex items-center gap-2">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-[10px] text-muted-foreground">ou</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+              <label
+                htmlFor="telegram-media-upload"
+                className="mt-2 flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border p-4 text-center transition hover:bg-muted/40"
+              >
+                <Upload className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs font-medium">
+                  {d._uploading ? "Enviando..." : "Clique para enviar um arquivo"}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  Imagem, vídeo, áudio ou documento
+                </span>
+              </label>
+              <input
+                id="telegram-media-upload"
+                type="file"
+                className="hidden"
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  try {
+                    onPatch({ _uploading: true });
+                    const { data: { user: currentUser } } = await supabase.auth.getUser();
+                    if (!currentUser) throw new Error("Usuário não autenticado");
+                    const fileExt = file.name.split(".").pop();
+                    const fileName = `${currentUser.id}/${Date.now()}-${Math.random()
+                      .toString(36)
+                      .substring(7)}.${fileExt}`;
+                    const { error: upErr } = await supabase.storage
+                      .from("flow-media")
+                      .upload(fileName, file, { cacheControl: "3600", upsert: false });
+                    if (upErr) throw upErr;
+                    const { data: { publicUrl } } = supabase.storage
+                      .from("flow-media")
+                      .getPublicUrl(fileName);
+                    onPatch({ mediaUrl: publicUrl, mediaName: file.name, _uploading: false });
+                    toast.success("Arquivo enviado com sucesso!");
+                  } catch (err: any) {
+                    console.error(err);
+                    onPatch({ _uploading: false });
+                    toast.error("Erro ao enviar arquivo");
+                  } finally {
+                    e.target.value = "";
+                  }
+                }}
+              />
+              {d.mediaName && (
+                <p className="mt-2 text-[11px] text-muted-foreground truncate">
+                  Arquivo: <span className="font-medium text-foreground">{d.mediaName}</span>
+                </p>
+              )}
             </div>
             <div>
               <Label className="text-xs">Legenda (opcional)</Label>
