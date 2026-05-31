@@ -2648,5 +2648,88 @@ function BlockEditor({
     );
   }
 
+  if (kind === "ia") {
+    return (
+      <div className="space-y-4">
+        <div>
+          <Label className="text-xs">Modelo</Label>
+          <Select
+            value={String(d.model || "google/gemini-3-flash-preview")}
+            onValueChange={(v) => onPatch({ model: v })}
+          >
+            <SelectTrigger className="mt-1 h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="google/gemini-3-flash-preview">Rápido (padrão)</SelectItem>
+              <SelectItem value="google/gemini-2.5-flash">Equilibrado</SelectItem>
+              <SelectItem value="google/gemini-2.5-pro">Avançado</SelectItem>
+              <SelectItem value="openai/gpt-5-mini">GPT-5 Mini</SelectItem>
+              <SelectItem value="openai/gpt-5">GPT-5</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Instruções / Persona</Label>
+          <Textarea
+            value={d.systemPrompt || ""}
+            onChange={(e) => onPatch({ systemPrompt: e.target.value })}
+            rows={4}
+            placeholder="Você é um atendente cordial da loja X. Responda de forma objetiva..."
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <Label className="text-xs">Base de conhecimento / FAQ</Label>
+          <Textarea
+            value={d.knowledge || ""}
+            onChange={(e) => onPatch({ knowledge: e.target.value })}
+            rows={6}
+            placeholder={
+              "Cole aqui informações sobre seu produto/serviço, FAQ, preços, horários, etc.\n\nEx:\n- Horário: 9h às 18h\n- Frete grátis acima de R$ 200\n- Garantia: 30 dias"
+            }
+            className="mt-1"
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            A IA usará isso como referência ao responder o usuário.
+          </p>
+        </div>
+        <div>
+          <Label className="text-xs">Mensagem do usuário</Label>
+          <Input
+            value={d.userInput || "{{last_message}}"}
+            onChange={(e) => onPatch({ userInput: e.target.value })}
+            className="mt-1 h-9"
+            placeholder="{{last_message}}"
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Padrão: a última mensagem enviada pelo usuário.
+          </p>
+        </div>
+        <div>
+          <Label className="text-xs">Salvar resposta na variável</Label>
+          <Input
+            value={d.saveAs || "ai_response"}
+            onChange={(e) => onPatch({ saveAs: e.target.value })}
+            className="mt-1 h-9"
+            placeholder="ai_response"
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Use depois como <code>{`{{ai_response}}`}</code> em outros blocos.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={d.sendReply !== false}
+            onCheckedChange={(c) => onPatch({ sendReply: c })}
+          />
+          <span className="text-xs text-foreground/80">
+            Enviar resposta automaticamente para o usuário
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return null;
 }
