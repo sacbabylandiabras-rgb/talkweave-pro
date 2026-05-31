@@ -180,6 +180,7 @@ function StepNode({ data, selected }: any) {
 const nodeTypes: NodeTypes = {
   iniciar: IniciarNode,
   step: StepNode,
+  intervalo: IntervaloNode,
 };
 
 /* --------------------------- Block catalog -------------------------- */
