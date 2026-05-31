@@ -797,7 +797,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
   useEffect(() => {
     fetchFluxos();
-  }, [isGroupsMode]);
+  }, [isGroupsMode, isTelegramMode]);
 
    const fetchTagsForEditor = useCallback(async () => {
      const activeInstances = instances.filter(i => (i.api_provider || 'zapi') === 'zapi' && i.is_active);
