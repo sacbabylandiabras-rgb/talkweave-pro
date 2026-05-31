@@ -2063,10 +2063,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   Grupos{preselectedGroups.length > 0 ? ` (${preselectedGroups.length})` : ""}
                 </Button>
               )}
-              <Button size="sm" onClick={handleEnviarAgora} className="h-8" disabled={isSending}>
-                <Send className="h-4 w-4 mr-1.5" />
-                {isSending ? "Enviando..." : "Enviar"}
-              </Button>
+              {!isTelegramMode && (
+                <Button size="sm" onClick={handleEnviarAgora} className="h-8" disabled={isSending}>
+                  <Send className="h-4 w-4 mr-1.5" />
+                  {isSending ? "Enviando..." : "Enviar"}
+                </Button>
+              )}
               {isSending && (
                 <Button
                   size="sm"
@@ -2089,10 +2091,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 <FileUp className="h-4 w-4 mr-1.5" />
                 Importar
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setShowCapturedData(true)} className="h-8">
-                <Database className="h-4 w-4 mr-1.5" />
-                Dados Capturados
-              </Button>
+              {!isTelegramMode && (
+                <Button size="sm" variant="outline" onClick={() => setShowCapturedData(true)} className="h-8">
+                  <Database className="h-4 w-4 mr-1.5" />
+                  Dados Capturados
+                </Button>
+              )}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -2171,7 +2175,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           </ReactFlow>
         </div>
 
-        {/* WhatsApp Mobile Preview */}
+        {/* Mobile Preview */}
         {showPreview && (
           <div className="flex items-center justify-center m-2 ml-0 shrink-0">
             {/* Phone frame */}
@@ -2191,13 +2195,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 </div>
 
                 {/* WhatsApp header */}
-                <div className="bg-[#075E54] px-3 pb-2.5 pt-1 flex items-center gap-2">
+                <div className={`${isTelegramMode ? 'bg-[#517da2]' : 'bg-[#075E54]'} px-3 pb-2.5 pt-1 flex items-center gap-2`}>
                   <Button size="icon" variant="ghost" className="h-7 w-7 text-white hover:bg-white/20 -ml-1" onClick={() => setShowPreview(false)}>
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
-                  <div className="w-9 h-9 rounded-full bg-[#DFE5E7] flex items-center justify-center overflow-hidden">
-                    <svg width="24" height="24" viewBox="0 0 212 212" fill="#ccc"><path d="M106 0C47.5 0 0 47.5 0 106s47.5 106 106 106 106-47.5 106-106S164.5 0 106 0zm0 30c16.6 0 30 13.4 30 30s-13.4 30-30 30-30-13.4-30-30 13.4-30 30-30zm0 150c-26.5 0-49.9-13.5-63.5-34 .3-21 42.3-32.5 63.5-32.5s63.2 11.5 63.5 32.5C155.9 166.5 132.5 180 106 180z"/></svg>
-                  </div>
+                  {isTelegramMode ? (
+                    <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+                      <Bot className="w-5 h-5 text-white" />
+                    </div>
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-[#DFE5E7] flex items-center justify-center overflow-hidden">
+                      <svg width="24" height="24" viewBox="0 0 212 212" fill="#ccc"><path d="M106 0C47.5 0 0 47.5 0 106s47.5 106 106 106 106-47.5 106-106S164.5 0 106 0zm0 30c16.6 0 30 13.4 30 30s-13.4 30-30 30-30-13.4-30-30 13.4-30 30-30zm0 150c-26.5 0-49.9-13.5-63.5-34 .3-21 42.3-32.5 63.5-32.5s63.2 11.5 63.5 32.5C155.9 166.5 132.5 180 106 180z"/></svg>
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-[14px] font-medium truncate">{isTelegramMode ? "Bot Telegram" : "Contato"}</p>
                     <p className="text-white/70 text-[11px]">{isTelegramMode ? "bot" : "online"}</p>
@@ -2244,11 +2254,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                         <div key={msg.id + idx} className={`flex ${msg.direction === 'received' ? 'justify-start' : 'justify-end'} mb-[1px]`}>
                           <div className={`max-w-[80%] rounded-[7.5px] shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] relative ${
                             msg.direction === 'received'
-                              ? 'bg-white rounded-tl-[3px]'
-                              : 'bg-[#D9FDD3] rounded-tr-[3px]'
+                              ? (isTelegramMode ? 'bg-[#f1f1f1]' : 'bg-white rounded-tl-[3px]')
+                              : (isTelegramMode ? 'bg-[#effdde]' : 'bg-[#D9FDD3] rounded-tr-[3px]')
                           }`}>
                             {/* Tail */}
-                            {idx === 0 || getPreviewMessages()[idx - 1]?.direction !== msg.direction ? (
+                            {!isTelegramMode && (idx === 0 || getPreviewMessages()[idx - 1]?.direction !== msg.direction) ? (
                               <div className={`absolute top-0 w-[8px] h-[13px] ${
                                 msg.direction === 'received' ? '-left-[8px]' : '-right-[8px]'
                               }`}>
@@ -2332,13 +2342,16 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                               </span>
                             </div>
 
-                            {/* WhatsApp-style buttons */}
+                            {/* Buttons */}
                             {msg.buttons && msg.buttons.length > 0 && (
-                              <div className="border-t border-[#E2E8E4]">
+                              <div className={isTelegramMode ? "p-1 space-y-1 bg-black/5" : "border-t border-[#E2E8E4]"}>
                                 {msg.buttons.map((btn, i) => (
                                   <div
                                     key={i}
-                                    className="flex items-center justify-center gap-1.5 py-[6px] text-[13px] font-medium text-[#027EB5] border-b border-[#E2E8E4] last:border-b-0"
+                                    className={isTelegramMode 
+                                      ? "bg-white/80 backdrop-blur-sm rounded-md py-1.5 text-center text-[12px] font-medium text-[#2481cc] shadow-sm border border-black/5 active:bg-white/60 transition-colors"
+                                      : "flex items-center justify-center gap-1.5 py-[6px] text-[13px] font-medium text-[#027EB5] border-b border-[#E2E8E4] last:border-b-0"
+                                    }
                                   >
                                     {btn.type === 'url' && <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>}
                                     {btn.type === 'call' && <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>}
@@ -2356,18 +2369,28 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 </div>
 
                 {/* Bottom input bar */}
-                <div className="bg-[#F0F2F5] px-2 py-[5px] flex items-center gap-[6px]">
+                <div className={`${isTelegramMode ? 'bg-white' : 'bg-[#F0F2F5]'} px-2 py-[5px] flex items-center gap-[6px]`}>
                   <div className="text-[#54656F]">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
+                    {isTelegramMode ? (
+                      <Plus className="w-6 h-6 text-[#2481cc]" />
+                    ) : (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
+                    )}
                   </div>
-                  <div className="flex-1 bg-white rounded-[21px] px-3 py-[7px] flex items-center">
+                  <div className={`${isTelegramMode ? 'bg-[#f1f1f1] border border-black/5' : 'bg-white'} flex-1 rounded-[21px] px-3 py-[7px] flex items-center`}>
                     <span className="text-[14px] text-[#667781]">Mensagem</span>
                   </div>
                   <div className="flex items-center gap-[2px] text-[#54656F]">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
-                    <div className="w-[42px] h-[42px] rounded-full bg-[#00A884] flex items-center justify-center ml-1">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 15c1.66 0 2.99-1.34 2.99-3L15 6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 15 6.7 12H5c0 3.41 2.72 6.23 6 6.72V22h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
-                    </div>
+                    {isTelegramMode ? (
+                      <Mic className="w-6 h-6 text-[#2481cc] ml-1" />
+                    ) : (
+                      <>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
+                        <div className="w-[42px] h-[42px] rounded-full bg-[#00A884] flex items-center justify-center ml-1">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 15c1.66 0 2.99-1.34 2.99-3L15 6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 15 6.7 12H5c0 3.41 2.72 6.23 6 6.72V22h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2405,7 +2428,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           </DialogHeader>
 
           <div className="space-y-4">
-            {selectedNode?.type === "blocoConteudo" && isMensagemPredefinidaBlock(selectedNode) && (
+            {selectedNode?.type === "blocoConteudo" && isMensagemPredefinidaBlock(selectedNode) && !isTelegramMode && (
               <div className="space-y-3 p-3 rounded-lg border border-border bg-muted/30">
                 <Label className="text-sm font-semibold">Modelo de Mensagem</Label>
                 <p className="text-[11px] text-muted-foreground">
@@ -2502,26 +2525,30 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                       <SelectItem value="video">Vídeo</SelectItem>
                       <SelectItem value="audio">Áudio</SelectItem>
                       <SelectItem value="document">Documento</SelectItem>
-                      <SelectItem value="image-buttons">Imagem com botões</SelectItem>
-                      <SelectItem value="video-buttons">Vídeo com botões</SelectItem>
-                      <SelectItem value="audio-buttons">Áudio com botões</SelectItem>
-                      <SelectItem value="list">Lista de opção</SelectItem>
-                      <SelectItem value="copy-paste">Cópia e cola</SelectItem>
-                      <SelectItem value="file">Arquivo</SelectItem>
-                      <SelectItem value="media-carousel">Carrossel</SelectItem>
-                      <SelectItem value="interactive">Menu Interativo (botões/lista)</SelectItem>
-                      <SelectItem value="pix">Botão PIX</SelectItem>
-                      <SelectItem value="pix-charge">PIX (cobrança)</SelectItem>
-                       <SelectItem value="request-payment">Solicitar Pagamento</SelectItem>
-                       <SelectItem value="gateway-billing">Cobrança Gateway</SelectItem>
-                      <SelectItem value="poll">Enquete / Poll</SelectItem>
-                      <SelectItem value="product">Produto</SelectItem>
-                      <SelectItem value="location">Localização (Nativa)</SelectItem>
-                      <SelectItem value="location-buttons">Localização com botões</SelectItem>
-                      <SelectItem value="contact">Contato (vCard)</SelectItem>
-                      <SelectItem value="event">Evento</SelectItem>
-                      <SelectItem value="order-status">Status do pedido</SelectItem>
-                      <SelectItem value="order-payment">Pagamento do pedido</SelectItem>
+                      {!isTelegramMode && (
+                        <>
+                          <SelectItem value="image-buttons">Imagem com botões</SelectItem>
+                          <SelectItem value="video-buttons">Vídeo com botões</SelectItem>
+                          <SelectItem value="audio-buttons">Áudio com botões</SelectItem>
+                          <SelectItem value="list">Lista de opção</SelectItem>
+                          <SelectItem value="copy-paste">Cópia e cola</SelectItem>
+                          <SelectItem value="file">Arquivo</SelectItem>
+                          <SelectItem value="media-carousel">Carrossel</SelectItem>
+                          <SelectItem value="interactive">Menu Interativo (botões/lista)</SelectItem>
+                          <SelectItem value="pix">Botão PIX</SelectItem>
+                          <SelectItem value="pix-charge">PIX (cobrança)</SelectItem>
+                          <SelectItem value="request-payment">Solicitar Pagamento</SelectItem>
+                          <SelectItem value="gateway-billing">Cobrança Gateway</SelectItem>
+                          <SelectItem value="poll">Enquete / Poll</SelectItem>
+                          <SelectItem value="product">Produto</SelectItem>
+                          <SelectItem value="location">Localização (Nativa)</SelectItem>
+                          <SelectItem value="location-buttons">Localização com botões</SelectItem>
+                          <SelectItem value="contact">Contato (vCard)</SelectItem>
+                          <SelectItem value="event">Evento</SelectItem>
+                          <SelectItem value="order-status">Status do pedido</SelectItem>
+                          <SelectItem value="order-payment">Pagamento do pedido</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -3307,7 +3334,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </>
                 )}
 
-                {selectedNode.data.contentType === "video" && (
+                {selectedNode.data.contentType === "video" && !isTelegramMode && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg border border-border">
                       <div className="flex items-center gap-2">
@@ -5812,6 +5839,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               content: "",
               ...(sel.description ? { description: sel.description } : {}),
               ...(sel.extraData || {}),
+              isTelegram: isTelegramMode,
             },
           };
           setNodes((nds) => nds.concat(newNode));
