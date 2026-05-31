@@ -72,7 +72,7 @@ function findTriggerFlow(
     const trigType: string =
       initial.data?.triggerType ||
       initial.data?.gatilho ||
-      "keyword";
+      (keyword.startsWith("/") ? "command" : "keyword");
     const keyword: string = (initial.data?.keyword || flow.keyword || "").trim();
     const kwNorm = normalize(keyword);
 
