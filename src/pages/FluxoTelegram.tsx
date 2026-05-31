@@ -285,6 +285,7 @@ function IntervaloNode({ id, data, selected }: any) {
                 <SelectItem value="seconds">Segundos</SelectItem>
                 <SelectItem value="minutes">Minutos</SelectItem>
                 <SelectItem value="hours">Horas</SelectItem>
+                <SelectItem value="days">Dias</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -494,7 +495,8 @@ function summaryFor(data: any): string {
     case "atraso":
       {
         const u = data.timeUnit || "seconds";
-        const label = u === "hours" ? "h" : u === "minutes" ? "min" : "s";
+        const label =
+          u === "days" ? "d" : u === "hours" ? "h" : u === "minutes" ? "min" : "s";
         return `Aguarda ${data.delaySeconds ?? 10}${label}`;
       }
     case "condicao":
@@ -1504,6 +1506,7 @@ function BlockEditor({
                 <SelectItem value="seconds">Segundos</SelectItem>
                 <SelectItem value="minutes">Minutos</SelectItem>
                 <SelectItem value="hours">Horas</SelectItem>
+                <SelectItem value="days">Dias</SelectItem>
               </SelectContent>
             </Select>
           </div>
