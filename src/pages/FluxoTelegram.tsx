@@ -1082,32 +1082,51 @@ export default function FluxoTelegram() {
           }
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-sm p-0 overflow-hidden">
           <DialogHeader>
-            <DialogTitle>Adicionar bloco</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="sr-only">Adicionar bloco</DialogTitle>
+            <DialogDescription className="sr-only">
               Escolha o tipo de bloco que será executado em seguida.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-            {BLOCKS.map((b) => {
-              const Icon = b.icon;
+          <div className="py-1.5">
+            {BLOCK_MENU.map((m, idx) => {
+              const Icon = m.icon;
+              const block = m.kind ? blockByKind(m.kind) : null;
+              const disabled = !block;
               return (
                 <button
-                  key={b.kind}
-                  onClick={() => addOpenForSource && addBlockAfter(addOpenForSource, b)}
-                  className="border rounded-lg p-3 text-left hover:border-primary/40 hover:bg-primary/5 transition"
+                  key={idx}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => {
+                    if (!block) {
+                      toast.info("Em breve");
+                      return;
+                    }
+                    if (addOpenForSource) addBlockAfter(addOpenForSource, block);
+                  }}
+                  className={`w-full flex items-center justify-between gap-2 px-5 py-3 text-[14px] text-left transition ${
+                    disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-muted/60"
+                  }`}
                 >
-                  <div className="flex items-center gap-2 mb-1">
-                    <Icon className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-semibold">{b.label}</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-snug">
-                    {b.description}
-                  </p>
+                  <span className="flex items-center gap-3 min-w-0">
+                    <Icon className={`h-[18px] w-[18px] shrink-0 ${m.iconClass}`} />
+                    <span className="truncate text-foreground/80">{m.label}</span>
+                  </span>
+                  {!disabled && <Plus className="h-4 w-4 text-muted-foreground/70" />}
                 </button>
               );
             })}
+            <div className="border-t mt-1 pt-1 px-2 pb-2">
+              <button
+                type="button"
+                onClick={() => setAddOpenForSource(null)}
+                className="w-full text-center text-[13px] py-2 rounded-md text-foreground/70 hover:bg-muted transition"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
