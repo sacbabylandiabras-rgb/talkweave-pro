@@ -66,6 +66,9 @@ import {
   Send,
   Activity,
   Workflow,
+  CreditCard,
+  Users,
+  FolderOpen,
 } from "lucide-react";
 
 /* ----------------------------- Types ----------------------------- */
