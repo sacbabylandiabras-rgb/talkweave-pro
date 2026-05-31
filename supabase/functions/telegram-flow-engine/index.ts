@@ -161,11 +161,39 @@ async function runFlow({
     if (!node) break;
     const data = node.data || {};
     const label = String(data.label || "").toLowerCase();
-    const contentType: string = data.contentType || "text";
+    const kind: string = String((data as any).kind || "");
+    // Map new-format `kind` to a unified contentType for media branches
+    const contentType: string =
+      data.contentType ||
+      (kind === "imagem" ? "image" :
+       kind === "video" ? "video" :
+       kind === "audio" ? "audio" :
+       kind === "documento" ? "document" :
+       kind === "botoes" ? "interactive" :
+       kind === "texto" ? "text" :
+       "text");
+
+    // Skip non-executable framing nodes
+    if (node.type === "iniciar" || kind === "gatilho") {
+      const nextEdge = nextEdgeFor(edges, currentId);
+      currentId = nextEdge?.target || null;
+      continue;
+    }
 
     try {
-      // === Content block ===
-      if (node.type === "blocoConteudo") {
+      // === Content block (legacy + new format) ===
+      const isContent =
+        node.type === "blocoConteudo" ||
+        ["texto", "imagem", "video", "audio", "documento", "botoes"].includes(kind);
+      const isAction =
+        node.type === "blocoAcao" ||
+        ["digitando", "atraso"].includes(kind);
+      const isCondition =
+        node.type === "blocoCondicao" || kind === "condicao";
+      const isEnd =
+        node.type === "blocoFim" || kind === "fim" || label.includes("fim");
+
+      if (isContent) {
         const text = renderTemplate(data.message || data.text || data.content || "", variables);
 
         // Inline buttons?
@@ -236,8 +264,10 @@ async function runFlow({
       }
 
       // === Action block ===
-      else if (node.type === "blocoAcao") {
-        const actionType = data.actionType || "";
+      else if (isAction) {
+        const actionType =
+          data.actionType ||
+          (kind === "digitando" ? "typing" : kind === "atraso" ? "delay" : "");
         if (actionType === "typing") {
           await tgApi(bot.bot_token, "sendChatAction", { chat_id: chatId, action: "typing" });
           const dur = Math.min(Number(data.typingDuration) || 3, 8);
@@ -261,7 +291,7 @@ async function runFlow({
       }
 
       // === Condition block ===
-      else if (node.type === "blocoCondicao") {
+      else if (isCondition) {
         const value = renderTemplate(String(data.variable || data.field || ""), variables);
         const expected = renderTemplate(String(data.value || data.expected || ""), variables);
         const op: string = data.operator || data.condition || "contains";
@@ -283,7 +313,7 @@ async function runFlow({
       }
 
       // === End block ===
-      else if (node.type === "blocoFim" || label.includes("fim")) {
+      else if (isEnd) {
         await admin
           .from("telegram_flow_sessions")
           .update({ status: "finished", waiting_for: null, current_node_id: null, variables })
