@@ -693,23 +693,34 @@ export default function FluxoTelegram() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {list.map((f) => (
-                <button
+                <div
                   key={f.id}
+                  className="group relative text-left border rounded-xl p-4 bg-card hover:border-primary/40 hover:shadow transition cursor-pointer"
                   onClick={() => openExisting(f)}
-                  className="text-left border rounded-xl p-4 bg-card hover:border-primary/40 hover:shadow transition"
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold truncate">{f.name}</span>
+                  <div className="flex items-center justify-between mb-1 gap-2">
+                    <span className="font-semibold truncate flex-1">{f.name}</span>
                     {f.active ? (
                       <Badge variant="default" className="text-[10px]">Ativo</Badge>
                     ) : (
                       <Badge variant="outline" className="text-[10px]">Inativo</Badge>
                     )}
+                    <button
+                      type="button"
+                      title="Apagar fluxo"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteFlow(f.id, f.name);
+                      }}
+                      className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {(f.nodes?.length || 0)} blocos
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}
