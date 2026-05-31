@@ -1788,8 +1788,8 @@ export default function FluxoTelegram() {
         </div>
       </div>
 
-      {/* Editor sheet */}
-      <Sheet
+      {/* Editor dialog (centered) */}
+      <Dialog
         open={
           !!selectedNode &&
           selectedNode.type !== "iniciar" &&
@@ -1798,15 +1798,15 @@ export default function FluxoTelegram() {
         }
         onOpenChange={(o) => !o && setSelectedNode(null)}
       >
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
               {selectedNode?.data?.label}
-            </SheetTitle>
-            <SheetDescription className="text-xs">
+            </DialogTitle>
+            <DialogDescription className="text-xs">
               Configure o bloco e clique em Salvar no canto direito do canvas.
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
 
           {selectedNode && (
             <div className="mt-4 space-y-4">
@@ -1835,8 +1835,8 @@ export default function FluxoTelegram() {
               </div>
             </div>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       {/* Add block dialog */}
       <Dialog
