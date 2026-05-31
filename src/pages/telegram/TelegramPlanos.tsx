@@ -277,7 +277,17 @@ export default function TelegramPlanos() {
           <Button variant="outline" size="sm" onClick={() => setOpenConfig(true)}>
             <Settings2 className="w-3.5 h-3.5 mr-1.5" /> Configuração de Planos
           </Button>
-          <Button size="sm" onClick={() => setOpenCreate(true)}>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditingId(null);
+              setPlanTitle("");
+              setPlanPrice("");
+              setCtaButton("");
+              setBillingType("daily");
+              setOpenCreate(true);
+            }}
+          >
             <Plus className="w-4 h-4 mr-1.5" /> Criar Novo Plano
           </Button>
         </div>
@@ -378,7 +388,17 @@ export default function TelegramPlanos() {
                     <td className="px-5 py-3 text-foreground/90">{p.cycle}</td>
                     <td className="px-5 py-3 text-foreground/90">{p.message}</td>
                     <td className="px-5 py-3 text-right">
-                      <Button size="sm" variant="ghost">Editar</Button>
+                      <Button size="sm" variant="ghost" onClick={() => openEdit(p.id)}>
+                        Editar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => deletePlan(p.id)}
+                      >
+                        Excluir
+                      </Button>
                     </td>
                   </tr>
                 ))
