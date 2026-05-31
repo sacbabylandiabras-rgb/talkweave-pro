@@ -11,6 +11,7 @@ import ReactFlow, {
   Node,
   NodeTypes,
   Position,
+  ReactFlowInstance,
   useEdgesState,
   useNodesState,
 } from "reactflow";
@@ -358,6 +359,15 @@ export default function FluxoTelegram() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [addOpenForSource, setAddOpenForSource] = useState<string | null>(null);
+  const [pendingDrop, setPendingDrop] = useState<
+    | { sourceId: string; sourceHandle: string | null; position: { x: number; y: number } }
+    | null
+  >(null);
+  const rfWrapperRef = useRef<HTMLDivElement | null>(null);
+  const rfInstanceRef = useRef<ReactFlowInstance | null>(null);
+  const connectStartRef = useRef<
+    { nodeId: string | null; handleId: string | null; handleType: string | null } | null
+  >(null);
 
   /* ----------------------- Load data ----------------------- */
   useEffect(() => {
@@ -486,6 +496,29 @@ export default function FluxoTelegram() {
       },
     ]);
     setAddOpenForSource(null);
+    setSelectedNode(node);
+  };
+
+  const addBlockAtPosition = (
+    sourceId: string,
+    sourceHandle: string | null,
+    position: { x: number; y: number },
+    block: BlockDef,
+  ) => {
+    const node = nodeFromBlock(block, position);
+    setNodes((nds) => [...nds, node]);
+    setEdges((eds) => [
+      ...eds,
+      {
+        id: `e_${sourceId}_${node.id}`,
+        source: sourceId,
+        sourceHandle: sourceHandle ?? undefined,
+        target: node.id,
+        type: "smoothstep",
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+    ]);
+    setPendingDrop(null);
     setSelectedNode(node);
   };
 
@@ -739,12 +772,52 @@ export default function FluxoTelegram() {
       {/* Canvas */}
       <div className="flex-1 relative">
         {tab === "fluxo" ? (
+          <div ref={rfWrapperRef} className="h-full w-full">
           <ReactFlow
             nodes={nodes}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onInit={(inst) => (rfInstanceRef.current = inst)}
+            onConnectStart={(_, params) => {
+              connectStartRef.current = {
+                nodeId: params.nodeId ?? null,
+                handleId: params.handleId ?? null,
+                handleType: params.handleType ?? null,
+              };
+            }}
+            onConnectEnd={(event) => {
+              const start = connectStartRef.current;
+              connectStartRef.current = null;
+              if (!start || !start.nodeId || start.handleType !== "source") return;
+              const target = event.target as HTMLElement | null;
+              const droppedOnPane =
+                !!target && target.classList.contains("react-flow__pane");
+              if (!droppedOnPane) return;
+              const bounds = rfWrapperRef.current?.getBoundingClientRect();
+              const inst = rfInstanceRef.current;
+              if (!bounds || !inst) return;
+              const clientX =
+                (event as MouseEvent).clientX ??
+                (event as TouchEvent).changedTouches?.[0]?.clientX ??
+                0;
+              const clientY =
+                (event as MouseEvent).clientY ??
+                (event as TouchEvent).changedTouches?.[0]?.clientY ??
+                0;
+              const position = inst.screenToFlowPosition
+                ? inst.screenToFlowPosition({ x: clientX, y: clientY })
+                : (inst as any).project({
+                    x: clientX - bounds.left,
+                    y: clientY - bounds.top,
+                  });
+              setPendingDrop({
+                sourceId: start.nodeId,
+                sourceHandle: start.handleId,
+                position,
+              });
+            }}
             onNodeClick={(_, n) => {
               if (n.type === "iniciar") return;
               setSelectedNode(n);
@@ -765,6 +838,7 @@ export default function FluxoTelegram() {
             />
             <Controls position="bottom-left" />
           </ReactFlow>
+          </div>
         ) : (
           <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
             <div className="text-center">
@@ -858,8 +932,13 @@ export default function FluxoTelegram() {
 
       {/* Add block dialog */}
       <Dialog
-        open={!!addOpenForSource}
-        onOpenChange={(o) => !o && setAddOpenForSource(null)}
+        open={!!addOpenForSource || !!pendingDrop}
+        onOpenChange={(o) => {
+          if (!o) {
+            setAddOpenForSource(null);
+            setPendingDrop(null);
+          }
+        }}
       >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -874,7 +953,18 @@ export default function FluxoTelegram() {
               return (
                 <button
                   key={b.kind}
-                  onClick={() => addOpenForSource && addBlockAfter(addOpenForSource, b)}
+                  onClick={() => {
+                    if (pendingDrop) {
+                      addBlockAtPosition(
+                        pendingDrop.sourceId,
+                        pendingDrop.sourceHandle,
+                        pendingDrop.position,
+                        b,
+                      );
+                    } else if (addOpenForSource) {
+                      addBlockAfter(addOpenForSource, b);
+                    }
+                  }}
                   className="border rounded-lg p-3 text-left hover:border-primary/40 hover:bg-primary/5 transition"
                 >
                   <div className="flex items-center gap-2 mb-1">
