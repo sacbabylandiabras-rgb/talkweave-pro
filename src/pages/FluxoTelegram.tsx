@@ -358,7 +358,12 @@ export default function FluxoTelegram() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [addOpenForSource, setAddOpenForSource] = useState<string | null>(null);
   const [pendingDrop, setPendingDrop] = useState<
-    | { sourceId: string; sourceHandle: string | null; position: { x: number; y: number } }
+    | {
+        sourceId: string;
+        sourceHandle: string | null;
+        position: { x: number; y: number };
+        screen: { x: number; y: number };
+      }
     | null
   >(null);
   const rfWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -814,6 +819,7 @@ export default function FluxoTelegram() {
                 sourceId: start.nodeId,
                 sourceHandle: start.handleId,
                 position,
+                screen: { x: clientX - bounds.left, y: clientY - bounds.top },
               });
             }}
             onNodeClick={(_, n) => {
