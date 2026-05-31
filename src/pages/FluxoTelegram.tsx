@@ -495,7 +495,8 @@ function summaryFor(data: any): string {
     case "atraso":
       {
         const u = data.timeUnit || "seconds";
-        const label = u === "hours" ? "h" : u === "minutes" ? "min" : "s";
+        const label =
+          u === "days" ? "d" : u === "hours" ? "h" : u === "minutes" ? "min" : "s";
         return `Aguarda ${data.delaySeconds ?? 10}${label}`;
       }
     case "condicao":
