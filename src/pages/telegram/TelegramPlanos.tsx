@@ -486,10 +486,16 @@ export default function TelegramPlanos() {
       </Dialog>
 
       {/* === Modal: Criar Plano === */}
-      <Dialog open={openCreate} onOpenChange={setOpenCreate}>
+      <Dialog
+        open={openCreate}
+        onOpenChange={(o) => {
+          setOpenCreate(o);
+          if (!o) setEditingId(null);
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Criar Plano</DialogTitle>
+            <DialogTitle>{editingId ? "Editar Plano" : "Criar Plano"}</DialogTitle>
             <DialogDescription>
               Configure os detalhes do plano de pagamento para seu bot e atraia mais assinantes
             </DialogDescription>
@@ -709,7 +715,7 @@ export default function TelegramPlanos() {
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpenCreate(false)}>Cancelar</Button>
-            <Button onClick={createPlan}>Criar plano</Button>
+            <Button onClick={createPlan}>{editingId ? "Salvar alterações" : "Criar plano"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
