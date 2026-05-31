@@ -292,6 +292,18 @@ const parseVoiceGenerationError = async (error: unknown, data?: any) => {
   return fallback;
 };
 
+const filteredBlocosDisponiveis = (isTelegram: boolean) => blocosDisponiveis.filter(b => {
+  if (isTelegram) {
+    // Hide blocks that don't make sense for Telegram
+    const label = b.label.toLowerCase();
+    if (label.includes("whatsapp")) return false;
+    if (label.includes("elevenlabs")) return false; // Not yet for TG
+    if (label.includes("ptt")) return false;
+    if (label.includes("carrossel")) return false; // TG buttons are list-like
+  }
+  return true;
+});
+
 const blocosDisponiveis = [
   // AGENTES IA
   {
@@ -640,6 +652,13 @@ interface FlowAutomation {
   created_at: string;
   updated_at: string;
   category?: string;
+  bot_id?: string;
+}
+
+interface TelegramBot {
+  id: string;
+  username: string;
+  first_name: string;
 }
 
 interface FluxoVisualProps {
@@ -648,7 +667,7 @@ interface FluxoVisualProps {
 
 export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}) {
   const isGroupsMode = mode === "groups";
-  const isMetaMode = false;
+  const isMetaMode = mode === "meta";
   const isTelegramMode = mode === "telegram";
   const pageTitle = isTelegramMode
     ? "Fluxo Telegram"
@@ -674,6 +693,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [fluxoAtivo, setFluxoAtivo] = useState(true);
   const [currentFluxoId, setCurrentFluxoId] = useState<string | null>(null);
   const [fluxosSalvos, setFluxosSalvos] = useState<FlowAutomation[]>([]);
+  const [telegramBots, setTelegramBots] = useState<TelegramBot[]>([]);
+  const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
   const leadPositions = useFlowLeadPositions(currentFluxoId);
   const [showFluxosList, setShowFluxosList] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -799,6 +820,21 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     fetchFluxos();
   }, [isGroupsMode, isTelegramMode]);
 
+  useEffect(() => {
+    if (isTelegramMode) {
+      const fetchBots = async () => {
+        const { data, error } = await supabase
+          .from("telegram_bots")
+          .select("id, username, first_name")
+          .eq("active", true);
+        if (!error && data) {
+          setTelegramBots(data as TelegramBot[]);
+        }
+      };
+      fetchBots();
+    }
+  }, [isTelegramMode]);
+
    const fetchTagsForEditor = useCallback(async () => {
      const activeInstances = instances.filter(i => (i.api_provider || 'zapi') === 'zapi' && i.is_active);
      if (activeInstances.length === 0) return;
@@ -872,6 +908,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     setKeywordFluxo("");
     setFluxoAtivo(true);
     setCurrentFluxoId(null);
+    setSelectedBotId(null);
     setNodes(initialNodes);
     setEdges(initialEdges);
     setShowTemplatesDialog(false);
@@ -883,6 +920,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     setKeywordFluxo(fluxo.keyword || "");
     setFluxoAtivo(fluxo.active);
     setCurrentFluxoId(fluxo.id);
+    setSelectedBotId(fluxo.bot_id || null);
     setNodes(fluxo.nodes || initialNodes);
     setEdges(fluxo.edges || initialEdges);
     setShowFluxosList(false);
@@ -1236,7 +1274,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         nodes: serializedNodes,
         edges: serializedEdges,
         active: fluxoAtivo,
-          category: isTelegramMode ? 'telegram' : (isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts')),
+        category: isTelegramMode ? 'telegram' : (isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts')),
+        bot_id: isTelegramMode ? selectedBotId : null,
       };
 
       if (currentFluxoId) {
@@ -1858,6 +1897,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-base truncate">{fluxo.name}</h3>
+                        {isTelegramMode && fluxo.bot_id && (
+                          <Badge variant="outline" className="text-[10px] h-4 px-1 bg-blue-50/50">
+                            Bot Vinculado
+                          </Badge>
+                        )}
                       </div>
                       {fluxo.keyword && (
                         <div className="flex items-center gap-1.5">
@@ -1966,6 +2010,24 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   <Switch checked={fluxoAtivo} onCheckedChange={setFluxoAtivo} />
                 </div>
 
+                {isTelegramMode && (
+                  <div className="flex items-center gap-2 px-3 border-l border-border h-6">
+                    <Label className="text-xs text-muted-foreground whitespace-nowrap">Bot Telegram</Label>
+                    <Select value={selectedBotId || "none"} onValueChange={(val) => setSelectedBotId(val === "none" ? null : val)}>
+                      <SelectTrigger className="h-7 w-48 text-[11px] bg-background">
+                        <SelectValue placeholder="Selecione o bot" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum (usar global)</SelectItem>
+                        {telegramBots.map((bot) => (
+                          <SelectItem key={bot.id} value={bot.id}>
+                            {bot.first_name} (@{bot.username})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2068,7 +2130,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           </Button>
 
           <ReactFlow
-            nodes={nodes.map(n => n.type === 'blocoConteudo' ? { ...n, data: { ...n.data, buttonStats, totalFlowRecipients } } : n)}
+            nodes={nodes.map(n => ({ ...n, data: { ...n.data, buttonStats, totalFlowRecipients, isTelegram: isTelegramMode } }))}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
@@ -2133,8 +2195,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     <svg width="24" height="24" viewBox="0 0 212 212" fill="#ccc"><path d="M106 0C47.5 0 0 47.5 0 106s47.5 106 106 106 106-47.5 106-106S164.5 0 106 0zm0 30c16.6 0 30 13.4 30 30s-13.4 30-30 30-30-13.4-30-30 13.4-30 30-30zm0 150c-26.5 0-49.9-13.5-63.5-34 .3-21 42.3-32.5 63.5-32.5s63.2 11.5 63.5 32.5C155.9 166.5 132.5 180 106 180z"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-[14px] font-medium truncate">Contato</p>
-                    <p className="text-white/70 text-[11px]">online</p>
+                    <p className="text-white text-[14px] font-medium truncate">{isTelegramMode ? "Bot Telegram" : "Contato"}</p>
+                    <p className="text-white/70 text-[11px]">{isTelegramMode ? "bot" : "online"}</p>
                   </div>
                   <div className="flex items-center gap-3 text-white/90">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 15.5c-1.25 0-2.45-.2-3.57-.57-.35-.11-.74-.03-1.02.24l-2.2 2.2c-2.83-1.44-5.15-3.75-6.59-6.59l2.2-2.21c.28-.26.36-.65.25-1C8.7 6.45 8.5 5.25 8.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1z"/></svg>
@@ -2146,8 +2208,10 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 <div
                   className="flex-1 overflow-y-auto"
                   style={{
-                    backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'400\' height=\'400\' viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23667781\' fill-opacity=\'0.04\'%3E%3Cpath d=\'M20 20h8v8h-8zM60 10h8v8h-8zM100 30h8v8h-8zM140 5h8v8h-8zM180 25h8v8h-8zM220 15h8v8h-8zM260 35h8v8h-8zM300 8h8v8h-8zM340 28h8v8h-8zM380 18h8v8h-8zM10 60h8v8h-8zM50 50h8v8h-8zM90 70h8v8h-8zM130 45h8v8h-8zM170 65h8v8h-8zM210 55h8v8h-8zM250 40h8v8h-8zM290 72h8v8h-8zM330 52h8v8h-8zM370 42h8v8h-8z\'/%3E%3C/g%3E%3C/svg%3E")',
-                    backgroundColor: '#ECE5DD',
+                    backgroundImage: isTelegramMode 
+                      ? 'url("https://user-images.githubusercontent.com/1501842/75618174-c053f380-5b9d-11ea-9783-6f452899477e.jpg")'
+                      : 'url("data:image/svg+xml,%3Csvg width=\'400\' height=\'400\' viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23667781\' fill-opacity=\'0.04\'%3E%3Cpath d=\'M20 20h8v8h-8zM60 10h8v8h-8zM100 30h8v8h-8zM140 5h8v8h-8zM180 25h8v8h-8zM220 15h8v8h-8zM260 35h8v8h-8zM300 8h8v8h-8zM340 28h8v8h-8zM380 18h8v8h-8zM10 60h8v8h-8zM50 50h8v8h-8zM90 70h8v8h-8zM130 45h8v8h-8zM170 65h8v8h-8zM210 55h8v8h-8zM250 40h8v8h-8zM290 72h8v8h-8zM330 52h8v8h-8zM370 42h8v8h-8z\'/%3E%3C/g%3E%3C/svg%3E")',
+                    backgroundColor: isTelegramMode ? '#517da2' : '#ECE5DD',
                   }}
                 >
                   <div className="p-2.5 space-y-[2px]">
@@ -5723,8 +5787,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           setShowAddBlockDialog(open);
           if (!open) setPendingAgentConnection(null);
         }}
-        baseBlocks={blocosDisponiveis}
-        showAgentTools={!!pendingAgentConnection}
+        baseBlocks={filteredBlocosDisponiveis(isTelegramMode)}
+        showAgentTools={isTelegramMode ? false : !!pendingAgentConnection}
         onSelect={(sel) => {
           const position = pendingAgentConnection
             ? pendingAgentConnection.position

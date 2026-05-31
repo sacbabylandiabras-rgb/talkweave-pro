@@ -4,8 +4,8 @@ import { Bot, Sparkles, MessageSquare } from "lucide-react";
 export function BlocoAgenteIANode({ data }: any) {
   return (
     <div className="relative px-4 py-3 pt-5 shadow-md rounded-2xl border border-border/40 bg-card min-w-[220px] max-w-[300px] glass-card !overflow-visible z-50">
-      <span className="absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal bg-primary/90 text-white rounded-md flex items-center gap-1">
-        <Bot className="w-3 h-3" /> Agente IA
+      <span className={`absolute -top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-normal ${data.isTelegram ? 'bg-blue-600' : 'bg-primary/90'} text-white rounded-md flex items-center gap-1`}>
+        <Bot className="w-3 h-3" /> {data.isTelegram ? "Agente IA Telegram" : "Agente IA"}
       </span>
       <Handle type="target" position={Position.Left} id="target-left" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ left: -8 }} />
       <Handle type="target" position={Position.Top} id="target-top" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ top: -8 }} />
