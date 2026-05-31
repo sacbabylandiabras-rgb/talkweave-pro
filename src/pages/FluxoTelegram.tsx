@@ -936,11 +936,10 @@ export default function FluxoTelegram() {
 
       {/* Add block dialog */}
       <Dialog
-        open={!!addOpenForSource || !!pendingDrop}
+        open={!!addOpenForSource}
         onOpenChange={(o) => {
           if (!o) {
             setAddOpenForSource(null);
-            setPendingDrop(null);
           }
         }}
       >
@@ -957,18 +956,7 @@ export default function FluxoTelegram() {
               return (
                 <button
                   key={b.kind}
-                  onClick={() => {
-                    if (pendingDrop) {
-                      addBlockAtPosition(
-                        pendingDrop.sourceId,
-                        pendingDrop.sourceHandle,
-                        pendingDrop.position,
-                        b,
-                      );
-                    } else if (addOpenForSource) {
-                      addBlockAfter(addOpenForSource, b);
-                    }
-                  }}
+                  onClick={() => addOpenForSource && addBlockAfter(addOpenForSource, b)}
                   className="border rounded-lg p-3 text-left hover:border-primary/40 hover:bg-primary/5 transition"
                 >
                   <div className="flex items-center gap-2 mb-1">
