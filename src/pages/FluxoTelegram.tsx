@@ -2052,13 +2052,6 @@ function BlockEditor({
         color: "text-sky-500 bg-sky-500/10",
       },
       {
-        id: "botoes" as const,
-        icon: MousePointerClick,
-        title: "Botões",
-        desc: "Envie uma mensagem com botões inline",
-        color: "text-violet-500 bg-violet-500/10",
-      },
-      {
         id: "midia" as const,
         icon: ImageIcon,
         title: "Mídia",
@@ -2087,13 +2080,7 @@ function BlockEditor({
                 <button
                   key={o.id}
                   type="button"
-                  onClick={() => {
-                    const patch: Record<string, any> = { contentVariant: o.id };
-                    if (o.id === "botoes" && (!Array.isArray(d.buttons) || d.buttons.length === 0)) {
-                      patch.buttons = [{ title: "Botão 1", callback_data: "btn_1" }];
-                    }
-                    onPatch(patch);
-                  }}
+                  onClick={() => onPatch({ contentVariant: o.id })}
                   className={`w-full text-left flex items-start gap-3 rounded-lg border p-3 transition ${
                     active
                       ? "border-primary bg-primary/5"
@@ -2116,25 +2103,24 @@ function BlockEditor({
         </div>
 
         {variant === "texto" && (
-          <div>
-            <Label className="text-xs">Mensagem</Label>
-            <Textarea
-              value={d.message || ""}
-              onChange={(e) => onPatch({ message: e.target.value })}
-              rows={6}
-              placeholder="Olá {{user.first_name}}! Bem-vindo."
-              className="mt-1"
-            />
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Variáveis: <code>{`{{user.first_name}}`}</code>,{" "}
-              <code>{`{{chat.id}}`}</code>, <code>{`{{last_message}}`}</code>,{" "}
-              <code>{`{{last_button}}`}</code>
-            </p>
-          </div>
-        )}
-
-        {variant === "botoes" && (
-          <ButtonsFields d={d} onPatch={onPatch} />
+          <>
+            <div>
+              <Label className="text-xs">Mensagem</Label>
+              <Textarea
+                value={d.message || ""}
+                onChange={(e) => onPatch({ message: e.target.value })}
+                rows={6}
+                placeholder="Olá {{user.first_name}}! Bem-vindo."
+                className="mt-1"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Variáveis: <code>{`{{user.first_name}}`}</code>,{" "}
+                <code>{`{{chat.id}}`}</code>, <code>{`{{last_message}}`}</code>,{" "}
+                <code>{`{{last_button}}`}</code>
+              </p>
+            </div>
+            <InlineButtonsEditor d={d} onPatch={onPatch} />
+          </>
         )}
 
         {variant === "midia" && (
