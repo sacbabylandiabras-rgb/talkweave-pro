@@ -292,6 +292,18 @@ const parseVoiceGenerationError = async (error: unknown, data?: any) => {
   return fallback;
 };
 
+const filteredBlocosDisponiveis = (isTelegram: boolean) => blocosDisponiveis.filter(b => {
+  if (isTelegram) {
+    // Hide blocks that don't make sense for Telegram
+    const label = b.label.toLowerCase();
+    if (label.includes("whatsapp")) return false;
+    if (label.includes("elevenlabs")) return false; // Not yet for TG
+    if (label.includes("ptt")) return false;
+    if (label.includes("carrossel")) return false; // TG buttons are list-like
+  }
+  return true;
+});
+
 const blocosDisponiveis = [
   // AGENTES IA
   {
