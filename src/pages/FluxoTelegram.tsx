@@ -1764,7 +1764,8 @@ export default function FluxoTelegram() {
         open={
           !!selectedNode &&
           selectedNode.type !== "iniciar" &&
-          selectedNode.type !== "pagamento"
+          selectedNode.type !== "pagamento" &&
+          selectedNode.type !== "grupo"
         }
         onOpenChange={(o) => !o && setSelectedNode(null)}
       >
