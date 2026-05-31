@@ -152,6 +152,9 @@ function StepNode({ id, data, selected }: any) {
   }
 
   const Icon = data.icon || MessageSquare;
+  const isIA = data?.kind === "ia";
+  const iaTools = (data?.tools || {}) as { previa?: boolean; prova_social?: boolean };
+  const hasAnyIATool = isIA && (iaTools.previa || iaTools.prova_social);
   return (
     <div
       className={`relative px-4 py-3 rounded-xl border bg-card shadow-md min-w-[220px] transition ${
@@ -181,11 +184,51 @@ function StepNode({ id, data, selected }: any) {
           )}
         </div>
       </div>
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="!w-3 !h-3 !bg-primary !border-2 !border-background"
-      />
+      {!hasAnyIATool && (
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="!w-3 !h-3 !bg-primary !border-2 !border-background"
+        />
+      )}
+      {hasAnyIATool && (
+        <div className="mt-3 border-t border-border/60 pt-2 space-y-1.5">
+          <div className="relative flex items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5 text-[11px]">
+            <span className="text-foreground/80">Resposta padrão</span>
+            <Handle
+              type="source"
+              position={Position.Right}
+              id="default"
+              className="!w-3 !h-3 !bg-primary !border-2 !border-background"
+              style={{ right: -7 }}
+            />
+          </div>
+          {iaTools.previa && (
+            <div className="relative flex items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5 text-[11px]">
+              <span className="text-foreground/80">Prévia</span>
+              <Handle
+                type="source"
+                position={Position.Right}
+                id="previa"
+                className="!w-3 !h-3 !bg-fuchsia-500 !border-2 !border-background"
+                style={{ right: -7 }}
+              />
+            </div>
+          )}
+          {iaTools.prova_social && (
+            <div className="relative flex items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5 text-[11px]">
+              <span className="text-foreground/80">Prova social</span>
+              <Handle
+                type="source"
+                position={Position.Right}
+                id="prova_social"
+                className="!w-3 !h-3 !bg-emerald-500 !border-2 !border-background"
+                style={{ right: -7 }}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -2724,6 +2767,62 @@ function BlockEditor({
           <span className="text-xs text-foreground/80">
             Enviar resposta automaticamente para o usuário
           </span>
+        </div>
+        <div className="pt-2 border-t border-border/60">
+          <Label className="text-xs font-semibold">Ferramentas do agente</Label>
+          <p className="text-[10px] text-muted-foreground mt-0.5 mb-2">
+            A IA decide se deve acionar uma destas ferramentas. Ao acionar, o fluxo segue pela saída correspondente.
+          </p>
+          <div className="space-y-3">
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-2.5 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-medium">Prévia</span>
+                <Switch
+                  checked={!!d.tools?.previa}
+                  onCheckedChange={(c) =>
+                    onPatch({ tools: { ...(d.tools || {}), previa: c } })
+                  }
+                />
+              </div>
+              {d.tools?.previa && (
+                <Textarea
+                  value={d.tools?.previaDescription || ""}
+                  onChange={(e) =>
+                    onPatch({
+                      tools: { ...(d.tools || {}), previaDescription: e.target.value },
+                    })
+                  }
+                  rows={2}
+                  placeholder="Quando usar: ex. quando o cliente pedir para ver uma amostra/prévia do conteúdo."
+                  className="text-xs"
+                />
+              )}
+            </div>
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-2.5 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-medium">Prova social</span>
+                <Switch
+                  checked={!!d.tools?.prova_social}
+                  onCheckedChange={(c) =>
+                    onPatch({ tools: { ...(d.tools || {}), prova_social: c } })
+                  }
+                />
+              </div>
+              {d.tools?.prova_social && (
+                <Textarea
+                  value={d.tools?.provaSocialDescription || ""}
+                  onChange={(e) =>
+                    onPatch({
+                      tools: { ...(d.tools || {}), provaSocialDescription: e.target.value },
+                    })
+                  }
+                  rows={2}
+                  placeholder="Quando usar: ex. quando o cliente demonstrar dúvida ou pedir depoimentos/resultados de outros clientes."
+                  className="text-xs"
+                />
+              )}
+            </div>
+          </div>
         </div>
       </div>
     );
