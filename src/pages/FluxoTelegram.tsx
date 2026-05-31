@@ -73,6 +73,7 @@ import {
   Copy,
   Type,
   Upload,
+  AlertTriangle,
 } from "lucide-react";
 
 /* ----------------------------- Types ----------------------------- */
@@ -487,7 +488,178 @@ const nodeTypes: NodeTypes = {
   step: StepNode,
   intervalo: IntervaloNode,
   mensagem: MensagemNode,
+  pagamento: PagamentoNode,
 };
+
+function PagamentoNode({ id, data, selected }: any) {
+  const { setNodes, setEdges, getNode } = useReactFlow();
+  const amount: string = data?.amount ?? "10,00";
+  const acceptCard: boolean = data?.acceptCard !== false;
+  const showQrCode: boolean = data?.showQrCode !== false;
+
+  const patch = (p: Record<string, any>) => {
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.id !== id) return n;
+        const merged = { ...n.data, ...p };
+        return { ...n, data: { ...merged, summary: summaryFor(merged) } };
+      }),
+    );
+  };
+
+  const duplicate = () => {
+    const src = getNode(id);
+    if (!src) return;
+    const newId = `n_${Math.random().toString(36).slice(2, 9)}_${Date.now().toString(36)}`;
+    setNodes((nds) => [
+      ...nds,
+      {
+        ...src,
+        id: newId,
+        position: { x: src.position.x + 40, y: src.position.y + 40 },
+        selected: false,
+        data: { ...src.data },
+      } as Node,
+    ]);
+  };
+
+  const remove = () => {
+    setNodes((nds) => nds.filter((n) => n.id !== id));
+    setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+  };
+
+  return (
+    <div
+      className={`group relative w-[300px] overflow-hidden rounded-2xl border bg-card shadow-[0_10px_28px_-18px_hsl(var(--foreground)/0.55)] transition ${
+        selected ? "border-primary ring-2 ring-primary/25" : "border-border/70"
+      }`}
+    >
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-4 !h-4 !bg-primary !border-2 !border-background !shadow-md"
+        style={{ left: -8 }}
+      />
+
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
+            <CreditCard className="h-4 w-4" strokeWidth={2.2} />
+          </div>
+          <div className="text-[14px] font-semibold leading-none text-card-foreground">
+            Gerar pagamento
+          </div>
+        </div>
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              duplicate();
+            }}
+            className="p-1 rounded hover:bg-muted/60 hover:text-foreground transition"
+            aria-label="Duplicar"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              remove();
+            }}
+            className="p-1 rounded hover:bg-destructive/10 hover:text-destructive transition"
+            aria-label="Excluir"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="px-4 py-3 space-y-3 nodrag">
+        <div>
+          <label className="text-[11px] font-medium text-foreground/80">
+            Valor<span className="text-destructive">*</span>
+          </label>
+          <div className="mt-1 relative">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-muted-foreground">
+              R$
+            </span>
+            <Input
+              value={amount}
+              onChange={(e) => patch({ amount: e.target.value })}
+              className="h-9 pl-9 pr-9"
+              placeholder="0,00"
+            />
+            <button
+              type="button"
+              onMouseDown={(e) => e.stopPropagation()}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+              aria-label="Editar"
+            >
+              <Type className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-[12px] text-foreground/80">
+            <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
+            Cartão de crédito
+          </div>
+          <Switch
+            checked={acceptCard}
+            onCheckedChange={(c) => patch({ acceptCard: c })}
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-[12px] text-foreground/80">
+            <Zap className="h-3.5 w-3.5 text-muted-foreground" />
+            Mostrar QR Code
+          </div>
+          <Switch
+            checked={showQrCode}
+            onCheckedChange={(c) => patch({ showQrCode: c })}
+          />
+        </div>
+
+        {/* Gatilhos */}
+        <div className="pt-1">
+          <div className="text-[11px] font-medium text-foreground/80 mb-1.5">
+            Gatilhos<span className="text-destructive">*</span>
+          </div>
+          <div className="space-y-1.5">
+            <div className="relative flex items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-2">
+              <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+              <span className="text-[12px] text-foreground">Pago</span>
+              <Handle
+                type="source"
+                position={Position.Right}
+                id="paid"
+                className="!w-3 !h-3 !bg-emerald-500 !border-2 !border-background"
+                style={{ right: -14 }}
+              />
+            </div>
+            <div className="relative flex items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-2">
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+              <span className="text-[12px] text-foreground">Aguardando pagamento</span>
+              <Handle
+                type="source"
+                position={Position.Right}
+                id="pending"
+                className="!w-3 !h-3 !bg-amber-500 !border-2 !border-background"
+                style={{ right: -14 }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* --------------------------- Block catalog -------------------------- */
 
@@ -502,6 +674,7 @@ type StepKind =
   | "digitando"
   | "atraso"
   | "condicao"
+  | "pagamento"
   | "fim";
 
 interface BlockDef {
@@ -581,6 +754,17 @@ const BLOCKS: BlockDef[] = [
     initialData: { variable: "last_message", operator: "contains", value: "" },
   },
   {
+    kind: "pagamento",
+    label: "Gerar pagamento",
+    description: "Cria uma cobrança e ramifica conforme o status",
+    icon: CreditCard,
+    initialData: {
+      amount: "10,00",
+      acceptCard: true,
+      showQrCode: true,
+    },
+  },
+  {
     kind: "fim",
     label: "Fim do fluxo",
     description: "Encerra a execução",
@@ -601,7 +785,7 @@ interface MenuItem {
 }
 const BLOCK_MENU: MenuItem[] = [
   { label: "Mensagem", icon: Send, iconClass: "text-sky-500", kind: "texto" },
-  { label: "Gerar pagamento", icon: CreditCard, iconClass: "text-muted-foreground/60", comingSoon: true },
+  { label: "Gerar pagamento", icon: CreditCard, iconClass: "text-emerald-500", kind: "pagamento" },
   { label: "Intervalo", icon: Clock, iconClass: "text-amber-500", kind: "atraso" },
   { label: "Grupo", icon: Users, iconClass: "text-muted-foreground/60", comingSoon: true },
 ];
@@ -619,6 +803,8 @@ function nodeFromBlock(block: BlockDef, position: { x: number; y: number }): Nod
     type:
       block.kind === "atraso"
         ? "intervalo"
+        : block.kind === "pagamento"
+        ? "pagamento"
         : block.kind === "texto"
         ? "mensagem"
         : "step",
@@ -678,6 +864,8 @@ function summaryFor(data: any): string {
       }
     case "condicao":
       return `${data.variable} ${data.operator} ${data.value}`;
+    case "pagamento":
+      return `R$ ${data.amount || "0,00"}`;
     default:
       return "";
   }
