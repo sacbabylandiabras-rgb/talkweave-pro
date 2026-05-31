@@ -2012,19 +2012,38 @@ function InlineButtonsEditor({
                 placeholder="Texto do botão (ex.: Comprar agora)"
                 className="h-8 text-sm"
               />
-              <Input
-                value={b.url || ""}
-                onChange={(e) => {
+              <Select
+                value={b.url ? "link" : "next"}
+                onValueChange={(v) => {
                   const next = [...buttons];
-                  const v = e.target.value.trim();
-                  next[i] = v
-                    ? { title: b.title, url: v }
-                    : { title: b.title, callback_data: `btn_${i + 1}` };
+                  if (v === "link") {
+                    next[i] = { title: b.title, url: b.url || "" };
+                  } else {
+                    next[i] = { title: b.title, callback_data: `btn_${i + 1}` };
+                  }
                   update(next);
                 }}
-                placeholder="Link (opcional) — https://..."
-                className="h-8 text-sm"
-              />
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="next">Ir para o próximo bloco</SelectItem>
+                  <SelectItem value="link">Abrir link externo</SelectItem>
+                </SelectContent>
+              </Select>
+              {b.url !== undefined && (
+                <Input
+                  value={b.url || ""}
+                  onChange={(e) => {
+                    const next = [...buttons];
+                    next[i] = { title: b.title, url: e.target.value };
+                    update(next);
+                  }}
+                  placeholder="https://..."
+                  className="h-8 text-sm"
+                />
+              )}
             </div>
             <Button
               size="icon"
