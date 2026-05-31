@@ -334,6 +334,7 @@ async function runFlow({
         }
 
         try {
+          console.log("[engine] generating PIX", { node: node.id, amountCents, userId: bot.user_id });
           const resp = await fetch(
             `${Deno.env.get("SUPABASE_URL")}/functions/v1/gateway-flow-charge`,
             {
@@ -351,6 +352,7 @@ async function runFlow({
             },
           );
           const charge = await resp.json().catch(() => ({}));
+          console.log("[engine] gateway-flow-charge resp", resp.status, charge?.externalId, !!charge?.brCode);
           const brCode: string = charge?.brCode || "";
           const qrImage: string = charge?.qrCodeImage || "";
 
@@ -382,17 +384,25 @@ async function runFlow({
             externalId: charge?.externalId || null,
             status: "pending",
           };
+          // Pause flow until payment confirmation arrives via webhook
+          await admin
+            .from("telegram_flow_sessions")
+            .update({
+              current_node_id: node.id,
+              variables,
+              waiting_for: "payment",
+              waiting_var: "payment",
+            })
+            .eq("id", sessionId);
+          return;
         } catch (e) {
           console.error("[engine] payment generation failed", (e as Error).message);
           await tgApi(bot.bot_token, "sendMessage", {
             chat_id: chatId,
             text: "Não conseguimos gerar a cobrança no momento. Tente novamente.",
           });
+          return;
         }
-
-        const nextEdge = nextEdgeFor(edges, node.id, "pending") || nextEdgeFor(edges, node.id);
-        currentId = nextEdge?.target || null;
-        continue;
       }
 
       // Default: just walk to next
