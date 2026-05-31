@@ -2307,6 +2307,7 @@ function ToolMediaUploader({
   inputId,
   mediaUrl,
   mediaName,
+  mediaFiles,
   caption,
   uploading,
   onChange,
@@ -2315,17 +2316,32 @@ function ToolMediaUploader({
   inputId: string;
   mediaUrl?: string;
   mediaName?: string;
+  mediaFiles?: Array<Record<string, any>>;
   caption?: string;
   uploading: boolean;
-  onChange: (patch: Record<string, any>) => void;
+  onChange: (patch: Record<string, any> | ((currentTools: Record<string, any>) => Record<string, any>)) => void;
   fields: {
     url: string;
     name: string;
     type: string;
     caption: string;
+    files: string;
     uploading: string;
   };
 }) {
+  const files = Array.isArray(mediaFiles)
+    ? mediaFiles
+    : mediaUrl
+    ? [
+        {
+          id: "legacy-media",
+          url: mediaUrl,
+          name: mediaName || "Arquivo enviado",
+          type: "document",
+          caption: caption || "",
+        },
+      ]
+    : [];
   const inferType = (file: File): string => {
     const mime = (file.type || "").toLowerCase();
     if (mime.startsWith("image/")) return "photo";
@@ -2343,44 +2359,74 @@ function ToolMediaUploader({
         <span className="text-[11px] font-medium">
           {uploading
             ? "Enviando..."
-            : mediaUrl
-            ? "Substituir arquivo"
+            : files.length
+            ? "Adicionar outro arquivo"
             : "Enviar foto, vídeo ou documento"}
         </span>
         <span className="text-[10px] text-muted-foreground">
-          Imagem, vídeo, áudio ou documento
+          Imagem, vídeo, áudio ou documento — pode adicionar vários
         </span>
       </label>
       <input
         id={inputId}
         type="file"
+        multiple
         className="hidden"
         accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
         onChange={async (e) => {
-          const file = e.target.files?.[0];
-          if (!file) return;
+          const selectedFiles = Array.from(e.target.files || []);
+          if (!selectedFiles.length) return;
           try {
             onChange({ [fields.uploading]: true });
             const { data: { user: currentUser } } = await supabase.auth.getUser();
             if (!currentUser) throw new Error("Usuário não autenticado");
-            const fileExt = file.name.split(".").pop();
-            const fileName = `${currentUser.id}/${Date.now()}-${Math.random()
-              .toString(36)
-              .substring(7)}.${fileExt}`;
-            const { error: upErr } = await supabase.storage
-              .from("flow-media")
-              .upload(fileName, file, { cacheControl: "3600", upsert: false });
-            if (upErr) throw upErr;
-            const { data: { publicUrl } } = supabase.storage
-              .from("flow-media")
-              .getPublicUrl(fileName);
-            onChange({
-              [fields.url]: publicUrl,
-              [fields.name]: file.name,
-              [fields.type]: inferType(file),
-              [fields.uploading]: false,
+            const uploadedFiles = [];
+            for (const file of selectedFiles) {
+              const fileExt = file.name.split(".").pop();
+              const fileName = `${currentUser.id}/${Date.now()}-${Math.random()
+                .toString(36)
+                .substring(7)}.${fileExt}`;
+              const { error: upErr } = await supabase.storage
+                .from("flow-media")
+                .upload(fileName, file, { cacheControl: "3600", upsert: false });
+              if (upErr) throw upErr;
+              const { data: { publicUrl } } = supabase.storage
+                .from("flow-media")
+                .getPublicUrl(fileName);
+              uploadedFiles.push({
+                id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                url: publicUrl,
+                name: file.name,
+                type: inferType(file),
+                caption: "",
+              });
+            }
+            onChange((currentTools) => {
+              const currentList = Array.isArray(currentTools?.[fields.files])
+                ? currentTools[fields.files]
+                : currentTools?.[fields.url]
+                ? [
+                    {
+                      id: "legacy-media",
+                      url: currentTools[fields.url],
+                      name: currentTools[fields.name] || "Arquivo enviado",
+                      type: currentTools[fields.type] || "document",
+                      caption: currentTools[fields.caption] || "",
+                    },
+                  ]
+                : [];
+              const nextList = [...currentList, ...uploadedFiles];
+              const lastFile = nextList[nextList.length - 1];
+              return {
+                [fields.files]: nextList,
+                [fields.url]: lastFile?.url || "",
+                [fields.name]: lastFile?.name || "",
+                [fields.type]: lastFile?.type || "",
+                [fields.caption]: lastFile?.caption || "",
+                [fields.uploading]: false,
+              };
             });
-            toast.success("Arquivo enviado!");
+            toast.success(selectedFiles.length > 1 ? "Arquivos enviados!" : "Arquivo enviado!");
           } catch (err: any) {
             console.error(err);
             onChange({ [fields.uploading]: false });
@@ -2390,29 +2436,46 @@ function ToolMediaUploader({
           }
         }}
       />
-      {mediaName && (
-        <div className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-background px-2 py-1.5">
-          <span className="text-[11px] truncate flex-1" title={mediaName}>
-            {mediaName}
-          </span>
-          <button
-            type="button"
-            onClick={() =>
-              onChange({ [fields.url]: "", [fields.name]: "", [fields.type]: "" })
-            }
-            className="text-[10px] text-destructive hover:underline"
-          >
-            Remover
-          </button>
+      {files.length > 0 && (
+        <div className="space-y-2">
+          {files.map((file, index) => (
+            <div key={file.id || file.url || index} className="space-y-1.5 rounded-md border border-border/60 bg-background px-2 py-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] truncate flex-1" title={file.name}>
+                  {file.name || `Arquivo ${index + 1}`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextList = files.filter((_, i) => i !== index);
+                    const lastFile = nextList[nextList.length - 1];
+                    onChange({
+                      [fields.files]: nextList,
+                      [fields.url]: lastFile?.url || "",
+                      [fields.name]: lastFile?.name || "",
+                      [fields.type]: lastFile?.type || "",
+                      [fields.caption]: lastFile?.caption || "",
+                    });
+                  }}
+                  className="text-[10px] text-destructive hover:underline"
+                >
+                  Remover
+                </button>
+              </div>
+              <Input
+                value={file.caption || ""}
+                onChange={(e) => {
+                  const nextList = files.map((item, i) =>
+                    i === index ? { ...item, caption: e.target.value } : item,
+                  );
+                  onChange({ [fields.files]: nextList });
+                }}
+                placeholder="Legenda (opcional)"
+                className="h-8 text-xs"
+              />
+            </div>
+          ))}
         </div>
-      )}
-      {mediaUrl && (
-        <Input
-          value={caption || ""}
-          onChange={(e) => onChange({ [fields.caption]: e.target.value })}
-          placeholder="Legenda (opcional)"
-          className="h-8 text-xs"
-        />
       )}
     </div>
   );
