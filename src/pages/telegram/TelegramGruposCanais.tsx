@@ -1,4 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  readTelegramGroupsChannels,
+  writeTelegramGroupsChannels,
+} from "@/hooks/useTelegramGroups";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -65,6 +69,36 @@ const AVAILABLE_PLANS: { id: string; name: string; price: string }[] = [];
 
 export default function TelegramGruposCanais() {
   const [items, setItems] = useState<TgGroup[]>([]);
+
+  useEffect(() => {
+    const stored = readTelegramGroupsChannels();
+    if (stored.length) {
+      setItems(
+        stored.map((s) => ({
+          id: s.id,
+          title: s.title,
+          link: s.link ?? "",
+          group_id: s.group_id,
+          kind: (s.kind === "channel" ? "channel" : "group") as GroupKind,
+          plan_ids: [],
+          created_at: new Date().toISOString(),
+        })),
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    writeTelegramGroupsChannels(
+      items.map((i) => ({
+        id: i.id,
+        title: i.title,
+        group_id: i.group_id,
+        kind: i.kind,
+        link: i.link,
+      })),
+    );
+  }, [items]);
+
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TgGroup | null>(null);
   const [search, setSearch] = useState("");
