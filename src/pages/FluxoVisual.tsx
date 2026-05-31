@@ -5780,8 +5780,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           setShowAddBlockDialog(open);
           if (!open) setPendingAgentConnection(null);
         }}
-        baseBlocks={blocosDisponiveis}
-        showAgentTools={!!pendingAgentConnection}
+        baseBlocks={filteredBlocosDisponiveis(isTelegramMode)}
+        showAgentTools={isTelegramMode ? false : !!pendingAgentConnection}
         onSelect={(sel) => {
           const position = pendingAgentConnection
             ? pendingAgentConnection.position
