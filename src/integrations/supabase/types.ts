@@ -519,6 +519,7 @@ export type Database = {
       flow_automations: {
         Row: {
           active: boolean
+          bot_id: string | null
           category: string
           created_at: string
           edges: Json
@@ -531,6 +532,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          bot_id?: string | null
           category?: string
           created_at?: string
           edges?: Json
@@ -543,6 +545,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          bot_id?: string | null
           category?: string
           created_at?: string
           edges?: Json
@@ -553,7 +556,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "flow_automations_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "telegram_bots"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       flow_captured_data: {
         Row: {
@@ -2443,6 +2454,75 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      telegram_flow_sessions: {
+        Row: {
+          bot_id: string
+          chat_id: number
+          created_at: string
+          current_node_id: string | null
+          flow_id: string | null
+          id: string
+          last_error: string | null
+          last_update_id: number | null
+          resume_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          variables: Json
+          waiting_for: string | null
+          waiting_var: string | null
+        }
+        Insert: {
+          bot_id: string
+          chat_id: number
+          created_at?: string
+          current_node_id?: string | null
+          flow_id?: string | null
+          id?: string
+          last_error?: string | null
+          last_update_id?: number | null
+          resume_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          variables?: Json
+          waiting_for?: string | null
+          waiting_var?: string | null
+        }
+        Update: {
+          bot_id?: string
+          chat_id?: number
+          created_at?: string
+          current_node_id?: string | null
+          flow_id?: string | null
+          id?: string
+          last_error?: string | null
+          last_update_id?: number | null
+          resume_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          variables?: Json
+          waiting_for?: string | null
+          waiting_var?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_flow_sessions_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "telegram_bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "telegram_flow_sessions_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flow_automations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       telegram_messages: {
         Row: {

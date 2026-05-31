@@ -4918,10 +4918,50 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
             {selectedNode?.type === "blocoGatilho" && (
               <>
+                {isTelegramMode && (
+                  <div className="mb-3">
+                    <Label className="text-xs">Tipo de Gatilho</Label>
+                    <Select
+                      value={String(selectedNode.data.triggerType || "command")}
+                      onValueChange={(v) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          data: { ...selectedNode.data, triggerType: v },
+                        })
+                      }
+                    >
+                      <SelectTrigger className="mt-1 h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="command">Comando (/start, /menu...)</SelectItem>
+                        <SelectItem value="keyword">Palavra-chave (texto)</SelectItem>
+                        <SelectItem value="callback">Clique em botão</SelectItem>
+                        <SelectItem value="new_member">Primeiro contato</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {selectedNode.data.triggerType === "new_member"
+                        ? "Dispara automaticamente quando o usuário inicia a conversa com o bot pela primeira vez. Não precisa de palavra-chave."
+                        : selectedNode.data.triggerType === "callback"
+                        ? "Dispara quando o usuário clica em um botão. Use o callback_data do botão como palavra-chave."
+                        : selectedNode.data.triggerType === "keyword"
+                        ? "Dispara quando o texto enviado contém uma das palavras abaixo."
+                        : "Dispara quando o usuário envia um comando. Comece com / (ex.: /start, /menu, /comprar)."}
+                    </p>
+                  </div>
+                )}
+                {!(isTelegramMode && selectedNode.data.triggerType === "new_member") && (
                 <div>
                   <Label className="flex items-center gap-1">
                     <Key className="h-3 w-3" />
-                    Palavras-chave (Gatilho)
+                    {isTelegramMode
+                      ? selectedNode.data.triggerType === "command"
+                        ? "Comandos do Telegram"
+                        : selectedNode.data.triggerType === "callback"
+                        ? "Callback data dos botões"
+                        : "Palavras-chave (Gatilho)"
+                      : "Palavras-chave (Gatilho)"}
                   </Label>
                   {(() => {
                     const raw = String(selectedNode.data.keyword ?? keywordFluxo ?? "");
@@ -4962,7 +5002,15 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                           <input
                             id="gatilho-keyword-input"
                             type="text"
-                            placeholder={list.length ? "Adicionar..." : "Ex: oi, menu, preço"}
+                            placeholder={
+                              list.length
+                                ? "Adicionar..."
+                                : isTelegramMode && (selectedNode.data.triggerType || "command") === "command"
+                                ? "Ex: /start, /menu, /comprar"
+                                : isTelegramMode && selectedNode.data.triggerType === "callback"
+                                ? "Ex: btn_comprar, btn_planos"
+                                : "Ex: oi, menu, preço"
+                            }
                             className="flex-1 min-w-[120px] bg-transparent outline-none text-sm"
                             onKeyDown={(e) => {
                               const target = e.currentTarget;
@@ -5007,21 +5055,27 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                               }
                             }}
                           >
-                            <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar palavra-chave
+                            <Plus className="h-3.5 w-3.5 mr-1" />
+                            {isTelegramMode && (selectedNode.data.triggerType || "command") === "command"
+                              ? "Adicionar comando"
+                              : "Adicionar palavra-chave"}
                           </Button>
                           {list.length > 0 && (
                             <span className="text-[11px] text-muted-foreground">
-                              {list.length} palavra(s)-chave
+                              {list.length} item(ns)
                             </span>
                           )}
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-1">
-                          Adicione várias palavras-chave. Pressione Enter ou vírgula para confirmar. O fluxo dispara quando qualquer uma for recebida.
+                          {isTelegramMode && (selectedNode.data.triggerType || "command") === "command"
+                            ? "Adicione comandos começando com /. Pressione Enter ou vírgula para confirmar."
+                            : "Pressione Enter ou vírgula para confirmar. O fluxo dispara quando qualquer item for recebido."}
                         </p>
                       </>
                     );
                   })()}
                 </div>
+                )}
               </>
             )}
 
