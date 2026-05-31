@@ -489,6 +489,7 @@ const nodeTypes: NodeTypes = {
   intervalo: IntervaloNode,
   mensagem: MensagemNode,
   pagamento: PagamentoNode,
+  grupo: GrupoNode,
 };
 
 function PagamentoNode({ id, data, selected }: any) {
