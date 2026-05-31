@@ -770,7 +770,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const fetchFluxos = async () => {
     try {
       setLoading(true);
-      const category = isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts');
+      const category = isTelegramMode ? 'telegram' : (isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts'));
       const { data, error } = await (supabase as any)
         .from('flow_automations')
         .select('*')
@@ -907,7 +907,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           nodes: fluxo.nodes,
           edges: fluxo.edges,
           active: false,
-          category: isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts'),
+          category: isTelegramMode ? 'telegram' : (isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts')),
         });
 
       if (error) throw error;
@@ -1236,7 +1236,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         nodes: serializedNodes,
         edges: serializedEdges,
         active: fluxoAtivo,
-          category: isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts'),
+          category: isTelegramMode ? 'telegram' : (isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts')),
       };
 
       if (currentFluxoId) {
