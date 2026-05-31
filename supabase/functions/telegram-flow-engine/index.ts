@@ -50,6 +50,19 @@ const normalize = (s: string) =>
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
 
+// Returns the trigger node in a flow: either legacy blocoInicial/blocoGatilho,
+// or new-format step node with data.kind === 'gatilho'.
+function findTriggerNode(nodes: FlowNode[]): FlowNode | null {
+  return (
+    nodes.find(
+      (n) =>
+        n.type === "blocoInicial" ||
+        n.type === "blocoGatilho" ||
+        (n.type === "step" && (n.data as any)?.kind === "gatilho"),
+    ) || nodes.find((n) => n.id === "1") || null
+  );
+}
+
 function findTriggerFlow(
   flows: any[],
   update: any,
@@ -61,12 +74,7 @@ function findTriggerFlow(
 
   for (const flow of flows) {
     const nodes = (flow.nodes || []) as FlowNode[];
-    const initial = nodes.find(
-      (n) =>
-        n.type === "blocoInicial" ||
-        n.type === "blocoGatilho" ||
-        n.id === "1",
-    );
+    const initial = findTriggerNode(nodes);
     if (!initial) continue;
 
     const rawKw: string = String(initial.data?.keyword ?? flow.keyword ?? "");
