@@ -295,7 +295,6 @@ const BLOCK_MENU: MenuItem[] = [
   { label: "Gerar pagamento", icon: CreditCard, iconClass: "text-muted-foreground/60", comingSoon: true },
   { label: "Intervalo", icon: Clock, iconClass: "text-amber-500", kind: "atraso" },
   { label: "Grupo", icon: Users, iconClass: "text-muted-foreground/60", comingSoon: true },
-  { label: "Pagamento global", icon: FolderOpen, iconClass: "text-muted-foreground/60", comingSoon: true },
 ];
 
 /* ---------------------------- Helpers ----------------------------- */
