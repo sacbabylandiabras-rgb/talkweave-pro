@@ -69,11 +69,11 @@ function findTriggerFlow(
     );
     if (!initial) continue;
 
+    const keyword: string = (initial.data?.keyword || flow.keyword || "").trim();
     const trigType: string =
       initial.data?.triggerType ||
       initial.data?.gatilho ||
-      "keyword";
-    const keyword: string = (initial.data?.keyword || flow.keyword || "").trim();
+      (keyword.startsWith("/") ? "command" : "keyword");
     const kwNorm = normalize(keyword);
 
     // command trigger e.g. /start
