@@ -363,18 +363,62 @@ async function runFlow({
               ? `Copie o código Pix abaixo e pague no seu app do banco:\n\n\`${brCode}\``
               : "Não foi possível gerar a cobrança no momento. Tente novamente em instantes.");
 
-          // Botão inline "Pagar com cartão" quando o usuário ativou cartão e
-          // forneceu um link de checkout no bloco.
-          const checkoutUrl = String(data.checkoutUrl || "").trim();
+          // Botão inline "Pagar com cartão" — gera (ou atualiza) um checkout
+          // próprio com o nome e o valor do produto e devolve o link.
           const acceptCard = data.acceptCard !== false;
-          const replyMarkup =
-            acceptCard && /^https?:\/\//i.test(checkoutUrl)
-              ? {
-                  inline_keyboard: [[
-                    { text: "💳 Pagar com cartão", url: checkoutUrl },
-                  ]],
-                }
-              : undefined;
+          let cardCheckoutUrl = "";
+          if (acceptCard) {
+            try {
+              const productName = String(data.description || "Pagamento").slice(0, 80);
+              const priceReais = amountCents / 100;
+              const shortUser = String(bot.user_id).replace(/-/g, "").slice(0, 8);
+              const shortNode = String(node.id).replace(/[^a-z0-9]/gi, "").slice(0, 10).toLowerCase();
+              const slug = `tg-${shortUser}-${shortNode}`;
+
+              const { data: existing } = await admin
+                .from("gateway_checkouts")
+                .select("id, config")
+                .eq("slug", slug)
+                .maybeSingle();
+
+              const nextConfig = {
+                ...((existing?.config as Record<string, any>) || {}),
+                productName,
+                price: priceReais,
+                creditCard: true,
+                pix: true,
+              };
+
+              if (existing?.id) {
+                await admin
+                  .from("gateway_checkouts")
+                  .update({ name: productName, config: nextConfig, status: true })
+                  .eq("id", existing.id);
+              } else {
+                await admin.from("gateway_checkouts").insert({
+                  user_id: bot.user_id,
+                  name: productName,
+                  slug,
+                  status: true,
+                  config: nextConfig,
+                });
+              }
+
+              const appBase =
+                Deno.env.get("APP_PUBLIC_URL") || "https://talkweave-pro.lovable.app";
+              cardCheckoutUrl = `${appBase.replace(/\/$/, "")}/pay/${slug}`;
+            } catch (e) {
+              console.error("[engine] failed to upsert flow checkout", (e as Error).message);
+            }
+          }
+
+          const replyMarkup = cardCheckoutUrl
+            ? {
+                inline_keyboard: [[
+                  { text: "💳 Pagar com cartão", url: cardCheckoutUrl },
+                ]],
+              }
+            : undefined;
 
           if (qrImage && /^https?:\/\//i.test(qrImage)) {
             await tgApi(bot.bot_token, "sendPhoto", {
