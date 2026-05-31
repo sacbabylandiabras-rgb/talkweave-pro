@@ -71,6 +71,7 @@ import {
   Users,
   FolderOpen,
   Copy,
+  Type,
 } from "lucide-react";
 
 /* ----------------------------- Types ----------------------------- */
