@@ -893,7 +893,6 @@ export default function FluxoTelegram() {
             defaultEdgeOptions={{
               type: "smoothstep",
               animated: true,
-              pathOptions: { borderRadius: 16 },
               markerEnd: {
                 type: MarkerType.ArrowClosed,
                 width: 22,
