@@ -50,6 +50,19 @@ const normalize = (s: string) =>
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
 
+// Returns the trigger node in a flow: either legacy blocoInicial/blocoGatilho,
+// or new-format step node with data.kind === 'gatilho'.
+function findTriggerNode(nodes: FlowNode[]): FlowNode | null {
+  return (
+    nodes.find(
+      (n) =>
+        n.type === "blocoInicial" ||
+        n.type === "blocoGatilho" ||
+        (n.type === "step" && (n.data as any)?.kind === "gatilho"),
+    ) || nodes.find((n) => n.id === "1") || null
+  );
+}
+
 function findTriggerFlow(
   flows: any[],
   update: any,
@@ -61,12 +74,7 @@ function findTriggerFlow(
 
   for (const flow of flows) {
     const nodes = (flow.nodes || []) as FlowNode[];
-    const initial = nodes.find(
-      (n) =>
-        n.type === "blocoInicial" ||
-        n.type === "blocoGatilho" ||
-        n.id === "1",
-    );
+    const initial = findTriggerNode(nodes);
     if (!initial) continue;
 
     const rawKw: string = String(initial.data?.keyword ?? flow.keyword ?? "");
@@ -153,11 +161,39 @@ async function runFlow({
     if (!node) break;
     const data = node.data || {};
     const label = String(data.label || "").toLowerCase();
-    const contentType: string = data.contentType || "text";
+    const kind: string = String((data as any).kind || "");
+    // Map new-format `kind` to a unified contentType for media branches
+    const contentType: string =
+      data.contentType ||
+      (kind === "imagem" ? "image" :
+       kind === "video" ? "video" :
+       kind === "audio" ? "audio" :
+       kind === "documento" ? "document" :
+       kind === "botoes" ? "interactive" :
+       kind === "texto" ? "text" :
+       "text");
+
+    // Skip non-executable framing nodes
+    if (node.type === "iniciar" || kind === "gatilho") {
+      const nextEdge = nextEdgeFor(edges, currentId);
+      currentId = nextEdge?.target || null;
+      continue;
+    }
 
     try {
-      // === Content block ===
-      if (node.type === "blocoConteudo") {
+      // === Content block (legacy + new format) ===
+      const isContent =
+        node.type === "blocoConteudo" ||
+        ["texto", "imagem", "video", "audio", "documento", "botoes"].includes(kind);
+      const isAction =
+        node.type === "blocoAcao" ||
+        ["digitando", "atraso"].includes(kind);
+      const isCondition =
+        node.type === "blocoCondicao" || kind === "condicao";
+      const isEnd =
+        node.type === "blocoFim" || kind === "fim" || label.includes("fim");
+
+      if (isContent) {
         const text = renderTemplate(data.message || data.text || data.content || "", variables);
 
         // Inline buttons?
@@ -228,8 +264,10 @@ async function runFlow({
       }
 
       // === Action block ===
-      else if (node.type === "blocoAcao") {
-        const actionType = data.actionType || "";
+      else if (isAction) {
+        const actionType =
+          data.actionType ||
+          (kind === "digitando" ? "typing" : kind === "atraso" ? "delay" : "");
         if (actionType === "typing") {
           await tgApi(bot.bot_token, "sendChatAction", { chat_id: chatId, action: "typing" });
           const dur = Math.min(Number(data.typingDuration) || 3, 8);
@@ -253,7 +291,7 @@ async function runFlow({
       }
 
       // === Condition block ===
-      else if (node.type === "blocoCondicao") {
+      else if (isCondition) {
         const value = renderTemplate(String(data.variable || data.field || ""), variables);
         const expected = renderTemplate(String(data.value || data.expected || ""), variables);
         const op: string = data.operator || data.condition || "contains";
@@ -275,7 +313,7 @@ async function runFlow({
       }
 
       // === End block ===
-      else if (node.type === "blocoFim" || label.includes("fim")) {
+      else if (isEnd) {
         await admin
           .from("telegram_flow_sessions")
           .update({ status: "finished", waiting_for: null, current_node_id: null, variables })
@@ -481,9 +519,7 @@ Deno.serve(async (req) => {
   // new_member trigger only fires on first contact (no prior session)
   if (!triggered && isFirstContact) {
     const newMemberFlow = (flows ?? []).find((f: any) => {
-      const init = (f.nodes || []).find(
-        (n: any) => n.type === "blocoInicial" || n.type === "blocoGatilho" || n.id === "1",
-      );
+      const init = findTriggerNode((f.nodes || []) as FlowNode[]);
       return init?.data?.triggerType === "new_member";
     });
     if (newMemberFlow) triggered = { flow: newMemberFlow, vars: { trigger: { type: "new_member" } } };
@@ -533,10 +569,9 @@ Deno.serve(async (req) => {
     .select("id")
     .single();
 
-  const initial = (flow.nodes as FlowNode[]).find(
-    (n) => n.type === "blocoInicial" || n.type === "blocoGatilho" || n.id === "1",
-  );
-  const firstEdge = nextEdgeFor(flow.edges || [], initial?.id || "1");
+  const nodesArr = (flow.nodes as FlowNode[]) || [];
+  const trigger = findTriggerNode(nodesArr);
+  const firstEdge = nextEdgeFor(flow.edges || [], trigger?.id || "1");
   if (!firstEdge) {
     await admin
       .from("telegram_flow_sessions")

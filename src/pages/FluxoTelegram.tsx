@@ -1,5 +1,1160 @@
-import FluxoVisual from "./FluxoVisual";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ReactFlow, {
+  addEdge,
+  Background,
+  BackgroundVariant,
+  Connection,
+  Controls,
+  Edge,
+  Handle,
+  MarkerType,
+  Node,
+  NodeTypes,
+  Position,
+  useEdgesState,
+  useNodesState,
+} from "reactflow";
+import "reactflow/dist/style.css";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import {
+  PlayCircle,
+  Plus,
+  Save,
+  Trash2,
+  ArrowLeft,
+  Key,
+  MessageSquare,
+  Image as ImageIcon,
+  Video,
+  FileText,
+  Mic,
+  Zap,
+  Clock,
+  GitBranch,
+  CheckCircle,
+  MousePointerClick,
+  X,
+  Send,
+  Activity,
+  Workflow,
+} from "lucide-react";
+
+/* ----------------------------- Types ----------------------------- */
+interface TelegramBot {
+  id: string;
+  username: string;
+  first_name: string;
+}
+
+interface FluxoTelegramItem {
+  id: string;
+  name: string;
+  active: boolean;
+  bot_id: string | null;
+  nodes: any[];
+  edges: any[];
+  updated_at: string;
+}
+
+/* --------------------------- Custom nodes -------------------------- */
+
+function IniciarNode({ data }: any) {
+  return (
+    <div className="relative px-5 py-4 rounded-2xl border border-border bg-card shadow-lg w-[260px]">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="p-1.5 rounded-md bg-primary/15 text-primary">
+          <PlayCircle className="h-4 w-4" />
+        </div>
+        <div className="text-sm font-semibold">Iniciar</div>
+      </div>
+      <p className="text-[11px] text-muted-foreground leading-snug mb-3">
+        O gatilho é responsável por acionar a automação
+      </p>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          data?.onAddTrigger?.();
+        }}
+        className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-medium py-2 rounded-md border border-dashed border-primary/40 text-primary hover:bg-primary/5 transition"
+      >
+        Novo gatilho <Plus className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          data?.onAddTrigger?.();
+        }}
+        className="mt-2 w-full text-[11px] text-primary/80 hover:underline text-right"
+      >
+        Primeiro gatilho
+      </button>
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-3 !h-3 !bg-primary !border-2 !border-background"
+      />
+    </div>
+  );
+}
+
+function StepNode({ data, selected }: any) {
+  const Icon = data.icon || MessageSquare;
+  return (
+    <div
+      className={`relative px-4 py-3 rounded-xl border bg-card shadow-md min-w-[220px] transition ${
+        selected ? "border-primary ring-2 ring-primary/30" : "border-border"
+      }`}
+    >
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-3 !h-3 !bg-primary !border-2 !border-background"
+      />
+      {data.badge && (
+        <span className="absolute -top-2.5 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-wide rounded-md bg-primary text-primary-foreground">
+          {data.badge}
+        </span>
+      )}
+      <div className="flex items-start gap-2">
+        <div className="p-1.5 rounded-md bg-primary/10 text-primary mt-0.5">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold truncate">{data.label}</div>
+          {data.summary && (
+            <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 whitespace-pre-wrap">
+              {data.summary}
+            </div>
+          )}
+        </div>
+      </div>
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-3 !h-3 !bg-primary !border-2 !border-background"
+      />
+    </div>
+  );
+}
+
+const nodeTypes: NodeTypes = {
+  iniciar: IniciarNode,
+  step: StepNode,
+};
+
+/* --------------------------- Block catalog -------------------------- */
+
+type StepKind =
+  | "gatilho"
+  | "texto"
+  | "imagem"
+  | "video"
+  | "documento"
+  | "audio"
+  | "botoes"
+  | "digitando"
+  | "atraso"
+  | "condicao"
+  | "fim";
+
+interface BlockDef {
+  kind: StepKind;
+  label: string;
+  description: string;
+  icon: any;
+  badge?: string;
+  initialData: Record<string, any>;
+}
+
+const BLOCKS: BlockDef[] = [
+  {
+    kind: "texto",
+    label: "Mensagem de texto",
+    description: "Envia uma mensagem de texto",
+    icon: MessageSquare,
+    initialData: { message: "" },
+  },
+  {
+    kind: "imagem",
+    label: "Foto",
+    description: "Envia uma foto com legenda opcional",
+    icon: ImageIcon,
+    initialData: { mediaUrl: "", message: "" },
+  },
+  {
+    kind: "video",
+    label: "Vídeo",
+    description: "Envia um vídeo com legenda opcional",
+    icon: Video,
+    initialData: { mediaUrl: "", message: "" },
+  },
+  {
+    kind: "audio",
+    label: "Áudio",
+    description: "Envia um arquivo de áudio",
+    icon: Mic,
+    initialData: { mediaUrl: "", message: "" },
+  },
+  {
+    kind: "documento",
+    label: "Documento",
+    description: "Envia um arquivo (PDF, etc.)",
+    icon: FileText,
+    initialData: { mediaUrl: "", message: "" },
+  },
+  {
+    kind: "botoes",
+    label: "Botões interativos",
+    description: "Envia mensagem com botões inline",
+    icon: MousePointerClick,
+    initialData: {
+      message: "Escolha uma opção:",
+      buttons: [{ title: "Opção 1", callback_data: "btn_1" }],
+    },
+  },
+  {
+    kind: "digitando",
+    label: "Mostrar 'digitando...'",
+    description: "Mostra status de digitando por alguns segundos",
+    icon: Activity,
+    initialData: { typingDuration: 3 },
+  },
+  {
+    kind: "atraso",
+    label: "Atraso",
+    description: "Aguarda alguns segundos antes do próximo bloco",
+    icon: Clock,
+    initialData: { delaySeconds: 5 },
+  },
+  {
+    kind: "condicao",
+    label: "Condição",
+    description: "Ramifica o fluxo com base em uma condição",
+    icon: GitBranch,
+    initialData: { variable: "last_message", operator: "contains", value: "" },
+  },
+  {
+    kind: "fim",
+    label: "Fim do fluxo",
+    description: "Encerra a execução",
+    icon: CheckCircle,
+    initialData: {},
+  },
+];
+
+const blockByKind = (k: StepKind) => BLOCKS.find((b) => b.kind === k);
+
+/* ---------------------------- Helpers ----------------------------- */
+
+function makeId() {
+  return `n_${Math.random().toString(36).slice(2, 9)}_${Date.now().toString(36)}`;
+}
+
+function nodeFromBlock(block: BlockDef, position: { x: number; y: number }): Node {
+  const Icon = block.icon;
+  return {
+    id: makeId(),
+    type: "step",
+    position,
+    data: {
+      kind: block.kind,
+      label: block.label,
+      icon: Icon,
+      badge: block.kind === "fim" ? "Fim" : undefined,
+      summary: "",
+      ...block.initialData,
+    },
+  };
+}
+
+function gatilhoNode(position: { x: number; y: number }): Node {
+  return {
+    id: makeId(),
+    type: "step",
+    position,
+    data: {
+      kind: "gatilho",
+      label: "Gatilho",
+      icon: Key,
+      badge: "Gatilho",
+      triggerType: "command",
+      keyword: "/start",
+      summary: "Comando: /start",
+    },
+  };
+}
+
+function summaryFor(data: any): string {
+  switch (data.kind as StepKind) {
+    case "gatilho":
+      if (data.triggerType === "new_member") return "Primeiro contato com o bot";
+      if (data.triggerType === "callback") return `Botão: ${data.keyword || "—"}`;
+      if (data.triggerType === "keyword") return `Palavra-chave: ${data.keyword || "—"}`;
+      return `Comando: ${data.keyword || "—"}`;
+    case "texto":
+      return data.message?.slice(0, 80) || "(sem texto)";
+    case "imagem":
+    case "video":
+    case "audio":
+    case "documento":
+      return data.mediaUrl ? "Mídia: " + data.mediaUrl.slice(0, 40) : "(sem mídia)";
+    case "botoes":
+      return `${data.buttons?.length || 0} botão(ões)`;
+    case "digitando":
+      return `${data.typingDuration || 3}s digitando`;
+    case "atraso":
+      return `Aguarda ${data.delaySeconds || 5}s`;
+    case "condicao":
+      return `${data.variable} ${data.operator} ${data.value}`;
+    default:
+      return "";
+  }
+}
+
+/* ============================ Main page ============================ */
 
 export default function FluxoTelegram() {
-  return <FluxoVisual mode="telegram" />;
+  const [list, setList] = useState<FluxoTelegramItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [currentId, setCurrentId] = useState<string | null>(null);
+  const [bots, setBots] = useState<TelegramBot[]>([]);
+  const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
+  const [name, setName] = useState("Novo Flow");
+  const [active, setActive] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useState<"fluxo" | "desempenho">("fluxo");
+
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [addOpenForSource, setAddOpenForSource] = useState<string | null>(null);
+
+  /* ----------------------- Load data ----------------------- */
+  useEffect(() => {
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("telegram_bots")
+        .select("id,username,first_name")
+        .eq("active", true)
+        .order("created_at", { ascending: false });
+      setBots((data as TelegramBot[]) || []);
+    })();
+    refreshList();
+  }, []);
+
+  const refreshList = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await (supabase as any)
+        .from("flow_automations")
+        .select("*")
+        .eq("category", "telegram")
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      setList((data as FluxoTelegramItem[]) || []);
+    } catch (e: any) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ----------------------- New / open ----------------------- */
+  const buildInitialCanvas = useCallback(() => {
+    const iniciarId = "iniciar";
+    setNodes([
+      {
+        id: iniciarId,
+        type: "iniciar",
+        position: { x: 80, y: 200 },
+        data: { onAddTrigger: () => addTriggerFromIniciar(iniciarId) },
+      },
+    ]);
+    setEdges([]);
+  }, [setNodes, setEdges]);
+
+  const openNew = () => {
+    setCurrentId(null);
+    setName("Novo Flow");
+    setActive(true);
+    setSelectedNode(null);
+    buildInitialCanvas();
+  };
+
+  const openExisting = (item: FluxoTelegramItem) => {
+    setCurrentId(item.id);
+    setName(item.name);
+    setActive(item.active);
+    setSelectedBotId(item.bot_id || null);
+    setSelectedNode(null);
+
+    // Rehydrate nodes — restore icons by kind
+    const hydrated = (item.nodes || []).map((n: any) => {
+      if (n.type === "iniciar") {
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            onAddTrigger: () => addTriggerFromIniciar(n.id),
+          },
+        };
+      }
+      const block =
+        n.data?.kind === "gatilho"
+          ? { icon: Key }
+          : blockByKind(n.data?.kind as StepKind);
+      return {
+        ...n,
+        data: { ...n.data, icon: block?.icon || MessageSquare, summary: summaryFor(n.data) },
+      };
+    });
+    setNodes(hydrated);
+    setEdges(item.edges || []);
+  };
+
+  const addTriggerFromIniciar = (iniciarId: string) => {
+    const g = gatilhoNode({ x: 420, y: 200 });
+    setNodes((nds) => [...nds, g]);
+    setEdges((eds) => [
+      ...eds,
+      {
+        id: `e_${iniciarId}_${g.id}`,
+        source: iniciarId,
+        target: g.id,
+        type: "smoothstep",
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+    ]);
+    setSelectedNode(g);
+  };
+
+  /* ----------------------- Add block from "+" ----------------------- */
+  const onConnect = useCallback(
+    (params: Connection) =>
+      setEdges((eds) =>
+        addEdge(
+          { ...params, type: "smoothstep", markerEnd: { type: MarkerType.ArrowClosed } },
+          eds,
+        ),
+      ),
+    [setEdges],
+  );
+
+  const addBlockAfter = (sourceId: string, block: BlockDef) => {
+    const source = nodes.find((n) => n.id === sourceId);
+    const base = source?.position || { x: 200, y: 200 };
+    const node = nodeFromBlock(block, { x: base.x + 320, y: base.y });
+    setNodes((nds) => [...nds, node]);
+    setEdges((eds) => [
+      ...eds,
+      {
+        id: `e_${sourceId}_${node.id}`,
+        source: sourceId,
+        target: node.id,
+        type: "smoothstep",
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+    ]);
+    setAddOpenForSource(null);
+    setSelectedNode(node);
+  };
+
+  /* ----------------------- Update / delete node ----------------------- */
+  const patchNode = (id: string, patch: Record<string, any>) => {
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.id !== id) return n;
+        const merged = { ...n.data, ...patch };
+        return { ...n, data: { ...merged, summary: summaryFor(merged) } };
+      }),
+    );
+    setSelectedNode((sel) =>
+      sel && sel.id === id ? { ...sel, data: { ...sel.data, ...patch } } : sel,
+    );
+  };
+
+  const deleteNode = (id: string) => {
+    if (id === "iniciar") {
+      toast.error("O bloco Iniciar não pode ser removido");
+      return;
+    }
+    setNodes((nds) => nds.filter((n) => n.id !== id));
+    setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+    setSelectedNode(null);
+  };
+
+  /* ----------------------- Save ----------------------- */
+  const save = async () => {
+    try {
+      if (!selectedBotId) {
+        toast.error("Selecione um bot do Telegram antes de salvar");
+        return;
+      }
+      const gatilho = nodes.find((n) => n.data?.kind === "gatilho");
+      if (!gatilho) {
+        toast.error("Adicione pelo menos um Gatilho ao fluxo");
+        return;
+      }
+      setSaving(true);
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      if (!userId) {
+        toast.error("Faça login novamente");
+        return;
+      }
+
+      // strip non-serializable
+      const cleanNodes = nodes.map((n) => ({
+        id: n.id,
+        type: n.type,
+        position: n.position,
+        data: Object.fromEntries(
+          Object.entries(n.data || {}).filter(
+            ([k, v]) => k !== "icon" && k !== "onAddTrigger" && typeof v !== "function",
+          ),
+        ),
+      }));
+      const cleanEdges = edges.map((e) => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        sourceHandle: e.sourceHandle ?? null,
+        targetHandle: e.targetHandle ?? null,
+        type: e.type || "smoothstep",
+      }));
+
+      const payload: any = {
+        user_id: userId,
+        name,
+        active,
+        category: "telegram",
+        bot_id: selectedBotId,
+        keyword: String(gatilho.data?.keyword || ""),
+        nodes: cleanNodes,
+        edges: cleanEdges,
+      };
+
+      if (currentId) {
+        const { error } = await (supabase as any)
+          .from("flow_automations")
+          .update(payload)
+          .eq("id", currentId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await (supabase as any)
+          .from("flow_automations")
+          .insert(payload)
+          .select("id")
+          .single();
+        if (error) throw error;
+        setCurrentId(data.id);
+      }
+      toast.success("Flow salvo!");
+      refreshList();
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Erro ao salvar: " + (e?.message || ""));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /* ============================ Render ============================ */
+
+  const inEditor = currentId !== null || nodes.length > 0;
+
+  if (!inEditor) {
+    return (
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold">Flow Chat</h1>
+                <Badge variant="secondary" className="text-[10px]">
+                  {list.length} FLOWS
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Crie e gerencie seus flows personalizados
+              </p>
+            </div>
+            <Button onClick={openNew} className="gap-2">
+              <Plus className="h-4 w-4" /> Novo flow
+            </Button>
+          </div>
+
+          {loading ? (
+            <div className="text-center text-muted-foreground py-16">Carregando…</div>
+          ) : list.length === 0 ? (
+            <div className="text-center py-20 border-2 border-dashed rounded-xl">
+              <Workflow className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
+              <p className="text-muted-foreground mb-4">
+                Nenhum flow ainda. Crie o primeiro!
+              </p>
+              <Button onClick={openNew} className="gap-2">
+                <Plus className="h-4 w-4" /> Criar primeiro flow
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {list.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => openExisting(f)}
+                  className="text-left border rounded-xl p-4 bg-card hover:border-primary/40 hover:shadow transition"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-semibold truncate">{f.name}</span>
+                    {f.active ? (
+                      <Badge variant="default" className="text-[10px]">Ativo</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px]">Inativo</Badge>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {(f.nodes?.length || 0)} blocos
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* --------------------- Editor view --------------------- */
+  return (
+    <div className="h-screen flex flex-col bg-background">
+      {/* Header */}
+      <div className="border-b px-4 py-3 flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => {
+            setCurrentId(null);
+            setNodes([]);
+            setEdges([]);
+            setSelectedNode(null);
+          }}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="h-8 text-base font-semibold border-0 px-1 focus-visible:ring-0 max-w-[260px]"
+            />
+            <Badge variant="outline" className="text-[10px]">MEU FLOW</Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Crie e gerencie seus flows personalizados
+          </p>
+        </div>
+
+        <Select value={selectedBotId || ""} onValueChange={(v) => setSelectedBotId(v)}>
+          <SelectTrigger className="w-[220px] h-9">
+            <SelectValue placeholder="Selecione um bot" />
+          </SelectTrigger>
+          <SelectContent>
+            {bots.length === 0 ? (
+              <div className="p-2 text-xs text-muted-foreground">
+                Conecte um bot na aba Conexão
+              </div>
+            ) : (
+              bots.map((b) => (
+                <SelectItem key={b.id} value={b.id}>
+                  {b.first_name || b.username} (@{b.username})
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+
+        <div className="flex items-center gap-2">
+          <Label className="text-xs">Ativo</Label>
+          <Switch checked={active} onCheckedChange={setActive} />
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b px-4">
+        <div className="flex gap-1">
+          {[
+            { id: "fluxo", label: "Meu Fluxo", icon: Workflow },
+            { id: "desempenho", label: "Desempenho", icon: Activity },
+          ].map((t) => {
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id as any)}
+                className={`px-3 py-2 text-xs font-medium flex items-center gap-1.5 border-b-2 transition ${
+                  tab === t.id
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Canvas */}
+      <div className="flex-1 relative">
+        {tab === "fluxo" ? (
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={(_, n) => {
+              if (n.type === "iniciar") return;
+              setSelectedNode(n);
+            }}
+            nodeTypes={nodeTypes}
+            fitView
+            defaultEdgeOptions={{
+              type: "smoothstep",
+              markerEnd: { type: MarkerType.ArrowClosed },
+              style: { stroke: "hsl(var(--primary))", strokeWidth: 2 },
+            }}
+          >
+            <Background
+              variant={BackgroundVariant.Dots}
+              gap={20}
+              size={1.5}
+              color="hsl(var(--muted-foreground) / 0.3)"
+            />
+            <Controls position="bottom-left" />
+          </ReactFlow>
+        ) : (
+          <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+            <div className="text-center">
+              <Activity className="h-10 w-10 mx-auto mb-2 opacity-30" />
+              <p>Desempenho do flow estará disponível em breve.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Floating action bar */}
+        <div className="absolute top-3 right-3 flex flex-col gap-2 bg-card border rounded-xl shadow-lg p-2">
+          <Button
+            size="icon"
+            variant="ghost"
+            title="Adicionar bloco após o selecionado"
+            onClick={() => {
+              if (!selectedNode) {
+                toast.error("Selecione um bloco no canvas primeiro");
+                return;
+              }
+              setAddOpenForSource(selectedNode.id);
+            }}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            title="Salvar"
+            onClick={save}
+            disabled={saving}
+          >
+            <Save className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            title="Remover bloco selecionado"
+            onClick={() => selectedNode && deleteNode(selectedNode.id)}
+            disabled={!selectedNode || selectedNode.id === "iniciar"}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Editor sheet */}
+      <Sheet
+        open={!!selectedNode && selectedNode.type !== "iniciar"}
+        onOpenChange={(o) => !o && setSelectedNode(null)}
+      >
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              {selectedNode?.data?.label}
+            </SheetTitle>
+            <SheetDescription className="text-xs">
+              Configure o bloco e clique em Salvar no canto direito do canvas.
+            </SheetDescription>
+          </SheetHeader>
+
+          {selectedNode && (
+            <div className="mt-4 space-y-4">
+              <BlockEditor
+                node={selectedNode}
+                onPatch={(p) => patchNode(selectedNode.id, p)}
+              />
+
+              <div className="pt-3 border-t flex items-center justify-between">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setAddOpenForSource(selectedNode.id)}
+                  className="gap-1"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Próximo bloco
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1 text-destructive"
+                  onClick={() => deleteNode(selectedNode.id)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Remover
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Add block dialog */}
+      <Dialog
+        open={!!addOpenForSource}
+        onOpenChange={(o) => !o && setAddOpenForSource(null)}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Adicionar bloco</DialogTitle>
+            <DialogDescription>
+              Escolha o tipo de bloco que será executado em seguida.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+            {BLOCKS.map((b) => {
+              const Icon = b.icon;
+              return (
+                <button
+                  key={b.kind}
+                  onClick={() => addOpenForSource && addBlockAfter(addOpenForSource, b)}
+                  className="border rounded-lg p-3 text-left hover:border-primary/40 hover:bg-primary/5 transition"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <Icon className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-semibold">{b.label}</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-snug">
+                    {b.description}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+/* ============================ BlockEditor ============================ */
+
+function BlockEditor({
+  node,
+  onPatch,
+}: {
+  node: Node;
+  onPatch: (p: Record<string, any>) => void;
+}) {
+  const kind = node.data?.kind as StepKind;
+  const d = node.data || {};
+
+  if (kind === "gatilho") {
+    return (
+      <>
+        <div>
+          <Label className="text-xs">Tipo de gatilho</Label>
+          <Select
+            value={String(d.triggerType || "command")}
+            onValueChange={(v) =>
+              onPatch({ triggerType: v, keyword: v === "new_member" ? "" : d.keyword })
+            }
+          >
+            <SelectTrigger className="mt-1 h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="command">Comando (/start, /menu…)</SelectItem>
+              <SelectItem value="keyword">Palavra-chave (texto)</SelectItem>
+              <SelectItem value="callback">Clique em botão</SelectItem>
+              <SelectItem value="new_member">Primeiro contato</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {d.triggerType !== "new_member" && (
+          <div>
+            <Label className="text-xs">
+              {d.triggerType === "command"
+                ? "Comandos (separados por vírgula)"
+                : d.triggerType === "callback"
+                ? "Callback data dos botões"
+                : "Palavras-chave"}
+            </Label>
+            <Input
+              value={d.keyword || ""}
+              onChange={(e) => onPatch({ keyword: e.target.value })}
+              placeholder={
+                d.triggerType === "command"
+                  ? "/start, /menu, /comprar"
+                  : d.triggerType === "callback"
+                  ? "btn_comprar, btn_planos"
+                  : "oi, menu, preço"
+              }
+              className="mt-1 h-9"
+            />
+          </div>
+        )}
+      </>
+    );
+  }
+
+  if (kind === "texto") {
+    return (
+      <div>
+        <Label className="text-xs">Mensagem</Label>
+        <Textarea
+          value={d.message || ""}
+          onChange={(e) => onPatch({ message: e.target.value })}
+          rows={6}
+          placeholder="Olá {{user.first_name}}! Bem-vindo."
+          className="mt-1"
+        />
+        <p className="text-[10px] text-muted-foreground mt-1">
+          Variáveis: <code>{`{{user.first_name}}`}</code>, <code>{`{{chat.id}}`}</code>,{" "}
+          <code>{`{{last_message}}`}</code>, <code>{`{{last_button}}`}</code>
+        </p>
+      </div>
+    );
+  }
+
+  if (["imagem", "video", "audio", "documento"].includes(kind)) {
+    return (
+      <>
+        <div>
+          <Label className="text-xs">URL da mídia</Label>
+          <Input
+            value={d.mediaUrl || ""}
+            onChange={(e) => onPatch({ mediaUrl: e.target.value })}
+            placeholder="https://..."
+            className="mt-1 h-9"
+          />
+        </div>
+        <div>
+          <Label className="text-xs">Legenda (opcional)</Label>
+          <Textarea
+            value={d.message || ""}
+            onChange={(e) => onPatch({ message: e.target.value })}
+            rows={3}
+            className="mt-1"
+          />
+        </div>
+      </>
+    );
+  }
+
+  if (kind === "botoes") {
+    const buttons: any[] = Array.isArray(d.buttons) ? d.buttons : [];
+    const update = (next: any[]) => onPatch({ buttons: next });
+    return (
+      <>
+        <div>
+          <Label className="text-xs">Mensagem</Label>
+          <Textarea
+            value={d.message || ""}
+            onChange={(e) => onPatch({ message: e.target.value })}
+            rows={3}
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <Label className="text-xs">Botões inline</Label>
+          <div className="mt-2 space-y-2">
+            {buttons.map((b, i) => (
+              <div key={i} className="flex gap-2 items-start">
+                <div className="flex-1 grid gap-1.5">
+                  <Input
+                    value={b.title || ""}
+                    onChange={(e) => {
+                      const next = [...buttons];
+                      next[i] = { ...b, title: e.target.value };
+                      update(next);
+                    }}
+                    placeholder="Texto do botão"
+                    className="h-8 text-sm"
+                  />
+                  <Input
+                    value={b.url || b.callback_data || ""}
+                    onChange={(e) => {
+                      const next = [...buttons];
+                      const v = e.target.value;
+                      next[i] = v.startsWith("http")
+                        ? { title: b.title, url: v }
+                        : { title: b.title, callback_data: v };
+                      update(next);
+                    }}
+                    placeholder="callback_data ou https://link"
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  onClick={() => update(buttons.filter((_, idx) => idx !== i))}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full gap-1"
+              onClick={() =>
+                update([
+                  ...buttons,
+                  { title: `Opção ${buttons.length + 1}`, callback_data: `btn_${buttons.length + 1}` },
+                ])
+              }
+            >
+              <Plus className="h-3.5 w-3.5" /> Adicionar botão
+            </Button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (kind === "digitando") {
+    return (
+      <div>
+        <Label className="text-xs">Duração (segundos)</Label>
+        <Input
+          type="number"
+          min={1}
+          max={8}
+          value={d.typingDuration || 3}
+          onChange={(e) => onPatch({ typingDuration: Number(e.target.value) })}
+          className="mt-1 h-9"
+        />
+      </div>
+    );
+  }
+
+  if (kind === "atraso") {
+    return (
+      <div>
+        <Label className="text-xs">Tempo de espera (segundos)</Label>
+        <Input
+          type="number"
+          min={1}
+          value={d.delaySeconds || 5}
+          onChange={(e) => onPatch({ delaySeconds: Number(e.target.value) })}
+          className="mt-1 h-9"
+        />
+      </div>
+    );
+  }
+
+  if (kind === "condicao") {
+    return (
+      <>
+        <div>
+          <Label className="text-xs">Variável</Label>
+          <Input
+            value={d.variable || "last_message"}
+            onChange={(e) => onPatch({ variable: e.target.value })}
+            className="mt-1 h-9"
+            placeholder="last_message, last_button, user.username..."
+          />
+        </div>
+        <div>
+          <Label className="text-xs">Operador</Label>
+          <Select
+            value={String(d.operator || "contains")}
+            onValueChange={(v) => onPatch({ operator: v })}
+          >
+            <SelectTrigger className="mt-1 h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="contains">contém</SelectItem>
+              <SelectItem value="equals">igual a</SelectItem>
+              <SelectItem value="not_equals">diferente de</SelectItem>
+              <SelectItem value="starts_with">começa com</SelectItem>
+              <SelectItem value="ends_with">termina com</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Valor</Label>
+          <Input
+            value={d.value || ""}
+            onChange={(e) => onPatch({ value: e.target.value })}
+            className="mt-1 h-9"
+          />
+        </div>
+        <p className="text-[10px] text-muted-foreground">
+          Conecte a saída TRUE no primeiro próximo bloco e a saída FALSE no segundo.
+        </p>
+      </>
+    );
+  }
+
+  if (kind === "fim") {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Este bloco encerra a execução do fluxo para o usuário.
+      </p>
+    );
+  }
+
+  return null;
 }
