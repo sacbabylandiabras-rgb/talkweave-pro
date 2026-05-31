@@ -1140,6 +1140,20 @@ const BLOCKS: BlockDef[] = [
     },
   },
   {
+    kind: "ia",
+    label: "Agente de IA",
+    description: "Responde a mensagem do usuário com inteligência artificial",
+    icon: Sparkles,
+    initialData: {
+      model: "google/gemini-3-flash-preview",
+      systemPrompt: "Você é um atendente prestativo e cordial. Responda de forma clara e objetiva.",
+      knowledge: "",
+      userInput: "{{last_message}}",
+      saveAs: "ai_response",
+      sendReply: true,
+    },
+  },
+  {
     kind: "fim",
     label: "Fim do fluxo",
     description: "Encerra a execução",
