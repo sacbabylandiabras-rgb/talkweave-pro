@@ -140,15 +140,15 @@ export default function TelegramAtualizarBot() {
     }
   }
 
-  if (loading) return <div className="p-6 text-white/60">Carregando...</div>;
+  if (loading) return <div className="p-6 text-muted-foreground">Carregando...</div>;
 
   if (bots.length === 0) {
     return (
       <div className="p-6">
-        <div className="glass-card rounded-2xl p-8 max-w-2xl text-center">
+        <div className="bg-card border border-border rounded-2xl p-8 max-w-2xl text-center">
           <Bot className="w-10 h-10 text-[#a78bfa] mx-auto mb-3" />
-          <h1 className="text-xl font-semibold text-white mb-2">Nenhum bot conectado</h1>
-          <p className="text-sm text-white/60 mb-4">
+          <h1 className="text-xl font-semibold text-foreground mb-2">Nenhum bot conectado</h1>
+          <p className="text-sm text-muted-foreground mb-4">
             Vá em <strong>Criar bot</strong> e conecte seu primeiro bot.
           </p>
           <Button asChild>
@@ -169,22 +169,22 @@ export default function TelegramAtualizarBot() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold text-white">Dados do bot</h1>
-          <p className="text-sm text-white/60 mt-1">
+          <h1 className="text-3xl font-semibold text-foreground">Dados do bot</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Atualize e mantenha seus dados em dia para uma experiência personalizada
           </p>
         </div>
       </div>
 
       {/* Gestão de Cadastro */}
-      <div className="rounded-2xl bg-[#0f0a24]/60 border border-white/10 p-6">
+      <div className="rounded-2xl bg-card border border-border p-6">
         <div className="flex items-center gap-2 mb-5">
           <div className="w-1 h-5 bg-primary rounded-full" />
-          <h2 className="text-lg font-semibold text-white">Gestão de Cadastro</h2>
+          <h2 className="text-lg font-semibold text-foreground">Gestão de Cadastro</h2>
           <div className="ml-auto">
             <Link
               to="/telegram/criar-bot"
-              className="text-xs text-white/60 hover:text-white inline-flex items-center gap-1.5"
+              className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
             >
               Acessar Flow Chat <Workflow className="w-3.5 h-3.5" />
             </Link>
@@ -196,8 +196,8 @@ export default function TelegramAtualizarBot() {
             <Bot className="w-6 h-6 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-white font-medium">Envie suas atualizações para a plataforma</h3>
-            <p className="text-xs text-white/60 mt-0.5">
+            <h3 className="text-foreground font-medium">Envie suas atualizações para a plataforma</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
               Ao modificar as informações do bot, não se esqueça de clicar em "Salvar alterações" para enviar as novas configurações
             </p>
           </div>
@@ -209,16 +209,16 @@ export default function TelegramAtualizarBot() {
       </div>
 
       {/* Configurações */}
-      <div className="rounded-2xl bg-[#0f0a24]/60 border border-white/10 p-6 space-y-5">
+      <div className="rounded-2xl bg-card border border-border p-6 space-y-5">
         <div>
-          <h2 className="text-lg font-semibold text-white">Configurações</h2>
-          <p className="text-xs text-white/60 mt-1">
+          <h2 className="text-lg font-semibold text-foreground">Configurações</h2>
+          <p className="text-xs text-muted-foreground mt-1">
             Definições de tipo de bot e token principal, mantenha as definições atualizadas para garantir a autenticação e o funcionamento
           </p>
         </div>
 
         <div>
-          <Label className="text-white text-sm">
+          <Label className="text-foreground text-sm">
             Bot<span className="text-primary">*</span>
           </Label>
           <Select value={selectedId} onValueChange={setSelectedId}>
@@ -236,7 +236,7 @@ export default function TelegramAtualizarBot() {
         </div>
 
         <div>
-          <Label className="text-white text-sm">
+          <Label className="text-foreground text-sm">
             Tipo<span className="text-primary">*</span>
           </Label>
           <Select value="flowchat" disabled>
@@ -250,7 +250,7 @@ export default function TelegramAtualizarBot() {
         </div>
 
         <div>
-          <Label className="text-white text-sm">
+          <Label className="text-foreground text-sm">
             Token do bot principal<span className="text-primary">*</span>
           </Label>
           {editingToken ? (
@@ -283,25 +283,25 @@ export default function TelegramAtualizarBot() {
           )}
         </div>
 
-        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 flex items-start gap-3">
+        <div className="rounded-lg border border-border bg-muted/30 p-3 flex items-start gap-3">
           <Workflow className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-          <p className="text-xs text-white/70">
-            Este bot foi criado via <strong className="text-white">Flow Chat</strong>. Acesse o Flow Chat e configure filtros para direcionar mensagens a públicos específicos, incluir imagens, textos, botões e mais.
+          <p className="text-xs text-foreground/80">
+            Este bot foi criado via <strong className="text-foreground">Flow Chat</strong>. Acesse o Flow Chat e configure filtros para direcionar mensagens a públicos específicos, incluir imagens, textos, botões e mais.
           </p>
         </div>
       </div>
 
       {/* Personalização */}
-      <div className="rounded-2xl bg-[#0f0a24]/60 border border-white/10 p-6 space-y-4">
+      <div className="rounded-2xl bg-card border border-border p-6 space-y-4">
         <div>
-          <h2 className="text-lg font-semibold text-white">Personalização do bot</h2>
-          <p className="text-xs text-white/60 mt-1">
+          <h2 className="text-lg font-semibold text-foreground">Personalização do bot</h2>
+          <p className="text-xs text-muted-foreground mt-1">
             Edite nome e descrições exibidas no perfil do bot.
           </p>
         </div>
 
         <div>
-          <Label className="text-white text-sm">Nome do bot (até 64 caracteres)</Label>
+          <Label className="text-foreground text-sm">Nome do bot (até 64 caracteres)</Label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -311,7 +311,7 @@ export default function TelegramAtualizarBot() {
         </div>
 
         <div>
-          <Label className="text-white text-sm">Descrição curta (até 120) — exibida no perfil</Label>
+          <Label className="text-foreground text-sm">Descrição curta (até 120) — exibida no perfil</Label>
           <Textarea
             value={shortDesc}
             onChange={(e) => setShortDesc(e.target.value)}
@@ -319,11 +319,11 @@ export default function TelegramAtualizarBot() {
             rows={2}
             className="mt-1.5"
           />
-          <p className="text-xs text-white/40 mt-1">{shortDesc.length}/120</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">{shortDesc.length}/120</p>
         </div>
 
         <div>
-          <Label className="text-white text-sm">
+          <Label className="text-foreground text-sm">
             Descrição longa (até 512) — tela "O que este bot pode fazer?"
           </Label>
           <Textarea
@@ -333,16 +333,16 @@ export default function TelegramAtualizarBot() {
             rows={4}
             className="mt-1.5"
           />
-          <p className="text-xs text-white/40 mt-1">{longDesc.length}/512</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">{longDesc.length}/512</p>
         </div>
       </div>
 
       {/* Comandos */}
-      <div className="rounded-2xl bg-[#0f0a24]/60 border border-white/10 p-6">
+      <div className="rounded-2xl bg-card border border-border p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-lg font-semibold text-white">Comandos do menu</h2>
-            <p className="text-xs text-white/60 mt-1">
+            <h2 className="text-lg font-semibold text-foreground">Comandos do menu</h2>
+            <p className="text-xs text-muted-foreground mt-1">
               Comandos aparecem no menu "/" dentro da conversa.
             </p>
           </div>
@@ -355,7 +355,7 @@ export default function TelegramAtualizarBot() {
           {commands.map((c, i) => (
             <div key={i} className="flex gap-2 items-start">
               <div className="flex-1 flex items-center gap-2">
-                <span className="text-white/60">/</span>
+                <span className="text-muted-foreground">/</span>
                 <Input
                   placeholder="start"
                   value={c.command}
@@ -372,23 +372,23 @@ export default function TelegramAtualizarBot() {
                 className="flex-[2]"
               />
               <Button size="icon" variant="ghost" onClick={() => removeCmd(i)}>
-                <Trash2 className="w-4 h-4 text-red-400" />
+                <Trash2 className="w-4 h-4 text-destructive" />
               </Button>
             </div>
           ))}
         </div>
-        <p className="text-xs text-white/40 mt-3">
+        <p className="text-xs text-muted-foreground/70 mt-3">
           Use letras minúsculas, números e <code>_</code>.
         </p>
       </div>
 
       {/* Suporte */}
-      <div className="rounded-2xl border border-white/10 bg-[#0f0a24]/60 p-5 flex items-center justify-between gap-4">
+      <div className="rounded-2xl border border-border bg-card p-5 flex items-center justify-between gap-4">
         <div>
-          <h3 className="text-white font-medium">
+          <h3 className="text-foreground font-medium">
             Está enfrentando alguma dificuldade com o seu bot e não conseguiu resolver sozinho?
           </h3>
-          <p className="text-xs text-white/60 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Entre em contato com nossa equipe! Estamos prontos para te ajudar a resolver problemas e ajustar configurações do seu bot.
           </p>
         </div>

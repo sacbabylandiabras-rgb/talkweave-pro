@@ -112,24 +112,24 @@ export default function TelegramPlanos() {
     <div className="space-y-6 w-full">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-semibold text-white">Planos</h1>
-        <p className="text-sm text-white/60 mt-1">
+        <h1 className="text-3xl font-semibold text-foreground">Planos</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Crie, gerencie e organize seus planos de pagamento de forma rápida, simples e eficiente
         </p>
       </div>
 
       {/* Banner */}
-      <div className="rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-r from-primary/30 via-primary/15 to-primary/5 p-8 relative">
+      <div className="rounded-2xl overflow-hidden border border-border bg-gradient-to-r from-primary/30 via-primary/15 to-primary/5 p-8 relative">
         <div className="grid md:grid-cols-2 gap-6 items-center relative z-10">
           <div>
-            <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
               Seu lugar já está <span className="text-primary">reservado</span>
               <br />
               na nossa <span className="bg-primary/30 px-2 py-0.5 rounded">comunidade</span>
             </h2>
           </div>
           <div className="text-right">
-            <h3 className="text-xl md:text-2xl font-semibold text-white">
+            <h3 className="text-xl md:text-2xl font-semibold text-foreground">
               Faça parte da nossa
               <br />
               <span className="text-primary">comunidade de Networking</span>
@@ -142,7 +142,7 @@ export default function TelegramPlanos() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2">
           <div className="w-1 h-5 bg-primary rounded-full" />
-          <h2 className="text-lg font-semibold text-white">Gestão de Planos</h2>
+          <h2 className="text-lg font-semibold text-foreground">Gestão de Planos</h2>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setOpenPix(true)}>
@@ -159,46 +159,46 @@ export default function TelegramPlanos() {
 
       {/* Métricas */}
       <div className="grid md:grid-cols-2 gap-4">
-        <div className="rounded-2xl border border-white/10 bg-[#0f0a24]/60 p-5">
+        <div className="rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs uppercase tracking-wide text-white/50">
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">
               Ganhos nos últimos 7 dias com planos
             </span>
-            <span className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-xs text-white/70">
+            <span className="w-7 h-7 rounded-full bg-muted/40 flex items-center justify-center text-xs text-foreground/80">
               7
             </span>
           </div>
           <div className="flex items-end gap-2">
-            <span className="text-2xl font-semibold text-white">R$ 0</span>
-            <span className="text-xs text-white/50 mb-1">23 ABR – 30 ABR</span>
+            <span className="text-2xl font-semibold text-foreground">R$ 0</span>
+            <span className="text-xs text-muted-foreground mb-1">23 ABR – 30 ABR</span>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-[#0f0a24]/60 p-5">
+        <div className="rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs uppercase tracking-wide text-white/50">
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">
               Ganhos mensais com planos
             </span>
-            <Calendar className="w-4 h-4 text-white/50" />
+            <Calendar className="w-4 h-4 text-muted-foreground" />
           </div>
           <div className="flex items-end gap-2">
-            <span className="text-2xl font-semibold text-white">R$ 0</span>
-            <span className="text-xs text-white/50 mb-1">ABR 2026</span>
+            <span className="text-2xl font-semibold text-foreground">R$ 0</span>
+            <span className="text-xs text-muted-foreground mb-1">ABR 2026</span>
           </div>
         </div>
       </div>
 
       {/* Tabela */}
-      <div className="rounded-2xl border border-white/10 bg-[#0f0a24]/60 overflow-hidden">
-        <div className="p-5 flex items-center justify-between gap-4 flex-wrap border-b border-white/5">
+      <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        <div className="p-5 flex items-center justify-between gap-4 flex-wrap border-b border-border">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-semibold text-white">Planos de pagamento ativos</h3>
+              <h3 className="text-base font-semibold text-foreground">Planos de pagamento ativos</h3>
               <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center">
                 {plans.length}
               </span>
             </div>
-            <p className="text-xs text-white/60 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Visualize todos os planos de pagamento atualmente ativos, com informações sobre
               valores, período de vigência, status e condições de cada plano.
             </p>
@@ -218,7 +218,7 @@ export default function TelegramPlanos() {
                 <Search className="w-4 h-4" />
               </Button>
             )}
-            <button className="h-8 px-3 rounded-md border border-white/10 bg-white/5 text-xs text-white/80 inline-flex items-center gap-1.5 hover:bg-white/10">
+            <button className="h-8 px-3 rounded-md border border-border bg-muted/40 text-xs text-foreground/90 inline-flex items-center gap-1.5 hover:bg-muted">
               <Globe className="w-3.5 h-3.5" /> Português <ChevronDown className="w-3 h-3" />
             </button>
           </div>
@@ -227,7 +227,7 @@ export default function TelegramPlanos() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs text-white/50 uppercase tracking-wide">
+              <tr className="text-left text-xs text-muted-foreground uppercase tracking-wide">
                 <th className="px-5 py-3 font-medium">Título</th>
                 <th className="px-5 py-3 font-medium">Preço</th>
                 <th className="px-5 py-3 font-medium">Cobrança</th>
@@ -239,18 +239,18 @@ export default function TelegramPlanos() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-12 text-center text-sm text-white/50">
+                  <td colSpan={6} className="px-5 py-12 text-center text-sm text-muted-foreground">
                     Nenhum plano encontrado
                   </td>
                 </tr>
               ) : (
                 filtered.map((p) => (
-                  <tr key={p.id} className="border-t border-white/5">
-                    <td className="px-5 py-3 text-white">{p.title}</td>
-                    <td className="px-5 py-3 text-white/80">{p.price}</td>
-                    <td className="px-5 py-3 text-white/80">{p.charge}</td>
-                    <td className="px-5 py-3 text-white/80">{p.cycle}</td>
-                    <td className="px-5 py-3 text-white/80">{p.message}</td>
+                  <tr key={p.id} className="border-t border-border">
+                    <td className="px-5 py-3 text-foreground">{p.title}</td>
+                    <td className="px-5 py-3 text-foreground/90">{p.price}</td>
+                    <td className="px-5 py-3 text-foreground/90">{p.charge}</td>
+                    <td className="px-5 py-3 text-foreground/90">{p.cycle}</td>
+                    <td className="px-5 py-3 text-foreground/90">{p.message}</td>
                     <td className="px-5 py-3 text-right">
                       <Button size="sm" variant="ghost">Editar</Button>
                     </td>
@@ -320,10 +320,10 @@ export default function TelegramPlanos() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 flex items-start justify-between gap-4">
+          <div className="rounded-xl border border-border bg-muted/30 p-4 flex items-start justify-between gap-4">
             <div className="flex-1">
-              <h4 className="text-white text-sm font-medium">Soma da data de expiração em assinaturas ativas</h4>
-              <p className="text-xs text-white/60 mt-1">
+              <h4 className="text-foreground text-sm font-medium">Soma da data de expiração em assinaturas ativas</h4>
+              <p className="text-xs text-muted-foreground mt-1">
                 Quando habilitado, se um cliente realizar uma compra pelo bot e já possuir uma assinatura ativa, a data
                 de expiração será somada à nova compra. Quando desabilitado, a data de expiração será calculada a partir
                 do dia da aprovação.
@@ -350,7 +350,7 @@ export default function TelegramPlanos() {
           </DialogHeader>
 
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="w-full justify-start bg-transparent border-b border-white/10 rounded-none p-0 h-auto">
+            <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none p-0 h-auto">
               <TabsTrigger
                 value="basic"
                 className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none px-4 py-2"
@@ -433,8 +433,8 @@ export default function TelegramPlanos() {
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-start gap-3">
                 <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-medium text-white">Uso de templates</h4>
-                  <p className="text-xs text-white/60 mt-0.5">
+                  <h4 className="text-sm font-medium text-foreground">Uso de templates</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     Use templates como <code className="text-primary">%price</code> e{" "}
                     <code className="text-primary">%firstname</code> para personalizar sua mensagem!
                     Eles serão substituídos pelos dados correspondentes.
@@ -465,9 +465,9 @@ export default function TelegramPlanos() {
                   className="mt-1.5"
                 />
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                <h4 className="text-sm font-medium text-white mb-3">Link de acesso</h4>
-                <button className="w-full border border-dashed border-white/15 rounded-lg py-3 text-sm text-white/60 hover:bg-white/5 inline-flex items-center justify-center gap-1.5">
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <h4 className="text-sm font-medium text-foreground mb-3">Link de acesso</h4>
+                <button className="w-full border border-dashed border-border rounded-lg py-3 text-sm text-muted-foreground hover:bg-muted/40 inline-flex items-center justify-center gap-1.5">
                   Adicionar novo link <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -506,18 +506,18 @@ export default function TelegramPlanos() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-sm">Mídia Order Bump</Label>
-                  <button className="mt-1.5 w-full border border-dashed border-white/15 rounded-lg py-6 text-sm text-white/60 hover:bg-white/5 flex flex-col items-center justify-center gap-1.5">
+                  <button className="mt-1.5 w-full border border-dashed border-border rounded-lg py-6 text-sm text-muted-foreground hover:bg-muted/40 flex flex-col items-center justify-center gap-1.5">
                     <ImageIcon className="w-5 h-5" />
                     <span>Clique para carregar uma imagem ou vídeo</span>
-                    <span className="text-[10px] text-white/40">JPEG, PNG e MP4, até 50 MB</span>
+                    <span className="text-[10px] text-muted-foreground/70">JPEG, PNG e MP4, até 50 MB</span>
                   </button>
                 </div>
                 <div>
                   <Label className="text-sm">Áudio Order Bump</Label>
-                  <button className="mt-1.5 w-full border border-dashed border-white/15 rounded-lg py-6 text-sm text-white/60 hover:bg-white/5 flex flex-col items-center justify-center gap-1.5">
+                  <button className="mt-1.5 w-full border border-dashed border-border rounded-lg py-6 text-sm text-muted-foreground hover:bg-muted/40 flex flex-col items-center justify-center gap-1.5">
                     <AudioLines className="w-5 h-5" />
                     <span>Clique para carregar um áudio</span>
-                    <span className="text-[10px] text-white/40">WAV, AIFF, PCM, MP3</span>
+                    <span className="text-[10px] text-muted-foreground/70">WAV, AIFF, PCM, MP3</span>
                   </button>
                 </div>
               </div>
@@ -552,9 +552,9 @@ export default function TelegramPlanos() {
                 <Label className="text-sm">Entregáveis</Label>
                 <Textarea placeholder="Escreva aqui o texto da upsell" rows={3} className="mt-1.5" />
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                <h4 className="text-sm font-medium text-white mb-3">Link de acesso</h4>
-                <button className="w-full border border-dashed border-white/15 rounded-lg py-3 text-sm text-white/60 hover:bg-white/5 inline-flex items-center justify-center gap-1.5">
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <h4 className="text-sm font-medium text-foreground mb-3">Link de acesso</h4>
+                <button className="w-full border border-dashed border-border rounded-lg py-3 text-sm text-muted-foreground hover:bg-muted/40 inline-flex items-center justify-center gap-1.5">
                   Adicionar novo link <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
