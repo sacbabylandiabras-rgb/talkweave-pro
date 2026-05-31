@@ -363,18 +363,33 @@ async function runFlow({
               ? `Copie o código Pix abaixo e pague no seu app do banco:\n\n\`${brCode}\``
               : "Não foi possível gerar a cobrança no momento. Tente novamente em instantes.");
 
+          // Botão inline "Pagar com cartão" quando o usuário ativou cartão e
+          // forneceu um link de checkout no bloco.
+          const checkoutUrl = String(data.checkoutUrl || "").trim();
+          const acceptCard = data.acceptCard !== false;
+          const replyMarkup =
+            acceptCard && /^https?:\/\//i.test(checkoutUrl)
+              ? {
+                  inline_keyboard: [[
+                    { text: "💳 Pagar com cartão", url: checkoutUrl },
+                  ]],
+                }
+              : undefined;
+
           if (qrImage && /^https?:\/\//i.test(qrImage)) {
             await tgApi(bot.bot_token, "sendPhoto", {
               chat_id: chatId,
               photo: qrImage,
               caption,
               parse_mode: "Markdown",
+              ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
             });
           } else {
             await tgApi(bot.bot_token, "sendMessage", {
               chat_id: chatId,
               text: caption,
               parse_mode: "Markdown",
+              ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
             });
           }
 
