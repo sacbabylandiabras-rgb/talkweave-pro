@@ -1897,6 +1897,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-base truncate">{fluxo.name}</h3>
+                        {isTelegramMode && fluxo.bot_id && (
+                          <Badge variant="outline" className="text-[10px] h-4 px-1 bg-blue-50/50">
+                            Bot Vinculado
+                          </Badge>
+                        )}
                       </div>
                       {fluxo.keyword && (
                         <div className="flex items-center gap-1.5">
