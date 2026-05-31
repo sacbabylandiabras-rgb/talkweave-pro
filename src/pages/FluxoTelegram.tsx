@@ -14,6 +14,7 @@ import ReactFlow, {
   ReactFlowInstance,
   useEdgesState,
   useNodesState,
+  useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,6 +70,7 @@ import {
   CreditCard,
   Users,
   FolderOpen,
+  Copy,
 } from "lucide-react";
 
 /* ----------------------------- Types ----------------------------- */
@@ -175,9 +177,143 @@ function StepNode({ data, selected }: any) {
   );
 }
 
+function IntervaloNode({ id, data, selected }: any) {
+  const { setNodes, setEdges, getNode } = useReactFlow();
+  const unit: "seconds" | "minutes" | "hours" = data.timeUnit || "seconds";
+  const value = data.delaySeconds ?? 10;
+  const showTyping = !!data.showTyping;
+
+  const patch = (p: Record<string, any>) => {
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.id !== id) return n;
+        const merged = { ...n.data, ...p };
+        return { ...n, data: { ...merged, summary: summaryFor(merged) } };
+      }),
+    );
+  };
+
+  const duplicate = () => {
+    const src = getNode(id);
+    if (!src) return;
+    const newId = `n_${Math.random().toString(36).slice(2, 9)}_${Date.now().toString(36)}`;
+    setNodes((nds) => [
+      ...nds,
+      {
+        ...src,
+        id: newId,
+        position: { x: src.position.x + 40, y: src.position.y + 40 },
+        selected: false,
+        data: { ...src.data },
+      } as Node,
+    ]);
+  };
+
+  const remove = () => {
+    setNodes((nds) => nds.filter((n) => n.id !== id));
+    setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+  };
+
+  return (
+    <div
+      className={`relative rounded-xl border bg-card shadow-md w-[280px] transition ${
+        selected ? "border-primary ring-2 ring-primary/30" : "border-border"
+      }`}
+    >
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-3 !h-3 !bg-primary !border-2 !border-background"
+      />
+
+      {/* Header */}
+      <div className="flex items-center justify-between gap-2 px-3 pt-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="p-1 rounded-md bg-amber-500/10 text-amber-500">
+            <Clock className="h-4 w-4" />
+          </div>
+          <div className="text-sm font-semibold truncate">Intervalo</div>
+        </div>
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              duplicate();
+            }}
+            className="p-1 rounded hover:bg-muted/60 hover:text-foreground transition"
+            aria-label="Duplicar"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              remove();
+            }}
+            className="p-1 rounded hover:bg-destructive/10 hover:text-destructive transition"
+            aria-label="Excluir"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="px-3 pb-3 pt-2 space-y-2 nodrag">
+        <div>
+          <label className="text-[11px] font-medium text-foreground/80">
+            Tempo<span className="text-destructive">*</span>
+          </label>
+          <div className="mt-1 flex items-stretch gap-2">
+            <Input
+              type="number"
+              min={1}
+              value={value}
+              onChange={(e) => patch({ delaySeconds: Number(e.target.value) })}
+              className="h-9 flex-1"
+            />
+            <Select
+              value={unit}
+              onValueChange={(v) => patch({ timeUnit: v })}
+            >
+              <SelectTrigger className="h-9 w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="seconds">Segundos</SelectItem>
+                <SelectItem value="minutes">Minutos</SelectItem>
+                <SelectItem value="hours">Horas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 pt-1">
+          <Switch
+            checked={showTyping}
+            onCheckedChange={(c) => patch({ showTyping: c })}
+          />
+          <span className="text-xs text-foreground/80">
+            Mostrar &quot;digitando...&quot;
+          </span>
+        </div>
+      </div>
+
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-3 !h-3 !bg-primary !border-2 !border-background"
+      />
+    </div>
+  );
+}
+
 const nodeTypes: NodeTypes = {
   iniciar: IniciarNode,
   step: StepNode,
+  intervalo: IntervaloNode,
 };
 
 /* --------------------------- Block catalog -------------------------- */
@@ -259,10 +395,10 @@ const BLOCKS: BlockDef[] = [
   },
   {
     kind: "atraso",
-    label: "Atraso",
+    label: "Intervalo",
     description: "Aguarda alguns segundos antes do próximo bloco",
     icon: Clock,
-    initialData: { delaySeconds: 5 },
+    initialData: { delaySeconds: 10, timeUnit: "seconds", showTyping: false },
   },
   {
     kind: "condicao",
@@ -307,7 +443,7 @@ function nodeFromBlock(block: BlockDef, position: { x: number; y: number }): Nod
   const Icon = block.icon;
   return {
     id: makeId(),
-    type: "step",
+    type: block.kind === "atraso" ? "intervalo" : "step",
     position,
     data: {
       kind: block.kind,
@@ -356,7 +492,11 @@ function summaryFor(data: any): string {
     case "digitando":
       return `${data.typingDuration || 3}s digitando`;
     case "atraso":
-      return `Aguarda ${data.delaySeconds || 5}s`;
+      {
+        const u = data.timeUnit || "seconds";
+        const label = u === "hours" ? "h" : u === "minutes" ? "min" : "s";
+        return `Aguarda ${data.delaySeconds ?? 10}${label}`;
+      }
     case "condicao":
       return `${data.variable} ${data.operator} ${data.value}`;
     default:
@@ -498,6 +638,7 @@ export default function FluxoTelegram() {
           : blockByKind(n.data?.kind as StepKind);
       return {
         ...n,
+        type: n.data?.kind === "atraso" ? "intervalo" : n.type,
         data: { ...n.data, icon: block?.icon || MessageSquare, summary: summaryFor(n.data) },
       };
     });
@@ -1339,16 +1480,44 @@ function BlockEditor({
 
   if (kind === "atraso") {
     return (
-      <div>
-        <Label className="text-xs">Tempo de espera (segundos)</Label>
-        <Input
-          type="number"
-          min={1}
-          value={d.delaySeconds || 5}
-          onChange={(e) => onPatch({ delaySeconds: Number(e.target.value) })}
-          className="mt-1 h-9"
-        />
-      </div>
+      <>
+        <div>
+          <Label className="text-xs">
+            Tempo <span className="text-destructive">*</span>
+          </Label>
+          <div className="mt-1 flex gap-2">
+            <Input
+              type="number"
+              min={1}
+              value={d.delaySeconds ?? 10}
+              onChange={(e) => onPatch({ delaySeconds: Number(e.target.value) })}
+              className="h-9 flex-1"
+            />
+            <Select
+              value={String(d.timeUnit || "seconds")}
+              onValueChange={(v) => onPatch({ timeUnit: v })}
+            >
+              <SelectTrigger className="h-9 w-[130px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="seconds">Segundos</SelectItem>
+                <SelectItem value="minutes">Minutos</SelectItem>
+                <SelectItem value="hours">Horas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={!!d.showTyping}
+            onCheckedChange={(c) => onPatch({ showTyping: c })}
+          />
+          <span className="text-xs text-foreground/80">
+            Mostrar &quot;digitando...&quot;
+          </span>
+        </div>
+      </>
     );
   }
 
