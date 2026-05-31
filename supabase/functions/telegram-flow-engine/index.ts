@@ -98,6 +98,10 @@ function findTriggerNode(nodes: FlowNode[]): FlowNode | null {
   );
 }
 
+function findAgentNode(nodes: FlowNode[]): FlowNode | null {
+  return nodes.find((n) => n.type === "ia" || (n.type === "step" && (n.data as any)?.kind === "ia")) || null;
+}
+
 function findTriggerFlow(
   flows: any[],
   update: any,
