@@ -64,11 +64,29 @@ const KIND_LABEL: Record<GroupKind, string> = {
   channel: "Canal",
 };
 
-// Planos disponíveis (mock - viria da página de Planos)
-const AVAILABLE_PLANS: { id: string; name: string; price: string }[] = [];
+// Planos disponíveis (lidos do localStorage, persistidos por TelegramPlanos)
+function readAvailablePlans(): { id: string; name: string; price: string }[] {
+  try {
+    const raw = localStorage.getItem("telegram_planos");
+    if (!raw) return [];
+    const arr = JSON.parse(raw) as Array<{ id: string; title: string; price: string }>;
+    return arr.map((p) => ({ id: p.id, name: p.title, price: p.price }));
+  } catch { return []; }
+}
 
 export default function TelegramGruposCanais() {
   const [items, setItems] = useState<TgGroup[]>([]);
+  const [AVAILABLE_PLANS, setAvailablePlans] = useState(() => readAvailablePlans());
+
+  useEffect(() => {
+    const reload = () => setAvailablePlans(readAvailablePlans());
+    window.addEventListener("storage", reload);
+    window.addEventListener("focus", reload);
+    return () => {
+      window.removeEventListener("storage", reload);
+      window.removeEventListener("focus", reload);
+    };
+  }, []);
 
   useEffect(() => {
     const stored = readTelegramGroupsChannels();
