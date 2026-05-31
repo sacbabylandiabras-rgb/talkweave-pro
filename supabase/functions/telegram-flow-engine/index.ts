@@ -69,35 +69,41 @@ function findTriggerFlow(
     );
     if (!initial) continue;
 
-    const keyword: string = (initial.data?.keyword || flow.keyword || "").trim();
+    const rawKw: string = String(initial.data?.keyword ?? flow.keyword ?? "");
+    const kwList = rawKw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     const trigType: string =
       initial.data?.triggerType ||
       initial.data?.gatilho ||
-      (keyword.startsWith("/") ? "command" : "keyword");
-    const kwNorm = normalize(keyword);
+      (kwList[0]?.startsWith("/") ? "command" : "keyword");
 
     // command trigger e.g. /start
     if (trigType === "command" && msg?.text) {
       const cmd = String(msg.text).split(/\s+/)[0].toLowerCase();
-      const want = (keyword || "").toLowerCase();
-      if (cmd === want || (want.startsWith("/") && cmd === want)) {
+      const want = kwList.map((k) =>
+        (k.startsWith("/") ? k : `/${k}`).toLowerCase(),
+      );
+      if (want.length === 0 || want.includes(cmd)) {
         return { flow, vars: { trigger: { type: "command", value: cmd } } };
       }
     }
     // callback button click
     if (trigType === "callback" && cb?.data) {
-      if (!kwNorm || normalize(cb.data) === kwNorm) {
+      const want = kwList.map(normalize);
+      if (want.length === 0 || want.includes(normalize(cb.data))) {
         return { flow, vars: { trigger: { type: "callback", value: cb.data } } };
       }
     }
-    // new member / first contact
-    if (trigType === "new_member") {
-      // handled by caller (only matched on first interaction) — see below
-    }
     // keyword (default)
-    if ((trigType === "keyword" || !trigType) && msg?.text && kwNorm) {
+    if ((trigType === "keyword" || !trigType) && msg?.text && kwList.length) {
       const matchType: string = initial.data?.matchType || "contains";
-      if (matchType === "exact" ? lower === kwNorm : lower.includes(kwNorm)) {
+      const hit = kwList.some((k) => {
+        const n = normalize(k);
+        return matchType === "exact" ? lower === n : lower.includes(n);
+      });
+      if (hit) {
         return { flow, vars: { trigger: { type: "keyword", value: text } } };
       }
     }
