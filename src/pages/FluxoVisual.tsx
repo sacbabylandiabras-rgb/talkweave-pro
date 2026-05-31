@@ -681,6 +681,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [fluxoAtivo, setFluxoAtivo] = useState(true);
   const [currentFluxoId, setCurrentFluxoId] = useState<string | null>(null);
   const [fluxosSalvos, setFluxosSalvos] = useState<FlowAutomation[]>([]);
+  const [telegramBots, setTelegramBots] = useState<TelegramBot[]>([]);
+  const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
   const leadPositions = useFlowLeadPositions(currentFluxoId);
   const [showFluxosList, setShowFluxosList] = useState(true);
   const [loading, setLoading] = useState(false);
