@@ -273,7 +273,8 @@ export default function Prospeccao() {
           "rating",
           "userRatingCount",
           "websiteURI",
-          "currentOpeningHours",
+          "regularOpeningHours",
+          "utcOffsetMinutes",
           "businessStatus",
           "location",
         ],
@@ -289,7 +290,7 @@ export default function Prospeccao() {
       }
 
       const { places: searchResults } = await Place.searchByText(request);
-      const places: Place[] = (searchResults ?? []).filter((p) => p.location).map((p) => ({
+      const places: Place[] = await Promise.all((searchResults ?? []).filter((p) => p.location).map(async (p) => ({
         id: p.id,
         name: p.displayName ?? "Sem nome",
         address: p.formattedAddress ?? "",
@@ -297,13 +298,13 @@ export default function Prospeccao() {
         rating: p.rating,
         userRatingCount: p.userRatingCount,
         website: p.websiteURI,
-        openNow: p.currentOpeningHours?.openNow,
+        openNow: await p.isOpen().catch(() => undefined),
         businessStatus: p.businessStatus,
         location: {
           lat: p.location!.lat(),
           lng: p.location!.lng(),
         },
-      }));
+      })));
       setResults(places);
       setTab("results");
       if (!places.length) toast.info("Nenhum resultado encontrado");
