@@ -89,17 +89,17 @@ interface FluxoTelegramItem {
 
 function IniciarNode({ data }: any) {
   return (
-    <div className="relative rounded-2xl border border-border/70 bg-card shadow-md w-[380px] overflow-hidden">
+    <div className="relative rounded-3xl border border-border/70 bg-card shadow-lg w-[560px] overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-2.5 px-6 py-5 border-b border-border/60">
-        <PlayCircle className="h-5 w-5 text-primary" strokeWidth={2} />
-        <div className="text-[20px] font-semibold text-foreground tracking-tight">
+      <div className="flex items-center gap-3 px-8 py-7 border-b border-border/60">
+        <PlayCircle className="h-8 w-8 text-primary" strokeWidth={2} />
+        <div className="text-[32px] font-semibold text-foreground tracking-tight leading-none">
           Iniciar
         </div>
       </div>
       {/* Body */}
-      <div className="px-6 py-5">
-        <p className="text-[15px] text-muted-foreground leading-snug mb-5">
+      <div className="px-8 py-7">
+        <p className="text-[22px] text-muted-foreground leading-snug mb-7">
           O gatilho é responsável por acionar a automação
         </p>
         <button
@@ -108,9 +108,9 @@ function IniciarNode({ data }: any) {
             e.stopPropagation();
             data?.onAddTrigger?.();
           }}
-          className="w-full inline-flex items-center justify-center gap-2 text-[16px] font-normal py-4 rounded-xl border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition"
+          className="w-full inline-flex items-center justify-center gap-3 text-[24px] font-normal py-7 rounded-2xl border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition"
         >
-          Novo gatilho <Plus className="h-4 w-4" />
+          Novo gatilho <Plus className="h-6 w-6" />
         </button>
         <button
           type="button"
@@ -118,7 +118,7 @@ function IniciarNode({ data }: any) {
             e.stopPropagation();
             data?.onAddTrigger?.();
           }}
-          className="mt-4 w-full text-[14px] font-medium text-primary hover:underline text-right"
+          className="mt-5 w-full text-[18px] font-medium text-primary hover:underline text-right"
         >
           Primeiro gatilho
         </button>
@@ -126,7 +126,7 @@ function IniciarNode({ data }: any) {
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-3.5 !h-3.5 !bg-background !border-2 !border-muted-foreground/40"
+        className="!w-4 !h-4 !bg-background !border-2 !border-muted-foreground/40"
       />
     </div>
   );
