@@ -1038,6 +1038,7 @@ type StepKind =
   | "condicao"
   | "pagamento"
   | "grupo"
+  | "ia"
   | "fim";
 
 interface BlockDef {
