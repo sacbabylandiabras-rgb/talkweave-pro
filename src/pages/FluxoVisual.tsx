@@ -2195,8 +2195,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     <svg width="24" height="24" viewBox="0 0 212 212" fill="#ccc"><path d="M106 0C47.5 0 0 47.5 0 106s47.5 106 106 106 106-47.5 106-106S164.5 0 106 0zm0 30c16.6 0 30 13.4 30 30s-13.4 30-30 30-30-13.4-30-30 13.4-30 30-30zm0 150c-26.5 0-49.9-13.5-63.5-34 .3-21 42.3-32.5 63.5-32.5s63.2 11.5 63.5 32.5C155.9 166.5 132.5 180 106 180z"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-[14px] font-medium truncate">Contato</p>
-                    <p className="text-white/70 text-[11px]">online</p>
+                    <p className="text-white text-[14px] font-medium truncate">{isTelegramMode ? "Bot Telegram" : "Contato"}</p>
+                    <p className="text-white/70 text-[11px]">{isTelegramMode ? "bot" : "online"}</p>
                   </div>
                   <div className="flex items-center gap-3 text-white/90">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 15.5c-1.25 0-2.45-.2-3.57-.57-.35-.11-.74-.03-1.02.24l-2.2 2.2c-2.83-1.44-5.15-3.75-6.59-6.59l2.2-2.21c.28-.26.36-.65.25-1C8.7 6.45 8.5 5.25 8.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1z"/></svg>
