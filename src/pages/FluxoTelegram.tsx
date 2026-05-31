@@ -504,6 +504,7 @@ type StepKind =
   | "digitando"
   | "atraso"
   | "condicao"
+  | "pagamento"
   | "fim";
 
 interface BlockDef {
@@ -581,6 +582,17 @@ const BLOCKS: BlockDef[] = [
     description: "Ramifica o fluxo com base em uma condição",
     icon: GitBranch,
     initialData: { variable: "last_message", operator: "contains", value: "" },
+  },
+  {
+    kind: "pagamento",
+    label: "Gerar pagamento",
+    description: "Cria uma cobrança e ramifica conforme o status",
+    icon: CreditCard,
+    initialData: {
+      amount: "10,00",
+      acceptCard: true,
+      showQrCode: true,
+    },
   },
   {
     kind: "fim",
