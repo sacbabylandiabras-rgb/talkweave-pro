@@ -2091,10 +2091,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 <FileUp className="h-4 w-4 mr-1.5" />
                 Importar
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setShowCapturedData(true)} className="h-8">
-                <Database className="h-4 w-4 mr-1.5" />
-                Dados Capturados
-              </Button>
+              {!isTelegramMode && (
+                <Button size="sm" variant="outline" onClick={() => setShowCapturedData(true)} className="h-8">
+                  <Database className="h-4 w-4 mr-1.5" />
+                  Dados Capturados
+                </Button>
+              )}
               <input
                 ref={fileInputRef}
                 type="file"
