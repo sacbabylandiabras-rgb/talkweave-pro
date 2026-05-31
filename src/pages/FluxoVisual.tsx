@@ -640,6 +640,13 @@ interface FlowAutomation {
   created_at: string;
   updated_at: string;
   category?: string;
+  bot_id?: string;
+}
+
+interface TelegramBot {
+  id: string;
+  username: string;
+  first_name: string;
 }
 
 interface FluxoVisualProps {
