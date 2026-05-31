@@ -1,0 +1,557 @@
+// Telegram Flow Engine — executes visual flows on Telegram updates.
+// Invoked by telegram-poll-bots (or by webhook) with { bot_id, update } payload.
+// Stateless across calls; persists progression in public.telegram_flow_sessions.
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+interface FlowNode {
+  id: string;
+  type?: string;
+  data?: any;
+}
+interface FlowEdge {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+}
+
+const tgApi = async (token: string, method: string, body: any) => {
+  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || !json?.ok) {
+    console.warn(`[tg] ${method} failed:`, json?.description || res.statusText);
+  }
+  return json;
+};
+
+const renderTemplate = (tpl: string, vars: Record<string, any>) =>
+  (tpl || "").replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, k) => {
+    const parts = String(k).split(".");
+    let cur: any = vars;
+    for (const p of parts) cur = cur?.[p];
+    return cur == null ? "" : String(cur);
+  });
+
+const normalize = (s: string) =>
+  (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+function findTriggerFlow(
+  flows: any[],
+  update: any,
+): { flow: any; vars: Record<string, any> } | null {
+  const msg = update.message ?? update.edited_message ?? null;
+  const cb = update.callback_query ?? null;
+  const text = (msg?.text ?? cb?.data ?? "") as string;
+  const lower = normalize(text);
+
+  for (const flow of flows) {
+    const nodes = (flow.nodes || []) as FlowNode[];
+    const initial = nodes.find(
+      (n) =>
+        n.type === "blocoInicial" ||
+        n.type === "blocoGatilho" ||
+        n.id === "1",
+    );
+    if (!initial) continue;
+
+    const trigType: string =
+      initial.data?.triggerType ||
+      initial.data?.gatilho ||
+      "keyword";
+    const keyword: string = (initial.data?.keyword || flow.keyword || "").trim();
+    const kwNorm = normalize(keyword);
+
+    // command trigger e.g. /start
+    if (trigType === "command" && msg?.text) {
+      const cmd = String(msg.text).split(/\s+/)[0].toLowerCase();
+      const want = (keyword || "").toLowerCase();
+      if (cmd === want || (want.startsWith("/") && cmd === want)) {
+        return { flow, vars: { trigger: { type: "command", value: cmd } } };
+      }
+    }
+    // callback button click
+    if (trigType === "callback" && cb?.data) {
+      if (!kwNorm || normalize(cb.data) === kwNorm) {
+        return { flow, vars: { trigger: { type: "callback", value: cb.data } } };
+      }
+    }
+    // new member / first contact
+    if (trigType === "new_member") {
+      // handled by caller (only matched on first interaction) — see below
+    }
+    // keyword (default)
+    if ((trigType === "keyword" || !trigType) && msg?.text && kwNorm) {
+      const matchType: string = initial.data?.matchType || "contains";
+      if (matchType === "exact" ? lower === kwNorm : lower.includes(kwNorm)) {
+        return { flow, vars: { trigger: { type: "keyword", value: text } } };
+      }
+    }
+  }
+  return null;
+}
+
+function nextEdgeFor(
+  edges: FlowEdge[],
+  sourceId: string,
+  handle: string | null = null,
+): FlowEdge | null {
+  return (
+    edges.find(
+      (e) =>
+        e.source === sourceId &&
+        (handle == null || e.sourceHandle == null || e.sourceHandle === handle),
+    ) || null
+  );
+}
+
+async function runFlow({
+  admin,
+  bot,
+  chatId,
+  flow,
+  startNodeId,
+  variables,
+  sessionId,
+}: {
+  admin: any;
+  bot: { id: string; user_id: string; bot_token: string };
+  chatId: number;
+  flow: any;
+  startNodeId: string;
+  variables: Record<string, any>;
+  sessionId: string;
+}) {
+  const nodes: FlowNode[] = flow.nodes || [];
+  const edges: FlowEdge[] = flow.edges || [];
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
+
+  let currentId: string | null = startNodeId;
+  let safety = 0;
+  while (currentId && safety++ < 200) {
+    const node = nodeById.get(currentId);
+    if (!node) break;
+    const data = node.data || {};
+    const label = String(data.label || "").toLowerCase();
+    const contentType: string = data.contentType || "text";
+
+    try {
+      // === Content block ===
+      if (node.type === "blocoConteudo") {
+        const text = renderTemplate(data.message || data.text || data.content || "", variables);
+
+        // Inline buttons?
+        const buttons: any[] = data.buttons || data.inlineButtons || [];
+        let reply_markup: any = undefined;
+        if (Array.isArray(buttons) && buttons.length > 0) {
+          reply_markup = {
+            inline_keyboard: buttons.map((b: any) => [
+              b.url
+                ? { text: String(b.title || b.label || "Botão"), url: b.url }
+                : { text: String(b.title || b.label || "Botão"), callback_data: String(b.id || b.callback_data || b.title || "btn") },
+            ]),
+          };
+        }
+
+        const mediaUrl: string | undefined = data.mediaUrl || data.fileUrl || data.url;
+
+        if (contentType === "image" || contentType === "photo") {
+          await tgApi(bot.bot_token, "sendPhoto", {
+            chat_id: chatId,
+            photo: mediaUrl,
+            caption: text || undefined,
+            reply_markup,
+          });
+        } else if (contentType === "video") {
+          await tgApi(bot.bot_token, "sendVideo", {
+            chat_id: chatId,
+            video: mediaUrl,
+            caption: text || undefined,
+            reply_markup,
+          });
+        } else if (contentType === "audio") {
+          await tgApi(bot.bot_token, "sendAudio", {
+            chat_id: chatId,
+            audio: mediaUrl,
+            caption: text || undefined,
+            reply_markup,
+          });
+        } else if (contentType === "document" || contentType === "file") {
+          await tgApi(bot.bot_token, "sendDocument", {
+            chat_id: chatId,
+            document: mediaUrl,
+            caption: text || undefined,
+            reply_markup,
+          });
+        } else {
+          await tgApi(bot.bot_token, "sendMessage", {
+            chat_id: chatId,
+            text: text || "(mensagem vazia)",
+            parse_mode: data.parseMode || undefined,
+            reply_markup,
+          });
+        }
+
+        // If buttons present, wait for user callback
+        if (reply_markup) {
+          await admin
+            .from("telegram_flow_sessions")
+            .update({
+              current_node_id: node.id,
+              variables,
+              waiting_for: "callback",
+              waiting_var: data.captureAs || "last_button",
+            })
+            .eq("id", sessionId);
+          return;
+        }
+      }
+
+      // === Action block ===
+      else if (node.type === "blocoAcao") {
+        const actionType = data.actionType || "";
+        if (actionType === "typing") {
+          await tgApi(bot.bot_token, "sendChatAction", { chat_id: chatId, action: "typing" });
+          const dur = Math.min(Number(data.typingDuration) || 3, 8);
+          await new Promise((r) => setTimeout(r, dur * 1000));
+        } else if (actionType === "delay") {
+          const seconds = Number(data.delaySeconds) || Number(data.seconds) || 5;
+          const resumeAt = new Date(Date.now() + seconds * 1000).toISOString();
+          await admin
+            .from("telegram_flow_sessions")
+            .update({
+              current_node_id: node.id,
+              variables,
+              waiting_for: null,
+              resume_at: resumeAt,
+            })
+            .eq("id", sessionId);
+          return;
+        } else if (actionType === "add_chat_message") {
+          // no-op for Telegram (used for in-app chat history). Skip silently.
+        }
+      }
+
+      // === Condition block ===
+      else if (node.type === "blocoCondicao") {
+        const value = renderTemplate(String(data.variable || data.field || ""), variables);
+        const expected = renderTemplate(String(data.value || data.expected || ""), variables);
+        const op: string = data.operator || data.condition || "contains";
+        let matched = false;
+        const a = normalize(value);
+        const b = normalize(expected);
+        switch (op) {
+          case "equals": matched = a === b; break;
+          case "not_equals": matched = a !== b; break;
+          case "starts_with": matched = a.startsWith(b); break;
+          case "ends_with": matched = a.endsWith(b); break;
+          case "contains":
+          default: matched = a.includes(b); break;
+        }
+        const handle = matched ? "true" : "false";
+        const nextEdge = nextEdgeFor(edges, node.id, handle) || nextEdgeFor(edges, node.id);
+        currentId = nextEdge?.target || null;
+        continue;
+      }
+
+      // === End block ===
+      else if (node.type === "blocoFim" || label.includes("fim")) {
+        await admin
+          .from("telegram_flow_sessions")
+          .update({ status: "finished", waiting_for: null, current_node_id: null, variables })
+          .eq("id", sessionId);
+        return;
+      }
+
+      // Default: just walk to next
+    } catch (e) {
+      console.error("[engine] node error", node.id, (e as Error).message);
+    }
+
+    const nextEdge = nextEdgeFor(edges, currentId);
+    currentId = nextEdge?.target || null;
+  }
+
+  // Flow exhausted
+  await admin
+    .from("telegram_flow_sessions")
+    .update({ status: "finished", waiting_for: null, current_node_id: null, variables })
+    .eq("id", sessionId);
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return new Response(JSON.stringify({ error: "invalid json" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Cron resume mode: { mode: "resume" }
+  if (body?.mode === "resume") {
+    const { data: pending } = await admin
+      .from("telegram_flow_sessions")
+      .select("*, telegram_bots!inner(id,user_id,bot_token)")
+      .lte("resume_at", new Date().toISOString())
+      .eq("status", "active")
+      .is("waiting_for", null)
+      .limit(20);
+    for (const s of pending ?? []) {
+      const bot = (s as any).telegram_bots;
+      const { data: flow } = await admin
+        .from("flow_automations")
+        .select("*")
+        .eq("id", s.flow_id)
+        .maybeSingle();
+      if (!flow) continue;
+      const edges = (flow.edges || []) as FlowEdge[];
+      const nextEdge = nextEdgeFor(edges, s.current_node_id || "");
+      if (!nextEdge) {
+        await admin
+          .from("telegram_flow_sessions")
+          .update({ status: "finished", resume_at: null })
+          .eq("id", s.id);
+        continue;
+      }
+      await admin
+        .from("telegram_flow_sessions")
+        .update({ resume_at: null })
+        .eq("id", s.id);
+      await runFlow({
+        admin,
+        bot,
+        chatId: Number(s.chat_id),
+        flow,
+        startNodeId: nextEdge.target,
+        variables: s.variables || {},
+        sessionId: s.id,
+      });
+    }
+    return new Response(JSON.stringify({ ok: true, resumed: pending?.length ?? 0 }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const { bot_id, update } = body || {};
+  if (!bot_id || !update) {
+    return new Response(JSON.stringify({ error: "bot_id and update required" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const { data: bot } = await admin
+    .from("telegram_bots")
+    .select("id,user_id,bot_token,active")
+    .eq("id", bot_id)
+    .maybeSingle();
+  if (!bot || !bot.active) {
+    return new Response(JSON.stringify({ ok: true, skipped: "bot_inactive" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const msg = update.message ?? update.edited_message ?? null;
+  const cb = update.callback_query ?? null;
+  const chatId: number | undefined = msg?.chat?.id ?? cb?.message?.chat?.id;
+  if (!chatId) {
+    return new Response(JSON.stringify({ ok: true, skipped: "no_chat" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Acknowledge callback to remove loading state on user side
+  if (cb?.id) {
+    await tgApi(bot.bot_token, "answerCallbackQuery", { callback_query_id: cb.id });
+  }
+
+  // Load existing session
+  let { data: session } = await admin
+    .from("telegram_flow_sessions")
+    .select("*")
+    .eq("bot_id", bot.id)
+    .eq("chat_id", chatId)
+    .maybeSingle();
+
+  // Resume waiting session
+  if (session && session.status === "active" && session.waiting_for) {
+    const { data: flow } = await admin
+      .from("flow_automations")
+      .select("*")
+      .eq("id", session.flow_id)
+      .maybeSingle();
+    if (!flow) {
+      await admin
+        .from("telegram_flow_sessions")
+        .update({ status: "finished", waiting_for: null })
+        .eq("id", session.id);
+      return new Response(JSON.stringify({ ok: true, info: "flow_gone" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const vars = { ...(session.variables || {}) };
+    if (session.waiting_for === "callback" && cb?.data) {
+      vars[session.waiting_var || "last_button"] = cb.data;
+    } else if (session.waiting_for === "message" && msg?.text) {
+      vars[session.waiting_var || "last_message"] = msg.text;
+    } else {
+      // wrong input type — keep waiting
+      return new Response(JSON.stringify({ ok: true, info: "still_waiting" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const edges: FlowEdge[] = flow.edges || [];
+    const handle = session.waiting_for === "callback" ? String(cb?.data || "") : null;
+    const nextEdge =
+      nextEdgeFor(edges, session.current_node_id || "", handle) ||
+      nextEdgeFor(edges, session.current_node_id || "");
+    if (!nextEdge) {
+      await admin
+        .from("telegram_flow_sessions")
+        .update({ status: "finished", waiting_for: null, variables: vars })
+        .eq("id", session.id);
+      return new Response(JSON.stringify({ ok: true, info: "flow_end" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    await admin
+      .from("telegram_flow_sessions")
+      .update({ waiting_for: null, waiting_var: null, variables: vars })
+      .eq("id", session.id);
+
+    await runFlow({
+      admin,
+      bot,
+      chatId,
+      flow,
+      startNodeId: nextEdge.target,
+      variables: vars,
+      sessionId: session.id,
+    });
+    return new Response(JSON.stringify({ ok: true, resumed: true }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // No active session — look for triggering flow
+  const { data: flows } = await admin
+    .from("flow_automations")
+    .select("*")
+    .eq("user_id", bot.user_id)
+    .eq("category", "telegram")
+    .eq("active", true)
+    .or(`bot_id.eq.${bot.id},bot_id.is.null`);
+
+  const isFirstContact = !session;
+  let triggered = findTriggerFlow(flows ?? [], update);
+
+  // new_member trigger only fires on first contact (no prior session)
+  if (!triggered && isFirstContact) {
+    const newMemberFlow = (flows ?? []).find((f: any) => {
+      const init = (f.nodes || []).find(
+        (n: any) => n.type === "blocoInicial" || n.type === "blocoGatilho" || n.id === "1",
+      );
+      return init?.data?.triggerType === "new_member";
+    });
+    if (newMemberFlow) triggered = { flow: newMemberFlow, vars: { trigger: { type: "new_member" } } };
+  }
+
+  if (!triggered) {
+    return new Response(JSON.stringify({ ok: true, info: "no_trigger" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const flow = triggered.flow;
+  const baseVars: Record<string, any> = {
+    ...(triggered.vars || {}),
+    user: {
+      id: msg?.from?.id ?? cb?.from?.id,
+      first_name: msg?.from?.first_name ?? cb?.from?.first_name,
+      username: msg?.from?.username ?? cb?.from?.username,
+    },
+    chat: { id: chatId },
+    lead: {
+      name: msg?.from?.first_name ?? cb?.from?.first_name ?? "",
+      phone: "",
+      email: "",
+    },
+  };
+
+  // Upsert session
+  const { data: upserted } = await admin
+    .from("telegram_flow_sessions")
+    .upsert(
+      {
+        bot_id: bot.id,
+        user_id: bot.user_id,
+        chat_id: chatId,
+        flow_id: flow.id,
+        current_node_id: null,
+        variables: baseVars,
+        waiting_for: null,
+        waiting_var: null,
+        resume_at: null,
+        status: "active",
+        last_update_id: update.update_id ?? null,
+      },
+      { onConflict: "bot_id,chat_id" },
+    )
+    .select("id")
+    .single();
+
+  const initial = (flow.nodes as FlowNode[]).find(
+    (n) => n.type === "blocoInicial" || n.type === "blocoGatilho" || n.id === "1",
+  );
+  const firstEdge = nextEdgeFor(flow.edges || [], initial?.id || "1");
+  if (!firstEdge) {
+    await admin
+      .from("telegram_flow_sessions")
+      .update({ status: "finished" })
+      .eq("id", upserted!.id);
+    return new Response(JSON.stringify({ ok: true, info: "empty_flow" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  await runFlow({
+    admin,
+    bot,
+    chatId,
+    flow,
+    startNodeId: firstEdge.target,
+    variables: baseVars,
+    sessionId: upserted!.id,
+  });
+
+  return new Response(JSON.stringify({ ok: true, started: flow.id }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+});
