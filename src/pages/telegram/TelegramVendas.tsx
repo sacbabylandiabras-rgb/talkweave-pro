@@ -30,10 +30,12 @@ export default function TelegramVendas() {
      const { data: { user } } = await supabase.auth.getUser();
      if (!user) return;
 
+     // Mostra apenas transações originadas pelo Telegram (metadata.source = 'telegram')
      const { data } = await supabase
        .from("gateway_transactions" as any)
        .select("*")
        .eq("user_id", user.id)
+       .contains("metadata", { source: "telegram" })
        .order("created_at", { ascending: false });
 
      setSales(data || []);
