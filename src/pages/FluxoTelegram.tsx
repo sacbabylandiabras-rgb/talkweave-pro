@@ -1357,6 +1357,16 @@ export default function FluxoTelegram() {
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onInit={(inst) => (rfInstanceRef.current = inst)}
+            deleteKeyCode={["Backspace", "Delete"]}
+            edgesUpdatable
+            edgesFocusable
+            onEdgeDoubleClick={(_, edge) =>
+              setEdges((eds) => eds.filter((e) => e.id !== edge.id))
+            }
+            onEdgeContextMenu={(e, edge) => {
+              e.preventDefault();
+              setEdges((eds) => eds.filter((ed) => ed.id !== edge.id));
+            }}
             onConnectStart={(_, params) => {
               connectStartRef.current = {
                 nodeId: params.nodeId ?? null,
