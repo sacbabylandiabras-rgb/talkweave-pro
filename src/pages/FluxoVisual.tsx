@@ -643,19 +643,28 @@ interface FlowAutomation {
 }
 
 interface FluxoVisualProps {
-  mode?: "contacts" | "groups" | "meta";
+  mode?: "contacts" | "groups" | "meta" | "telegram";
 }
 
 export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}) {
   const isGroupsMode = mode === "groups";
   const isMetaMode = false;
-  const pageTitle = isGroupsMode ? "Fluxo Grupos" : "Fluxos Visuais";
-  const pageSubtitle = isGroupsMode 
-    ? "Crie automações visuais para grupos do WhatsApp" 
-    : "Crie automações visuais disparadas por palavra-chave";
-  const emptyHelp = isGroupsMode
-    ? "Crie seu primeiro fluxo visual para grupos"
-    : "Crie seu primeiro fluxo visual para automatizar conversas no WhatsApp";
+  const isTelegramMode = mode === "telegram";
+  const pageTitle = isTelegramMode
+    ? "Fluxo Telegram"
+    : isGroupsMode
+      ? "Fluxo Grupos"
+      : "Fluxos Visuais";
+  const pageSubtitle = isTelegramMode
+    ? "Crie automações visuais para bots do Telegram"
+    : isGroupsMode
+      ? "Crie automações visuais para grupos do WhatsApp"
+      : "Crie automações visuais disparadas por palavra-chave";
+  const emptyHelp = isTelegramMode
+    ? "Crie seu primeiro fluxo visual para o Telegram"
+    : isGroupsMode
+      ? "Crie seu primeiro fluxo visual para grupos"
+      : "Crie seu primeiro fluxo visual para automatizar conversas no WhatsApp";
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
