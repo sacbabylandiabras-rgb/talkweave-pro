@@ -1531,16 +1531,28 @@ export default function FluxoTelegram() {
   };
 
   /* ----------------------- Update / delete node ----------------------- */
-  const patchNode = (id: string, patch: Record<string, any>) => {
+  const patchNode = (
+    id: string,
+    patch: Record<string, any> | ((data: any) => Record<string, any>),
+  ) => {
     setNodes((nds) =>
       nds.map((n) => {
         if (n.id !== id) return n;
-        const merged = { ...n.data, ...patch };
+        const p = typeof patch === "function" ? patch(n.data || {}) : patch;
+        const merged = { ...n.data, ...p };
         return { ...n, data: { ...merged, summary: summaryFor(merged) } };
       }),
     );
     setSelectedNode((sel) =>
-      sel && sel.id === id ? { ...sel, data: { ...sel.data, ...patch } } : sel,
+      sel && sel.id === id
+        ? {
+            ...sel,
+            data: {
+              ...sel.data,
+              ...(typeof patch === "function" ? patch(sel.data || {}) : patch),
+            },
+          }
+        : sel,
     );
   };
 
@@ -2411,7 +2423,7 @@ function BlockEditor({
   onPatch,
 }: {
   node: Node;
-  onPatch: (p: Record<string, any>) => void;
+  onPatch: (p: Record<string, any> | ((data: any) => Record<string, any>)) => void;
 }) {
   const kind = node.data?.kind as StepKind;
   const d = node.data || {};
@@ -2919,7 +2931,9 @@ function BlockEditor({
                     caption={d.tools?.previaCaption}
                     uploading={!!d.tools?._previaUploading}
                     onChange={(patch) =>
-                      onPatch({ tools: { ...(d.tools || {}), ...patch } })
+                      onPatch((curr: any) => ({
+                        tools: { ...(curr?.tools || {}), ...patch },
+                      }))
                     }
                     fields={{
                       url: "previaMediaUrl",
@@ -2962,7 +2976,9 @@ function BlockEditor({
                     caption={d.tools?.provaSocialCaption}
                     uploading={!!d.tools?._provaSocialUploading}
                     onChange={(patch) =>
-                      onPatch({ tools: { ...(d.tools || {}), ...patch } })
+                      onPatch((curr: any) => ({
+                        tools: { ...(curr?.tools || {}), ...patch },
+                      }))
                     }
                     fields={{
                       url: "provaSocialMediaUrl",
