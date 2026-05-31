@@ -2208,8 +2208,10 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 <div
                   className="flex-1 overflow-y-auto"
                   style={{
-                    backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'400\' height=\'400\' viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23667781\' fill-opacity=\'0.04\'%3E%3Cpath d=\'M20 20h8v8h-8zM60 10h8v8h-8zM100 30h8v8h-8zM140 5h8v8h-8zM180 25h8v8h-8zM220 15h8v8h-8zM260 35h8v8h-8zM300 8h8v8h-8zM340 28h8v8h-8zM380 18h8v8h-8zM10 60h8v8h-8zM50 50h8v8h-8zM90 70h8v8h-8zM130 45h8v8h-8zM170 65h8v8h-8zM210 55h8v8h-8zM250 40h8v8h-8zM290 72h8v8h-8zM330 52h8v8h-8zM370 42h8v8h-8z\'/%3E%3C/g%3E%3C/svg%3E")',
-                    backgroundColor: '#ECE5DD',
+                    backgroundImage: isTelegramMode 
+                      ? 'url("https://user-images.githubusercontent.com/1501842/75618174-c053f380-5b9d-11ea-9783-6f452899477e.jpg")'
+                      : 'url("data:image/svg+xml,%3Csvg width=\'400\' height=\'400\' viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23667781\' fill-opacity=\'0.04\'%3E%3Cpath d=\'M20 20h8v8h-8zM60 10h8v8h-8zM100 30h8v8h-8zM140 5h8v8h-8zM180 25h8v8h-8zM220 15h8v8h-8zM260 35h8v8h-8zM300 8h8v8h-8zM340 28h8v8h-8zM380 18h8v8h-8zM10 60h8v8h-8zM50 50h8v8h-8zM90 70h8v8h-8zM130 45h8v8h-8zM170 65h8v8h-8zM210 55h8v8h-8zM250 40h8v8h-8zM290 72h8v8h-8zM330 52h8v8h-8zM370 42h8v8h-8z\'/%3E%3C/g%3E%3C/svg%3E")',
+                    backgroundColor: isTelegramMode ? '#517da2' : '#ECE5DD',
                   }}
                 >
                   <div className="p-2.5 space-y-[2px]">
