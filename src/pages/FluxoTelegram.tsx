@@ -374,6 +374,10 @@ export default function FluxoTelegram() {
   >(null);
   const rfWrapperRef = useRef<HTMLDivElement | null>(null);
   const rfInstanceRef = useRef<ReactFlowInstance | null>(null);
+  const lastSelectedRef = useRef<Node | null>(null);
+  useEffect(() => {
+    if (selectedNode) lastSelectedRef.current = selectedNode;
+  }, [selectedNode]);
   const connectStartRef = useRef<
     { nodeId: string | null; handleId: string | null; handleType: string | null } | null
   >(null);
