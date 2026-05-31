@@ -722,7 +722,12 @@ export default function FluxoTelegram() {
           : blockByKind(n.data?.kind as StepKind);
       return {
         ...n,
-        type: n.data?.kind === "atraso" ? "intervalo" : n.type,
+        type:
+          n.data?.kind === "atraso"
+            ? "intervalo"
+            : n.data?.kind === "texto"
+            ? "mensagem"
+            : n.type,
         data: { ...n.data, icon: block?.icon || MessageSquare, summary: summaryFor(n.data) },
       };
     });
