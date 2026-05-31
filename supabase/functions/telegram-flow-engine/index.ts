@@ -517,6 +517,8 @@ Deno.serve(async (req) => {
     await tgApi(bot.bot_token, "answerCallbackQuery", { callback_query_id: cb.id });
   }
 
+  const incomingCommand = typeof msg?.text === "string" && msg.text.trim().startsWith("/");
+
   // Load existing session
   let { data: session } = await admin
     .from("telegram_flow_sessions")
@@ -526,7 +528,7 @@ Deno.serve(async (req) => {
     .maybeSingle();
 
   // Resume waiting session
-  if (session && session.status === "active" && session.waiting_for) {
+  if (session && session.status === "active" && session.waiting_for && !incomingCommand) {
     const { data: flow } = await admin
       .from("flow_automations")
       .select("*")
