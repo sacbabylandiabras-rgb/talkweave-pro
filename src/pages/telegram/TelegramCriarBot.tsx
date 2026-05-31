@@ -143,10 +143,10 @@ export default function TelegramCriarBot() {
     <div className="space-y-6 w-full">
       {/* Header */}
       <div>
-        <h1 className="font-bebas text-[26px] text-white tracking-[2px] leading-none">
+        <h1 className="font-bebas text-[26px] text-foreground tracking-[2px] leading-none">
           CADASTRAR BOT
         </h1>
-        <p className="font-nunito text-[12px] text-white/40 mt-1">
+        <p className="font-nunito text-[12px] text-muted-foreground mt-1">
           Crie um novo bot, configurando suas informações para começar a automatizar interações e
           gerenciar mensagens de forma eficiente.
         </p>
@@ -154,21 +154,21 @@ export default function TelegramCriarBot() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form principal */}
-        <div className="glass-card rounded-2xl p-6 lg:col-span-2">
+        <div className="rounded-2xl p-6 lg:col-span-2 bg-card border border-border shadow-sm">
           <div className="mb-5">
-            <h2 className="text-base font-semibold text-white">Configurar cadastro</h2>
-            <p className="text-xs text-white/50 mt-1">
+            <h2 className="text-base font-semibold text-foreground">Configurar cadastro</h2>
+            <p className="text-xs text-muted-foreground mt-1">
               Crie e gerencie tokens, tipos e configurações do bot.
             </p>
           </div>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-white text-sm">
-                Tipo<span className="text-red-400">*</span>
+              <Label className="text-foreground text-sm">
+                Tipo<span className="text-destructive">*</span>
               </Label>
               <Select value={botType} onValueChange={setBotType}>
-                <SelectTrigger className="bg-white/5 border-white/10">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -178,25 +178,25 @@ export default function TelegramCriarBot() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white text-sm">
-                Token do bot principal<span className="text-red-400">*</span>
+              <Label className="text-foreground text-sm">
+                Token do bot principal<span className="text-destructive">*</span>
               </Label>
               <Input
                 type="password"
                 placeholder="Insira o token fornecido pelo bot father"
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
-                className="font-mono bg-white/5 border-white/10"
+                className="font-mono"
                 disabled={loading}
               />
             </div>
 
-            <div className="flex items-start gap-3 rounded-xl bg-[rgba(96,165,250,0.08)] border border-[rgba(96,165,250,0.2)] p-3">
-              <div className="w-7 h-7 rounded-lg bg-[rgba(96,165,250,0.18)] flex items-center justify-center shrink-0">
-                <Workflow className="w-4 h-4 text-[#60a5fa]" />
+            <div className="flex items-start gap-3 rounded-xl bg-primary/10 border border-primary/20 p-3">
+              <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+                <Workflow className="w-4 h-4 text-primary" />
               </div>
-              <p className="text-xs text-white/70 leading-relaxed">
-                Você escolheu criar o bot pelo <span className="text-[#60a5fa] font-medium">Flow Chat</span>.
+              <p className="text-xs text-foreground/80 leading-relaxed">
+                Você escolheu criar o bot pelo <span className="text-primary font-medium">Flow Chat</span>.
                 Após a criação, acesse o Flow Chat, configure filtros para direcionar mensagens a públicos
                 específicos, inclua imagens, textos, botões e mais.
               </p>
@@ -205,47 +205,47 @@ export default function TelegramCriarBot() {
         </div>
 
         {/* Sidebar tutoriais */}
-        <div className="glass-card rounded-2xl p-6 space-y-4">
+        <div className="rounded-2xl p-6 space-y-4 bg-card border border-border shadow-sm">
           <div>
-            <h2 className="text-base font-semibold text-white">Tutoriais e orientações</h2>
+            <h2 className="text-base font-semibold text-foreground">Tutoriais e orientações</h2>
           </div>
 
           <div className="space-y-3">
-            <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-2">
-              <p className="text-xs text-white/70 leading-relaxed">
-                <span className="font-medium text-white">1.</span> Crie um bot no Telegram usando o{" "}
-                <span className="font-medium text-white">BotFather</span> e copie o token gerado para
+            <div className="rounded-xl bg-muted/50 border border-border p-4 space-y-2">
+              <p className="text-xs text-foreground/80 leading-relaxed">
+                <span className="font-medium text-foreground">1.</span> Crie um bot no Telegram usando o{" "}
+                <span className="font-medium text-foreground">BotFather</span> e copie o token gerado para
                 prosseguir com a configuração.
               </p>
               <a
                 href="https://t.me/BotFather"
                 target="_blank"
                 rel="noreferrer"
-                className="text-[#60a5fa] hover:underline inline-flex items-center gap-1.5 text-xs font-medium"
+                className="text-primary hover:underline inline-flex items-center gap-1.5 text-xs font-medium"
               >
                 <ExternalLink className="w-3.5 h-3.5" /> Acessar BotFather
               </a>
             </div>
 
-            <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-2">
-              <p className="text-xs text-white/70 leading-relaxed">
-                <span className="font-medium text-white">2.</span> Se for sua primeira vez criando um
+            <div className="rounded-xl bg-muted/50 border border-border p-4 space-y-2">
+              <p className="text-xs text-foreground/80 leading-relaxed">
+                <span className="font-medium text-foreground">2.</span> Se for sua primeira vez criando um
                 bot, assista ao nosso{" "}
-                <span className="font-medium text-white">vídeo tutorial</span>. Ele mostra passo a passo
+                <span className="font-medium text-foreground">vídeo tutorial</span>. Ele mostra passo a passo
                 como preencher as informações e garantir um bot funcional.
               </p>
               <a
                 href="https://www.youtube.com/results?search_query=como+criar+bot+telegram+botfather"
                 target="_blank"
                 rel="noreferrer"
-                className="text-[#f87171] hover:underline inline-flex items-center gap-1.5 text-xs font-medium"
+                className="text-destructive hover:underline inline-flex items-center gap-1.5 text-xs font-medium"
               >
                 <Youtube className="w-3.5 h-3.5" /> Assistir tutorial
               </a>
             </div>
 
-            <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-3">
-              <p className="text-xs text-white/70 leading-relaxed">
+            <div className="rounded-xl bg-muted/50 border border-border p-4 space-y-3">
+              <p className="text-xs text-foreground/80 leading-relaxed">
                 Se o vídeo não esclarecer todas as dúvidas, nosso suporte estará à disposição para
                 ajudar com prazer.
               </p>
@@ -258,23 +258,23 @@ export default function TelegramCriarBot() {
       </div>
 
       {/* Lista de bots conectados */}
-      <div className="glass-card rounded-2xl p-6">
+      <div className="rounded-2xl p-6 bg-card border border-border shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-base font-semibold text-white">Bots cadastrados</h2>
-            <p className="text-xs text-white/50 mt-0.5">Gerencie e acompanhe seus bots ativos</p>
+            <h2 className="text-base font-semibold text-foreground">Bots cadastrados</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Gerencie e acompanhe seus bots ativos</p>
           </div>
-          <span className="text-xs text-white/50">
+          <span className="text-xs text-muted-foreground">
             {bots.length} {bots.length === 1 ? "bot" : "bots"}
           </span>
         </div>
         {fetching ? (
-          <p className="text-white/50 text-sm">Carregando...</p>
+          <p className="text-muted-foreground text-sm">Carregando...</p>
         ) : bots.length === 0 ? (
           <div className="text-center py-10">
-            <Bot className="w-10 h-10 text-white/20 mx-auto mb-3" />
-            <p className="text-white/50 text-sm">Nenhum bot cadastrado ainda.</p>
-            <p className="text-white/40 text-xs mt-1">
+            <Bot className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+            <p className="text-muted-foreground text-sm">Nenhum bot cadastrado ainda.</p>
+            <p className="text-muted-foreground/70 text-xs mt-1">
               Preencha o formulário acima e clique em "Cadastrar bot" para começar.
             </p>
           </div>
@@ -283,28 +283,28 @@ export default function TelegramCriarBot() {
             {bots.map((b) => (
               <div
                 key={b.id}
-                className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 flex-wrap gap-3"
+                className="flex items-center justify-between p-4 rounded-xl bg-muted/50 border border-border flex-wrap gap-3"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-[rgba(96,165,250,0.2)] flex items-center justify-center shrink-0">
-                    <Bot className="w-5 h-5 text-[#60a5fa]" />
+                  <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                    <Bot className="w-5 h-5 text-primary" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-white font-medium truncate">
+                      <span className="text-foreground font-medium truncate">
                         {b.first_name || "(sem nome)"}
                       </span>
                       {b.active ? (
-                        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                        <span className="text-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3" /> ativo
                         </span>
                       ) : (
-                        <span className="text-[10px] bg-white/10 text-white/60 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                        <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                           <PauseCircle className="w-3 h-3" /> pausado
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-white/50 flex items-center gap-2 flex-wrap">
+                    <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
                       <span>@{b.username}</span>
                       <span>·</span>
                       <span>ID {b.bot_id}</span>
@@ -314,12 +314,12 @@ export default function TelegramCriarBot() {
                           navigator.clipboard.writeText(`@${b.username}`);
                           toast.success("Username copiado");
                         }}
-                        className="hover:text-white"
+                        className="hover:text-foreground"
                       >
                         <Copy className="w-3 h-3" />
                       </button>
                     </div>
-                    <div className="text-[11px] text-white/40 flex items-center gap-1 mt-1">
+                    <div className="text-[11px] text-muted-foreground/80 flex items-center gap-1 mt-1">
                       <Clock className="w-3 h-3" />
                       Última validação: {formatRelative(b.last_validated_at)}
                     </div>
@@ -343,7 +343,7 @@ export default function TelegramCriarBot() {
                     {b.active ? "Pausar" : "Ativar"}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => removeBot(b)}>
-                    <Trash2 className="w-4 h-4 text-red-400" />
+                    <Trash2 className="w-4 h-4 text-destructive" />
                   </Button>
                 </div>
               </div>
@@ -353,11 +353,11 @@ export default function TelegramCriarBot() {
       </div>
 
       {/* Footer de ações */}
-      <div className="border-t border-white/10 bg-[#0f0a24]/60 backdrop-blur-md px-6 py-4 rounded-xl flex items-center justify-between gap-3">
+      <div className="border border-border bg-card px-6 py-4 rounded-xl flex items-center justify-between gap-3 shadow-sm">
         <button
           type="button"
           onClick={() => navigate("/telegram/dashboard")}
-          className="text-sm text-white/60 hover:text-white transition-colors inline-flex items-center gap-1.5"
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1.5"
         >
           <Info className="w-3.5 h-3.5" /> Cancelar cadastro
         </button>
