@@ -1982,6 +1982,81 @@ function ButtonsFields({
   );
 }
 
+function InlineButtonsEditor({
+  d,
+  onPatch,
+}: {
+  d: Record<string, any>;
+  onPatch: (p: Record<string, any>) => void;
+}) {
+  const buttons: any[] = Array.isArray(d.buttons) ? d.buttons : [];
+  const update = (next: any[]) => onPatch({ buttons: next });
+
+  return (
+    <div>
+      <Label className="text-xs">Botões inline (opcional)</Label>
+      <div className="mt-2 space-y-2">
+        {buttons.map((b, i) => (
+          <div
+            key={i}
+            className="rounded-lg border border-border/60 bg-muted/20 p-2 flex gap-2 items-start"
+          >
+            <div className="flex-1 grid gap-1.5">
+              <Input
+                value={b.title || ""}
+                onChange={(e) => {
+                  const next = [...buttons];
+                  next[i] = { ...b, title: e.target.value };
+                  update(next);
+                }}
+                placeholder="Texto do botão (ex.: Comprar agora)"
+                className="h-8 text-sm"
+              />
+              <Input
+                value={b.url || ""}
+                onChange={(e) => {
+                  const next = [...buttons];
+                  const v = e.target.value.trim();
+                  next[i] = v
+                    ? { title: b.title, url: v }
+                    : { title: b.title, callback_data: `btn_${i + 1}` };
+                  update(next);
+                }}
+                placeholder="Link (opcional) — https://..."
+                className="h-8 text-sm"
+              />
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              onClick={() => update(buttons.filter((_, idx) => idx !== i))}
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ))}
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full gap-1"
+          onClick={() =>
+            update([
+              ...buttons,
+              {
+                title: `Botão ${buttons.length + 1}`,
+                callback_data: `btn_${buttons.length + 1}`,
+              },
+            ])
+          }
+        >
+          <Plus className="h-3.5 w-3.5" /> Adicionar botão
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function BlockEditor({
   node,
   onPatch,
@@ -2052,13 +2127,6 @@ function BlockEditor({
         color: "text-sky-500 bg-sky-500/10",
       },
       {
-        id: "botoes" as const,
-        icon: MousePointerClick,
-        title: "Botões",
-        desc: "Envie uma mensagem com botões inline",
-        color: "text-violet-500 bg-violet-500/10",
-      },
-      {
         id: "midia" as const,
         icon: ImageIcon,
         title: "Mídia",
@@ -2087,13 +2155,7 @@ function BlockEditor({
                 <button
                   key={o.id}
                   type="button"
-                  onClick={() => {
-                    const patch: Record<string, any> = { contentVariant: o.id };
-                    if (o.id === "botoes" && (!Array.isArray(d.buttons) || d.buttons.length === 0)) {
-                      patch.buttons = [{ title: "Botão 1", callback_data: "btn_1" }];
-                    }
-                    onPatch(patch);
-                  }}
+                  onClick={() => onPatch({ contentVariant: o.id })}
                   className={`w-full text-left flex items-start gap-3 rounded-lg border p-3 transition ${
                     active
                       ? "border-primary bg-primary/5"
@@ -2116,25 +2178,24 @@ function BlockEditor({
         </div>
 
         {variant === "texto" && (
-          <div>
-            <Label className="text-xs">Mensagem</Label>
-            <Textarea
-              value={d.message || ""}
-              onChange={(e) => onPatch({ message: e.target.value })}
-              rows={6}
-              placeholder="Olá {{user.first_name}}! Bem-vindo."
-              className="mt-1"
-            />
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Variáveis: <code>{`{{user.first_name}}`}</code>,{" "}
-              <code>{`{{chat.id}}`}</code>, <code>{`{{last_message}}`}</code>,{" "}
-              <code>{`{{last_button}}`}</code>
-            </p>
-          </div>
-        )}
-
-        {variant === "botoes" && (
-          <ButtonsFields d={d} onPatch={onPatch} />
+          <>
+            <div>
+              <Label className="text-xs">Mensagem</Label>
+              <Textarea
+                value={d.message || ""}
+                onChange={(e) => onPatch({ message: e.target.value })}
+                rows={6}
+                placeholder="Olá {{user.first_name}}! Bem-vindo."
+                className="mt-1"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Variáveis: <code>{`{{user.first_name}}`}</code>,{" "}
+                <code>{`{{chat.id}}`}</code>, <code>{`{{last_message}}`}</code>,{" "}
+                <code>{`{{last_button}}`}</code>
+              </p>
+            </div>
+            <InlineButtonsEditor d={d} onPatch={onPatch} />
+          </>
         )}
 
         {variant === "midia" && (
