@@ -2130,7 +2130,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           </Button>
 
           <ReactFlow
-            nodes={nodes.map(n => n.type === 'blocoConteudo' ? { ...n, data: { ...n.data, buttonStats, totalFlowRecipients, isTelegram: isTelegramMode } } : n)}
+            nodes={nodes.map(n => ({ ...n, data: { ...n.data, buttonStats, totalFlowRecipients, isTelegram: isTelegramMode } }))}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
