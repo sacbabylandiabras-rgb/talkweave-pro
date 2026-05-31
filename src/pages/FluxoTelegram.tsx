@@ -1927,7 +1927,7 @@ function ButtonsFields({
         <Label className="text-xs">Botões inline</Label>
         <div className="mt-2 space-y-2">
           {buttons.map((b, i) => (
-            <div key={i} className="flex gap-2 items-start">
+            <div key={i} className="rounded-lg border border-border/60 bg-muted/20 p-2 flex gap-2 items-start">
               <div className="flex-1 grid gap-1.5">
                 <Input
                   value={b.title || ""}
@@ -1936,20 +1936,20 @@ function ButtonsFields({
                     next[i] = { ...b, title: e.target.value };
                     update(next);
                   }}
-                  placeholder="Texto do botão"
+                  placeholder="Texto do botão (ex.: Comprar agora)"
                   className="h-8 text-sm"
                 />
                 <Input
-                  value={b.url || b.callback_data || ""}
+                  value={b.url || ""}
                   onChange={(e) => {
                     const next = [...buttons];
-                    const v = e.target.value;
-                    next[i] = v.startsWith("http")
+                    const v = e.target.value.trim();
+                    next[i] = v
                       ? { title: b.title, url: v }
-                      : { title: b.title, callback_data: v };
+                      : { title: b.title, callback_data: `btn_${i + 1}` };
                     update(next);
                   }}
-                  placeholder="callback_data ou https://link"
+                  placeholder="Link (opcional) — https://..."
                   className="h-8 text-sm"
                 />
               </div>
@@ -1970,7 +1970,7 @@ function ButtonsFields({
             onClick={() =>
               update([
                 ...buttons,
-                { title: `Opção ${buttons.length + 1}`, callback_data: `btn_${buttons.length + 1}` },
+                { title: `Botão ${buttons.length + 1}`, callback_data: `btn_${buttons.length + 1}` },
               ])
             }
           >
