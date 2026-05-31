@@ -1993,6 +1993,24 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   <Switch checked={fluxoAtivo} onCheckedChange={setFluxoAtivo} />
                 </div>
 
+                {isTelegramMode && (
+                  <div className="flex items-center gap-2 px-3 border-l border-border h-6">
+                    <Label className="text-xs text-muted-foreground whitespace-nowrap">Bot Telegram</Label>
+                    <Select value={selectedBotId || "none"} onValueChange={(val) => setSelectedBotId(val === "none" ? null : val)}>
+                      <SelectTrigger className="h-7 w-48 text-[11px] bg-background">
+                        <SelectValue placeholder="Selecione o bot" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum (usar global)</SelectItem>
+                        {telegramBots.map((bot) => (
+                          <SelectItem key={bot.id} value={bot.id}>
+                            {bot.first_name} (@{bot.username})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             </div>
 
