@@ -489,6 +489,7 @@ const nodeTypes: NodeTypes = {
   intervalo: IntervaloNode,
   mensagem: MensagemNode,
   pagamento: PagamentoNode,
+  grupo: GrupoNode,
 };
 
 function PagamentoNode({ id, data, selected }: any) {
@@ -663,6 +664,188 @@ function PagamentoNode({ id, data, selected }: any) {
 
 /* --------------------------- Block catalog -------------------------- */
 
+function GrupoNode({ id, data, selected }: any) {
+  const { setNodes, setEdges, getNode } = useReactFlow();
+  const groupId: string = data?.groupId ?? "";
+  const subscriptionType: string = data?.subscriptionType ?? "diaria";
+  const every: number = Number(data?.every ?? 30);
+
+  const unitLabel =
+    subscriptionType === "diaria"
+      ? "dias"
+      : subscriptionType === "semanal"
+      ? "semanas"
+      : subscriptionType === "mensal"
+      ? "meses"
+      : "vezes";
+
+  const patch = (p: Record<string, any>) => {
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.id !== id) return n;
+        const merged = { ...n.data, ...p };
+        return { ...n, data: { ...merged, summary: summaryFor(merged) } };
+      }),
+    );
+  };
+
+  const duplicate = () => {
+    const src = getNode(id);
+    if (!src) return;
+    const newId = `n_${Math.random().toString(36).slice(2, 9)}_${Date.now().toString(36)}`;
+    setNodes((nds) => [
+      ...nds,
+      {
+        ...src,
+        id: newId,
+        position: { x: src.position.x + 40, y: src.position.y + 40 },
+        selected: false,
+        data: { ...src.data },
+      } as Node,
+    ]);
+  };
+
+  const remove = () => {
+    setNodes((nds) => nds.filter((n) => n.id !== id));
+    setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+  };
+
+  return (
+    <div
+      className={`group relative w-[360px] overflow-hidden rounded-2xl border bg-card shadow-[0_10px_28px_-18px_hsl(var(--foreground)/0.55)] transition ${
+        selected ? "border-emerald-500 ring-2 ring-emerald-500/30" : "border-border/70"
+      }`}
+    >
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-4 !h-4 !bg-primary !border-2 !border-background !shadow-md"
+        style={{ left: -8 }}
+      />
+
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 px-4 py-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
+            <Users className="h-4 w-4" strokeWidth={2.2} />
+          </div>
+          <div className="text-[14px] font-semibold leading-none text-card-foreground">
+            Grupo
+          </div>
+        </div>
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              duplicate();
+            }}
+            className="p-1 rounded hover:bg-muted/60 hover:text-foreground transition"
+            aria-label="Duplicar"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              remove();
+            }}
+            className="p-1 rounded hover:bg-destructive/10 hover:text-destructive transition"
+            aria-label="Excluir"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="px-4 pb-3 space-y-3 nodrag">
+        <div>
+          <label className="text-[11px] font-medium text-foreground/80">
+            Grupo<span className="text-destructive">*</span>
+          </label>
+          <Input
+            value={groupId}
+            onChange={(e) => patch({ groupId: e.target.value })}
+            className="h-9 mt-1"
+            placeholder="Selecionar"
+          />
+        </div>
+
+        <div className="border-t border-dashed border-border/60" />
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-[11px] font-medium text-foreground/80">
+              Assinatura<span className="text-destructive">*</span>
+            </label>
+            <Select
+              value={subscriptionType}
+              onValueChange={(v) => patch({ subscriptionType: v })}
+            >
+              <SelectTrigger className="h-9 mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="diaria">Diária</SelectItem>
+                <SelectItem value="semanal">Semanal</SelectItem>
+                <SelectItem value="mensal">Mensal</SelectItem>
+                <SelectItem value="vitalicia">Vitalícia</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-[11px] font-medium text-foreground/80">
+              A cada<span className="text-destructive">*</span>{" "}
+              <span className="text-muted-foreground">({unitLabel})</span>
+            </label>
+            <div className="mt-1 flex items-center h-9 rounded-md border border-input bg-background">
+              <button
+                type="button"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={() => patch({ every: Math.max(1, every - 1) })}
+                className="px-3 h-full text-muted-foreground hover:text-foreground"
+              >
+                −
+              </button>
+              <div className="flex-1 text-center text-[13px] font-medium">
+                {every}
+              </div>
+              <button
+                type="button"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={() => patch({ every: every + 1 })}
+                className="px-3 h-full text-muted-foreground hover:text-foreground"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2 text-[12px] text-foreground/80">
+          <span className="text-muted-foreground">ℹ</span>
+          Seu cliente pagará a cada {every} {unitLabel}
+        </div>
+
+        <div className="relative flex justify-end pt-1">
+          <span className="text-[12px] font-medium text-emerald-600">
+            Próximo passo
+          </span>
+          <Handle
+            type="source"
+            position={Position.Right}
+            className="!w-4 !h-4 !bg-emerald-500 !border-2 !border-background !shadow-md"
+            style={{ right: -8, top: "50%" }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 type StepKind =
   | "gatilho"
   | "texto"
@@ -675,6 +858,7 @@ type StepKind =
   | "atraso"
   | "condicao"
   | "pagamento"
+  | "grupo"
   | "fim";
 
 interface BlockDef {
@@ -765,6 +949,17 @@ const BLOCKS: BlockDef[] = [
     },
   },
   {
+    kind: "grupo",
+    label: "Grupo",
+    description: "Adiciona o cliente em um grupo com assinatura",
+    icon: Users,
+    initialData: {
+      groupId: "",
+      subscriptionType: "diaria",
+      every: 30,
+    },
+  },
+  {
     kind: "fim",
     label: "Fim do fluxo",
     description: "Encerra a execução",
@@ -787,7 +982,7 @@ const BLOCK_MENU: MenuItem[] = [
   { label: "Mensagem", icon: Send, iconClass: "text-sky-500", kind: "texto" },
   { label: "Gerar pagamento", icon: CreditCard, iconClass: "text-emerald-500", kind: "pagamento" },
   { label: "Intervalo", icon: Clock, iconClass: "text-amber-500", kind: "atraso" },
-  { label: "Grupo", icon: Users, iconClass: "text-muted-foreground/60", comingSoon: true },
+  { label: "Grupo", icon: Users, iconClass: "text-emerald-500", kind: "grupo" },
 ];
 
 /* ---------------------------- Helpers ----------------------------- */
@@ -805,6 +1000,8 @@ function nodeFromBlock(block: BlockDef, position: { x: number; y: number }): Nod
         ? "intervalo"
         : block.kind === "pagamento"
         ? "pagamento"
+        : block.kind === "grupo"
+        ? "grupo"
         : block.kind === "texto"
         ? "mensagem"
         : "step",
@@ -866,6 +1063,8 @@ function summaryFor(data: any): string {
       return `${data.variable} ${data.operator} ${data.value}`;
     case "pagamento":
       return `R$ ${data.amount || "0,00"}`;
+    case "grupo":
+      return data.groupId ? `Grupo: ${data.groupId}` : "Sem grupo";
     default:
       return "";
   }
@@ -1565,7 +1764,8 @@ export default function FluxoTelegram() {
         open={
           !!selectedNode &&
           selectedNode.type !== "iniciar" &&
-          selectedNode.type !== "pagamento"
+          selectedNode.type !== "pagamento" &&
+          selectedNode.type !== "grupo"
         }
         onOpenChange={(o) => !o && setSelectedNode(null)}
       >
