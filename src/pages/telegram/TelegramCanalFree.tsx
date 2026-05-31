@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { readCanalFree, writeCanalFree } from "@/hooks/useTelegramGroups";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,11 @@ import { toast } from "sonner";
 
 export default function TelegramCanalFree() {
   const [channelName, setChannelName] = useState("");
+
+  useEffect(() => {
+    const stored = readCanalFree();
+    if (stored) setChannelName(stored.title);
+  }, []);
   const [welcomeMessage, setWelcomeMessage] = useState("");
   const [delaySeconds, setDelaySeconds] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -52,6 +58,12 @@ export default function TelegramCanalFree() {
       toast.error("Informe um tempo válido em segundos.");
       return;
     }
+    writeCanalFree({
+      id: "canal_free",
+      title: channelName,
+      group_id: "free",
+      kind: "free",
+    });
     toast.success("Configurações salvas!");
   }
 

@@ -18,6 +18,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { supabase } from "@/integrations/supabase/client";
+import { useTelegramAllGroups } from "@/hooks/useTelegramGroups";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -666,6 +667,7 @@ function PagamentoNode({ id, data, selected }: any) {
 
 function GrupoNode({ id, data, selected }: any) {
   const { setNodes, setEdges, getNode } = useReactFlow();
+  const availableGroups = useTelegramAllGroups();
   const groupId: string = data?.groupId ?? "";
   const subscriptionType: string = data?.subscriptionType ?? "diaria";
   const every: number = Number(data?.every ?? 30);
@@ -765,12 +767,28 @@ function GrupoNode({ id, data, selected }: any) {
           <label className="text-[11px] font-medium text-foreground/80">
             Grupo<span className="text-destructive">*</span>
           </label>
-          <Input
-            value={groupId}
-            onChange={(e) => patch({ groupId: e.target.value })}
-            className="h-9 mt-1"
-            placeholder="Selecionar"
-          />
+          <Select
+            value={groupId || undefined}
+            onValueChange={(v) => patch({ groupId: v })}
+          >
+            <SelectTrigger className="h-9 mt-1">
+              <SelectValue placeholder="Selecionar" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableGroups.length === 0 ? (
+                <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+                  Nenhum grupo cadastrado
+                </div>
+              ) : (
+                availableGroups.map((g) => (
+                  <SelectItem key={g.id} value={g.group_id}>
+                    {g.title}
+                    {g.kind === "free" ? " (Canal Free)" : ""}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="border-t border-dashed border-border/60" />
