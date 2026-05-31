@@ -316,6 +316,7 @@ const nodeTypes: NodeTypes = {
   iniciar: IniciarNode,
   step: StepNode,
   intervalo: IntervaloNode,
+  mensagem: MensagemNode,
 };
 
 /* --------------------------- Block catalog -------------------------- */
