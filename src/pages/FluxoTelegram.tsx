@@ -1261,6 +1261,10 @@ function summaryFor(data: any): string {
       return `R$ ${data.amount || "0,00"}`;
     case "grupo":
       return data.groupId ? `Grupo: ${data.groupId}` : "Sem grupo";
+    case "ia":
+      return data.systemPrompt
+        ? `IA: ${String(data.systemPrompt).slice(0, 60)}`
+        : "Agente de IA";
     default:
       return "";
   }
