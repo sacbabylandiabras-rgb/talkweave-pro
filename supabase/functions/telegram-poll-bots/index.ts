@@ -10,6 +10,37 @@ const corsHeaders = {
 const MAX_RUNTIME_MS = 50_000;
 const PER_BOT_TIMEOUT = 5; // segundos no long-poll
 
+async function deriveWebhookSecret(botId: string, token: string): Promise<string> {
+  const data = new TextEncoder().encode(`telegram-flow-webhook:${botId}:${token}`);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+async function ensureWebhook(bot: { id: string; bot_token: string }) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const webhookUrl = `${supabaseUrl}/functions/v1/telegram-webhook?bot_id=${encodeURIComponent(bot.id)}`;
+  const secretToken = await deriveWebhookSecret(bot.id, bot.bot_token);
+  const res = await fetch(`https://api.telegram.org/bot${bot.bot_token}/setWebhook`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url: webhookUrl,
+      secret_token: secretToken,
+      allowed_updates: ["message", "callback_query"],
+      drop_pending_updates: false,
+    }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || !json?.ok) {
+    console.warn(`webhook setup failed for bot ${bot.id}:`, json?.description || res.statusText);
+    return false;
+  }
+  return true;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -43,12 +74,15 @@ Deno.serve(async (req) => {
       : offsetRow?.update_offset ?? 0;
 
     try {
-      // Ensure no webhook is active (would block getUpdates with 409)
-      await fetch(`https://api.telegram.org/bot${bot.bot_token}/deleteWebhook`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ drop_pending_updates: false }),
-      }).catch(() => {});
+      if (await ensureWebhook(bot)) {
+        await admin
+          .from("telegram_bot_state")
+          .upsert(
+            { bot_id: bot.id, last_polled_at: new Date().toISOString() },
+            { onConflict: "bot_id" },
+          );
+        continue;
+      }
 
       const tgRes = await fetch(`https://api.telegram.org/bot${bot.bot_token}/getUpdates`, {
         method: "POST",
@@ -61,7 +95,17 @@ Deno.serve(async (req) => {
       });
       const tgJson = await tgRes.json();
       if (!tgRes.ok || !tgJson.ok) {
-        console.warn(`bot ${bot.id} falhou:`, tgJson.description);
+        const description = String(tgJson.description || "");
+        if (description.includes("Conflict") && description.includes("webhook")) {
+          await admin
+            .from("telegram_bot_state")
+            .upsert(
+              { bot_id: bot.id, last_polled_at: new Date().toISOString() },
+              { onConflict: "bot_id" },
+            );
+          continue;
+        }
+        console.warn(`bot ${bot.id} falhou:`, description || tgRes.statusText);
         continue;
       }
 

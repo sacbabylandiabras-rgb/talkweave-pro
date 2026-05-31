@@ -11,6 +11,33 @@ function isValidToken(t: string): boolean {
   return typeof t === "string" && /^\d{5,}:[A-Za-z0-9_-]{30,}$/.test(t.trim());
 }
 
+async function deriveWebhookSecret(botId: string, token: string): Promise<string> {
+  const data = new TextEncoder().encode(`telegram-flow-webhook:${botId}:${token}`);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+async function setFlowWebhook(botId: string, token: string) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const webhookUrl = `${supabaseUrl}/functions/v1/telegram-webhook?bot_id=${encodeURIComponent(botId)}`;
+  const secretToken = await deriveWebhookSecret(botId, token);
+  const res = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url: webhookUrl,
+      secret_token: secretToken,
+      allowed_updates: ["message", "callback_query"],
+      drop_pending_updates: false,
+    }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || !json?.ok) console.warn("setWebhook failed:", json?.description || res.statusText);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -102,6 +129,8 @@ Deno.serve(async (req) => {
     await admin
       .from("telegram_bot_state")
       .upsert({ bot_id: upserted.id, update_offset: 0 }, { onConflict: "bot_id" });
+
+    await setFlowWebhook(upserted.id, rawToken);
 
     return new Response(JSON.stringify({ ok: true, bot: upserted, me }), {
       status: 200,
