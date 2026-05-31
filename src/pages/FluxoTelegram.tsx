@@ -152,6 +152,9 @@ function StepNode({ id, data, selected }: any) {
   }
 
   const Icon = data.icon || MessageSquare;
+  const isIA = data?.kind === "ia";
+  const iaTools = (data?.tools || {}) as { previa?: boolean; prova_social?: boolean };
+  const hasAnyIATool = isIA && (iaTools.previa || iaTools.prova_social);
   return (
     <div
       className={`relative px-4 py-3 rounded-xl border bg-card shadow-md min-w-[220px] transition ${
@@ -181,11 +184,51 @@ function StepNode({ id, data, selected }: any) {
           )}
         </div>
       </div>
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="!w-3 !h-3 !bg-primary !border-2 !border-background"
-      />
+      {!hasAnyIATool && (
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="!w-3 !h-3 !bg-primary !border-2 !border-background"
+        />
+      )}
+      {hasAnyIATool && (
+        <div className="mt-3 border-t border-border/60 pt-2 space-y-1.5">
+          <div className="relative flex items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5 text-[11px]">
+            <span className="text-foreground/80">Resposta padrão</span>
+            <Handle
+              type="source"
+              position={Position.Right}
+              id="default"
+              className="!w-3 !h-3 !bg-primary !border-2 !border-background"
+              style={{ right: -7 }}
+            />
+          </div>
+          {iaTools.previa && (
+            <div className="relative flex items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5 text-[11px]">
+              <span className="text-foreground/80">Prévia</span>
+              <Handle
+                type="source"
+                position={Position.Right}
+                id="previa"
+                className="!w-3 !h-3 !bg-fuchsia-500 !border-2 !border-background"
+                style={{ right: -7 }}
+              />
+            </div>
+          )}
+          {iaTools.prova_social && (
+            <div className="relative flex items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5 text-[11px]">
+              <span className="text-foreground/80">Prova social</span>
+              <Handle
+                type="source"
+                position={Position.Right}
+                id="prova_social"
+                className="!w-3 !h-3 !bg-emerald-500 !border-2 !border-background"
+                style={{ right: -7 }}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
