@@ -78,19 +78,19 @@ serve(async (req) => {
       })
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
+    // Return a short-lived signed URL; keep the storage path in metadata for future signed access.
+    const { data: signedData } = await supabase.storage
       .from('payment-receipts')
-      .getPublicUrl(filePath)
+      .createSignedUrl(filePath, 60 * 60)
 
-    const receiptUrl = urlData.publicUrl
+    const receiptUrl = signedData?.signedUrl || filePath
 
     // Update transaction metadata with receipt URL
     const currentMetadata = (tx.metadata as Record<string, any>) || {}
     await supabase
       .from('gateway_transactions')
       .update({
-        metadata: { ...currentMetadata, receipt_url: receiptUrl },
+        metadata: { ...currentMetadata, receipt_path: filePath, receipt_url: filePath },
       })
       .eq('id', tx.id)
 

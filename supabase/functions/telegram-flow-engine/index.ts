@@ -162,6 +162,7 @@ async function runFlow({
     const data = node.data || {};
     const label = String(data.label || "").toLowerCase();
     const kind: string = String((data as any).kind || "");
+    const contentVariant: string = String((data as any).contentVariant || "");
     // Map new-format `kind` to a unified contentType for media branches
     const contentType: string =
       data.contentType ||
@@ -169,7 +170,7 @@ async function runFlow({
        kind === "video" ? "video" :
        kind === "audio" ? "audio" :
        kind === "documento" ? "document" :
-       kind === "botoes" ? "interactive" :
+       kind === "botoes" || contentVariant === "botoes" ? "interactive" :
        kind === "texto" ? "text" :
        "text");
 

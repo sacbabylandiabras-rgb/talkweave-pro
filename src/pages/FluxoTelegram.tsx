@@ -207,6 +207,8 @@ function MensagemNode({ id, data, selected }: any) {
   const preview =
     variant === "midia"
       ? (mediaName || (mediaUrl ? "Mídia anexada" : "Mídia sem URL"))
+      : variant === "botoes"
+      ? `${data?.message || "Mensagem com botões"} • ${(data?.buttons || []).length} botão(ões)`
       : variant === "atraso"
       ? `Aguardar ${data?.delaySeconds ?? 10}`
       : data?.message || "Mensagem de texto";
@@ -290,6 +292,8 @@ function MensagemNode({ id, data, selected }: any) {
               <span className="text-[13px] font-medium text-card-foreground">
                 {variant === "midia"
                   ? "Mídia"
+                  : variant === "botoes"
+                  ? "Botões"
                   : variant === "atraso"
                   ? "Atraso inteligente"
                   : "Texto"}
@@ -1897,6 +1901,87 @@ export default function FluxoTelegram() {
 
 /* ============================ BlockEditor ============================ */
 
+function ButtonsFields({
+  d,
+  onPatch,
+}: {
+  d: Record<string, any>;
+  onPatch: (p: Record<string, any>) => void;
+}) {
+  const buttons: any[] = Array.isArray(d.buttons) ? d.buttons : [];
+  const update = (next: any[]) => onPatch({ buttons: next });
+
+  return (
+    <>
+      <div>
+        <Label className="text-xs">Mensagem</Label>
+        <Textarea
+          value={d.message || ""}
+          onChange={(e) => onPatch({ message: e.target.value })}
+          rows={3}
+          placeholder="Escolha uma opção:"
+          className="mt-1"
+        />
+      </div>
+      <div>
+        <Label className="text-xs">Botões inline</Label>
+        <div className="mt-2 space-y-2">
+          {buttons.map((b, i) => (
+            <div key={i} className="flex gap-2 items-start">
+              <div className="flex-1 grid gap-1.5">
+                <Input
+                  value={b.title || ""}
+                  onChange={(e) => {
+                    const next = [...buttons];
+                    next[i] = { ...b, title: e.target.value };
+                    update(next);
+                  }}
+                  placeholder="Texto do botão"
+                  className="h-8 text-sm"
+                />
+                <Input
+                  value={b.url || b.callback_data || ""}
+                  onChange={(e) => {
+                    const next = [...buttons];
+                    const v = e.target.value;
+                    next[i] = v.startsWith("http")
+                      ? { title: b.title, url: v }
+                      : { title: b.title, callback_data: v };
+                    update(next);
+                  }}
+                  placeholder="callback_data ou https://link"
+                  className="h-8 text-sm"
+                />
+              </div>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                onClick={() => update(buttons.filter((_, idx) => idx !== i))}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ))}
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full gap-1"
+            onClick={() =>
+              update([
+                ...buttons,
+                { title: `Opção ${buttons.length + 1}`, callback_data: `btn_${buttons.length + 1}` },
+              ])
+            }
+          >
+            <Plus className="h-3.5 w-3.5" /> Adicionar botão
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function BlockEditor({
   node,
   onPatch,
@@ -1957,14 +2042,21 @@ function BlockEditor({
   }
 
   if (kind === "texto") {
-    const variant: "texto" | "midia" | "atraso" = d.contentVariant || "texto";
+    const variant: "texto" | "midia" | "botoes" | "atraso" = d.contentVariant || "texto";
     const options = [
       {
         id: "texto" as const,
         icon: Type,
         title: "Texto",
-        desc: "Adicione texto simples e botões",
+        desc: "Adicione uma mensagem simples",
         color: "text-sky-500 bg-sky-500/10",
+      },
+      {
+        id: "botoes" as const,
+        icon: MousePointerClick,
+        title: "Botões",
+        desc: "Envie uma mensagem com botões inline",
+        color: "text-violet-500 bg-violet-500/10",
       },
       {
         id: "midia" as const,
@@ -2033,6 +2125,10 @@ function BlockEditor({
               <code>{`{{last_button}}`}</code>
             </p>
           </div>
+        )}
+
+        {variant === "botoes" && (
+          <ButtonsFields d={d} onPatch={onPatch} />
         )}
 
         {variant === "midia" && (
@@ -2176,75 +2272,8 @@ function BlockEditor({
   }
 
   if (kind === "botoes") {
-    const buttons: any[] = Array.isArray(d.buttons) ? d.buttons : [];
-    const update = (next: any[]) => onPatch({ buttons: next });
     return (
-      <>
-        <div>
-          <Label className="text-xs">Mensagem</Label>
-          <Textarea
-            value={d.message || ""}
-            onChange={(e) => onPatch({ message: e.target.value })}
-            rows={3}
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <Label className="text-xs">Botões inline</Label>
-          <div className="mt-2 space-y-2">
-            {buttons.map((b, i) => (
-              <div key={i} className="flex gap-2 items-start">
-                <div className="flex-1 grid gap-1.5">
-                  <Input
-                    value={b.title || ""}
-                    onChange={(e) => {
-                      const next = [...buttons];
-                      next[i] = { ...b, title: e.target.value };
-                      update(next);
-                    }}
-                    placeholder="Texto do botão"
-                    className="h-8 text-sm"
-                  />
-                  <Input
-                    value={b.url || b.callback_data || ""}
-                    onChange={(e) => {
-                      const next = [...buttons];
-                      const v = e.target.value;
-                      next[i] = v.startsWith("http")
-                        ? { title: b.title, url: v }
-                        : { title: b.title, callback_data: v };
-                      update(next);
-                    }}
-                    placeholder="callback_data ou https://link"
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8"
-                  onClick={() => update(buttons.filter((_, idx) => idx !== i))}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full gap-1"
-              onClick={() =>
-                update([
-                  ...buttons,
-                  { title: `Opção ${buttons.length + 1}`, callback_data: `btn_${buttons.length + 1}` },
-                ])
-              }
-            >
-              <Plus className="h-3.5 w-3.5" /> Adicionar botão
-            </Button>
-          </div>
-        </div>
-      </>
+      <ButtonsFields d={d} onPatch={onPatch} />
     );
   }
 
