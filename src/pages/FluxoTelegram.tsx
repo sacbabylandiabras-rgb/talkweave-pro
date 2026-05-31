@@ -192,6 +192,16 @@ function IntervaloNode({ id, data, selected }: any) {
 function MensagemNode({ id, data, selected }: any) {
   const { setNodes, setEdges, getNode } = useReactFlow();
   const variant = data?.contentVariant || "texto";
+  const mediaUrl: string = data?.mediaUrl || "";
+  const mediaName: string = data?.mediaName || "";
+  const mediaKind = (() => {
+    const src = (mediaUrl + " " + mediaName).toLowerCase();
+    if (/\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/.test(src)) return "image";
+    if (/\.(mp4|webm|mov|m4v|ogv)(\?|$)/.test(src)) return "video";
+    if (/\.(mp3|wav|ogg|m4a|aac|opus)(\?|$)/.test(src)) return "audio";
+    if (mediaUrl) return "file";
+    return "none";
+  })();
   const preview =
     variant === "midia"
       ? data?.mediaUrl || "Mídia sem URL"
@@ -290,6 +300,40 @@ function MensagemNode({ id, data, selected }: any) {
           <div className="mt-1.5 line-clamp-2 text-[12px] leading-snug text-muted-foreground break-words">
             {preview}
           </div>
+          {variant === "midia" && mediaUrl && (
+            <div className="mt-2 overflow-hidden rounded-lg border border-border/60 bg-background">
+              {mediaKind === "image" && (
+                <img
+                  src={mediaUrl}
+                  alt={mediaName || "Mídia"}
+                  className="block max-h-44 w-full object-cover"
+                  draggable={false}
+                />
+              )}
+              {mediaKind === "video" && (
+                <video
+                  src={mediaUrl}
+                  controls
+                  className="block max-h-44 w-full bg-black"
+                />
+              )}
+              {mediaKind === "audio" && (
+                <audio src={mediaUrl} controls className="block w-full" />
+              )}
+              {mediaKind === "file" && (
+                <a
+                  href={mediaUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  className="flex items-center gap-2 px-3 py-2 text-[12px] text-foreground hover:bg-muted/40"
+                >
+                  <FileText className="h-4 w-4 text-primary" />
+                  <span className="truncate">{mediaName || "Abrir arquivo"}</span>
+                </a>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
