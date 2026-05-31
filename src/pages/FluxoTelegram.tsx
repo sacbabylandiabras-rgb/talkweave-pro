@@ -76,6 +76,7 @@ import {
   Upload,
   AlertTriangle,
   Link as LinkIcon,
+  Sparkles,
 } from "lucide-react";
 
 /* ----------------------------- Types ----------------------------- */
