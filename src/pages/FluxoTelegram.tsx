@@ -2785,17 +2785,36 @@ function BlockEditor({
                 />
               </div>
               {d.tools?.previa && (
-                <Textarea
-                  value={d.tools?.previaDescription || ""}
-                  onChange={(e) =>
-                    onPatch({
-                      tools: { ...(d.tools || {}), previaDescription: e.target.value },
-                    })
-                  }
-                  rows={2}
-                  placeholder="Quando usar: ex. quando o cliente pedir para ver uma amostra/prévia do conteúdo."
-                  className="text-xs"
-                />
+                <>
+                  <Textarea
+                    value={d.tools?.previaDescription || ""}
+                    onChange={(e) =>
+                      onPatch({
+                        tools: { ...(d.tools || {}), previaDescription: e.target.value },
+                      })
+                    }
+                    rows={2}
+                    placeholder="Quando usar: ex. quando o cliente pedir para ver uma amostra/prévia do conteúdo."
+                    className="text-xs"
+                  />
+                  <ToolMediaUploader
+                    inputId="tool-previa-upload"
+                    mediaUrl={d.tools?.previaMediaUrl}
+                    mediaName={d.tools?.previaMediaName}
+                    caption={d.tools?.previaCaption}
+                    uploading={!!d.tools?._previaUploading}
+                    onChange={(patch) =>
+                      onPatch({ tools: { ...(d.tools || {}), ...patch } })
+                    }
+                    fields={{
+                      url: "previaMediaUrl",
+                      name: "previaMediaName",
+                      type: "previaMediaType",
+                      caption: "previaCaption",
+                      uploading: "_previaUploading",
+                    }}
+                  />
+                </>
               )}
             </div>
             <div className="rounded-lg border border-border/60 bg-muted/20 p-2.5 space-y-2">
@@ -2809,17 +2828,36 @@ function BlockEditor({
                 />
               </div>
               {d.tools?.prova_social && (
-                <Textarea
-                  value={d.tools?.provaSocialDescription || ""}
-                  onChange={(e) =>
-                    onPatch({
-                      tools: { ...(d.tools || {}), provaSocialDescription: e.target.value },
-                    })
-                  }
-                  rows={2}
-                  placeholder="Quando usar: ex. quando o cliente demonstrar dúvida ou pedir depoimentos/resultados de outros clientes."
-                  className="text-xs"
-                />
+                <>
+                  <Textarea
+                    value={d.tools?.provaSocialDescription || ""}
+                    onChange={(e) =>
+                      onPatch({
+                        tools: { ...(d.tools || {}), provaSocialDescription: e.target.value },
+                      })
+                    }
+                    rows={2}
+                    placeholder="Quando usar: ex. quando o cliente demonstrar dúvida ou pedir depoimentos/resultados de outros clientes."
+                    className="text-xs"
+                  />
+                  <ToolMediaUploader
+                    inputId="tool-prova-upload"
+                    mediaUrl={d.tools?.provaSocialMediaUrl}
+                    mediaName={d.tools?.provaSocialMediaName}
+                    caption={d.tools?.provaSocialCaption}
+                    uploading={!!d.tools?._provaSocialUploading}
+                    onChange={(patch) =>
+                      onPatch({ tools: { ...(d.tools || {}), ...patch } })
+                    }
+                    fields={{
+                      url: "provaSocialMediaUrl",
+                      name: "provaSocialMediaName",
+                      type: "provaSocialMediaType",
+                      caption: "provaSocialCaption",
+                      uploading: "_provaSocialUploading",
+                    }}
+                  />
+                </>
               )}
             </div>
           </div>
