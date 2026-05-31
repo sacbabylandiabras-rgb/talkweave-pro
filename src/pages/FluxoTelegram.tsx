@@ -2013,13 +2013,14 @@ function InlineButtonsEditor({
                 className="h-8 text-sm"
               />
               <Select
-                value={b.url ? "link" : "next"}
+                value={b.url !== undefined ? "link" : "next"}
                 onValueChange={(v) => {
                   const next = [...buttons];
                   if (v === "link") {
                     next[i] = { title: b.title, url: b.url || "" };
                   } else {
-                    next[i] = { title: b.title, callback_data: `btn_${i + 1}` };
+                    const { url: _omit, ...rest } = b;
+                    next[i] = { title: b.title, callback_data: rest.callback_data || `btn_${i + 1}` };
                   }
                   update(next);
                 }}
