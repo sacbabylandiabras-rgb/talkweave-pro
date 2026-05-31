@@ -804,7 +804,15 @@ Deno.serve(async (req) => {
     .maybeSingle();
 
   // Resume waiting session
-  if (session && session.status === "active" && session.waiting_for && !incomingCommand) {
+  const isMessageOrCallbackWait =
+    session?.waiting_for === "message" || session?.waiting_for === "callback";
+  if (
+    session &&
+    session.status === "active" &&
+    session.waiting_for &&
+    isMessageOrCallbackWait &&
+    !incomingCommand
+  ) {
     const { data: flow } = await admin
       .from("flow_automations")
       .select("*")
@@ -865,6 +873,9 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
+  // If session is locked on a non-conversational wait (e.g. payment), try to
+  // match a new trigger so users can keep interacting (e.g. talk to IA agent).
 
   // No active session — look for triggering flow
   const { data: flows } = await admin
