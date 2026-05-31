@@ -229,7 +229,7 @@ export function BlocoCondicaoNode({ data }: any) {
       <Handle type="target" position={Position.Top} id="target-top" className="!w-4 !h-4 !bg-[#2563EB] !border-2 !border-white shadow-xl !z-[100] !pointer-events-auto" style={{ top: -8 }} />
 
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 rounded-t-2xl bg-primary/90 text-white">
+      <div className={`flex items-center gap-2 px-3 py-2 rounded-t-2xl ${data.isTelegram ? 'bg-blue-600' : 'bg-primary/90'} text-white`}>
         <div className="p-1 rounded bg-white/15">
           <GitBranch className="h-3.5 w-3.5" />
         </div>
