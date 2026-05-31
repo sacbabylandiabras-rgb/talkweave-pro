@@ -94,6 +94,16 @@ function formatPhoneForWhatsapp(phone?: string) {
   return digits.startsWith("55") ? digits : `55${digits}`;
 }
 
+function toSafeHttpUrl(url?: string | null) {
+  if (!url) return undefined;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export default function Prospeccao() {
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -133,6 +143,7 @@ export default function Prospeccao() {
     Promise.all([
       importLibrary("maps"),
       importLibrary("marker"),
+      importLibrary("places"),
     ]).then(([{ Map, InfoWindow }]) => {
       if (!mapDivRef.current) return;
       mapRef.current = new Map(mapDivRef.current, {
@@ -181,15 +192,16 @@ export default function Prospeccao() {
   const openInfo = (p: Place, marker: google.maps.Marker) => {
     if (!infoWindowRef.current || !mapRef.current) return;
     const waPhone = formatPhoneForWhatsapp(p.phone);
+    const safeWebsite = toSafeHttpUrl(p.website);
     const content = `
       <div style="font-family: inherit; max-width: 280px; padding: 4px;">
         <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">${escapeHtml(p.name)}</div>
-        <div style="font-size: 12px; color: #64748b; margin-bottom: 6px;">${escapeHtml(p.address)}</div>
+        <div style="font-size: 12px; color: hsl(var(--muted-foreground)); margin-bottom: 6px;">${escapeHtml(p.address)}</div>
         ${p.rating ? `<div style="font-size: 12px; margin-bottom: 4px;">⭐ ${p.rating} (${p.userRatingCount ?? 0})</div>` : ""}
         ${p.phone ? `<div style="font-size: 12px; margin-bottom: 4px;">📞 <a href="https://wa.me/${waPhone}" target="_blank" rel="noopener" style="color: hsl(var(--primary));">${escapeHtml(p.phone)}</a></div>` : ""}
-        ${p.website ? `<div style="font-size: 12px; margin-bottom: 6px;">🌐 <a href="${p.website}" target="_blank" rel="noopener" style="color: hsl(var(--primary));">Site</a></div>` : ""}
+        ${safeWebsite ? `<div style="font-size: 12px; margin-bottom: 6px;">🌐 <a href="${escapeHtml(safeWebsite)}" target="_blank" rel="noopener" style="color: hsl(var(--primary));">Site</a></div>` : ""}
         <div style="display:flex; gap:6px; margin-top:8px;">
-          <button id="iw-save-${p.id}" style="flex:1; padding:6px 8px; font-size:12px; background:hsl(var(--primary)); color:white; border:none; border-radius:6px; cursor:pointer;">Salvar Lead</button>
+          <button id="iw-save-${p.id}" style="flex:1; padding:6px 8px; font-size:12px; background:hsl(var(--primary)); color:hsl(var(--primary-foreground)); border:none; border-radius:6px; cursor:pointer;">Salvar Lead</button>
           <button id="iw-copy-${p.id}" style="flex:1; padding:6px 8px; font-size:12px; background:transparent; color:hsl(var(--foreground)); border:1px solid hsl(var(--border)); border-radius:6px; cursor:pointer;">Copiar</button>
         </div>
       </div>`;
@@ -245,56 +257,65 @@ export default function Prospeccao() {
     setLoading(true);
     setResults([]);
     try {
-      let center: { lat: number; lng: number } | null = null;
-      if (city.trim()) {
-        const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(city)}&key=${GOOGLE_MAPS_API_KEY}`;
-        const geoRes = await fetch(geoUrl);
-        const geoJson = await geoRes.json();
-        const loc = geoJson?.results?.[0]?.geometry?.location;
-        if (loc) center = { lat: loc.lat, lng: loc.lng };
+      if (!mapsReady) {
+        toast.error("Aguarde o mapa carregar para buscar");
+        return;
       }
 
-      const body: Record<string, unknown> = {
+      let center: { lat: number; lng: number } | null = null;
+      if (city.trim()) {
+        const geocoder = new google.maps.Geocoder();
+        const { results: geoResults } = await geocoder.geocode({
+          address: city,
+          region: "BR",
+        });
+        const loc = geoResults?.[0]?.geometry?.location;
+        if (loc) center = { lat: loc.lat(), lng: loc.lng() };
+      }
+
+      const { Place } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
+      const request: google.maps.places.SearchByTextRequest = {
         textQuery: city.trim() ? `${query} em ${city}` : query,
-        languageCode: "pt-BR",
+        fields: [
+          "id",
+          "displayName",
+          "formattedAddress",
+          "nationalPhoneNumber",
+          "rating",
+          "userRatingCount",
+          "websiteURI",
+          "regularOpeningHours",
+          "utcOffsetMinutes",
+          "businessStatus",
+          "location",
+        ],
+        language: "pt-BR",
+        region: "BR",
         maxResultCount: 20,
       };
       if (center) {
-        body.locationBias = {
-          circle: {
-            center: { latitude: center.lat, longitude: center.lng },
-            radius: Number(radius),
-          },
+        request.locationBias = {
+          center,
+          radius: Number(radius),
         };
       }
 
-      const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
-          "X-Goog-FieldMask":
-            "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.rating,places.userRatingCount,places.websiteUri,places.currentOpeningHours,places.businessStatus,places.location",
-        },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const places: Place[] = (json.places ?? []).map((p: any) => ({
+      const { places: searchResults } = await Place.searchByText(request);
+      const places: Place[] = await Promise.all((searchResults ?? []).filter((p) => p.location).map(async (p) => ({
         id: p.id,
-        name: p.displayName?.text ?? "Sem nome",
+        name: p.displayName ?? "Sem nome",
         address: p.formattedAddress ?? "",
         phone: p.nationalPhoneNumber,
         rating: p.rating,
         userRatingCount: p.userRatingCount,
-        website: p.websiteUri,
-        openNow: p.currentOpeningHours?.openNow,
+        website: p.websiteURI,
+        openNow: await p.isOpen().catch(() => undefined),
         businessStatus: p.businessStatus,
         location: {
-          lat: p.location?.latitude,
-          lng: p.location?.longitude,
+          lat: p.location!.lat(),
+          lng: p.location!.lng(),
         },
-      }));
+      })));
       setResults(places);
       setTab("results");
       if (!places.length) toast.info("Nenhum resultado encontrado");
