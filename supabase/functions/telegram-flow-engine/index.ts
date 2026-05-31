@@ -600,6 +600,48 @@ async function runFlow({
                 text: reply,
               });
             }
+
+            // Se a IA acionou uma ferramenta com mídia anexada, envie a mídia agora.
+            if (iaNextHandle) {
+              const prefix = iaNextHandle === "previa" ? "previa" : "provaSocial";
+              const mediaUrl: string = String((toolsCfg as any)[`${prefix}MediaUrl`] || "");
+              const mediaType: string = String((toolsCfg as any)[`${prefix}MediaType`] || "");
+              const caption: string = renderTemplate(
+                String((toolsCfg as any)[`${prefix}Caption`] || ""),
+                variables,
+              );
+              if (mediaUrl) {
+                try {
+                  if (mediaType === "photo") {
+                    await tgApi(bot.bot_token, "sendPhoto", {
+                      chat_id: chatId,
+                      photo: mediaUrl,
+                      ...(caption ? { caption } : {}),
+                    });
+                  } else if (mediaType === "video") {
+                    await tgApi(bot.bot_token, "sendVideo", {
+                      chat_id: chatId,
+                      video: mediaUrl,
+                      ...(caption ? { caption } : {}),
+                    });
+                  } else if (mediaType === "audio") {
+                    await tgApi(bot.bot_token, "sendAudio", {
+                      chat_id: chatId,
+                      audio: mediaUrl,
+                      ...(caption ? { caption } : {}),
+                    });
+                  } else {
+                    await tgApi(bot.bot_token, "sendDocument", {
+                      chat_id: chatId,
+                      document: mediaUrl,
+                      ...(caption ? { caption } : {}),
+                    });
+                  }
+                } catch (mErr) {
+                  console.error("[engine] IA tool media send failed", (mErr as Error).message);
+                }
+              }
+            }
           }
         } catch (e) {
           console.error("[engine] IA block failed", (e as Error).message);
