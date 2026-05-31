@@ -43,6 +43,13 @@ Deno.serve(async (req) => {
       : offsetRow?.update_offset ?? 0;
 
     try {
+      // Ensure no webhook is active (would block getUpdates with 409)
+      await fetch(`https://api.telegram.org/bot${bot.bot_token}/deleteWebhook`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ drop_pending_updates: false }),
+      }).catch(() => {});
+
       const tgRes = await fetch(`https://api.telegram.org/bot${bot.bot_token}/getUpdates`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
