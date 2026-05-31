@@ -876,6 +876,50 @@ Deno.serve(async (req) => {
 
   // If session is locked on a non-conversational wait (e.g. payment), try to
   // match a new trigger so users can keep interacting (e.g. talk to IA agent).
+  if (
+    session &&
+    session.status === "active" &&
+    session.waiting_for &&
+    !isMessageOrCallbackWait &&
+    !incomingCommand
+  ) {
+    const { data: flow } = await admin
+      .from("flow_automations")
+      .select("*")
+      .eq("id", session.flow_id)
+      .maybeSingle();
+
+    const vars = { ...(session.variables || {}) };
+    if (msg?.text) vars.last_message = msg.text;
+    if (cb?.data) vars.last_button = cb.data;
+
+    const edges: FlowEdge[] = flow?.edges || [];
+    const waitHandle = session.waiting_for === "payment" ? "pending" : null;
+    const nextEdge =
+      (waitHandle && nextEdgeFor(edges, session.current_node_id || "", waitHandle)) ||
+      nextEdgeFor(edges, session.current_node_id || "");
+
+    if (flow && nextEdge) {
+      await admin
+        .from("telegram_flow_sessions")
+        .update({ waiting_for: null, waiting_var: null, variables: vars })
+        .eq("id", session.id);
+
+      await runFlow({
+        admin,
+        bot,
+        chatId,
+        flow,
+        startNodeId: nextEdge.target,
+        variables: vars,
+        sessionId: session.id,
+      });
+
+      return new Response(JSON.stringify({ ok: true, resumed: true, from_wait: session.waiting_for }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
 
   // No active session — look for triggering flow
   const { data: flows } = await admin
