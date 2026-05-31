@@ -2191,13 +2191,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 </div>
 
                 {/* WhatsApp header */}
-                <div className="bg-[#075E54] px-3 pb-2.5 pt-1 flex items-center gap-2">
+                <div className={`${isTelegramMode ? 'bg-[#517da2]' : 'bg-[#075E54]'} px-3 pb-2.5 pt-1 flex items-center gap-2`}>
                   <Button size="icon" variant="ghost" className="h-7 w-7 text-white hover:bg-white/20 -ml-1" onClick={() => setShowPreview(false)}>
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
-                  <div className="w-9 h-9 rounded-full bg-[#DFE5E7] flex items-center justify-center overflow-hidden">
-                    <svg width="24" height="24" viewBox="0 0 212 212" fill="#ccc"><path d="M106 0C47.5 0 0 47.5 0 106s47.5 106 106 106 106-47.5 106-106S164.5 0 106 0zm0 30c16.6 0 30 13.4 30 30s-13.4 30-30 30-30-13.4-30-30 13.4-30 30-30zm0 150c-26.5 0-49.9-13.5-63.5-34 .3-21 42.3-32.5 63.5-32.5s63.2 11.5 63.5 32.5C155.9 166.5 132.5 180 106 180z"/></svg>
-                  </div>
+                  {isTelegramMode ? (
+                    <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+                      <Bot className="w-5 h-5 text-white" />
+                    </div>
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-[#DFE5E7] flex items-center justify-center overflow-hidden">
+                      <svg width="24" height="24" viewBox="0 0 212 212" fill="#ccc"><path d="M106 0C47.5 0 0 47.5 0 106s47.5 106 106 106 106-47.5 106-106S164.5 0 106 0zm0 30c16.6 0 30 13.4 30 30s-13.4 30-30 30-30-13.4-30-30 13.4-30 30-30zm0 150c-26.5 0-49.9-13.5-63.5-34 .3-21 42.3-32.5 63.5-32.5s63.2 11.5 63.5 32.5C155.9 166.5 132.5 180 106 180z"/></svg>
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-[14px] font-medium truncate">{isTelegramMode ? "Bot Telegram" : "Contato"}</p>
                     <p className="text-white/70 text-[11px]">{isTelegramMode ? "bot" : "online"}</p>
