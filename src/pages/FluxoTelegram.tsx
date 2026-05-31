@@ -2087,7 +2087,13 @@ function BlockEditor({
                 <button
                   key={o.id}
                   type="button"
-                  onClick={() => onPatch({ contentVariant: o.id })}
+                  onClick={() => {
+                    const patch: Record<string, any> = { contentVariant: o.id };
+                    if (o.id === "botoes" && (!Array.isArray(d.buttons) || d.buttons.length === 0)) {
+                      patch.buttons = [{ title: "Botão 1", callback_data: "btn_1" }];
+                    }
+                    onPatch(patch);
+                  }}
                   className={`w-full text-left flex items-start gap-3 rounded-lg border p-3 transition ${
                     active
                       ? "border-primary bg-primary/5"
