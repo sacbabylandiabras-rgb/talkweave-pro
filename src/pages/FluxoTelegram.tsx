@@ -675,6 +675,7 @@ type StepKind =
   | "atraso"
   | "condicao"
   | "pagamento"
+  | "grupo"
   | "fim";
 
 interface BlockDef {
@@ -762,6 +763,17 @@ const BLOCKS: BlockDef[] = [
       amount: "10,00",
       acceptCard: true,
       showQrCode: true,
+    },
+  },
+  {
+    kind: "grupo",
+    label: "Grupo",
+    description: "Adiciona o cliente em um grupo com assinatura",
+    icon: Users,
+    initialData: {
+      groupId: "",
+      subscriptionType: "diaria",
+      every: 30,
     },
   },
   {
