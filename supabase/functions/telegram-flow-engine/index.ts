@@ -35,6 +35,41 @@ const tgApi = async (token: string, method: string, body: any) => {
   return json;
 };
 
+const sendTelegramMedia = async (
+  token: string,
+  chatId: number | string,
+  mediaUrl: string,
+  mediaType: string,
+  caption?: string,
+) => {
+  if (mediaType === "photo") {
+    return tgApi(token, "sendPhoto", {
+      chat_id: chatId,
+      photo: mediaUrl,
+      ...(caption ? { caption } : {}),
+    });
+  }
+  if (mediaType === "video") {
+    return tgApi(token, "sendVideo", {
+      chat_id: chatId,
+      video: mediaUrl,
+      ...(caption ? { caption } : {}),
+    });
+  }
+  if (mediaType === "audio") {
+    return tgApi(token, "sendAudio", {
+      chat_id: chatId,
+      audio: mediaUrl,
+      ...(caption ? { caption } : {}),
+    });
+  }
+  return tgApi(token, "sendDocument", {
+    chat_id: chatId,
+    document: mediaUrl,
+    ...(caption ? { caption } : {}),
+  });
+};
+
 const renderTemplate = (tpl: string, vars: Record<string, any>) =>
   (tpl || "").replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, k) => {
     const parts = String(k).split(".");
