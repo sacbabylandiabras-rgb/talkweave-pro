@@ -44,6 +44,7 @@ import {
   Send,
   Check,
   Tag,
+  HelpCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -446,6 +447,52 @@ export default function TelegramGruposCanais() {
                 Use apenas números. IDs de canais costumam começar com{" "}
                 <code className="font-mono text-foreground">-100</code>.
               </p>
+              <details className="group rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs">
+                <summary className="flex cursor-pointer items-center gap-1.5 font-medium text-primary list-none">
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  Não sei como pegar o ID do grupo
+                </summary>
+                <div className="mt-3 space-y-3 text-muted-foreground leading-relaxed">
+                  <div>
+                    <p className="font-semibold text-foreground mb-1">1. Adicione o bot ao grupo/canal</p>
+                    <ul className="list-disc pl-4 space-y-0.5">
+                      <li>Abra seu grupo ou canal no Telegram</li>
+                      <li>Toque no nome do grupo no topo → <span className="text-foreground">Adicionar membro</span></li>
+                      <li>Procure pelo <span className="text-foreground">@usuário do seu bot</span> e adicione</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground mb-1">2. Torne o bot administrador</p>
+                    <ul className="list-disc pl-4 space-y-0.5">
+                      <li>Toque no nome do grupo → <span className="text-foreground">Administradores</span></li>
+                      <li>Toque em <span className="text-foreground">Adicionar Administrador</span></li>
+                      <li>Selecione o bot e ative as permissões: <span className="text-foreground">Convidar usuários</span>, <span className="text-foreground">Banir usuários</span> e <span className="text-foreground">Enviar mensagens</span></li>
+                      <li>Salve as alterações</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground mb-1">3. Descubra o ID do grupo</p>
+                    <p className="mb-1">Escolha uma destas opções:</p>
+                    <p className="text-foreground mt-2">Opção A — Bot auxiliar (mais rápido)</p>
+                    <ul className="list-disc pl-4 space-y-0.5">
+                      <li>No Telegram, procure por <code className="font-mono text-foreground">@getidsbot</code> ou <code className="font-mono text-foreground">@RawDataBot</code></li>
+                      <li>Adicione esse bot ao seu grupo</li>
+                      <li>Ele envia automaticamente o ID do chat (algo como <code className="font-mono text-foreground">-1001234567890</code>)</li>
+                      <li>Depois você pode remover esse bot</li>
+                    </ul>
+                    <p className="text-foreground mt-2">Opção B — Pelo Telegram Web</p>
+                    <ul className="list-disc pl-4 space-y-0.5">
+                      <li>Acesse <code className="font-mono text-foreground">web.telegram.org</code> e abra o grupo</li>
+                      <li>Veja a URL: o número após o <code className="font-mono text-foreground">#</code> é o ID</li>
+                      <li>Se vier sem prefixo, adicione <code className="font-mono text-foreground">-100</code> na frente</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground mb-1">4. Cole o ID aqui</p>
+                    <p>Copie o número completo (incluindo o sinal de menos e o <code className="font-mono text-foreground">-100</code>) e cole no campo "Id do Grupo" acima.</p>
+                  </div>
+                </div>
+              </details>
             </div>
 
             <div className="space-y-2">
