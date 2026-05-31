@@ -2931,7 +2931,9 @@ function BlockEditor({
                     caption={d.tools?.previaCaption}
                     uploading={!!d.tools?._previaUploading}
                     onChange={(patch) =>
-                      onPatch({ tools: { ...(d.tools || {}), ...patch } })
+                      onPatch((curr: any) => ({
+                        tools: { ...(curr?.tools || {}), ...patch },
+                      }))
                     }
                     fields={{
                       url: "previaMediaUrl",
@@ -2974,7 +2976,9 @@ function BlockEditor({
                     caption={d.tools?.provaSocialCaption}
                     uploading={!!d.tools?._provaSocialUploading}
                     onChange={(patch) =>
-                      onPatch({ tools: { ...(d.tools || {}), ...patch } })
+                      onPatch((curr: any) => ({
+                        tools: { ...(curr?.tools || {}), ...patch },
+                      }))
                     }
                     fields={{
                       url: "provaSocialMediaUrl",
