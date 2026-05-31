@@ -179,6 +179,81 @@ function StepNode({ data, selected }: any) {
 }
 
 function IntervaloNode({ id, data, selected }: any) {
+  return _IntervaloNodeImpl({ id, data, selected });
+}
+function MensagemNode({ id, selected }: any) {
+  const { setNodes, setEdges, getNode } = useReactFlow();
+  const duplicate = () => {
+    const src = getNode(id);
+    if (!src) return;
+    const newId = `n_${Math.random().toString(36).slice(2, 9)}_${Date.now().toString(36)}`;
+    setNodes((nds) => [
+      ...nds,
+      {
+        ...src,
+        id: newId,
+        position: { x: src.position.x + 40, y: src.position.y + 40 },
+        selected: false,
+        data: { ...src.data },
+      } as Node,
+    ]);
+  };
+  const remove = () => {
+    setNodes((nds) => nds.filter((n) => n.id !== id));
+    setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+  };
+  return (
+    <div
+      className={`relative rounded-xl border bg-card shadow-md w-[240px] transition ${
+        selected ? "border-primary ring-2 ring-primary/30" : "border-border"
+      }`}
+    >
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-3 !h-3 !bg-primary !border-2 !border-background"
+      />
+      <div className="flex items-center justify-between gap-2 px-3 py-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="p-1.5 rounded-md bg-sky-500/10 text-sky-500">
+            <MessageSquare className="h-4 w-4" />
+          </div>
+          <div className="text-sm font-semibold truncate">Mensagem de texto</div>
+        </div>
+        <div className="flex items-center gap-1 text-muted-foreground opacity-0 group-hover:opacity-100 transition">
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              duplicate();
+            }}
+            className="p-1 rounded hover:bg-muted/60 hover:text-foreground transition"
+            aria-label="Duplicar"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              remove();
+            }}
+            className="p-1 rounded hover:bg-destructive/10 hover:text-destructive transition"
+            aria-label="Excluir"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-3 !h-3 !bg-primary !border-2 !border-background"
+      />
+    </div>
+  );
+}
+function _IntervaloNodeImpl({ id, data, selected }: any) {
   const { setNodes, setEdges, getNode } = useReactFlow();
   const unit: "seconds" | "minutes" | "hours" = data.timeUnit || "seconds";
   const value = data.delaySeconds ?? 10;
