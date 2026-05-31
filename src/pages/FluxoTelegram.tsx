@@ -555,6 +555,24 @@ function PagamentoNode({ id, data, selected }: any) {
   const acceptCard: boolean = data?.acceptCard !== false;
   const showQrCode: boolean = data?.showQrCode !== false;
   const description: string = data?.description ?? "";
+  const pricingMode: "custom" | "plan" = data?.pricingMode === "plan" ? "plan" : "custom";
+  const planId: string = data?.planId ?? "";
+  const [plans, setPlans] = useState<Array<{ id: string; name: string; price: number; billing_cycle?: string | null }>>([]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data: rows } = await supabase
+        .from("gateway_plans" as any)
+        .select("id, name, price, billing_cycle, status, product_id, gateway_products!inner(user_id)")
+        .eq("status", true)
+        .order("created_at", { ascending: false });
+      if (active && rows) setPlans(rows as any);
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const patch = (p: Record<string, any>) => {
     setNodes((nds) =>
@@ -640,6 +658,72 @@ function PagamentoNode({ id, data, selected }: any) {
       <div className="px-4 py-3 space-y-3 nodrag">
         <div>
           <label className="text-[11px] font-medium text-foreground/80">
+            Tipo de cobrança
+          </label>
+          <div className="mt-1 grid grid-cols-2 gap-1 rounded-lg bg-muted/50 p-1">
+            <button
+              type="button"
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={() => patch({ pricingMode: "custom" })}
+              className={`text-[12px] py-1.5 rounded-md transition ${
+                pricingMode === "custom"
+                  ? "bg-background shadow-sm text-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Valor avulso
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={() => patch({ pricingMode: "plan" })}
+              className={`text-[12px] py-1.5 rounded-md transition ${
+                pricingMode === "plan"
+                  ? "bg-background shadow-sm text-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Usar plano
+            </button>
+          </div>
+        </div>
+
+        {pricingMode === "plan" ? (
+          <div>
+            <label className="text-[11px] font-medium text-foreground/80">
+              Plano<span className="text-destructive">*</span>
+            </label>
+            <Select
+              value={planId || undefined}
+              onValueChange={(v) => {
+                const p = plans.find((pl) => pl.id === v);
+                patch({
+                  planId: v,
+                  amount: p ? Number(p.price).toFixed(2).replace(".", ",") : amount,
+                  description: p?.name || description,
+                });
+              }}
+            >
+              <SelectTrigger className="h-9 mt-1">
+                <SelectValue placeholder={plans.length ? "Selecione um plano" : "Nenhum plano cadastrado"} />
+              </SelectTrigger>
+              <SelectContent>
+                {plans.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name} — R$ {Number(p.price).toFixed(2).replace(".", ",")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {!plans.length && (
+              <div className="text-[10px] text-muted-foreground mt-1">
+                Cadastre planos em Produtos para utilizá-los aqui.
+              </div>
+            )}
+          </div>
+        ) : (
+        <div>
+          <label className="text-[11px] font-medium text-foreground/80">
             Valor<span className="text-destructive">*</span>
           </label>
           <div className="mt-1 relative">
@@ -662,6 +746,7 @@ function PagamentoNode({ id, data, selected }: any) {
             </button>
           </div>
         </div>
+        )}
 
         <div>
           <label className="text-[11px] font-medium text-foreground/80">
