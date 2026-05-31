@@ -89,36 +89,36 @@ interface FluxoTelegramItem {
 
 function IniciarNode({ data }: any) {
   return (
-    <div className="relative rounded-3xl border border-border/70 bg-card shadow-lg w-[560px] overflow-hidden">
+    <div className="relative rounded-[28px] bg-card shadow-[0_4px_24px_-4px_rgba(0,0,0,0.08)] w-[640px] overflow-hidden px-10 pt-9 pb-8">
       {/* Header */}
-      <div className="flex items-center gap-3 px-8 py-7 border-b border-border/60">
-        <PlayCircle className="h-8 w-8 text-primary" strokeWidth={2} />
-        <div className="text-[32px] font-semibold text-foreground tracking-tight leading-none">
+      <div className="flex items-center gap-4 mb-8">
+        <PlayCircle className="h-9 w-9 text-primary" strokeWidth={1.75} />
+        <div className="text-[36px] font-semibold text-foreground tracking-tight leading-none">
           Iniciar
         </div>
       </div>
       {/* Body */}
-      <div className="px-8 py-7">
-        <p className="text-[22px] text-muted-foreground leading-snug mb-7">
-          O gatilho é responsável por acionar a automação
-        </p>
+      <p className="text-[26px] text-muted-foreground/80 leading-snug mb-8 font-light">
+        O gatilho é responsável por acionar a automação
+      </p>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          data?.onAddTrigger?.();
+        }}
+        className="w-full inline-flex items-center justify-center gap-3 text-[28px] font-light py-8 rounded-2xl border-2 border-dashed border-border/70 text-foreground/70 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition"
+      >
+        Novo gatilho <Plus className="h-7 w-7" strokeWidth={1.75} />
+      </button>
+      <div className="flex justify-end mt-4">
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             data?.onAddTrigger?.();
           }}
-          className="w-full inline-flex items-center justify-center gap-3 text-[24px] font-normal py-7 rounded-2xl border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition"
-        >
-          Novo gatilho <Plus className="h-6 w-6" />
-        </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            data?.onAddTrigger?.();
-          }}
-          className="mt-5 w-full text-[18px] font-medium text-primary hover:underline text-right"
+          className="text-[20px] font-medium text-primary hover:underline"
         >
           Primeiro gatilho
         </button>
