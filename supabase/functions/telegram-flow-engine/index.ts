@@ -495,6 +495,7 @@ async function runFlow({
 
       // === IA block (pontual) ===
       else if (kind === "ia" || node.type === "ia") {
+        let iaNextHandle: string | null = null;
         try {
           const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
           if (!apiKey) throw new Error("ANTHROPIC_API_KEY ausente");
@@ -513,9 +514,37 @@ async function runFlow({
             console.warn("[engine] IA block sem input", node.id);
           }
 
-          const systemContent = knowledge
-            ? `${systemPrompt}\n\nBase de conhecimento (use como referência ao responder):\n${knowledge}`
-            : systemPrompt;
+          // Build tools the agent can call
+          const toolsCfg = (data as any).tools || {};
+          const claudeTools: any[] = [];
+          if (toolsCfg.previa) {
+            claudeTools.push({
+              name: "enviar_previa",
+              description: String(
+                toolsCfg.previaDescription ||
+                  "Acione quando o usuário pedir uma amostra, demonstração ou prévia do produto/conteúdo.",
+              ),
+              input_schema: { type: "object", properties: {}, required: [] },
+            });
+          }
+          if (toolsCfg.prova_social) {
+            claudeTools.push({
+              name: "enviar_prova_social",
+              description: String(
+                toolsCfg.provaSocialDescription ||
+                  "Acione quando o usuário demonstrar dúvida, objeção, ou pedir depoimentos/resultados de outros clientes.",
+              ),
+              input_schema: { type: "object", properties: {}, required: [] },
+            });
+          }
+
+          const systemContent =
+            (knowledge
+              ? `${systemPrompt}\n\nBase de conhecimento (use como referência ao responder):\n${knowledge}`
+              : systemPrompt) +
+            (claudeTools.length
+              ? `\n\nVocê tem ferramentas disponíveis. Use uma ferramenta APENAS se ela for claramente apropriada para a mensagem do usuário. Caso contrário, apenas responda em texto normalmente.`
+              : "");
 
           // Typing indicator while a IA pensa
           try {
@@ -534,6 +563,7 @@ async function runFlow({
               max_tokens: 1024,
               system: systemContent,
               messages: [{ role: "user", content: userInput || "(mensagem vazia)" }],
+              ...(claudeTools.length ? { tools: claudeTools } : {}),
             }),
           });
 
@@ -553,15 +583,18 @@ async function runFlow({
             }
           } else {
             const aiData = await aiRes.json().catch(() => ({}));
-            const reply: string = Array.isArray(aiData?.content)
-              ? aiData.content
-                  .filter((b: any) => b?.type === "text")
-                  .map((b: any) => b?.text || "")
-                  .join("\n")
-                  .trim()
-              : "";
+            const blocks: any[] = Array.isArray(aiData?.content) ? aiData.content : [];
+            const reply: string = blocks
+              .filter((b: any) => b?.type === "text")
+              .map((b: any) => b?.text || "")
+              .join("\n")
+              .trim();
+            const toolUse = blocks.find((b: any) => b?.type === "tool_use");
+            if (toolUse?.name === "enviar_previa") iaNextHandle = "previa";
+            else if (toolUse?.name === "enviar_prova_social") iaNextHandle = "prova_social";
             variables[saveAs] = reply;
-            if (sendReply && reply) {
+            // Quando a IA aciona uma ferramenta, NÃO enviamos o texto: o próximo bloco assume.
+            if (sendReply && reply && !iaNextHandle) {
               await tgApi(bot.bot_token, "sendMessage", {
                 chat_id: chatId,
                 text: reply,
@@ -571,6 +604,14 @@ async function runFlow({
         } catch (e) {
           console.error("[engine] IA block failed", (e as Error).message);
         }
+
+        // Roteia para a saída escolhida pela ferramenta (se houver) ou segue o padrão
+        const nextEdge =
+          (iaNextHandle && nextEdgeFor(edges, node.id, iaNextHandle)) ||
+          nextEdgeFor(edges, node.id, "default") ||
+          nextEdgeFor(edges, node.id);
+        currentId = nextEdge?.target || null;
+        continue;
       }
 
       // Default: just walk to next
