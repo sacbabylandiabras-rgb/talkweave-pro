@@ -1145,7 +1145,7 @@ const BLOCKS: BlockDef[] = [
     description: "Responde a mensagem do usuário com inteligência artificial",
     icon: Sparkles,
     initialData: {
-      model: "google/gemini-3-flash-preview",
+      model: "claude-sonnet-4-5-20250929",
       systemPrompt: "Você é um atendente prestativo e cordial. Responda de forma clara e objetiva.",
       knowledge: "",
       userInput: "{{last_message}}",
@@ -2654,18 +2654,16 @@ function BlockEditor({
         <div>
           <Label className="text-xs">Modelo</Label>
           <Select
-            value={String(d.model || "google/gemini-3-flash-preview")}
+            value={String(d.model || "claude-sonnet-4-5-20250929")}
             onValueChange={(v) => onPatch({ model: v })}
           >
             <SelectTrigger className="mt-1 h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="google/gemini-3-flash-preview">Rápido (padrão)</SelectItem>
-              <SelectItem value="google/gemini-2.5-flash">Equilibrado</SelectItem>
-              <SelectItem value="google/gemini-2.5-pro">Avançado</SelectItem>
-              <SelectItem value="openai/gpt-5-mini">GPT-5 Mini</SelectItem>
-              <SelectItem value="openai/gpt-5">GPT-5</SelectItem>
+              <SelectItem value="claude-haiku-4-5-20251001">Rápido (Haiku)</SelectItem>
+              <SelectItem value="claude-sonnet-4-5-20250929">Equilibrado (Sonnet) — padrão</SelectItem>
+              <SelectItem value="claude-opus-4-1-20250805">Avançado (Opus)</SelectItem>
             </SelectContent>
           </Select>
         </div>
