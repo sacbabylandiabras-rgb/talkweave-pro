@@ -408,6 +408,28 @@ export default function FluxoTelegram() {
     }
   };
 
+  const deleteFlow = async (id: string, flowName: string) => {
+    if (!confirm(`Apagar o fluxo "${flowName}"? Esta ação não pode ser desfeita.`)) return;
+    try {
+      const { error } = await (supabase as any)
+        .from("flow_automations")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      toast.success("Fluxo apagado");
+      setList((prev) => prev.filter((f) => f.id !== id));
+      if (currentId === id) {
+        setCurrentId(null);
+        setNodes([]);
+        setEdges([]);
+        setSelectedNode(null);
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Erro ao apagar: " + (e?.message || ""));
+    }
+  };
+
   /* ----------------------- New / open ----------------------- */
   const buildInitialCanvas = useCallback(() => {
     const iniciarId = "iniciar";
