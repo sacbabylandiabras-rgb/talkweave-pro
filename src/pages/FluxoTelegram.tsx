@@ -2423,7 +2423,7 @@ function BlockEditor({
   onPatch,
 }: {
   node: Node;
-  onPatch: (p: Record<string, any>) => void;
+  onPatch: (p: Record<string, any> | ((data: any) => Record<string, any>)) => void;
 }) {
   const kind = node.data?.kind as StepKind;
   const d = node.data || {};
