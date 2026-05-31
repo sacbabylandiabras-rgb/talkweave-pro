@@ -554,7 +554,6 @@ function PagamentoNode({ id, data, selected }: any) {
   const amount: string = data?.amount ?? "10,00";
   const acceptCard: boolean = data?.acceptCard !== false;
   const showQrCode: boolean = data?.showQrCode !== false;
-  const checkoutUrl: string = data?.checkoutUrl ?? "";
   const description: string = data?.description ?? "";
 
   const patch = (p: Record<string, any>) => {
@@ -674,21 +673,6 @@ function PagamentoNode({ id, data, selected }: any) {
             className="h-9 mt-1"
             placeholder="Ex: Plano VIP mensal"
           />
-        </div>
-
-        <div>
-          <label className="text-[11px] font-medium text-foreground/80">
-            Link do checkout (cartão)
-          </label>
-          <Input
-            value={checkoutUrl}
-            onChange={(e) => patch({ checkoutUrl: e.target.value })}
-            className="h-9 mt-1"
-            placeholder="https://seudominio.com/pay/seu-checkout"
-          />
-          <p className="mt-1 text-[10px] text-muted-foreground">
-            Usado no botão "Pagar com cartão" enviado junto do PIX.
-          </p>
         </div>
 
         <div className="flex items-center justify-between gap-2">
