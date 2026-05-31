@@ -521,7 +521,12 @@ function nodeFromBlock(block: BlockDef, position: { x: number; y: number }): Nod
   const Icon = block.icon;
   return {
     id: makeId(),
-    type: block.kind === "atraso" ? "intervalo" : "step",
+    type:
+      block.kind === "atraso"
+        ? "intervalo"
+        : block.kind === "texto"
+        ? "mensagem"
+        : "step",
     position,
     data: {
       kind: block.kind,
