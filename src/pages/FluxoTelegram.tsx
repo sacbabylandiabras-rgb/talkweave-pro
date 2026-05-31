@@ -138,7 +138,14 @@ function IniciarNode({ data }: any) {
   );
 }
 
-function StepNode({ data, selected }: any) {
+function StepNode({ id, data, selected }: any) {
+  if (data?.kind === "texto") {
+    return <MensagemNode id={id} data={data} selected={selected} />;
+  }
+  if (data?.kind === "atraso") {
+    return <IntervaloNode id={id} data={data} selected={selected} />;
+  }
+
   const Icon = data.icon || MessageSquare;
   return (
     <div
