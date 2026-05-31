@@ -133,6 +133,7 @@ export default function Prospeccao() {
     Promise.all([
       importLibrary("maps"),
       importLibrary("marker"),
+      importLibrary("places"),
     ]).then(([{ Map, InfoWindow }]) => {
       if (!mapDivRef.current) return;
       mapRef.current = new Map(mapDivRef.current, {
@@ -245,54 +246,62 @@ export default function Prospeccao() {
     setLoading(true);
     setResults([]);
     try {
-      let center: { lat: number; lng: number } | null = null;
-      if (city.trim()) {
-        const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(city)}&key=${GOOGLE_MAPS_API_KEY}`;
-        const geoRes = await fetch(geoUrl);
-        const geoJson = await geoRes.json();
-        const loc = geoJson?.results?.[0]?.geometry?.location;
-        if (loc) center = { lat: loc.lat, lng: loc.lng };
+      if (!mapsReady) {
+        toast.error("Aguarde o mapa carregar para buscar");
+        return;
       }
 
-      const body: Record<string, unknown> = {
+      let center: { lat: number; lng: number } | null = null;
+      if (city.trim()) {
+        const geocoder = new google.maps.Geocoder();
+        const { results: geoResults } = await geocoder.geocode({
+          address: city,
+          region: "BR",
+        });
+        const loc = geoResults?.[0]?.geometry?.location;
+        if (loc) center = { lat: loc.lat(), lng: loc.lng() };
+      }
+
+      const { Place } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
+      const request: google.maps.places.SearchByTextRequest = {
         textQuery: city.trim() ? `${query} em ${city}` : query,
-        languageCode: "pt-BR",
+        fields: [
+          "id",
+          "displayName",
+          "formattedAddress",
+          "nationalPhoneNumber",
+          "rating",
+          "userRatingCount",
+          "websiteURI",
+          "currentOpeningHours",
+          "businessStatus",
+          "location",
+        ],
+        language: "pt-BR",
+        region: "BR",
         maxResultCount: 20,
       };
       if (center) {
-        body.locationBias = {
-          circle: {
-            center: { latitude: center.lat, longitude: center.lng },
-            radius: Number(radius),
-          },
+        request.locationBias = {
+          center,
+          radius: Number(radius),
         };
       }
 
-      const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
-          "X-Goog-FieldMask":
-            "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.rating,places.userRatingCount,places.websiteUri,places.currentOpeningHours,places.businessStatus,places.location",
-        },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const places: Place[] = (json.places ?? []).map((p: any) => ({
+      const { places: searchResults } = await Place.searchByText(request);
+      const places: Place[] = (searchResults ?? []).filter((p) => p.location).map((p) => ({
         id: p.id,
-        name: p.displayName?.text ?? "Sem nome",
+        name: p.displayName ?? "Sem nome",
         address: p.formattedAddress ?? "",
         phone: p.nationalPhoneNumber,
         rating: p.rating,
         userRatingCount: p.userRatingCount,
-        website: p.websiteUri,
+        website: p.websiteURI,
         openNow: p.currentOpeningHours?.openNow,
         businessStatus: p.businessStatus,
         location: {
-          lat: p.location?.latitude,
-          lng: p.location?.longitude,
+          lat: p.location!.lat(),
+          lng: p.location!.lng(),
         },
       }));
       setResults(places);
