@@ -603,7 +603,7 @@ interface MenuItem {
 }
 const BLOCK_MENU: MenuItem[] = [
   { label: "Mensagem", icon: Send, iconClass: "text-sky-500", kind: "texto" },
-  { label: "Gerar pagamento", icon: CreditCard, iconClass: "text-muted-foreground/60", comingSoon: true },
+  { label: "Gerar pagamento", icon: CreditCard, iconClass: "text-emerald-500", kind: "pagamento" },
   { label: "Intervalo", icon: Clock, iconClass: "text-amber-500", kind: "atraso" },
   { label: "Grupo", icon: Users, iconClass: "text-muted-foreground/60", comingSoon: true },
 ];
