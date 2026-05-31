@@ -1562,7 +1562,11 @@ export default function FluxoTelegram() {
 
       {/* Editor sheet */}
       <Sheet
-        open={!!selectedNode && selectedNode.type !== "iniciar"}
+        open={
+          !!selectedNode &&
+          selectedNode.type !== "iniciar" &&
+          selectedNode.type !== "pagamento"
+        }
         onOpenChange={(o) => !o && setSelectedNode(null)}
       >
         <SheetContent className="w-full sm:max-w-md overflow-y-auto">
