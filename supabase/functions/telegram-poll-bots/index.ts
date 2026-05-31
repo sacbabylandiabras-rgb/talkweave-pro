@@ -43,13 +43,6 @@ Deno.serve(async (req) => {
       : offsetRow?.update_offset ?? 0;
 
     try {
-      // Ensure no webhook is active (would block getUpdates with 409)
-      await fetch(`https://api.telegram.org/bot${bot.bot_token}/deleteWebhook`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ drop_pending_updates: false }),
-      }).catch(() => {});
-
       const tgRes = await fetch(`https://api.telegram.org/bot${bot.bot_token}/getUpdates`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -61,7 +54,17 @@ Deno.serve(async (req) => {
       });
       const tgJson = await tgRes.json();
       if (!tgRes.ok || !tgJson.ok) {
-        console.warn(`bot ${bot.id} falhou:`, tgJson.description);
+        const description = String(tgJson.description || "");
+        if (description.includes("Conflict") && description.includes("webhook")) {
+          await admin
+            .from("telegram_bot_state")
+            .upsert(
+              { bot_id: bot.id, last_polled_at: new Date().toISOString() },
+              { onConflict: "bot_id" },
+            );
+          continue;
+        }
+        console.warn(`bot ${bot.id} falhou:`, description || tgRes.statusText);
         continue;
       }
 
