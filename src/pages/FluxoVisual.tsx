@@ -3317,7 +3317,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   </>
                 )}
 
-                {selectedNode.data.contentType === "video" && (
+                {selectedNode.data.contentType === "video" && !isTelegramMode && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg border border-border">
                       <div className="flex items-center gap-2">
