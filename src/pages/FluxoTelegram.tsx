@@ -14,6 +14,7 @@ import ReactFlow, {
   ReactFlowInstance,
   useEdgesState,
   useNodesState,
+  useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,6 +70,7 @@ import {
   CreditCard,
   Users,
   FolderOpen,
+  Copy,
 } from "lucide-react";
 
 /* ----------------------------- Types ----------------------------- */
