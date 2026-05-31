@@ -73,6 +73,7 @@ import {
   Copy,
   Type,
   Upload,
+  AlertTriangle,
 } from "lucide-react";
 
 /* ----------------------------- Types ----------------------------- */
