@@ -207,6 +207,8 @@ function MensagemNode({ id, data, selected }: any) {
   const preview =
     variant === "midia"
       ? (mediaName || (mediaUrl ? "Mídia anexada" : "Mídia sem URL"))
+      : variant === "botoes"
+      ? `${data?.message || "Mensagem com botões"} • ${(data?.buttons || []).length} botão(ões)`
       : variant === "atraso"
       ? `Aguardar ${data?.delaySeconds ?? 10}`
       : data?.message || "Mensagem de texto";
@@ -290,6 +292,8 @@ function MensagemNode({ id, data, selected }: any) {
               <span className="text-[13px] font-medium text-card-foreground">
                 {variant === "midia"
                   ? "Mídia"
+                  : variant === "botoes"
+                  ? "Botões"
                   : variant === "atraso"
                   ? "Atraso inteligente"
                   : "Texto"}
