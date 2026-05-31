@@ -673,12 +673,16 @@ function GrupoNode({ id, data, selected }: any) {
   const every: number = Number(data?.every ?? 30);
 
   const unitLabel =
-    subscriptionType === "diaria"
+    subscriptionType === "hora"
+      ? "horas"
+      : subscriptionType === "diaria"
       ? "dias"
       : subscriptionType === "semanal"
       ? "semanas"
       : subscriptionType === "mensal"
       ? "meses"
+      : subscriptionType === "anual"
+      ? "anos"
       : "vezes";
 
   const patch = (p: Record<string, any>) => {
@@ -806,10 +810,12 @@ function GrupoNode({ id, data, selected }: any) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="hora">Hora</SelectItem>
                 <SelectItem value="diaria">Diária</SelectItem>
                 <SelectItem value="semanal">Semanal</SelectItem>
                 <SelectItem value="mensal">Mensal</SelectItem>
-                <SelectItem value="vitalicia">Vitalícia</SelectItem>
+                <SelectItem value="anual">Anual</SelectItem>
+                <SelectItem value="permanente">Permanente</SelectItem>
               </SelectContent>
             </Select>
           </div>
