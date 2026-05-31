@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PlanRow {
   id: string;
@@ -32,16 +33,80 @@ interface PlanRow {
   message: string;
 }
 
+const CYCLE_LABELS: Record<string, string> = {
+  daily: "Diário",
+  weekly: "Semanal",
+  monthly: "Mensal",
+  yearly: "Anual",
+  lifetime: "Vitalício",
+  "one-time": "Único",
+};
+
+async function ensureTelegramProduct(userId: string): Promise<string | null> {
+  const { data: existing } = await supabase
+    .from("gateway_products")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("name", "Planos Telegram")
+    .maybeSingle();
+  if (existing?.id) return existing.id;
+  const { data: created, error } = await supabase
+    .from("gateway_products")
+    .insert({
+      user_id: userId,
+      name: "Planos Telegram",
+      description: "Planos de assinatura usados nos bots do Telegram",
+      price: 0,
+      type: "digital",
+      status: true,
+      visible_in_store: false,
+    } as any)
+    .select("id")
+    .single();
+  if (error) {
+    console.error("ensureTelegramProduct error", error);
+    return null;
+  }
+  return created?.id || null;
+}
+
 export default function TelegramPlanos() {
-  const [plans, setPlans] = useState<PlanRow[]>(() => {
-    try {
-      const raw = localStorage.getItem("telegram_planos");
-      return raw ? JSON.parse(raw) : [];
-    } catch { return []; }
-  });
+  const [plans, setPlans] = useState<PlanRow[]>([]);
+  const [productId, setProductId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const reload = async (pid: string) => {
+    const { data } = await supabase
+      .from("gateway_plans" as any)
+      .select("id, name, price, billing_cycle, description")
+      .eq("product_id", pid)
+      .order("created_at", { ascending: false });
+    const rows: PlanRow[] = (data || []).map((p: any) => ({
+      id: p.id,
+      title: p.name,
+      price: `R$ ${Number(p.price || 0).toFixed(2).replace(".", ",")}`,
+      charge: CYCLE_LABELS[p.billing_cycle] || p.billing_cycle || "—",
+      cycle: "0",
+      message: p.description || "-",
+    }));
+    setPlans(rows);
+  };
+
   useEffect(() => {
-    try { localStorage.setItem("telegram_planos", JSON.stringify(plans)); } catch {}
-  }, [plans]);
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user?.id;
+      if (!uid) {
+        setLoading(false);
+        return;
+      }
+      const pid = await ensureTelegramProduct(uid);
+      setProductId(pid);
+      if (pid) await reload(pid);
+      setLoading(false);
+    })();
+  }, []);
+
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
 
@@ -84,23 +149,32 @@ export default function TelegramPlanos() {
     toast.success("Configuração salva!");
     setOpenConfig(false);
   }
-  function createPlan() {
+  async function createPlan() {
     if (!planTitle.trim()) {
       toast.error("Informe o título do plano");
       return;
     }
-    const cycleLabel: Record<string, string> = {
-      daily: "Diário", weekly: "Semanal", monthly: "Mensal", yearly: "Anual", lifetime: "Vitalício",
-    };
-    const newPlan: PlanRow = {
-      id: `plan_${Date.now()}`,
-      title: planTitle.trim(),
-      price: planPrice ? `R$ ${planPrice}` : "R$ 0,00",
-      charge: cycleLabel[billingType] || billingType,
-      cycle: cycles || "0",
-      message: ctaButton || "-",
-    };
-    setPlans((prev) => [newPlan, ...prev]);
+    if (!productId) {
+      toast.error("Não foi possível preparar o catálogo de planos");
+      return;
+    }
+    const priceNum = parseFloat(
+      (planPrice || "0").replace(/\./g, "").replace(",", "."),
+    );
+    const { error } = await supabase.from("gateway_plans" as any).insert({
+      product_id: productId,
+      name: planTitle.trim(),
+      price: isFinite(priceNum) ? priceNum : 0,
+      billing_cycle: billingType,
+      description: ctaButton || null,
+      status: true,
+    });
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao criar plano");
+      return;
+    }
+    await reload(productId);
     toast.success("Plano criado com sucesso!");
     setOpenCreate(false);
     setPlanTitle("");
