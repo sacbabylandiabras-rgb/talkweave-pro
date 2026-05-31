@@ -395,10 +395,10 @@ const BLOCKS: BlockDef[] = [
   },
   {
     kind: "atraso",
-    label: "Atraso",
+    label: "Intervalo",
     description: "Aguarda alguns segundos antes do próximo bloco",
     icon: Clock,
-    initialData: { delaySeconds: 5 },
+    initialData: { delaySeconds: 10, timeUnit: "seconds", showTyping: false },
   },
   {
     kind: "condicao",
@@ -443,7 +443,7 @@ function nodeFromBlock(block: BlockDef, position: { x: number; y: number }): Nod
   const Icon = block.icon;
   return {
     id: makeId(),
-    type: "step",
+    type: block.kind === "atraso" ? "intervalo" : "step",
     position,
     data: {
       kind: block.kind,
@@ -492,7 +492,11 @@ function summaryFor(data: any): string {
     case "digitando":
       return `${data.typingDuration || 3}s digitando`;
     case "atraso":
-      return `Aguarda ${data.delaySeconds || 5}s`;
+      {
+        const u = data.timeUnit || "seconds";
+        const label = u === "hours" ? "h" : u === "minutes" ? "min" : "s";
+        return `Aguarda ${data.delaySeconds ?? 10}${label}`;
+      }
     case "condicao":
       return `${data.variable} ${data.operator} ${data.value}`;
     default:
