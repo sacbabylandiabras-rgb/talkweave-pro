@@ -2291,6 +2291,121 @@ function InlineButtonsEditor({
   );
 }
 
+function ToolMediaUploader({
+  inputId,
+  mediaUrl,
+  mediaName,
+  caption,
+  uploading,
+  onChange,
+  fields,
+}: {
+  inputId: string;
+  mediaUrl?: string;
+  mediaName?: string;
+  caption?: string;
+  uploading: boolean;
+  onChange: (patch: Record<string, any>) => void;
+  fields: {
+    url: string;
+    name: string;
+    type: string;
+    caption: string;
+    uploading: string;
+  };
+}) {
+  const inferType = (file: File): string => {
+    const mime = (file.type || "").toLowerCase();
+    if (mime.startsWith("image/")) return "photo";
+    if (mime.startsWith("video/")) return "video";
+    if (mime.startsWith("audio/")) return "audio";
+    return "document";
+  };
+  return (
+    <div className="space-y-2">
+      <label
+        htmlFor={inputId}
+        className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border p-3 text-center transition hover:bg-muted/40"
+      >
+        <Upload className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-[11px] font-medium">
+          {uploading
+            ? "Enviando..."
+            : mediaUrl
+            ? "Substituir arquivo"
+            : "Enviar foto, vídeo ou documento"}
+        </span>
+        <span className="text-[10px] text-muted-foreground">
+          Imagem, vídeo, áudio ou documento
+        </span>
+      </label>
+      <input
+        id={inputId}
+        type="file"
+        className="hidden"
+        accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          try {
+            onChange({ [fields.uploading]: true });
+            const { data: { user: currentUser } } = await supabase.auth.getUser();
+            if (!currentUser) throw new Error("Usuário não autenticado");
+            const fileExt = file.name.split(".").pop();
+            const fileName = `${currentUser.id}/${Date.now()}-${Math.random()
+              .toString(36)
+              .substring(7)}.${fileExt}`;
+            const { error: upErr } = await supabase.storage
+              .from("flow-media")
+              .upload(fileName, file, { cacheControl: "3600", upsert: false });
+            if (upErr) throw upErr;
+            const { data: { publicUrl } } = supabase.storage
+              .from("flow-media")
+              .getPublicUrl(fileName);
+            onChange({
+              [fields.url]: publicUrl,
+              [fields.name]: file.name,
+              [fields.type]: inferType(file),
+              [fields.uploading]: false,
+            });
+            toast.success("Arquivo enviado!");
+          } catch (err: any) {
+            console.error(err);
+            onChange({ [fields.uploading]: false });
+            toast.error("Erro ao enviar arquivo");
+          } finally {
+            e.target.value = "";
+          }
+        }}
+      />
+      {mediaName && (
+        <div className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-background px-2 py-1.5">
+          <span className="text-[11px] truncate flex-1" title={mediaName}>
+            {mediaName}
+          </span>
+          <button
+            type="button"
+            onClick={() =>
+              onChange({ [fields.url]: "", [fields.name]: "", [fields.type]: "" })
+            }
+            className="text-[10px] text-destructive hover:underline"
+          >
+            Remover
+          </button>
+        </div>
+      )}
+      {mediaUrl && (
+        <Input
+          value={caption || ""}
+          onChange={(e) => onChange({ [fields.caption]: e.target.value })}
+          placeholder="Legenda (opcional)"
+          className="h-8 text-xs"
+        />
+      )}
+    </div>
+  );
+}
+
 function BlockEditor({
   node,
   onPatch,
