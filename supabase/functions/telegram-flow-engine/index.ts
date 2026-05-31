@@ -383,7 +383,9 @@ async function runFlow({
           if (acceptCard) {
             try {
               const productName = String(resolvedDescription || data.description || "Pagamento").slice(0, 80);
-              const priceReais = amountCents / 100;
+              // O checkout estático (pay.html) interpreta config.price em CENTAVOS
+              // (faz price/100 para exibir). Por isso salvamos em centavos aqui.
+              const priceCents = amountCents;
               const shortUser = String(bot.user_id).replace(/-/g, "").slice(0, 8);
               const shortNode = String(node.id).replace(/[^a-z0-9]/gi, "").slice(0, 10).toLowerCase();
               const slug = `tg-${shortUser}-${shortNode}`;
@@ -397,7 +399,7 @@ async function runFlow({
               const nextConfig = {
                 ...((existing?.config as Record<string, any>) || {}),
                 productName,
-                price: priceReais,
+                price: priceCents,
                 creditCard: true,
                 pix: true,
               };
