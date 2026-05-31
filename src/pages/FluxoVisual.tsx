@@ -2411,7 +2411,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           </DialogHeader>
 
           <div className="space-y-4">
-            {selectedNode?.type === "blocoConteudo" && isMensagemPredefinidaBlock(selectedNode) && (
+            {selectedNode?.type === "blocoConteudo" && isMensagemPredefinidaBlock(selectedNode) && !isTelegramMode && (
               <div className="space-y-3 p-3 rounded-lg border border-border bg-muted/30">
                 <Label className="text-sm font-semibold">Modelo de Mensagem</Label>
                 <p className="text-[11px] text-muted-foreground">
