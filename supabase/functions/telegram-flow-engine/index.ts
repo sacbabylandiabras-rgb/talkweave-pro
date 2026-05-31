@@ -417,8 +417,22 @@ async function runFlow({
                 });
               }
 
-              const appBase =
-                Deno.env.get("APP_PUBLIC_URL") || "https://talkweave-pro.lovable.app";
+              // Domínio: usa custom_domain do usuário se configurado,
+              // caso contrário cai no domínio padrão zaplynx.com
+              let appBase = "https://zaplynx.com";
+              try {
+                const { data: prof } = await admin
+                  .from("profiles")
+                  .select("custom_domain")
+                  .eq("id", bot.user_id)
+                  .maybeSingle();
+                const cd = String(prof?.custom_domain || "").trim();
+                if (cd) {
+                  appBase = /^https?:\/\//i.test(cd) ? cd : `https://${cd}`;
+                }
+              } catch (_e) {
+                // fallback silencioso para zaplynx.com
+              }
               cardCheckoutUrl = `${appBase.replace(/\/$/, "")}/pay/${slug}`;
             } catch (e) {
               console.error("[engine] failed to upsert flow checkout", (e as Error).message);
