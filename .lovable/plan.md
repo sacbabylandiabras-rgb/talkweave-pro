@@ -1,91 +1,103 @@
-# Melhorias no Pipeline de Vendas
+## Fluxo Visual do Telegram — Plano de Implementação
 
-Implementar 4 melhorias no módulo de pipeline (`/pipeline`):
+Objetivo: espelhar o `FluxoVisual` (WhatsApp) para o Telegram, com todos os blocos do editor visual + motor de execução próprio.
 
-## 1. Editar funil existente
+### 1. Banco de Dados (migration)
 
-No `PipelineSelector.tsx`, adicionar botão de "editar" (ícone lápis) em cada card. Abre o mesmo dialog usado para criar, pré-preenchido, permitindo:
-- Renomear o funil
-- Mudar departamento/moeda
-- Adicionar/remover etapas
-- Renomear etapas existentes (clique no badge)
-
-Persistência: atualiza o JSONB `pipeline_stages` no `profiles` (ou na nova tabela do item 3).
-
-## 2. Reordenar etapas (drag & drop)
-
-Dentro do editor de etapas, usar `@dnd-kit/sortable` (já presente no projeto se for o caso — senão instalar) para permitir arrastar e soltar as etapas. A ordem é refletida nas colunas do Kanban em `MensagensRecebidas`.
-
-## 3. Métricas de conversão
-
-No topo do Kanban (acima das colunas) e dentro de cada coluna mostrar:
-- **Por coluna**: número de leads, valor total (se houver campo `deal_value` no `saved_contacts` — caso não exista, adicionar via migration nullable) e % do funil total
-- **Entre colunas**: taxa de conversão `etapa N → etapa N+1` (com base em `saved_contacts` movidos historicamente — usar um log simples `pipeline_stage_history` para registrar transições)
-
-Migration:
-```sql
--- log de movimentações entre etapas (para métricas)
-CREATE TABLE public.pipeline_stage_history (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  pipeline_id text NOT NULL,
-  contact_id uuid NOT NULL,
-  from_stage text,
-  to_stage text NOT NULL,
-  moved_at timestamptz NOT NULL DEFAULT now()
-);
-GRANT SELECT, INSERT ON public.pipeline_stage_history TO authenticated;
-GRANT ALL ON public.pipeline_stage_history TO service_role;
-ALTER TABLE public.pipeline_stage_history ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "own history" ON public.pipeline_stage_history
-  FOR ALL TO authenticated
-  USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
-
--- valor opcional do lead
-ALTER TABLE public.saved_contacts ADD COLUMN IF NOT EXISTS deal_value numeric DEFAULT 0;
-```
-
-## 4. Compartilhar funis entre membros
-
-Hoje os pipelines vivem em `profiles.pipeline_stages` (1 dono). Para compartilhar, mover para uma tabela própria:
+Tabela `flow_automations` ganha colunas para suportar múltiplos provedores:
 
 ```sql
-CREATE TABLE public.pipelines (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_id uuid NOT NULL,
-  name text NOT NULL,
-  department text,
-  currency text DEFAULT 'BRL',
-  stages jsonb NOT NULL DEFAULT '[]',
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE public.pipeline_members (
-  pipeline_id uuid NOT NULL REFERENCES public.pipelines(id) ON DELETE CASCADE,
-  user_id uuid NOT NULL,
-  role text NOT NULL DEFAULT 'editor', -- 'viewer' | 'editor'
-  PRIMARY KEY (pipeline_id, user_id)
-);
-
--- GRANTs + RLS: owner full access; member access via pipeline_members
+ALTER TABLE public.flow_automations
+  ADD COLUMN provider text NOT NULL DEFAULT 'whatsapp',
+  ADD COLUMN bot_id uuid REFERENCES public.telegram_bots(id) ON DELETE SET NULL;
+CREATE INDEX idx_flow_automations_provider ON public.flow_automations(user_id, provider);
 ```
 
-O `PipelineSelector` passa a ler de `pipelines` (próprios + compartilhados via `pipeline_members`).
-Em cada card aparece um botão "Compartilhar" que abre um dialog para adicionar membros por e-mail (lookup em `profiles.email`) e definir o papel.
+Nova tabela `telegram_flow_sessions` (estado por chat, idempotência e variáveis):
 
-**Migração de dados**: na primeira leitura, se `profiles.pipeline_stages` tiver dados e a tabela `pipelines` estiver vazia para o usuário, migrar automaticamente.
+```sql
+CREATE TABLE public.telegram_flow_sessions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  bot_id uuid NOT NULL REFERENCES public.telegram_bots(id) ON DELETE CASCADE,
+  chat_id bigint NOT NULL,
+  flow_id uuid REFERENCES public.flow_automations(id) ON DELETE SET NULL,
+  current_node_id text,
+  variables jsonb NOT NULL DEFAULT '{}'::jsonb,
+  waiting_for text, -- 'message' | 'callback' | null
+  last_update_id bigint,
+  status text NOT NULL DEFAULT 'active', -- active | finished | paused
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE(bot_id, chat_id)
+);
+-- GRANT + RLS por bot.user_id
+```
 
-## Ordem de execução
+### 2. Editor Visual (Frontend)
 
-1. Migrations (tabelas `pipelines`, `pipeline_members`, `pipeline_stage_history`, coluna `deal_value`)
-2. Refator `PipelineSelector` para usar `pipelines` + migração automática do JSONB legado
-3. Dialog de edição (reuso do dialog de criação) + reorder com `@dnd-kit/sortable`
-4. Dialog "Compartilhar" (lookup por e-mail, lista de membros, remover)
-5. Métricas no Kanban (`MensagensRecebidas`) + hook de log nas mudanças de etapa
+Reaproveitar `src/pages/FluxoVisual.tsx`:
+- Adicionar `"telegram"` ao tipo do prop `mode`.
+- Criar `isTelegramMode = mode === "telegram"`.
+- Quando telegram:
+  - Selector de **Bot do Telegram** (do `telegram_bots`) substitui o selector de instâncias.
+  - Esconder blocos exclusivos do WhatsApp Cloud API (templates oficiais, áudio ElevenLabs PTT, carrossel) e exibir variantes do Telegram (texto, foto, vídeo, documento, áudio, botões inline com `callback_data` ou URL, botões de teclado).
+  - Salvar com `provider='telegram'` e `bot_id` selecionado.
 
-## Observações
+Criar wrapper:
 
-- Tudo respeita o tema atual (tokens semânticos, sem cores hardcoded).
-- Sem expor nomes de provedores de terceiros (regra white-label).
-- O hook que move o contato entre etapas vai inserir uma linha em `pipeline_stage_history` para alimentar as métricas.
+```ts
+// src/pages/FluxoTelegram.tsx
+import FluxoVisual from "./FluxoVisual";
+export default function FluxoTelegram() {
+  return <FluxoVisual mode="telegram" />;
+}
+```
+
+Registrar rota em `src/App.tsx`: `/telegram/fluxo` → `FluxoTelegram`.
+
+Adicionar item "Fluxo Visual" na seção Telegram do `src/components/layout/Sidebar.tsx`.
+
+### 3. Gatilhos Suportados
+
+Os 4 escolhidos pelo usuário, mapeados no bloco gatilho:
+- `command` — `/start`, `/menu`, etc.
+- `keyword` — texto contém ou igual.
+- `callback` — clique em botão inline (compara `callback_data`).
+- `new_member` — primeira mensagem do contato com o bot.
+
+### 4. Motor de Execução (Edge Function)
+
+Nova `supabase/functions/telegram-flow-engine/index.ts`:
+- Recebe `{ bot_id, update }` do `telegram-poll-bots`.
+- Resolve sessão por `(bot_id, chat_id)`.
+- Se `waiting_for === 'callback'` e veio `callback_query` → consome botão.
+- Se `waiting_for === 'message'` → salva resposta em `variables[currentNodeVar]` e segue.
+- Caso contrário, procura fluxo ativo cujo gatilho case com o update.
+- Executa nós em sequência:
+  - `blocoConteudo` (text/photo/video/document/audio) → `sendMessage`/`sendPhoto`/etc via gateway.
+  - `blocoAcao` com `actionType:'typing'` → `sendChatAction`.
+  - `blocoAcao` com `actionType:'delay'` → grava `resume_at` e sai (cron retoma).
+  - `blocoCondicao` → avalia `variables` e segue handle correto.
+  - Botões inline → envia `reply_markup` com `inline_keyboard` e marca `waiting_for='callback'`.
+  - `fimFluxo` → marca `status='finished'`.
+
+Integração em `telegram-poll-bots`: para cada update, fazer `fetch` interno para `telegram-flow-engine` (fire-and-forget) após salvar em `telegram_messages`.
+
+`supabase/config.toml`: `[functions.telegram-flow-engine] verify_jwt = false`.
+
+### 5. Itens fora de escopo (não nesta entrega)
+
+- Agente IA / ferramentas custom dentro do fluxo Telegram (bloco aparece mas em "soon").
+- CRM (atualizar lead / criar registro) — só funciona se já houver mapeamento de contato Telegram → lead.
+- ElevenLabs e templates WhatsApp oficiais (não se aplicam ao Telegram).
+
+### Arquivos afetados
+
+- `supabase/migrations/<timestamp>_telegram_flow.sql` (novo)
+- `supabase/functions/telegram-flow-engine/index.ts` (novo)
+- `supabase/functions/telegram-poll-bots/index.ts` (editar — dispara engine)
+- `supabase/config.toml` (registrar `telegram-flow-engine`)
+- `src/pages/FluxoVisual.tsx` (suporte a `mode="telegram"`, bot selector, render condicional)
+- `src/pages/FluxoTelegram.tsx` (novo wrapper)
+- `src/App.tsx` (rota `/telegram/fluxo`)
+- `src/components/layout/Sidebar.tsx` (item de menu)
