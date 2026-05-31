@@ -71,6 +71,7 @@ import {
   Users,
   FolderOpen,
   Copy,
+  Type,
 } from "lucide-react";
 
 /* ----------------------------- Types ----------------------------- */
@@ -1348,20 +1349,139 @@ function BlockEditor({
   }
 
   if (kind === "texto") {
+    const variant: "texto" | "midia" | "atraso" = d.contentVariant || "texto";
+    const options = [
+      {
+        id: "texto" as const,
+        icon: Type,
+        title: "Texto",
+        desc: "Adicione texto simples e botões",
+        color: "text-sky-500 bg-sky-500/10",
+      },
+      {
+        id: "midia" as const,
+        icon: ImageIcon,
+        title: "Mídia",
+        desc: "Impulsione o engajamento com estímulos visuais",
+        color: "text-violet-500 bg-violet-500/10",
+      },
+      {
+        id: "atraso" as const,
+        icon: Clock,
+        title: "Atraso inteligente",
+        desc: "Configure um atraso estratégico entre os envios",
+        color: "text-amber-500 bg-amber-500/10",
+      },
+    ];
     return (
-      <div>
-        <Label className="text-xs">Mensagem</Label>
-        <Textarea
-          value={d.message || ""}
-          onChange={(e) => onPatch({ message: e.target.value })}
-          rows={6}
-          placeholder="Olá {{user.first_name}}! Bem-vindo."
-          className="mt-1"
-        />
-        <p className="text-[10px] text-muted-foreground mt-1">
-          Variáveis: <code>{`{{user.first_name}}`}</code>, <code>{`{{chat.id}}`}</code>,{" "}
-          <code>{`{{last_message}}`}</code>, <code>{`{{last_button}}`}</code>
-        </p>
+      <div className="space-y-4">
+        <div>
+          <p className="text-sm font-semibold text-foreground">
+            Adicione um dos blocos de conteúdo
+          </p>
+          <div className="mt-3 space-y-2">
+            {options.map((o) => {
+              const Icon = o.icon;
+              const active = variant === o.id;
+              return (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => onPatch({ contentVariant: o.id })}
+                  className={`w-full text-left flex items-start gap-3 rounded-lg border p-3 transition ${
+                    active
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/40"
+                  }`}
+                >
+                  <div className={`p-2 rounded-md ${o.color}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">{o.title}</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      {o.desc}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {variant === "texto" && (
+          <div>
+            <Label className="text-xs">Mensagem</Label>
+            <Textarea
+              value={d.message || ""}
+              onChange={(e) => onPatch({ message: e.target.value })}
+              rows={6}
+              placeholder="Olá {{user.first_name}}! Bem-vindo."
+              className="mt-1"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Variáveis: <code>{`{{user.first_name}}`}</code>,{" "}
+              <code>{`{{chat.id}}`}</code>, <code>{`{{last_message}}`}</code>,{" "}
+              <code>{`{{last_button}}`}</code>
+            </p>
+          </div>
+        )}
+
+        {variant === "midia" && (
+          <>
+            <div>
+              <Label className="text-xs">URL da mídia</Label>
+              <Input
+                value={d.mediaUrl || ""}
+                onChange={(e) => onPatch({ mediaUrl: e.target.value })}
+                placeholder="https://..."
+                className="mt-1 h-9"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Legenda (opcional)</Label>
+              <Textarea
+                value={d.message || ""}
+                onChange={(e) => onPatch({ message: e.target.value })}
+                rows={3}
+                className="mt-1"
+              />
+            </div>
+          </>
+        )}
+
+        {variant === "atraso" && (
+          <div>
+            <Label className="text-xs">
+              Tempo <span className="text-destructive">*</span>
+            </Label>
+            <div className="mt-1 flex gap-2">
+              <Input
+                type="number"
+                min={1}
+                value={d.delaySeconds ?? 10}
+                onChange={(e) =>
+                  onPatch({ delaySeconds: Number(e.target.value) })
+                }
+                className="h-9 flex-1"
+              />
+              <Select
+                value={String(d.timeUnit || "seconds")}
+                onValueChange={(v) => onPatch({ timeUnit: v })}
+              >
+                <SelectTrigger className="h-9 w-[130px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="seconds">Segundos</SelectItem>
+                  <SelectItem value="minutes">Minutos</SelectItem>
+                  <SelectItem value="hours">Horas</SelectItem>
+                  <SelectItem value="days">Dias</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
