@@ -1145,7 +1145,7 @@ const BLOCKS: BlockDef[] = [
     description: "Responde a mensagem do usuário com inteligência artificial",
     icon: Sparkles,
     initialData: {
-      model: "google/gemini-3-flash-preview",
+      model: "claude-sonnet-4-5-20250929",
       systemPrompt: "Você é um atendente prestativo e cordial. Responda de forma clara e objetiva.",
       knowledge: "",
       userInput: "{{last_message}}",
