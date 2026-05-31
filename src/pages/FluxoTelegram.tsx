@@ -892,8 +892,18 @@ export default function FluxoTelegram() {
             fitView
             defaultEdgeOptions={{
               type: "smoothstep",
-              markerEnd: { type: MarkerType.ArrowClosed },
-              style: { stroke: "hsl(var(--primary))", strokeWidth: 2 },
+              animated: true,
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                width: 22,
+                height: 22,
+                color: "hsl(var(--primary))",
+              },
+              style: {
+                stroke: "hsl(var(--primary))",
+                strokeWidth: 3,
+                filter: "drop-shadow(0 1px 2px hsl(var(--primary) / 0.35))",
+              },
             }}
           >
             <Background
