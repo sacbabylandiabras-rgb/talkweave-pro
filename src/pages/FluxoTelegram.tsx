@@ -897,12 +897,12 @@ export default function FluxoTelegram() {
                 type: MarkerType.ArrowClosed,
                 width: 22,
                 height: 22,
-                color: "hsl(var(--primary))",
+                color: "#8B5CF6",
               },
               style: {
-                stroke: "hsl(var(--primary))",
+                stroke: "#8B5CF6",
                 strokeWidth: 3,
-                filter: "drop-shadow(0 1px 2px hsl(var(--primary) / 0.35))",
+                filter: "drop-shadow(0 1px 2px rgba(139, 92, 246, 0.4))",
               },
             }}
           >
