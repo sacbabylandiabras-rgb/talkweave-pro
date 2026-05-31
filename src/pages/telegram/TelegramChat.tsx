@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ChatMsg { id: string; from: "me" | "them"; text: string; time: string; }
 interface Conversation {
@@ -23,24 +24,82 @@ interface Conversation {
   online: boolean;
   type: "todos" | "suporte";
   messages: ChatMsg[];
+  bot_id?: string;
+  chat_id?: number;
 }
 
-const MOCK: Conversation[] = [];
-
 export default function TelegramChat() {
-  const [convs, setConvs] = useState<Conversation[]>(MOCK);
+  const [convs, setConvs] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string>("");
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState("");
   const [tab, setTab] = useState<"todos" | "suporte">("todos");
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const active = convs.find((c) => c.id === activeId);
 
+  async function loadConversations() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
+
+    const { data, error } = await (supabase as any)
+      .from("telegram_messages")
+      .select("id, bot_id, chat_id, from_username, from_first_name, text, raw_update, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true })
+      .limit(2000);
+
+    if (error) { console.error(error); setLoading(false); return; }
+
+    // Group by chat_id
+    const grouped = new Map<string, Conversation>();
+    for (const row of (data ?? []) as any[]) {
+      const key = `${row.bot_id}:${row.chat_id}`;
+      const fromBot = row.raw_update?.message?.from?.is_bot === true;
+      const time = new Date(row.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      const msg: ChatMsg = {
+        id: row.id,
+        from: fromBot ? "me" : "them",
+        text: row.text || "(mídia)",
+        time,
+      };
+      const existing = grouped.get(key);
+      if (existing) {
+        existing.messages.push(msg);
+        existing.last_msg = msg.text;
+        existing.last_time = time;
+      } else {
+        const name = row.from_first_name || row.from_username || `Chat ${row.chat_id}`;
+        grouped.set(key, {
+          id: key,
+          name,
+          username: row.from_username ? `@${row.from_username}` : `#${row.chat_id}`,
+          last_msg: msg.text,
+          last_time: time,
+          unread: 0,
+          online: false,
+          type: "todos",
+          messages: [msg],
+          bot_id: row.bot_id,
+          chat_id: row.chat_id,
+        });
+      }
+    }
+
+    const list = Array.from(grouped.values()).reverse();
+    setConvs(list);
+    setLoading(false);
+  }
+
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 800);
-    return () => clearTimeout(t);
+    loadConversations();
+    const channel = supabase
+      .channel("telegram-chat-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "telegram_messages" }, () => loadConversations())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const filtered = convs.filter((c) => {
@@ -60,15 +119,26 @@ export default function TelegramChat() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [activeId, active?.messages.length]);
 
-  function send() {
-    if (!draft.trim() || !active) return;
-    const newMsg: ChatMsg = { id: crypto.randomUUID(), from: "me", text: draft.trim(), time: "Agora" };
-    setConvs((prev) => prev.map((c) => c.id === activeId
-      ? { ...c, messages: [...c.messages, newMsg], last_msg: newMsg.text, last_time: "Agora" }
-      : c,
-    ));
-    setDraft("");
-    toast.success("Mensagem enviada");
+  async function send() {
+    if (!draft.trim() || !active || !active.bot_id || !active.chat_id) return;
+    setSending(true);
+    try {
+      const { data, error } = await (supabase as any).functions.invoke("telegram-send-message", {
+        body: { bot_id: active.bot_id, chat_id: active.chat_id, text: draft.trim() },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const newMsg: ChatMsg = { id: crypto.randomUUID(), from: "me", text: draft.trim(), time: "Agora" };
+      setConvs((prev) => prev.map((c) => c.id === activeId
+        ? { ...c, messages: [...c.messages, newMsg], last_msg: newMsg.text, last_time: "Agora" }
+        : c,
+      ));
+      setDraft("");
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao enviar mensagem");
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
