@@ -374,6 +374,10 @@ export default function FluxoTelegram() {
   >(null);
   const rfWrapperRef = useRef<HTMLDivElement | null>(null);
   const rfInstanceRef = useRef<ReactFlowInstance | null>(null);
+  const lastSelectedRef = useRef<Node | null>(null);
+  useEffect(() => {
+    if (selectedNode) lastSelectedRef.current = selectedNode;
+  }, [selectedNode]);
   const connectStartRef = useRef<
     { nodeId: string | null; handleId: string | null; handleType: string | null } | null
   >(null);
@@ -970,8 +974,21 @@ export default function FluxoTelegram() {
             size="icon"
             variant="ghost"
             title="Remover bloco selecionado"
-            onClick={() => selectedNode && deleteNode(selectedNode.id)}
-            disabled={!selectedNode || selectedNode.id === "iniciar"}
+            onMouseDown={(e) => {
+              // Roda antes do outside-click do Sheet, preservando a seleção
+              e.preventDefault();
+              const target = selectedNode || lastSelectedRef.current;
+              if (!target) {
+                toast.error("Selecione um bloco no canvas primeiro");
+                return;
+              }
+              if (target.id === "iniciar") {
+                toast.error("O bloco Iniciar não pode ser removido");
+                return;
+              }
+              deleteNode(target.id);
+              lastSelectedRef.current = null;
+            }}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
