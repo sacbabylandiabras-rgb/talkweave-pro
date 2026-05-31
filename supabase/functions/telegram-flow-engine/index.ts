@@ -571,10 +571,9 @@ Deno.serve(async (req) => {
     .select("id")
     .single();
 
-  const initial = (flow.nodes as FlowNode[]).find(
-    (n) => n.type === "blocoInicial" || n.type === "blocoGatilho" || n.id === "1",
-  );
-  const firstEdge = nextEdgeFor(flow.edges || [], initial?.id || "1");
+  const nodesArr = (flow.nodes as FlowNode[]) || [];
+  const trigger = findTriggerNode(nodesArr);
+  const firstEdge = nextEdgeFor(flow.edges || [], trigger?.id || "1");
   if (!firstEdge) {
     await admin
       .from("telegram_flow_sessions")
