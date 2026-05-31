@@ -285,6 +285,7 @@ function IntervaloNode({ id, data, selected }: any) {
                 <SelectItem value="seconds">Segundos</SelectItem>
                 <SelectItem value="minutes">Minutos</SelectItem>
                 <SelectItem value="hours">Horas</SelectItem>
+                <SelectItem value="days">Dias</SelectItem>
               </SelectContent>
             </Select>
           </div>
