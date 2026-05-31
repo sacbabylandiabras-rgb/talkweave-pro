@@ -2063,10 +2063,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   Grupos{preselectedGroups.length > 0 ? ` (${preselectedGroups.length})` : ""}
                 </Button>
               )}
-              <Button size="sm" onClick={handleEnviarAgora} className="h-8" disabled={isSending}>
-                <Send className="h-4 w-4 mr-1.5" />
-                {isSending ? "Enviando..." : "Enviar"}
-              </Button>
+              {!isTelegramMode && (
+                <Button size="sm" onClick={handleEnviarAgora} className="h-8" disabled={isSending}>
+                  <Send className="h-4 w-4 mr-1.5" />
+                  {isSending ? "Enviando..." : "Enviar"}
+                </Button>
+              )}
               {isSending && (
                 <Button
                   size="sm"
