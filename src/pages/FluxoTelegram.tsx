@@ -138,7 +138,14 @@ function IniciarNode({ data }: any) {
   );
 }
 
-function StepNode({ data, selected }: any) {
+function StepNode({ id, data, selected }: any) {
+  if (data?.kind === "texto") {
+    return <MensagemNode id={id} data={data} selected={selected} />;
+  }
+  if (data?.kind === "atraso") {
+    return <IntervaloNode id={id} data={data} selected={selected} />;
+  }
+
   const Icon = data.icon || MessageSquare;
   return (
     <div
@@ -181,8 +188,15 @@ function StepNode({ data, selected }: any) {
 function IntervaloNode({ id, data, selected }: any) {
   return _IntervaloNodeImpl({ id, data, selected });
 }
-function MensagemNode({ id, selected }: any) {
+function MensagemNode({ id, data, selected }: any) {
   const { setNodes, setEdges, getNode } = useReactFlow();
+  const variant = data?.contentVariant || "texto";
+  const preview =
+    variant === "midia"
+      ? data?.mediaUrl || "Mídia sem URL"
+      : variant === "atraso"
+      ? `Aguardar ${data?.delaySeconds ?? 10}`
+      : data?.message || "Mensagem de texto";
   const duplicate = () => {
     const src = getNode(id);
     if (!src) return;
@@ -204,23 +218,32 @@ function MensagemNode({ id, selected }: any) {
   };
   return (
     <div
-      className={`relative rounded-xl border bg-card shadow-md w-[240px] transition ${
-        selected ? "border-primary ring-2 ring-primary/30" : "border-border"
+      className={`group relative w-[320px] overflow-hidden rounded-2xl border bg-card shadow-[0_10px_28px_-18px_hsl(var(--foreground)/0.55)] transition ${
+        selected ? "border-primary ring-2 ring-primary/25" : "border-border/70"
       }`}
     >
       <Handle
         type="target"
         position={Position.Left}
-        className="!w-3 !h-3 !bg-primary !border-2 !border-background"
+        className="!w-4 !h-4 !bg-primary !border-2 !border-background !shadow-md"
+        style={{ left: -8 }}
       />
-      <div className="flex items-center justify-between gap-2 px-3 py-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="p-1.5 rounded-md bg-sky-500/10 text-sky-500">
-            <MessageSquare className="h-4 w-4" />
+
+      <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <MessageSquare className="h-4 w-4" strokeWidth={2.2} />
           </div>
-          <div className="text-sm font-semibold truncate">Mensagem de texto</div>
+          <div className="min-w-0">
+            <div className="text-[15px] font-semibold leading-none text-card-foreground">
+              Mensagem
+            </div>
+            <div className="mt-1 text-[11px] text-muted-foreground">
+              Bloco de conteúdo
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-1 text-muted-foreground opacity-0 group-hover:opacity-100 transition">
+        <div className="flex items-center gap-1 text-muted-foreground">
           <button
             type="button"
             onMouseDown={(e) => {
@@ -245,10 +268,35 @@ function MensagemNode({ id, selected }: any) {
           </button>
         </div>
       </div>
+
+      <div className="space-y-2 px-4 py-3">
+        <div className="rounded-xl border border-border/70 bg-muted/30 px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="h-2 w-2 rounded-full bg-primary" />
+              <span className="text-[13px] font-medium text-card-foreground">
+                {variant === "midia"
+                  ? "Mídia"
+                  : variant === "atraso"
+                  ? "Atraso inteligente"
+                  : "Texto"}
+              </span>
+            </div>
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+              Ativo
+            </span>
+          </div>
+          <div className="mt-1.5 line-clamp-2 text-[12px] leading-snug text-muted-foreground break-words">
+            {preview}
+          </div>
+        </div>
+      </div>
+
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-3 !h-3 !bg-primary !border-2 !border-background"
+        className="!w-4 !h-4 !bg-primary !border-2 !border-background !shadow-md"
+        style={{ right: -8 }}
       />
     </div>
   );
