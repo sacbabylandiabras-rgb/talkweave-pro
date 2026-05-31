@@ -282,6 +282,22 @@ const BLOCKS: BlockDef[] = [
 
 const blockByKind = (k: StepKind) => BLOCKS.find((b) => b.kind === k);
 
+/* ---------- Menu compacto exibido ao puxar uma linha ou clicar em "+" ---------- */
+interface MenuItem {
+  label: string;
+  icon: any;
+  iconClass: string;
+  kind?: StepKind;       // bloco real a inserir; ausente = em breve
+  comingSoon?: boolean;
+}
+const BLOCK_MENU: MenuItem[] = [
+  { label: "Mensagem", icon: Send, iconClass: "text-sky-500", kind: "texto" },
+  { label: "Gerar pagamento", icon: CreditCard, iconClass: "text-muted-foreground/60", comingSoon: true },
+  { label: "Intervalo", icon: Clock, iconClass: "text-amber-500", kind: "atraso" },
+  { label: "Grupo", icon: Users, iconClass: "text-muted-foreground/60", comingSoon: true },
+  { label: "Pagamento global", icon: FolderOpen, iconClass: "text-muted-foreground/60", comingSoon: true },
+];
+
 /* ---------------------------- Helpers ----------------------------- */
 
 function makeId() {
