@@ -1267,7 +1267,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       const serializedNodes = JSON.parse(JSON.stringify(nodesToPersist));
       const serializedEdges = JSON.parse(JSON.stringify(edges));
 
-      const fluxoData = {
+      const fluxoData: any = {
         user_id: user.id,
         name: normalizedName,
         keyword: (keywordFluxo || "").trim().toLowerCase(),
@@ -1275,8 +1275,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         edges: serializedEdges,
         active: fluxoAtivo,
         category: isTelegramMode ? 'telegram' : (isMetaMode ? 'meta' : (isGroupsMode ? 'groups' : 'contacts')),
-        bot_id: isTelegramMode ? selectedBotId : null,
       };
+
+      // Só envia bot_id se estivermos no modo telegram e a coluna existir (evita erro de cache do esquema)
+      if (isTelegramMode && selectedBotId) {
+        fluxoData.bot_id = selectedBotId;
+      }
 
       if (currentFluxoId) {
         const { data: updatedRows, error } = await (supabase as any)
