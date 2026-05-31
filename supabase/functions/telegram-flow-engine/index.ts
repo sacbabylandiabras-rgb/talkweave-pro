@@ -519,9 +519,7 @@ Deno.serve(async (req) => {
   // new_member trigger only fires on first contact (no prior session)
   if (!triggered && isFirstContact) {
     const newMemberFlow = (flows ?? []).find((f: any) => {
-      const init = (f.nodes || []).find(
-        (n: any) => n.type === "blocoInicial" || n.type === "blocoGatilho" || n.id === "1",
-      );
+      const init = findTriggerNode((f.nodes || []) as FlowNode[]);
       return init?.data?.triggerType === "new_member";
     });
     if (newMemberFlow) triggered = { flow: newMemberFlow, vars: { trigger: { type: "new_member" } } };
