@@ -655,7 +655,7 @@ interface FluxoVisualProps {
 
 export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}) {
   const isGroupsMode = mode === "groups";
-  const isMetaMode = false;
+  const isMetaMode = mode === "meta";
   const isTelegramMode = mode === "telegram";
   const pageTitle = isTelegramMode
     ? "Fluxo Telegram"
