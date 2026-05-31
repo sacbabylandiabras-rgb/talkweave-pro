@@ -922,40 +922,54 @@ export default function FluxoTelegram() {
               onClick={() => setPendingDrop(null)}
             />
             <div
-              className="absolute z-50 w-[240px] bg-card border rounded-xl shadow-xl py-1.5 animate-in fade-in zoom-in-95"
+              className="absolute z-50 w-[260px] bg-card border rounded-xl shadow-xl py-1.5 animate-in fade-in zoom-in-95"
               style={{
                 left: Math.max(8, pendingDrop.screen.x - 12),
                 top: Math.max(8, pendingDrop.screen.y - 12),
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              {BLOCKS.map((b) => {
-                const Icon = b.icon;
+              {BLOCK_MENU.map((m, idx) => {
+                const Icon = m.icon;
+                const block = m.kind ? blockByKind(m.kind) : null;
+                const disabled = !block;
                 return (
                   <button
-                    key={b.kind}
-                    onClick={() =>
+                    key={idx}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => {
+                      if (!block) {
+                        toast.info("Em breve");
+                        return;
+                      }
                       addBlockAtPosition(
                         pendingDrop.sourceId,
                         pendingDrop.sourceHandle,
                         pendingDrop.position,
-                        b,
-                      )
-                    }
-                    className="w-full flex items-center justify-between gap-2 px-3 py-2 text-[13px] text-left hover:bg-primary/5 transition group"
+                        block,
+                      );
+                    }}
+                    className={`w-full flex items-center justify-between gap-2 px-4 py-2.5 text-[14px] text-left transition group ${
+                      disabled
+                        ? "opacity-50 cursor-not-allowed"
+                        : "hover:bg-muted/60"
+                    }`}
                   >
-                    <span className="flex items-center gap-2 min-w-0">
-                      <Icon className="h-4 w-4 text-primary shrink-0" />
-                      <span className="truncate">{b.label}</span>
+                    <span className="flex items-center gap-3 min-w-0">
+                      <Icon className={`h-[18px] w-[18px] shrink-0 ${m.iconClass}`} />
+                      <span className="truncate text-foreground/80">{m.label}</span>
                     </span>
-                    <Plus className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                    {!disabled && (
+                      <Plus className="h-4 w-4 text-muted-foreground/70" />
+                    )}
                   </button>
                 );
               })}
               <div className="border-t mt-1 pt-1 px-1.5">
                 <button
                   onClick={() => setPendingDrop(null)}
-                  className="w-full text-center text-[12px] py-1.5 rounded-md text-muted-foreground hover:bg-muted transition"
+                  className="w-full text-center text-[13px] py-2 rounded-md text-foreground/70 hover:bg-muted transition"
                 >
                   Cancelar
                 </button>
