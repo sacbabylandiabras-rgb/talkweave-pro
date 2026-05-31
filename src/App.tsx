@@ -123,6 +123,7 @@ const TelegramDownsell = lazyWithRecovery(() => import("./pages/telegram/Telegra
 const TelegramIntegracoes = lazyWithRecovery(() => import("./pages/telegram/TelegramIntegracoes"));
 const TelegramLinksTraqueamento = lazyWithRecovery(() => import("./pages/telegram/TelegramLinksTraqueamento"));
 const TelegramLinksUtm = lazyWithRecovery(() => import("./pages/telegram/TelegramLinksUtm"));
+const FluxoTelegram = lazyWithRecovery(() => import("./pages/FluxoTelegram"));
  const DashboardInstagram = lazyWithRecovery(() => import("./pages/instagram/DashboardInstagram"));
  const ModelosInstagram = lazyWithRecovery(() => import("./pages/instagram/ModelosInstagram"));
 const EnviarInstagram = lazyWithRecovery(() => import("./pages/instagram/EnviarInstagram"));
