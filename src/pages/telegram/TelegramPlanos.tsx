@@ -114,6 +114,7 @@ export default function TelegramPlanos() {
   const [openPix, setOpenPix] = useState(false);
   const [openConfig, setOpenConfig] = useState(false);
   const [openCreate, setOpenCreate] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // PIX
   const [preMsg, setPreMsg] = useState("Aguarde um momento enquanto preparamos tudo :)");
@@ -161,25 +162,76 @@ export default function TelegramPlanos() {
     const priceNum = parseFloat(
       (planPrice || "0").replace(/\./g, "").replace(",", "."),
     );
-    const { error } = await supabase.from("gateway_plans" as any).insert({
-      product_id: productId,
+    const payload = {
       name: planTitle.trim(),
       price: isFinite(priceNum) ? priceNum : 0,
       billing_cycle: billingType,
       description: ctaButton || null,
-      status: true,
-    });
-    if (error) {
-      console.error(error);
-      toast.error("Erro ao criar plano");
-      return;
+    };
+    if (editingId) {
+      const { error } = await supabase
+        .from("gateway_plans" as any)
+        .update(payload)
+        .eq("id", editingId);
+      if (error) {
+        console.error(error);
+        toast.error("Erro ao atualizar plano");
+        return;
+      }
+      toast.success("Plano atualizado!");
+    } else {
+      const { error } = await supabase
+        .from("gateway_plans" as any)
+        .insert({ ...payload, product_id: productId, status: true });
+      if (error) {
+        console.error(error);
+        toast.error("Erro ao criar plano");
+        return;
+      }
+      toast.success("Plano criado com sucesso!");
     }
     await reload(productId);
-    toast.success("Plano criado com sucesso!");
     setOpenCreate(false);
+    setEditingId(null);
     setPlanTitle("");
     setPlanPrice("");
     setCtaButton("");
+  }
+
+  async function openEdit(planId: string) {
+    const { data } = await supabase
+      .from("gateway_plans" as any)
+      .select("id, name, price, billing_cycle, description")
+      .eq("id", planId)
+      .maybeSingle();
+    if (!data) {
+      toast.error("Plano não encontrado");
+      return;
+    }
+    const p = data as any;
+    setEditingId(p.id);
+    setPlanTitle(p.name || "");
+    setPlanPrice(
+      Number(p.price || 0).toFixed(2).replace(".", ","),
+    );
+    setBillingType(p.billing_cycle || "daily");
+    setCtaButton(p.description || "");
+    setOpenCreate(true);
+  }
+
+  async function deletePlan(planId: string) {
+    if (!confirm("Excluir este plano?")) return;
+    const { error } = await supabase
+      .from("gateway_plans" as any)
+      .delete()
+      .eq("id", planId);
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao excluir plano");
+      return;
+    }
+    if (productId) await reload(productId);
+    toast.success("Plano excluído");
   }
 
   return (
