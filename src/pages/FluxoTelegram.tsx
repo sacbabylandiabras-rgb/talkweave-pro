@@ -1480,16 +1480,44 @@ function BlockEditor({
 
   if (kind === "atraso") {
     return (
-      <div>
-        <Label className="text-xs">Tempo de espera (segundos)</Label>
-        <Input
-          type="number"
-          min={1}
-          value={d.delaySeconds || 5}
-          onChange={(e) => onPatch({ delaySeconds: Number(e.target.value) })}
-          className="mt-1 h-9"
-        />
-      </div>
+      <>
+        <div>
+          <Label className="text-xs">
+            Tempo <span className="text-destructive">*</span>
+          </Label>
+          <div className="mt-1 flex gap-2">
+            <Input
+              type="number"
+              min={1}
+              value={d.delaySeconds ?? 10}
+              onChange={(e) => onPatch({ delaySeconds: Number(e.target.value) })}
+              className="h-9 flex-1"
+            />
+            <Select
+              value={String(d.timeUnit || "seconds")}
+              onValueChange={(v) => onPatch({ timeUnit: v })}
+            >
+              <SelectTrigger className="h-9 w-[130px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="seconds">Segundos</SelectItem>
+                <SelectItem value="minutes">Minutos</SelectItem>
+                <SelectItem value="hours">Horas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={!!d.showTyping}
+            onCheckedChange={(c) => onPatch({ showTyping: c })}
+          />
+          <span className="text-xs text-foreground/80">
+            Mostrar &quot;digitando...&quot;
+          </span>
+        </div>
+      </>
     );
   }
 
