@@ -2046,6 +2046,10 @@ function BlockEditor({
           </div>
         )}
 
+        {variant === "botoes" && (
+          <ButtonsFields d={d} onPatch={onPatch} />
+        )}
+
         {variant === "midia" && (
           <>
             <div>
