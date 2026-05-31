@@ -94,6 +94,16 @@ function formatPhoneForWhatsapp(phone?: string) {
   return digits.startsWith("55") ? digits : `55${digits}`;
 }
 
+function toSafeHttpUrl(url?: string | null) {
+  if (!url) return undefined;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export default function Prospeccao() {
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -182,15 +192,16 @@ export default function Prospeccao() {
   const openInfo = (p: Place, marker: google.maps.Marker) => {
     if (!infoWindowRef.current || !mapRef.current) return;
     const waPhone = formatPhoneForWhatsapp(p.phone);
+    const safeWebsite = toSafeHttpUrl(p.website);
     const content = `
       <div style="font-family: inherit; max-width: 280px; padding: 4px;">
         <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">${escapeHtml(p.name)}</div>
-        <div style="font-size: 12px; color: #64748b; margin-bottom: 6px;">${escapeHtml(p.address)}</div>
+        <div style="font-size: 12px; color: hsl(var(--muted-foreground)); margin-bottom: 6px;">${escapeHtml(p.address)}</div>
         ${p.rating ? `<div style="font-size: 12px; margin-bottom: 4px;">⭐ ${p.rating} (${p.userRatingCount ?? 0})</div>` : ""}
         ${p.phone ? `<div style="font-size: 12px; margin-bottom: 4px;">📞 <a href="https://wa.me/${waPhone}" target="_blank" rel="noopener" style="color: hsl(var(--primary));">${escapeHtml(p.phone)}</a></div>` : ""}
-        ${p.website ? `<div style="font-size: 12px; margin-bottom: 6px;">🌐 <a href="${p.website}" target="_blank" rel="noopener" style="color: hsl(var(--primary));">Site</a></div>` : ""}
+        ${safeWebsite ? `<div style="font-size: 12px; margin-bottom: 6px;">🌐 <a href="${escapeHtml(safeWebsite)}" target="_blank" rel="noopener" style="color: hsl(var(--primary));">Site</a></div>` : ""}
         <div style="display:flex; gap:6px; margin-top:8px;">
-          <button id="iw-save-${p.id}" style="flex:1; padding:6px 8px; font-size:12px; background:hsl(var(--primary)); color:white; border:none; border-radius:6px; cursor:pointer;">Salvar Lead</button>
+          <button id="iw-save-${p.id}" style="flex:1; padding:6px 8px; font-size:12px; background:hsl(var(--primary)); color:hsl(var(--primary-foreground)); border:none; border-radius:6px; cursor:pointer;">Salvar Lead</button>
           <button id="iw-copy-${p.id}" style="flex:1; padding:6px 8px; font-size:12px; background:transparent; color:hsl(var(--foreground)); border:1px solid hsl(var(--border)); border-radius:6px; cursor:pointer;">Copiar</button>
         </div>
       </div>`;
