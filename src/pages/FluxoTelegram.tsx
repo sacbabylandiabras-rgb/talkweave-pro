@@ -852,6 +852,56 @@ export default function FluxoTelegram() {
           </div>
         )}
 
+        {/* Floating block picker (drop on pane) */}
+        {pendingDrop && tab === "fluxo" && (
+          <>
+            <div
+              className="absolute inset-0 z-40"
+              onClick={() => setPendingDrop(null)}
+            />
+            <div
+              className="absolute z-50 w-[240px] bg-card border rounded-xl shadow-xl py-1.5 animate-in fade-in zoom-in-95"
+              style={{
+                left: Math.max(8, pendingDrop.screen.x - 12),
+                top: Math.max(8, pendingDrop.screen.y - 12),
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {BLOCKS.map((b) => {
+                const Icon = b.icon;
+                return (
+                  <button
+                    key={b.kind}
+                    onClick={() =>
+                      addBlockAtPosition(
+                        pendingDrop.sourceId,
+                        pendingDrop.sourceHandle,
+                        pendingDrop.position,
+                        b,
+                      )
+                    }
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 text-[13px] text-left hover:bg-primary/5 transition group"
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      <Icon className="h-4 w-4 text-primary shrink-0" />
+                      <span className="truncate">{b.label}</span>
+                    </span>
+                    <Plus className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                  </button>
+                );
+              })}
+              <div className="border-t mt-1 pt-1 px-1.5">
+                <button
+                  onClick={() => setPendingDrop(null)}
+                  className="w-full text-center text-[12px] py-1.5 rounded-md text-muted-foreground hover:bg-muted transition"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
         {/* Floating action bar */}
         <div className="absolute top-3 right-3 flex flex-col gap-2 bg-card border rounded-xl shadow-lg p-2">
           <Button
