@@ -99,6 +99,20 @@ Deno.serve(async (req) => {
         stats[bot.id] = (stats[bot.id] ?? 0) + rows.length;
       }
 
+      // Dispatch each update to the flow engine (fire-and-forget)
+      const engineUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/telegram-flow-engine`;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      for (const u of updates) {
+        fetch(engineUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${serviceKey}`,
+          },
+          body: JSON.stringify({ bot_id: bot.id, update: u }),
+        }).catch((e) => console.warn("engine dispatch failed", (e as Error).message));
+      }
+
       const newOffset = Math.max(...updates.map((u) => u.update_id)) + 1;
       await admin
         .from("telegram_bot_state")
