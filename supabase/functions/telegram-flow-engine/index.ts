@@ -98,6 +98,10 @@ function findTriggerNode(nodes: FlowNode[]): FlowNode | null {
   );
 }
 
+function findAgentNode(nodes: FlowNode[]): FlowNode | null {
+  return nodes.find((n) => n.type === "ia" || (n.type === "step" && (n.data as any)?.kind === "ia")) || null;
+}
+
 function findTriggerFlow(
   flows: any[],
   update: any,
@@ -942,6 +946,14 @@ Deno.serve(async (req) => {
     if (newMemberFlow) triggered = { flow: newMemberFlow, vars: { trigger: { type: "new_member" } } };
   }
 
+  if (!triggered && msg?.text && session?.flow_id) {
+    const flow = (flows ?? []).find((f: any) => f.id === session.flow_id);
+    const agentNode = flow ? findAgentNode((flow.nodes || []) as FlowNode[]) : null;
+    if (flow && agentNode) {
+      triggered = { flow, vars: { trigger: { type: "agent_followup", value: msg.text }, startNodeId: agentNode.id } };
+    }
+  }
+
   if (!triggered) {
     return new Response(JSON.stringify({ ok: true, info: "no_trigger" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -957,6 +969,8 @@ Deno.serve(async (req) => {
       username: msg?.from?.username ?? cb?.from?.username,
     },
     chat: { id: chatId },
+    last_message: msg?.text ?? cb?.data ?? "",
+    last_button: cb?.data ?? undefined,
     lead: {
       name: msg?.from?.first_name ?? cb?.from?.first_name ?? "",
       phone: "",
@@ -988,8 +1002,9 @@ Deno.serve(async (req) => {
 
   const nodesArr = (flow.nodes as FlowNode[]) || [];
   const trigger = findTriggerNode(nodesArr);
-  const firstEdge = nextEdgeFor(flow.edges || [], trigger?.id || "1");
-  if (!firstEdge) {
+  const startNodeId = (triggered.vars as any)?.startNodeId;
+  const firstEdge = startNodeId ? null : nextEdgeFor(flow.edges || [], trigger?.id || "1");
+  if (!startNodeId && !firstEdge) {
     await admin
       .from("telegram_flow_sessions")
       .update({ status: "finished" })
@@ -1004,7 +1019,7 @@ Deno.serve(async (req) => {
     bot,
     chatId,
     flow,
-    startNodeId: firstEdge.target,
+    startNodeId: startNodeId || firstEdge!.target,
     variables: baseVars,
     sessionId: upserted!.id,
   });
