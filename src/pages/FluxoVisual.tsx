@@ -2175,7 +2175,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           </ReactFlow>
         </div>
 
-        {/* WhatsApp Mobile Preview */}
+        {/* Mobile Preview */}
         {showPreview && (
           <div className="flex items-center justify-center m-2 ml-0 shrink-0">
             {/* Phone frame */}
