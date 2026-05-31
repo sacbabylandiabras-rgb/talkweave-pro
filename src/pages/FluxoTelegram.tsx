@@ -204,7 +204,7 @@ function MensagemNode({ id, data, selected }: any) {
   })();
   const preview =
     variant === "midia"
-      ? data?.mediaUrl || "Mídia sem URL"
+      ? (mediaName || (mediaUrl ? "Mídia anexada" : "Mídia sem URL"))
       : variant === "atraso"
       ? `Aguardar ${data?.delaySeconds ?? 10}`
       : data?.message || "Mensagem de texto";
@@ -297,9 +297,11 @@ function MensagemNode({ id, data, selected }: any) {
               Ativo
             </span>
           </div>
-          <div className="mt-1.5 line-clamp-2 text-[12px] leading-snug text-muted-foreground break-words">
-            {preview}
-          </div>
+          {!(variant === "midia" && mediaUrl) && (
+            <div className="mt-1.5 line-clamp-2 text-[12px] leading-snug text-muted-foreground break-words">
+              {preview}
+            </div>
+          )}
           {variant === "midia" && mediaUrl && (
             <div className="mt-2 overflow-hidden rounded-lg border border-border/60 bg-background">
               {mediaKind === "image" && (
