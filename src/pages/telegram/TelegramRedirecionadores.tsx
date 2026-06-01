@@ -88,6 +88,15 @@ function randomSlug(len = 8) {
   return s;
 }
 
+// Quando o cloaker está ativo, o link precisa do parâmetro ?shk= para liberar o acesso.
+// Adicionamos automaticamente um valor padrão para que o link copiado já funcione.
+function withCloakerParam(url: string, link: { cloaker?: boolean; cloaker_v2?: boolean } | null | undefined): string {
+  if (!link || (!link.cloaker && !link.cloaker_v2)) return url;
+  if (/[?&]shk=/.test(url)) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}shk=1`;
+}
+
 export default function TelegramRedirecionadores() {
   const [tab, setTab] = useState<TabId>("links");
   const [links, setLinks] = useState<TgRedirectLink[]>([]);
@@ -250,7 +259,7 @@ function LinksTab({
   return (
     <div className="space-y-3">
       {links.map((l) => {
-        const url = `https://${baseDomain}/r/${l.slug}`;
+        const url = withCloakerParam(`https://${baseDomain}/r/${l.slug}`, l);
         return (
           <div
             key={l.id}
@@ -1313,7 +1322,7 @@ function UtmTab({ links }: { links: TgRedirectLink[] }) {
   const linkSalesCodes = salesCodes.filter((c) => c.link_id === linkId);
 
   const baseUrl = selectedLink
-    ? `https://${baseDomain}/r/${selectedLink.slug}`
+    ? withCloakerParam(`https://${baseDomain}/r/${selectedLink.slug}`, selectedLink)
     : `https://${baseDomain}/r/...`;
 
   const paramsString = useMemo(() => {
@@ -1335,7 +1344,9 @@ function UtmTab({ links }: { links: TgRedirectLink[] }) {
   }, [cv, shk]);
 
   const managerUrl = useMemo(() => {
-    return extraParams ? `${baseUrl}?${extraParams}` : baseUrl;
+    if (!extraParams) return baseUrl;
+    const sep = baseUrl.includes("?") ? "&" : "?";
+    return `${baseUrl}${sep}${extraParams}`;
   }, [baseUrl, extraParams]);
 
   const fullUrl = useMemo(() => {
@@ -1590,7 +1601,7 @@ function VendasTab({
           {codes.map((c) => {
             const link = linkById.get(c.link_id);
             const url = link
-              ? `https://${baseDomain}/r/${link.slug}?cv=${encodeURIComponent(c.code)}`
+              ? withCloakerParam(`https://${baseDomain}/r/${link.slug}?cv=${encodeURIComponent(c.code)}`, link)
               : "";
             return (
               <div
@@ -1697,7 +1708,7 @@ function SalesCodeDialog({
   const baseDomain = "zaplynx.com";
   const selectedLink = links.find((l) => l.id === linkId);
   const previewUrl = selectedLink
-    ? `https://${baseDomain}/r/${selectedLink.slug}?cv=${encodeURIComponent(name || "codigo")}`
+    ? withCloakerParam(`https://${baseDomain}/r/${selectedLink.slug}?cv=${encodeURIComponent(name || "codigo")}`, selectedLink)
     : "";
 
   const save = async () => {
@@ -1885,7 +1896,7 @@ function RedirectPageTab({ links, onChanged }: { links: TgRedirectLink[]; onChan
         </div>
       ) : (
         links.map((l) => {
-          const linkUrl = `https://zaplynx.com/r/${l.slug}`;
+          const linkUrl = withCloakerParam(`https://zaplynx.com/r/${l.slug}`, l);
           return (
             <div key={l.id} className="rounded-xl border border-border bg-card px-4 py-3 flex items-center gap-3">
               <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
