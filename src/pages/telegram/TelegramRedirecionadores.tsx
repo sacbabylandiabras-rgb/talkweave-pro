@@ -2146,46 +2146,38 @@ function RedirectPageEditor({
             </div>
           ) : (
             <div
-              className="rounded-xl overflow-hidden min-h-[420px] flex flex-col items-center justify-center px-6 py-10 text-white text-center"
+              className="rounded-xl overflow-hidden min-h-[420px] flex items-center justify-center px-6 py-10"
               style={{ background: previewBg }}
             >
-              <div
-                className="rounded-full p-[3px] mb-4 shadow-md"
-                style={{ background: "linear-gradient(135deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5)" }}
-              >
-                <div className="h-24 w-24 rounded-full overflow-hidden bg-white p-[2px]">
-                  <div className="h-full w-full rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+              <div className="w-full max-w-[260px] rounded-2xl bg-white px-5 pt-6 pb-5 text-center shadow-xl">
+                <div className="mx-auto mb-3 h-20 w-20 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center ring-2 ring-white shadow">
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <span className="text-3xl text-gray-400">👤</span>
                     )}
-                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-1.5 mb-1">
-                <h3 className="text-xl font-bold">{name || "Seu nome"}</h3>
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <h3 className="text-base font-bold text-gray-900">{name || "Nome"}</h3>
                 {verified && (
-                  <span className="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[#3b82f6]">
-                    <Check className="h-3 w-3 text-white" strokeWidth={3.5} />
+                  <span className="inline-flex h-[16px] w-[16px] items-center justify-center rounded-full bg-[#3b82f6]">
+                    <Check className="h-2.5 w-2.5 text-white" strokeWidth={3.5} />
                   </span>
                 )}
+                </div>
+                <div className="text-[11px] text-emerald-600 mb-1 inline-flex items-center gap-1.5">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Online
+                </div>
+                <p className="text-[11px] text-gray-500 mb-4">Tempo médio de resposta: {responseTime}</p>
+                <button
+                  type="button"
+                  className="w-full rounded-xl bg-[#2AABEE] px-3 py-2.5 text-xs font-semibold text-white shadow-md inline-flex items-center justify-center gap-2"
+                >
+                  <Send className="h-3.5 w-3.5 shrink-0" fill="currentColor" strokeWidth={0} />
+                  {normalizeRedirectButtonText(buttonText)}
+                </button>
               </div>
-              <div className="text-xs opacity-80 mb-1 inline-flex items-center gap-1.5">
-                <span
-                  className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"
-                />
-                Online
-              </div>
-              <p className="text-xs opacity-80 mb-5">Tempo médio de resposta: {responseTime}</p>
-
-              <button
-                type="button"
-                className="w-full max-w-xs rounded-2xl bg-[#2AABEE] px-4 py-3.5 text-sm font-semibold text-white shadow-lg inline-flex items-center justify-center gap-2"
-              >
-                <Send className="h-4 w-4 shrink-0" fill="currentColor" strokeWidth={0} />
-                {normalizeRedirectButtonText(buttonText)}
-              </button>
             </div>
           )}
         </div>
