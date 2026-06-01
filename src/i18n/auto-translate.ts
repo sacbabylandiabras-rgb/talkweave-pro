@@ -277,7 +277,7 @@ function apply(lng: string) {
   if (toEnglish) startObserver();
 }
 
-export function installAutoTranslator() {
+export function installAutoTranslator(i18n: I18nInstance) {
   const run = () => {
     apply(i18n.language);
     i18n.on("languageChanged", apply);
