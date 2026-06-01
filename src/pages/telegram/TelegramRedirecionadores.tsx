@@ -84,6 +84,7 @@ export default function TelegramRedirecionadores() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TgRedirectLink | null>(null);
+  const [vendasDialogOpen, setVendasDialogOpen] = useState(false);
 
   const fetchLinks = async () => {
     setLoading(true);
@@ -116,7 +117,7 @@ export default function TelegramRedirecionadores() {
         </div>
         <Button onClick={() => setDialogOpen(true)} className="gap-2">
           <Plus className="h-4 w-4" />
-          Criar Link
+          {tab === "vendas" ? "Criar Codigo" : "Criar Link"}
         </Button>
       </div>
 
