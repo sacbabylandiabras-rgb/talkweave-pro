@@ -31,6 +31,10 @@ import {
   Check,
   ExternalLink,
   AlertTriangle,
+  FileText,
+  ArrowRight,
+  Shield,
+  Share2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -46,6 +50,10 @@ interface TgRedirectLink {
   active: boolean;
   cloaker: boolean;
   cloaker_v2: boolean;
+  cloaker_block_method?: string;
+  cloaker_redirect_url?: string;
+  cloaker_block_ads?: boolean;
+  cloaker_anti_share?: boolean;
   domain: string;
   destination_type: string;
   destination_bot_id: string | null;
@@ -316,6 +324,10 @@ function CreateRedirectDialog({
   const [cloaker, setCloaker] = useState(false);
   const [cloakerV2, setCloakerV2] = useState(false);
   const [confirmCloaker, setConfirmCloaker] = useState<null | "cloaker" | "cloakerV2">(null);
+  const [blockMethod, setBlockMethod] = useState<"page" | "redirect">("page");
+  const [redirectUrl, setRedirectUrl] = useState("");
+  const [blockAds, setBlockAds] = useState(true);
+  const [antiShare, setAntiShare] = useState(false);
   const [destinationType, setDestinationType] = useState<"bot" | "channel">("bot");
   const [bots, setBots] = useState<{ id: string; first_name: string | null; username: string | null }[]>([]);
   const [destinationBotId, setDestinationBotId] = useState<string>("");
@@ -354,6 +366,10 @@ function CreateRedirectDialog({
       setActive(editing.active);
       setCloaker(editing.cloaker);
       setCloakerV2(editing.cloaker_v2);
+      setBlockMethod(((editing as any).cloaker_block_method as any) || "page");
+      setRedirectUrl((editing as any).cloaker_redirect_url || "");
+      setBlockAds((editing as any).cloaker_block_ads ?? true);
+      setAntiShare((editing as any).cloaker_anti_share ?? false);
       setDestinationType((editing.destination_type as any) || "bot");
       setDestinationBotId(editing.destination_bot_id || "");
       setDestinationChannel(editing.destination_channel || "");
@@ -365,6 +381,10 @@ function CreateRedirectDialog({
       setActive(true);
       setCloaker(false);
       setCloakerV2(false);
+      setBlockMethod("page");
+      setRedirectUrl("");
+      setBlockAds(true);
+      setAntiShare(false);
       setDestinationType("bot");
       setDestinationChannel("");
       setSelectedFlows([]);
@@ -378,6 +398,10 @@ function CreateRedirectDialog({
     setActive(true);
     setCloaker(false);
     setCloakerV2(false);
+    setBlockMethod("page");
+    setRedirectUrl("");
+    setBlockAds(true);
+    setAntiShare(false);
     setDestinationType("bot");
     setDestinationChannel("");
     setSelectedFlows([]);
@@ -413,6 +437,10 @@ function CreateRedirectDialog({
       active,
       cloaker,
       cloaker_v2: cloakerV2,
+      cloaker_block_method: blockMethod,
+      cloaker_redirect_url: blockMethod === "redirect" ? redirectUrl.trim() : "",
+      cloaker_block_ads: blockAds,
+      cloaker_anti_share: antiShare,
       destination_type: destinationType,
       destination_bot_id: destinationType === "bot" ? destinationBotId || null : null,
       destination_channel:
