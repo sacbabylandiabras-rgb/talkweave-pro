@@ -1344,7 +1344,9 @@ function UtmTab({ links }: { links: TgRedirectLink[] }) {
   }, [cv, shk]);
 
   const managerUrl = useMemo(() => {
-    return extraParams ? `${baseUrl}?${extraParams}` : baseUrl;
+    if (!extraParams) return baseUrl;
+    const sep = baseUrl.includes("?") ? "&" : "?";
+    return `${baseUrl}${sep}${extraParams}`;
   }, [baseUrl, extraParams]);
 
   const fullUrl = useMemo(() => {
