@@ -301,10 +301,12 @@ function CreateRedirectDialog({
   open,
   onOpenChange,
   onCreated,
+  editing,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onCreated: () => void;
+  editing?: TgRedirectLink | null;
 }) {
   const [slugType, setSlugType] = useState<"random" | "custom">("random");
   const [slug, setSlug] = useState(randomSlug());
@@ -330,7 +332,7 @@ function CreateRedirectDialog({
         .select("id, first_name, username")
         .eq("active", true);
       setBots(botsData || []);
-      if (botsData?.[0]?.id) setDestinationBotId(botsData[0].id);
+      if (!editing && botsData?.[0]?.id) setDestinationBotId(botsData[0].id);
 
       const { data: flowsData } = await (supabase as any)
         .from("flow_automations")
@@ -339,7 +341,33 @@ function CreateRedirectDialog({
         .order("created_at", { ascending: false });
       setFlows(flowsData || []);
     })();
-  }, [open]);
+  }, [open, editing]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (editing) {
+      setSlugType((editing.slug_type as any) || "random");
+      setSlug(editing.slug);
+      setMode((editing.mode as any) || "random");
+      setActive(editing.active);
+      setCloaker(editing.cloaker);
+      setCloakerV2(editing.cloaker_v2);
+      setDestinationType((editing.destination_type as any) || "bot");
+      setDestinationBotId(editing.destination_bot_id || "");
+      setDestinationChannel(editing.destination_channel || "");
+      setSelectedFlows(editing.flow_ids || []);
+    } else {
+      setSlugType("random");
+      setSlug(randomSlug());
+      setMode("random");
+      setActive(true);
+      setCloaker(false);
+      setCloakerV2(false);
+      setDestinationType("bot");
+      setDestinationChannel("");
+      setSelectedFlows([]);
+    }
+  }, [open, editing]);
 
   const resetAndClose = () => {
     setSlugType("random");
@@ -373,8 +401,7 @@ function CreateRedirectDialog({
       setSaving(false);
       return;
     }
-    const { error } = await (supabase as any).from("telegram_redirect_links").insert({
-      user_id: user.id,
+    const payload: any = {
       slug: slug
         .toLowerCase()
         .trim()
@@ -389,14 +416,22 @@ function CreateRedirectDialog({
       destination_channel:
         destinationType === "channel" ? destinationChannel || null : null,
       flow_ids: selectedFlows,
-    });
+    };
+    const { error } = editing
+      ? await (supabase as any)
+          .from("telegram_redirect_links")
+          .update(payload)
+          .eq("id", editing.id)
+      : await (supabase as any)
+          .from("telegram_redirect_links")
+          .insert({ ...payload, user_id: user.id });
     setSaving(false);
     if (error) {
       console.error(error);
-      toast.error(error.message?.includes("unique") ? "Slug já em uso" : "Erro ao criar");
+      toast.error(error.message?.includes("unique") ? "Slug já em uso" : "Erro ao salvar");
       return;
     }
-    toast.success("Redirecionador criado");
+    toast.success(editing ? "Redirecionador atualizado" : "Redirecionador criado");
     resetAndClose();
     onCreated();
   };
@@ -407,10 +442,16 @@ function CreateRedirectDialog({
         <DialogHeader className="p-6 pb-3 border-b border-border">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-primary/15 flex items-center justify-center">
-              <Plus className="h-4 w-4 text-primary" />
+              {editing ? (
+                <Pencil className="h-4 w-4 text-primary" />
+              ) : (
+                <Plus className="h-4 w-4 text-primary" />
+              )}
             </div>
             <div>
-              <DialogTitle>Criar Redirecionador</DialogTitle>
+              <DialogTitle>
+                {editing ? "Editar Redirecionador" : "Criar Redirecionador"}
+              </DialogTitle>
               <DialogDescription className="text-xs">
                 Configure seu link de redirecionamento
               </DialogDescription>
@@ -637,7 +678,7 @@ function CreateRedirectDialog({
         <div className="grid grid-cols-2 gap-2 p-4 border-t border-border bg-background">
           <Button onClick={save} disabled={saving} className="gap-2">
             <Check className="h-4 w-4" />
-            {saving ? "Criando..." : "Criar"}
+            {saving ? "Salvando..." : editing ? "Salvar" : "Criar"}
           </Button>
           <Button variant="outline" onClick={resetAndClose}>
             Cancelar
