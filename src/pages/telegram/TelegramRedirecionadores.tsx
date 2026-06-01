@@ -895,3 +895,306 @@ function CreateRedirectDialog({
     </Dialog>
   );
 }
+
+interface SalesCode {
+  id: string;
+  name: string;
+  code: string;
+  link_id: string;
+  click_count: number;
+  sales_count: number;
+  created_at: string;
+}
+
+function VendasTab({
+  links,
+  onCreate,
+  dialogOpen,
+  setDialogOpen,
+}: {
+  links: TgRedirectLink[];
+  onCreate: () => void;
+  dialogOpen: boolean;
+  setDialogOpen: (v: boolean) => void;
+}) {
+  const [codes, setCodes] = useState<SalesCode[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<SalesCode | null>(null);
+
+  const fetchCodes = async () => {
+    setLoading(true);
+    const { data, error } = await (supabase as any)
+      .from("telegram_sales_codes")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao carregar códigos");
+    } else {
+      setCodes(data || []);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchCodes();
+  }, []);
+
+  const baseDomain = "zaplynx.com";
+  const linkById = useMemo(() => {
+    const m = new Map<string, TgRedirectLink>();
+    links.forEach((l) => m.set(l.id, l));
+    return m;
+  }, [links]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-24 text-sm text-muted-foreground">
+        Carregando...
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {codes.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="h-14 w-14 rounded-2xl bg-primary/15 flex items-center justify-center mb-4">
+            <Hash className="h-6 w-6 text-primary" />
+          </div>
+          <p className="text-base font-semibold text-foreground">
+            Nenhum código de vendas criado
+          </p>
+          <p className="text-sm text-muted-foreground mt-1 mb-5">
+            Códigos de venda (cv=) rastreiam tráfego orgânico e afiliados
+          </p>
+          <Button onClick={onCreate} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Criar Primeiro Codigo
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {codes.map((c) => {
+            const link = linkById.get(c.link_id);
+            const url = link
+              ? `https://${baseDomain}/r/${link.slug}?cv=${encodeURIComponent(c.code)}`
+              : "";
+            return (
+              <div
+                key={c.id}
+                className="rounded-xl border border-border bg-card p-4 flex items-center gap-4"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-foreground truncate">
+                      {c.name}
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/15 text-primary">
+                      cv={c.code}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1 truncate">
+                    {url || "Link removido"}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-1">
+                    {c.click_count} cliques · {c.sales_count} vendas
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      navigator.clipboard.writeText(url);
+                      toast.success("Link copiado");
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setEditing(c);
+                      setDialogOpen(true);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={async () => {
+                      if (!confirm("Excluir este código?")) return;
+                      await (supabase as any)
+                        .from("telegram_sales_codes")
+                        .delete()
+                        .eq("id", c.id);
+                      toast.success("Removido");
+                      fetchCodes();
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <SalesCodeDialog
+        open={dialogOpen}
+        onOpenChange={(v) => {
+          setDialogOpen(v);
+          if (!v) setEditing(null);
+        }}
+        links={links}
+        editing={editing}
+        onSaved={fetchCodes}
+      />
+    </>
+  );
+}
+
+function SalesCodeDialog({
+  open,
+  onOpenChange,
+  links,
+  editing,
+  onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  links: TgRedirectLink[];
+  editing: SalesCode | null;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [linkId, setLinkId] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setName(editing?.name || "");
+      setLinkId(editing?.link_id || "");
+    }
+  }, [open, editing]);
+
+  const baseDomain = "zaplynx.com";
+  const selectedLink = links.find((l) => l.id === linkId);
+  const previewUrl = selectedLink
+    ? `https://${baseDomain}/r/${selectedLink.slug}?cv=${encodeURIComponent(name || "codigo")}`
+    : "";
+
+  const save = async () => {
+    if (!name.trim()) {
+      toast.error("Informe um nome para o código");
+      return;
+    }
+    if (!linkId) {
+      toast.error("Selecione um link vinculado");
+      return;
+    }
+    setSaving(true);
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    if (!userId) {
+      toast.error("Sessão expirada");
+      setSaving(false);
+      return;
+    }
+    const code = name.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+    if (editing) {
+      const { error } = await (supabase as any)
+        .from("telegram_sales_codes")
+        .update({ name: name.trim(), code, link_id: linkId })
+        .eq("id", editing.id);
+      if (error) {
+        toast.error("Erro ao salvar");
+      } else {
+        toast.success("Código atualizado");
+        onSaved();
+        onOpenChange(false);
+      }
+    } else {
+      const { error } = await (supabase as any)
+        .from("telegram_sales_codes")
+        .insert({ user_id: userId, name: name.trim(), code, link_id: linkId });
+      if (error) {
+        toast.error(error.message?.includes("unique") ? "Código já existe" : "Erro ao criar");
+      } else {
+        toast.success("Código criado");
+        onSaved();
+        onOpenChange(false);
+      }
+    }
+    setSaving(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md p-0 overflow-hidden">
+        <DialogHeader className="p-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-primary/15 flex items-center justify-center">
+              <Hash className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <DialogTitle>{editing ? "Editar Codigo de Vendas" : "Criar Codigo de Vendas"}</DialogTitle>
+              <DialogDescription>Codigos para rastrear vendas por afiliado</DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="p-4 space-y-4">
+          <div className="rounded-lg border border-primary/30 bg-primary/10 text-primary text-xs p-3 flex items-start gap-2">
+            <Hash className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>Códigos de venda (cv=) permitem rastrear vendas de afiliados ou campanhas específicas.</span>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Nome do Codigo</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="ex: afiliado1" />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Link Vinculado</Label>
+            <Select value={linkId} onValueChange={setLinkId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um link..." />
+              </SelectTrigger>
+              <SelectContent>
+                {links.length === 0 && (
+                  <div className="px-3 py-2 text-xs text-muted-foreground">Crie um link primeiro</div>
+                )}
+                {links.map((l) => (
+                  <SelectItem key={l.id} value={l.id}>
+                    /{l.slug} {l.name ? `· ${l.name}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {previewUrl && (
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
+                <LinkIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="text-xs text-foreground truncate">{previewUrl}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 p-4 border-t border-border bg-background">
+          <Button onClick={save} disabled={saving} className="gap-2">
+            <Check className="h-4 w-4" />
+            {saving ? "Salvando..." : editing ? "Salvar" : "Criar"}
+          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
