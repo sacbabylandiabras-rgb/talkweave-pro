@@ -21,6 +21,67 @@ const normalizeButtonText = (value?: string) => {
   return !text || text === "Entrar agora" ? DEFAULT_BUTTON_TEXT : text;
 };
 
+const VerificacaoView = ({ buttonText, confirming, onConfirm }: RaspadinhaViewProps) => {
+  const [checked, setChecked] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+
+  const handleCheck = () => {
+    if (checked || verifying) return;
+    setVerifying(true);
+    setTimeout(() => {
+      setVerifying(false);
+      setChecked(true);
+    }, 1200);
+  };
+
+  return (
+    <main className="fixed inset-0 flex flex-col items-center justify-center px-6 bg-[#e5e7eb] gap-5">
+      <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-6 flex flex-col items-center text-center">
+        <h2 className="text-base font-bold text-gray-900">Verificação de segurança</h2>
+        <p className="text-xs text-gray-500 mt-1.5 px-2 leading-relaxed">
+          Para acessar o conteúdo, por favor, marque a caixinha abaixo!
+        </p>
+        <div className="mt-5 w-full border border-gray-300 rounded-md bg-[#f9f9f9] px-3 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={handleCheck}
+              aria-label="Confirmar verificação"
+              className="w-6 h-6 rounded-sm border-2 border-gray-400 bg-white flex items-center justify-center transition"
+            >
+              {verifying && (
+                <span className="w-4 h-4 border-2 border-gray-300 border-t-[#4285f4] rounded-full animate-spin" />
+              )}
+              {checked && !verifying && (
+                <Check className="w-4 h-4 text-[#4285f4]" strokeWidth={3.5} />
+              )}
+            </button>
+            <span className="text-sm text-gray-800">Sou maior de 18 anos</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <div className="w-7 h-7 rounded-full border border-[#4285f4] flex items-center justify-center">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 text-[#4285f4]" fill="none" stroke="currentColor" strokeWidth="3">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <span className="text-[8px] text-gray-500 mt-0.5 font-semibold tracking-wide">reCAPTCHA</span>
+            <span className="text-[7px] text-gray-400">Privacidade - Termos</span>
+          </div>
+        </div>
+      </div>
+      {checked && (
+        <button
+          onClick={onConfirm}
+          disabled={confirming}
+          className="w-full max-w-sm rounded-2xl py-3.5 px-4 font-semibold text-white text-sm transition active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg bg-[#2AABEE] hover:bg-[#1f95d2] animate-in fade-in slide-in-from-bottom-2 duration-300"
+        >
+          <Send className="w-4 h-4 shrink-0" fill="currentColor" strokeWidth={0} />
+          <span>{confirming ? "Abrindo..." : (buttonText || "Acessar Conteúdo")}</span>
+        </button>
+      )}
+    </main>
+  );
+};
+
 const PROFILE_BG: Record<string, string> = {
   rosa: "linear-gradient(135deg,#ff5fa3,#ff84c0)",
   azul: "linear-gradient(135deg,#1d4ed8,#3b82f6)",
@@ -129,6 +190,16 @@ const PublicTelegramRedirect = () => {
     if (pageConfig.interactive_template === "raspadinha") {
       return (
         <RaspadinhaView
+          buttonText={buttonText}
+          confirming={confirming}
+          onConfirm={handleConfirm}
+        />
+      );
+    }
+
+    if (pageConfig.interactive_template === "verificacao") {
+      return (
+        <VerificacaoView
           buttonText={buttonText}
           confirming={confirming}
           onConfirm={handleConfirm}
