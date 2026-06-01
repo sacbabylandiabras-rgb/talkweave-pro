@@ -103,7 +103,7 @@ const PublicTelegramRedirect = () => {
       : PROFILE_BG[profile] || PROFILE_BG.rosa;
     const inter = INTERACTIVE[pageConfig.interactive_template || "respondendo"] || INTERACTIVE.respondendo;
     const name = pageConfig.name || "Canal";
-    const buttonText = pageConfig.button_text || "Entrar agora";
+    const buttonText = pageConfig.button_text || "Toque AQUI para me chamar";
     const responseTime = pageConfig.response_time || "3 minutos";
 
     return (
