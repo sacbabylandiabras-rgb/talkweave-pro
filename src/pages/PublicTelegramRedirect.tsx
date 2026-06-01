@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Check, Send } from "lucide-react";
@@ -126,6 +126,16 @@ const PublicTelegramRedirect = () => {
     const buttonText = normalizeButtonText(pageConfig.button_text);
     const responseTime = pageConfig.response_time || "3 minutos";
 
+    if (pageConfig.interactive_template === "raspadinha") {
+      return (
+        <RaspadinhaView
+          buttonText={buttonText}
+          confirming={confirming}
+          onConfirm={handleConfirm}
+        />
+      );
+    }
+
     return (
       <main className="fixed inset-0 flex items-center justify-center px-6" style={{ background: bg }}>
         <div className="w-full max-w-xs bg-white rounded-3xl shadow-2xl p-6 flex flex-col items-center text-center">
@@ -215,3 +225,134 @@ const PublicTelegramRedirect = () => {
 };
 
 export default PublicTelegramRedirect;
+
+interface RaspadinhaViewProps {
+  buttonText: string;
+  confirming: boolean;
+  onConfirm: () => void;
+}
+
+const RaspadinhaView = ({ buttonText, confirming, onConfirm }: RaspadinhaViewProps) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [revealed, setRevealed] = useState(false);
+  const drawingRef = useRef(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const w = canvas.width;
+    const h = canvas.height;
+
+    // Silver background
+    const grad = ctx.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, "#e5e7eb");
+    grad.addColorStop(0.5, "#d1d5db");
+    grad.addColorStop(1, "#9ca3af");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Speckles
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    for (let i = 0; i < 220; i++) {
+      ctx.fillRect(Math.random() * w, Math.random() * h, 1.5, 1.5);
+    }
+
+    // Center logo + text
+    ctx.fillStyle = "#1e3a8a";
+    ctx.beginPath();
+    ctx.ellipse(w / 2, h / 2 - 12, 56, 30, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 18px system-ui, -apple-system, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("CONTEÚDO", w / 2, h / 2 + 8);
+
+    ctx.globalCompositeOperation = "destination-out";
+  }, []);
+
+  const checkReveal = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const { width, height } = canvas;
+    const step = 16;
+    const data = ctx.getImageData(0, 0, width, height).data;
+    let cleared = 0;
+    let total = 0;
+    for (let y = 0; y < height; y += step) {
+      for (let x = 0; x < width; x += step) {
+        const idx = (y * width + x) * 4 + 3;
+        if (data[idx] < 32) cleared++;
+        total++;
+      }
+    }
+    if (cleared / total > 0.45) setRevealed(true);
+  };
+
+  const scratch = (clientX: number, clientY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * canvas.width;
+    const y = ((clientY - rect.top) / rect.height) * canvas.height;
+    ctx.beginPath();
+    ctx.arc(x, y, 28, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    drawingRef.current = true;
+    (e.target as Element).setPointerCapture(e.pointerId);
+    scratch(e.clientX, e.clientY);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!drawingRef.current) return;
+    scratch(e.clientX, e.clientY);
+  };
+  const onPointerUp = () => {
+    if (!drawingRef.current) return;
+    drawingRef.current = false;
+    checkReveal();
+  };
+
+  return (
+    <main className="fixed inset-0 flex flex-col items-center justify-center px-6 bg-black gap-6">
+      <div className="relative w-[280px] h-[380px] rounded-2xl overflow-hidden shadow-2xl">
+        {/* Revealed content underneath */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6"
+             style={{ background: "linear-gradient(180deg,#1e3a8a,#1e40af)" }}>
+          <h2 className="text-2xl font-extrabold text-white tracking-wide leading-tight">
+            CONTEÚDO<br />LIBERADO
+          </h2>
+          <p className="text-xs text-white/80 mt-3">Você ganhou acesso exclusivo.</p>
+        </div>
+        {/* Scratch layer */}
+        <canvas
+          ref={canvasRef}
+          width={280}
+          height={380}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          className={`absolute inset-0 w-full h-full touch-none cursor-grab transition-opacity duration-500 ${revealed ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+        />
+      </div>
+      <button
+        onClick={onConfirm}
+        disabled={confirming || !revealed}
+        className={`w-[280px] rounded-2xl py-3.5 px-4 font-semibold text-white text-sm transition active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg bg-gradient-to-r from-[#2AABEE] to-[#56c5f5] ${revealed ? "opacity-100" : "opacity-40 pointer-events-none"}`}
+        style={revealed ? { boxShadow: "0 0 30px rgba(42,171,238,0.6)" } : undefined}
+      >
+        <Send className="w-4 h-4 shrink-0" fill="currentColor" strokeWidth={0} />
+        <span>{confirming ? "Abrindo..." : (buttonText || "Acessar Conteúdo")}</span>
+      </button>
+    </main>
+  );
+};
