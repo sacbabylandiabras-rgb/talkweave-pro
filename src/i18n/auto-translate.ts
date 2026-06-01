@@ -64,10 +64,12 @@ function looksTranslatable(s: string): boolean {
   if (/^[\w.+-]+@[\w.-]+\.[a-z]{2,}$/i.test(t)) return false;
   if (/^[\d\s.,:/%$€£R$\-+()]+$/.test(t)) return false; // pure numbers/currency
   if (!/[a-zA-ZÀ-ÿ]/.test(t)) return false; // must contain letters
-  // Must contain at least one PT-ish word (accent, ç, or PT-frequent words/suffix).
-  const hasAccent = /[À-ÿ]/.test(t);
-  const hasPtWord = /\b(de|do|da|dos|das|para|com|sem|por|você|voce|sua|seu|sem|não|nao|sim|aqui|este|esta|esses|essas|nosso|nossa|seja|este|essa|esse|aqui|ali|tudo|nada|todos|todas|cada|mais|menos|muito|pouco|também|ainda|agora|depois|antes|enquanto|porque|quando|onde|como|qual|quais|enviar|salvar|criar|editar|excluir|adicionar|configurar|carregando|aguardando|nenhum|nenhuma)\b/i.test(t);
-  return hasAccent || hasPtWord || /\b(ção|ções|mente|inho|inha)\b/i.test(t);
+  // Skip pure single-token brand/product names we never want to translate.
+  const BRAND_SINGLE = /^(ZapLynx|WhatsApp|Instagram|Telegram|Pix|PIX|Facebook|Meta|Google|Shopify|Stripe|Pagar\.?me|HubPague|Woovi|CartWave|OK|Cloud)$/i;
+  if (BRAND_SINGLE.test(t)) return false;
+  // Otherwise send to AI — it will return the same string if already English
+  // and translate Portuguese strings without accents (e.g. "Painel", "Detalhes").
+  return true;
 }
 
 async function flushTranslationBatch() {
