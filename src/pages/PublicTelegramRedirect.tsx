@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { BadgeCheck, ArrowRight } from "lucide-react";
+import { BadgeCheck, Send } from "lucide-react";
 
 interface PageConfig {
   avatar_url?: string;
@@ -137,13 +137,10 @@ const PublicTelegramRedirect = () => {
           <button
             onClick={handleConfirm}
             disabled={confirming}
-            className="w-full rounded-2xl py-3.5 px-4 font-semibold text-white text-sm transition active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg"
-            style={{ background: bg }}
+            className="w-full rounded-2xl py-3.5 px-4 font-semibold text-white text-sm transition active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg bg-[#2AABEE] hover:bg-[#1f95d2]"
           >
-            <span className="w-7 h-7 rounded-full bg-white/25 flex items-center justify-center shrink-0">
-              <ArrowRight className="w-4 h-4" />
-            </span>
-            <span className="flex-1">{confirming ? "Abrindo..." : buttonText}</span>
+            <Send className="w-4 h-4 shrink-0" fill="currentColor" strokeWidth={0} />
+            <span>{confirming ? "Abrindo..." : buttonText}</span>
           </button>
         </div>
       </main>
