@@ -1826,7 +1826,7 @@ interface PageConfig {
 const PROFILE_TEMPLATES: { id: string; label: string; bg: string; text?: string }[] = [
   { id: "rosa", label: "Rosa", bg: "linear-gradient(135deg,#ff5fa3,#ff84c0)" },
   { id: "azul", label: "Azul", bg: "linear-gradient(160deg,#0a1e3a,#1e4b8f 60%,#2563eb)" },
-  { id: "escuro", label: "Escuro", bg: "linear-gradient(135deg,#111827,#1f2937)" },
+  { id: "escuro", label: "Escuro", bg: "linear-gradient(180deg,#16181d,#1f2228)" },
   { id: "roxo", label: "Roxo", bg: "linear-gradient(135deg,#7c3aed,#a855f7)" },
   { id: "verde", label: "Verde", bg: "linear-gradient(135deg,#047857,#10b981)" },
   { id: "custom", label: "Custom", bg: "linear-gradient(135deg,#374151,#4b5563)" },
@@ -2145,11 +2145,17 @@ function RedirectPageEditor({
               </p>
             </div>
           ) : (
+            (() => {
+              const isDark = profileTemplate === "escuro";
+              const cardBg = isDark ? "bg-[#262a33]" : "bg-white";
+              const nameColor = isDark ? "text-white" : "text-gray-900";
+              const subColor = isDark ? "text-gray-400" : "text-gray-500";
+              return (
             <div
               className="rounded-xl overflow-hidden min-h-[420px] flex items-center justify-center px-6 py-10"
               style={{ background: previewBg }}
             >
-              <div className="w-full max-w-[260px] rounded-2xl bg-white px-5 pt-6 pb-5 text-center shadow-xl">
+              <div className={`w-full max-w-[260px] rounded-2xl ${cardBg} px-5 pt-6 pb-5 text-center shadow-xl`}>
                 <div className="mx-auto mb-3 h-20 w-20 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center ring-2 ring-white shadow">
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -2158,7 +2164,7 @@ function RedirectPageEditor({
                     )}
                 </div>
                 <div className="flex items-center justify-center gap-1.5 mb-1">
-                  <h3 className="text-base font-bold text-gray-900">{name || "Nome"}</h3>
+                  <h3 className={`text-base font-bold ${nameColor}`}>{name || "Nome"}</h3>
                 {verified && (
                   <span className="inline-flex h-[16px] w-[16px] items-center justify-center rounded-full bg-[#3b82f6]">
                     <Check className="h-2.5 w-2.5 text-white" strokeWidth={3.5} />
@@ -2169,7 +2175,7 @@ function RedirectPageEditor({
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   Online
                 </div>
-                <p className="text-[11px] text-gray-500 mb-4">Tempo médio de resposta: {responseTime}</p>
+                <p className={`text-[11px] ${subColor} mb-4`}>Tempo médio de resposta: {responseTime}</p>
                 <button
                   type="button"
                   className="w-full rounded-xl bg-[#2AABEE] px-3 py-2.5 text-xs font-semibold text-white shadow-md inline-flex items-center justify-center gap-2"
@@ -2179,6 +2185,8 @@ function RedirectPageEditor({
                 </button>
               </div>
             </div>
+              );
+            })()
           )}
         </div>
       </div>
