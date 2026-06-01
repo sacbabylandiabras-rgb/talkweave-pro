@@ -158,6 +158,31 @@ function lookup(raw: string): string | null {
   return leading + hit + trailing;
 }
 
+function setNativeValue(el: HTMLInputElement | HTMLTextAreaElement, value: string) {
+  const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+  const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
+  setter?.call(el, value);
+}
+
+function translateParts(raw: string, hostNode: Node): string | null {
+  const full = lookup(raw);
+  if (full) return full;
+
+  let changed = false;
+  const translated = raw.replace(/[^\n|•·;]+/g, (part) => {
+    const hit = lookup(part);
+    if (hit) {
+      changed = true;
+      return hit;
+    }
+    const trimmed = part.trim();
+    if (trimmed) queueForAi(trimmed, hostNode);
+    return part;
+  });
+
+  return changed ? translated : null;
+}
+
 function shouldSkip(node: Node): boolean {
   let el: Node | null = node;
   while (el) {
