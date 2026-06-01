@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { BadgeCheck, Send } from "lucide-react";
+import { Check, Send } from "lucide-react";
 
 interface PageConfig {
   avatar_url?: string;
