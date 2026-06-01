@@ -19,7 +19,14 @@ import { dictionary } from "./dictionary";
 import { supabase } from "@/integrations/supabase/client";
 
 const ORIG = new WeakMap<Text, string>();
-const TRANSLATABLE_ATTRS = ["placeholder", "title", "aria-label", "alt"];
+const TRANSLATABLE_ATTRS = [
+  "placeholder",
+  "title",
+  "aria-label",
+  "aria-description",
+  "alt",
+  "data-placeholder",
+];
 const dictionaryLower: Record<string, string> = Object.fromEntries(
   Object.entries(dictionary).map(([key, value]) => [key.toLocaleLowerCase("pt-BR"), value]),
 );
@@ -29,9 +36,11 @@ const SKIP_TAGS = new Set([
   "NOSCRIPT",
   "CODE",
   "PRE",
-  "TEXTAREA",
   "IFRAME",
 ]);
+const TEXT_SKIP_TAGS = new Set([...SKIP_TAGS, "TEXTAREA"]);
+const ATTRIBUTE_SKIP_TAGS = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "CODE", "PRE", "IFRAME"]);
+const INPUT_VALUE_TYPES = new Set(["button", "submit", "reset"]);
 
 // ---------- Runtime cache populated by AI translation ----------
 const CACHE_KEY = "i18n_runtime_cache_v1";
@@ -89,11 +98,12 @@ async function flushTranslationBatch() {
   for (let i = 0; i < items.length; i += chunkSize) {
     const chunk = items.slice(i, i + chunkSize);
     try {
-      const { data, error } = await supabase.functions.invoke("translate-batch", {
+    const { data, error } = await supabase.functions.invoke("translate-batch", {
         body: { target: "en", texts: chunk },
       });
       if (error) {
         console.warn("[i18n] translate-batch error", error.message);
+        chunk.forEach((text) => requested.delete(text));
         continue;
       }
       const translations: Record<string, string> = data?.translations || {};
@@ -107,6 +117,7 @@ async function flushTranslationBatch() {
       if (changed) persistCache();
     } catch (e) {
       console.warn("[i18n] translate-batch failed", e);
+      chunk.forEach((text) => requested.delete(text));
     }
   }
 
@@ -147,12 +158,37 @@ function lookup(raw: string): string | null {
   return leading + hit + trailing;
 }
 
+function setNativeValue(el: HTMLInputElement | HTMLTextAreaElement, value: string) {
+  const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+  const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
+  setter?.call(el, value);
+}
+
+function translateParts(raw: string, hostNode: Node): string | null {
+  const full = lookup(raw);
+  if (full) return full;
+
+  let changed = false;
+  const translated = raw.replace(/[^\n|•·;]+/g, (part) => {
+    const hit = lookup(part);
+    if (hit) {
+      changed = true;
+      return hit;
+    }
+    const trimmed = part.trim();
+    if (trimmed) queueForAi(trimmed, hostNode);
+    return part;
+  });
+
+  return changed ? translated : null;
+}
+
 function shouldSkip(node: Node): boolean {
   let el: Node | null = node;
   while (el) {
     if (el.nodeType === Node.ELEMENT_NODE) {
       const e = el as HTMLElement;
-      if (SKIP_TAGS.has(e.tagName)) return true;
+      if (TEXT_SKIP_TAGS.has(e.tagName)) return true;
       if (e.hasAttribute("data-i18n-skip")) return true;
       if (e.isContentEditable) return true;
     }
@@ -165,7 +201,7 @@ function translateTextNode(node: Text, toEnglish: boolean) {
   if (shouldSkip(node)) return;
   if (toEnglish) {
     const original = ORIG.get(node) ?? node.nodeValue ?? "";
-    const translated = lookup(original);
+    const translated = translateParts(original, node);
     if (translated && translated !== node.nodeValue) {
       if (!ORIG.has(node)) ORIG.set(node, original);
       node.nodeValue = translated;
@@ -182,17 +218,24 @@ function translateTextNode(node: Text, toEnglish: boolean) {
 }
 
 function translateAttributes(el: HTMLElement, toEnglish: boolean) {
-  if (SKIP_TAGS.has(el.tagName) || el.hasAttribute("data-i18n-skip")) return;
-  for (const attr of TRANSLATABLE_ATTRS) {
+  if (ATTRIBUTE_SKIP_TAGS.has(el.tagName) || el.hasAttribute("data-i18n-skip")) return;
+  const attrs = [...TRANSLATABLE_ATTRS];
+  if (el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && INPUT_VALUE_TYPES.has(el.type))) {
+    attrs.push("value");
+  }
+  for (const attr of attrs) {
     const current = el.getAttribute(attr);
     if (current == null) continue;
     const origKey = `data-i18n-orig-${attr}`;
     if (toEnglish) {
       const original = el.getAttribute(origKey) ?? current;
-      const translated = lookup(original);
+      const translated = translateParts(original, el);
       if (translated && translated !== current) {
         if (!el.hasAttribute(origKey)) el.setAttribute(origKey, original);
         el.setAttribute(attr, translated);
+        if (attr === "value" && (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) {
+          setNativeValue(el, translated);
+        }
       } else if (!translated) {
         queueForAi(original.trim(), el);
       }
@@ -200,6 +243,9 @@ function translateAttributes(el: HTMLElement, toEnglish: boolean) {
       const original = el.getAttribute(origKey);
       if (original != null && original !== current) {
         el.setAttribute(attr, original);
+        if (attr === "value" && (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) {
+          setNativeValue(el, original);
+        }
         el.removeAttribute(origKey);
       }
     }
