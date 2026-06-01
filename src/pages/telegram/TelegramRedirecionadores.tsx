@@ -74,6 +74,7 @@ export default function TelegramRedirecionadores() {
   const [links, setLinks] = useState<TgRedirectLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<TgRedirectLink | null>(null);
 
   const fetchLinks = async () => {
     setLoading(true);
@@ -139,6 +140,10 @@ export default function TelegramRedirecionadores() {
           links={links}
           onCreate={() => setDialogOpen(true)}
           onChanged={fetchLinks}
+          onEdit={(l) => {
+            setEditing(l);
+            setDialogOpen(true);
+          }}
         />
       )}
       {tab !== "links" && (
@@ -152,8 +157,12 @@ export default function TelegramRedirecionadores() {
 
       <CreateRedirectDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(v) => {
+          setDialogOpen(v);
+          if (!v) setEditing(null);
+        }}
         onCreated={fetchLinks}
+        editing={editing}
       />
     </div>
   );
@@ -164,11 +173,13 @@ function LinksTab({
   links,
   onCreate,
   onChanged,
+  onEdit,
 }: {
   loading: boolean;
   links: TgRedirectLink[];
   onCreate: () => void;
   onChanged: () => void;
+  onEdit: (l: TgRedirectLink) => void;
 }) {
   if (loading) {
     return (
@@ -244,6 +255,14 @@ function LinksTab({
                 }}
               >
                 <Copy className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onEdit(l)}
+                aria-label="Editar"
+              >
+                <Pencil className="h-4 w-4" />
               </Button>
               <Switch
                 checked={l.active}
