@@ -2643,6 +2643,50 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_sales_codes: {
+        Row: {
+          click_count: number
+          code: string
+          created_at: string
+          id: string
+          link_id: string
+          name: string
+          sales_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          click_count?: number
+          code: string
+          created_at?: string
+          id?: string
+          link_id: string
+          name: string
+          sales_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          click_count?: number
+          code?: string
+          created_at?: string
+          id?: string
+          link_id?: string
+          name?: string
+          sales_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_sales_codes_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "telegram_redirect_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_email_templates: {
         Row: {
           category: string | null
