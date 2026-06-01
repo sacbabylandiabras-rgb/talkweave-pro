@@ -16,6 +16,7 @@
 
 import i18n from "./index";
 import { dictionary } from "./dictionary";
+import { supabase } from "@/integrations/supabase/client";
 
 const ORIG = new WeakMap<Text, string>();
 const TRANSLATABLE_ATTRS = ["placeholder", "title", "aria-label", "alt"];
@@ -29,10 +30,105 @@ const SKIP_TAGS = new Set([
   "IFRAME",
 ]);
 
+// ---------- Runtime cache populated by AI translation ----------
+const CACHE_KEY = "i18n_runtime_cache_v1";
+const aiCache: Record<string, string> = (() => {
+  try {
+    return JSON.parse(localStorage.getItem(CACHE_KEY) || "{}") || {};
+  } catch {
+    return {};
+  }
+})();
+function persistCache() {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(aiCache));
+  } catch {
+    /* quota errors ignored */
+  }
+}
+
+// Track strings we've already queued/asked for so we don't re-request them.
+const requested = new Set<string>();
+// Pending strings to translate (debounced batch).
+const pendingTranslations = new Set<string>();
+// Nodes that referenced pending strings, so we can re-walk after translations arrive.
+const pendingNodes = new Set<Node>();
+let batchTimer: number | null = null;
+
+// Heuristic: should we ask the AI to translate this string?
+// Skip URLs, emails, numbers, very long blobs, code-like content, bare punctuation.
+function looksTranslatable(s: string): boolean {
+  const t = s.trim();
+  if (!t || t.length < 2 || t.length > 240) return false;
+  if (/^https?:\/\//i.test(t)) return false;
+  if (/^[\w.+-]+@[\w.-]+\.[a-z]{2,}$/i.test(t)) return false;
+  if (/^[\d\s.,:/%$€£R$\-+()]+$/.test(t)) return false; // pure numbers/currency
+  if (!/[a-zA-ZÀ-ÿ]/.test(t)) return false; // must contain letters
+  // Must contain at least one PT-ish word (accent, ç, or PT-frequent words/suffix).
+  const hasAccent = /[À-ÿ]/.test(t);
+  const hasPtWord = /\b(de|do|da|dos|das|para|com|sem|por|você|voce|sua|seu|sem|não|nao|sim|aqui|este|esta|esses|essas|nosso|nossa|seja|este|essa|esse|aqui|ali|tudo|nada|todos|todas|cada|mais|menos|muito|pouco|também|ainda|agora|depois|antes|enquanto|porque|quando|onde|como|qual|quais|enviar|salvar|criar|editar|excluir|adicionar|configurar|carregando|aguardando|nenhum|nenhuma)\b/i.test(t);
+  return hasAccent || hasPtWord || /\b(ção|ções|mente|inho|inha)\b/i.test(t);
+}
+
+async function flushTranslationBatch() {
+  batchTimer = null;
+  const items = Array.from(pendingTranslations);
+  pendingTranslations.clear();
+  if (items.length === 0) return;
+
+  // Chunk to keep payload small.
+  const chunkSize = 40;
+  for (let i = 0; i < items.length; i += chunkSize) {
+    const chunk = items.slice(i, i + chunkSize);
+    try {
+      const { data, error } = await supabase.functions.invoke("translate-batch", {
+        body: { target: "en", texts: chunk },
+      });
+      if (error) {
+        console.warn("[i18n] translate-batch error", error.message);
+        continue;
+      }
+      const translations: Record<string, string> = data?.translations || {};
+      let changed = false;
+      for (const [src, dst] of Object.entries(translations)) {
+        if (dst && dst !== src && !aiCache[src]) {
+          aiCache[src] = dst;
+          changed = true;
+        }
+      }
+      if (changed) persistCache();
+    } catch (e) {
+      console.warn("[i18n] translate-batch failed", e);
+    }
+  }
+
+  // Re-walk any nodes that triggered these requests so new translations apply.
+  if (currentlyEnglish) {
+    const nodes = Array.from(pendingNodes);
+    pendingNodes.clear();
+    for (const n of nodes) {
+      if (n.isConnected) walk(n, true);
+    }
+    // Also walk the body once to catch any other matching nodes.
+    if (document.body) walk(document.body, true);
+  }
+}
+
+function queueForAi(text: string, hostNode: Node) {
+  if (requested.has(text)) return;
+  if (!looksTranslatable(text)) return;
+  requested.add(text);
+  pendingTranslations.add(text);
+  pendingNodes.add(hostNode);
+  if (batchTimer == null) {
+    batchTimer = window.setTimeout(flushTranslationBatch, 600);
+  }
+}
+
 function lookup(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
-  const hit = dictionary[trimmed];
+  const hit = dictionary[trimmed] ?? aiCache[trimmed];
   if (!hit) return null;
   // Preserve surrounding whitespace
   const leading = raw.match(/^\s*/)?.[0] ?? "";
@@ -62,6 +158,9 @@ function translateTextNode(node: Text, toEnglish: boolean) {
     if (translated && translated !== node.nodeValue) {
       if (!ORIG.has(node)) ORIG.set(node, original);
       node.nodeValue = translated;
+    } else if (!translated) {
+      // Not in any dictionary — queue for AI translation.
+      queueForAi(original.trim(), node);
     }
   } else {
     const original = ORIG.get(node);
@@ -83,6 +182,8 @@ function translateAttributes(el: HTMLElement, toEnglish: boolean) {
       if (translated && translated !== current) {
         if (!el.hasAttribute(origKey)) el.setAttribute(origKey, original);
         el.setAttribute(attr, translated);
+      } else if (!translated) {
+        queueForAi(original.trim(), el);
       }
     } else {
       const original = el.getAttribute(origKey);
