@@ -331,16 +331,48 @@ const RaspadinhaView = ({ buttonText, confirming, onConfirm }: RaspadinhaViewPro
       ctx.fillRect(Math.random() * w, Math.random() * h, 1.5, 1.5);
     }
 
-    // Center logo + text
-    ctx.fillStyle = "#1e3a8a";
-    ctx.beginPath();
-    ctx.ellipse(w / 2, h / 2 - 12, 56, 30, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 18px system-ui, -apple-system, sans-serif";
+    // Center cursor icon + texts
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("CONTEÚDO", w / 2, h / 2 + 8);
+    const cx = w / 2;
+    const cy = h / 2 - 30;
+
+    // Cursor arrow icon (simple pointer)
+    ctx.fillStyle = "#6b7280";
+    ctx.strokeStyle = "#6b7280";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx - 8, cy - 12);
+    ctx.lineTo(cx + 10, cy + 2);
+    ctx.lineTo(cx + 1, cy + 3);
+    ctx.lineTo(cx + 6, cy + 14);
+    ctx.lineTo(cx + 2, cy + 16);
+    ctx.lineTo(cx - 3, cy + 5);
+    ctx.lineTo(cx - 8, cy + 10);
+    ctx.closePath();
+    ctx.fill();
+
+    // Small "tap" arcs around cursor
+    ctx.strokeStyle = "rgba(107,114,128,0.55)";
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 4; i++) {
+      const ang = (Math.PI / 2) * i + Math.PI / 4;
+      const rx = Math.cos(ang) * 22;
+      const ry = Math.sin(ang) * 22;
+      ctx.beginPath();
+      ctx.arc(cx + rx, cy + ry, 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Title
+    ctx.fillStyle = "#374151";
+    ctx.font = "bold 20px system-ui, -apple-system, sans-serif";
+    ctx.fillText("RASPE PARA VER", cx, cy + 50);
+
+    // Subtitle
+    ctx.fillStyle = "#9ca3af";
+    ctx.font = "13px system-ui, -apple-system, sans-serif";
+    ctx.fillText("Use o dedo para descobrir", cx, cy + 74);
 
     ctx.globalCompositeOperation = "destination-out";
     // Continuous stroke settings so it erases as a smooth path, not dots
