@@ -406,7 +406,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
                   </TooltipTrigger>
                   {collapsed && (
                     <TooltipContent side="right" className="font-medium text-xs">
-                      Bot
+                      {t("Bot")}
                     </TooltipContent>
                   )}
                 </Tooltip>
@@ -459,7 +459,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
                   </TooltipTrigger>
                   {collapsed && (
                     <TooltipContent side="right" className="font-medium text-xs">
-                      Funções Extras
+                      {t("Funções Extras")}
                     </TooltipContent>
                   )}
                 </Tooltip>
@@ -512,7 +512,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
                   </TooltipTrigger>
                   {collapsed && (
                     <TooltipContent side="right" className="font-medium text-xs">
-                      Resultados
+                      {t("Resultados")}
                     </TooltipContent>
                   )}
                 </Tooltip>
@@ -565,7 +565,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
                   </TooltipTrigger>
                   {collapsed && (
                     <TooltipContent side="right" className="font-medium text-xs">
-                      Remarketing
+                      {t("Remarketing")}
                     </TooltipContent>
                   )}
                 </Tooltip>
@@ -618,7 +618,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
                   </TooltipTrigger>
                   {collapsed && (
                     <TooltipContent side="right" className="font-medium text-xs">
-                      Integrações
+                      {t("Integrações")}
                     </TooltipContent>
                   )}
                 </Tooltip>
