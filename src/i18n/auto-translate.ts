@@ -201,7 +201,7 @@ function translateTextNode(node: Text, toEnglish: boolean) {
   if (shouldSkip(node)) return;
   if (toEnglish) {
     const original = ORIG.get(node) ?? node.nodeValue ?? "";
-    const translated = lookup(original);
+    const translated = translateParts(original, node);
     if (translated && translated !== node.nodeValue) {
       if (!ORIG.has(node)) ORIG.set(node, original);
       node.nodeValue = translated;
@@ -218,17 +218,24 @@ function translateTextNode(node: Text, toEnglish: boolean) {
 }
 
 function translateAttributes(el: HTMLElement, toEnglish: boolean) {
-  if (SKIP_TAGS.has(el.tagName) || el.hasAttribute("data-i18n-skip")) return;
-  for (const attr of TRANSLATABLE_ATTRS) {
+  if (ATTRIBUTE_SKIP_TAGS.has(el.tagName) || el.hasAttribute("data-i18n-skip")) return;
+  const attrs = [...TRANSLATABLE_ATTRS];
+  if (el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && INPUT_VALUE_TYPES.has(el.type))) {
+    attrs.push("value");
+  }
+  for (const attr of attrs) {
     const current = el.getAttribute(attr);
     if (current == null) continue;
     const origKey = `data-i18n-orig-${attr}`;
     if (toEnglish) {
       const original = el.getAttribute(origKey) ?? current;
-      const translated = lookup(original);
+      const translated = translateParts(original, el);
       if (translated && translated !== current) {
         if (!el.hasAttribute(origKey)) el.setAttribute(origKey, original);
         el.setAttribute(attr, translated);
+        if (attr === "value" && (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) {
+          setNativeValue(el, translated);
+        }
       } else if (!translated) {
         queueForAi(original.trim(), el);
       }
@@ -236,6 +243,9 @@ function translateAttributes(el: HTMLElement, toEnglish: boolean) {
       const original = el.getAttribute(origKey);
       if (original != null && original !== current) {
         el.setAttribute(attr, original);
+        if (attr === "value" && (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) {
+          setNativeValue(el, original);
+        }
         el.removeAttribute(origKey);
       }
     }
