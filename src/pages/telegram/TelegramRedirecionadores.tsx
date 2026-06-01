@@ -39,6 +39,10 @@ import {
   RefreshCw,
   CheckCircle2,
   XCircle,
+  Upload as UploadIcon,
+  Eye,
+  ChevronLeft,
+  BadgeCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
