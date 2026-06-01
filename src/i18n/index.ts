@@ -3,6 +3,7 @@ import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { pt } from "./locales/pt";
 import { en } from "./locales/en";
+import { installAutoTranslator } from "./auto-translate";
 
 const STORAGE_KEY = "app_language";
 
@@ -39,5 +40,8 @@ export function setAppLanguage(lng: string) {
   i18n.changeLanguage(normalized);
   document.documentElement.lang = normalized === "en" ? "en" : "pt-BR";
 }
+
+// Activate the runtime DOM auto-translator (covers strings not yet wrapped with t()).
+installAutoTranslator();
 
 export default i18n;
