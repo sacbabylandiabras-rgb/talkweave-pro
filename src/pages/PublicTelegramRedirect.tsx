@@ -135,7 +135,7 @@ const PublicTelegramRedirect = () => {
               style={{ background: inter.bg, color: inter.color }}
             >
               <span className="text-lg">{inter.emoji}</span>
-              <span>{inter.label || "Online agora"}</span>
+              <span>Online agora</span>
             </div>
             <button
               onClick={handleConfirm}
