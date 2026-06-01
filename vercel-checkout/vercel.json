@@ -4,6 +4,7 @@
     { "source": "/pay/:slug*", "destination": "/pay.html" },
     { "source": "/checkout/:slug*", "destination": "/pay.html" },
     { "source": "/invite/:slug*", "destination": "/invite.html" },
+    { "source": "/r/:slug*", "destination": "/tg-r.html" },
     { "source": "/r", "destination": "/r.html" },
     { "source": "/lp/:path*", "destination": "/lp.html" }
   ]
