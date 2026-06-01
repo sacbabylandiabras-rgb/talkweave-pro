@@ -216,6 +216,16 @@ const PublicTelegramRedirect = () => {
       );
     }
 
+    if (pageConfig.interactive_template === "+18" || pageConfig.interactive_template === "mais18") {
+      return (
+        <Mais18View
+          buttonText={buttonText}
+          confirming={confirming}
+          onConfirm={handleConfirm}
+        />
+      );
+    }
+
     return (
       <main className="fixed inset-0 flex items-center justify-center px-6" style={{ background: bg }}>
         <div className="w-full max-w-xs bg-white rounded-3xl shadow-2xl p-6 flex flex-col items-center text-center">
