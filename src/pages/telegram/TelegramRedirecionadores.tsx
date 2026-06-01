@@ -1825,7 +1825,7 @@ interface PageConfig {
 
 const PROFILE_TEMPLATES: { id: string; label: string; bg: string; text?: string }[] = [
   { id: "rosa", label: "Rosa", bg: "linear-gradient(135deg,#ff5fa3,#ff84c0)" },
-  { id: "azul", label: "Azul", bg: "linear-gradient(135deg,#1d4ed8,#3b82f6)" },
+  { id: "azul", label: "Azul", bg: "linear-gradient(160deg,#0a1e3a,#1e4b8f 60%,#2563eb)" },
   { id: "escuro", label: "Escuro", bg: "linear-gradient(135deg,#111827,#1f2937)" },
   { id: "roxo", label: "Roxo", bg: "linear-gradient(135deg,#7c3aed,#a855f7)" },
   { id: "verde", label: "Verde", bg: "linear-gradient(135deg,#047857,#10b981)" },
