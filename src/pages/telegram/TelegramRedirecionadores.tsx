@@ -1880,7 +1880,7 @@ function RedirectPageTab({ links, onChanged }: { links: TgRedirectLink[]; onChan
         </div>
       ) : (
         links.map((l) => {
-          const linkUrl = `${window.location.origin}/r/${l.slug}`;
+          const linkUrl = `https://zaplynx.com/r/${l.slug}`;
           return (
             <div key={l.id} className="rounded-xl border border-border bg-card px-4 py-3 flex items-center gap-3">
               <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
