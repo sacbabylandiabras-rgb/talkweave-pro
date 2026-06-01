@@ -898,6 +898,206 @@ function CreateRedirectDialog({
   );
 }
 
+// ============= Domínio Próprio Tab =============
+
+interface CustomDomain {
+  id: string;
+  domain: string;
+  active: boolean;
+  created_at: string;
+}
+
+const DOMAIN_STORAGE_KEY = "tg_redirect_custom_domains";
+const CNAME_TARGET = "links.zaplynx.com";
+
+function DominioTab() {
+  const [domains, setDomains] = useState<CustomDomain[]>([]);
+  const [input, setInput] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DOMAIN_STORAGE_KEY);
+      if (raw) setDomains(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  const persist = (next: CustomDomain[]) => {
+    setDomains(next);
+    try {
+      localStorage.setItem(DOMAIN_STORAGE_KEY, JSON.stringify(next));
+    } catch {}
+  };
+
+  const normalize = (raw: string) =>
+    raw
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/\/.*$/, "");
+
+  const handleAdd = () => {
+    const domain = normalize(input);
+    if (!domain) {
+      toast.error("Informe um domínio válido");
+      return;
+    }
+    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain)) {
+      toast.error("Domínio inválido");
+      return;
+    }
+    if (domains.some((d) => d.domain === domain)) {
+      toast.error("Domínio já adicionado");
+      return;
+    }
+    setAdding(true);
+    const novo: CustomDomain = {
+      id: crypto.randomUUID(),
+      domain,
+      active: true,
+      created_at: new Date().toISOString(),
+    };
+    persist([novo, ...domains]);
+    setInput("");
+    setAdding(false);
+    toast.success("Domínio adicionado!");
+  };
+
+  const handleRemove = (id: string) => {
+    persist(domains.filter((d) => d.id !== id));
+    toast.success("Domínio removido.");
+  };
+
+  const copyExample = (domain: string) => {
+    navigator.clipboard.writeText(`https://${domain}/seu-slug`);
+    toast.success("URL copiada!");
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Card de adicionar */}
+      <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+        <div className="flex items-start gap-3 border-l-4 border-primary pl-3">
+          <div className="h-9 w-9 rounded-lg bg-primary/15 flex items-center justify-center">
+            <Globe className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-foreground">
+              Adicionar Domínio Próprio
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Use seu próprio domínio para links de redirecionamento
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-2">
+          <Input
+            placeholder="exemplo.com"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            className="flex-1"
+          />
+          <Button onClick={handleAdd} disabled={adding} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Adicionar
+          </Button>
+        </div>
+
+        <div className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-3 text-xs text-muted-foreground space-y-1.5">
+          <p>
+            <span className="font-semibold text-foreground">Como funciona:</span>{" "}
+            Após adicionar o domínio, configure um registro CNAME no DNS
+            apontando para{" "}
+            <code className="px-1.5 py-0.5 rounded bg-background text-primary font-mono">
+              {CNAME_TARGET}
+            </code>
+          </p>
+          <p>
+            <span className="font-semibold text-foreground">
+              Domínios raiz (ex: seusite.com):
+            </span>{" "}
+            Use CNAME com nome "@" ou seu DNS suportar CNAME Flattening
+            (Cloudflare, Route53) ou ALIAS/ANAME.
+          </p>
+        </div>
+      </div>
+
+      {/* Lista de domínios */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 px-1">
+          <h3 className="text-sm font-semibold text-foreground">
+            Domínios
+          </h3>
+          <span className="text-xs text-muted-foreground">
+            ({domains.length})
+          </span>
+        </div>
+
+        {domains.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border bg-muted/10 py-12 text-center">
+            <Globe className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">
+              Nenhum domínio adicionado ainda.
+            </p>
+          </div>
+        ) : (
+          domains.map((d) => (
+            <div
+              key={d.id}
+              className="rounded-xl border border-border bg-card overflow-hidden"
+            >
+              <div className="flex items-center justify-between gap-3 p-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-8 w-8 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0">
+                    <Check className="h-4 w-4 text-emerald-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground truncate">
+                      {d.domain}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-500 font-semibold">
+                        Ativo
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-semibold">
+                        Global
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemove(d.id)}
+                  className="text-muted-foreground hover:text-destructive shrink-0"
+                  title="Remover"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="border-t border-border bg-muted/20 px-4 py-2.5 flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Domínio ativo. Use</span>
+                <code className="flex-1 px-2 py-1 rounded bg-background text-primary font-mono truncate">
+                  https://{d.domain}/seu-slug
+                </code>
+                <button
+                  onClick={() => copyExample(d.domain)}
+                  className="text-muted-foreground hover:text-foreground"
+                  title="Copiar"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ============ UTM Generator Tab ============
 
 interface UtmFields {
