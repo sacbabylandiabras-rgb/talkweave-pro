@@ -38,7 +38,9 @@ const SKIP_TAGS = new Set([
   "PRE",
   "IFRAME",
 ]);
+const TEXT_SKIP_TAGS = new Set([...SKIP_TAGS, "TEXTAREA"]);
 const ATTRIBUTE_SKIP_TAGS = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "CODE", "PRE", "IFRAME"]);
+const INPUT_VALUE_TYPES = new Set(["button", "submit", "reset"]);
 
 // ---------- Runtime cache populated by AI translation ----------
 const CACHE_KEY = "i18n_runtime_cache_v1";
@@ -161,7 +163,7 @@ function shouldSkip(node: Node): boolean {
   while (el) {
     if (el.nodeType === Node.ELEMENT_NODE) {
       const e = el as HTMLElement;
-      if (SKIP_TAGS.has(e.tagName)) return true;
+      if (TEXT_SKIP_TAGS.has(e.tagName)) return true;
       if (e.hasAttribute("data-i18n-skip")) return true;
       if (e.isContentEditable) return true;
     }
