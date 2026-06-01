@@ -1810,3 +1810,374 @@ function SalesCodeDialog({
     </Dialog>
   );
 }
+// ============= Página de Redirect Tab =============
+
+interface PageConfig {
+  avatar_url?: string;
+  name?: string;
+  verified?: boolean;
+  button_text?: string;
+  response_time?: string;
+  profile_template?: string;
+  custom_color?: string;
+  interactive_template?: string;
+}
+
+const PROFILE_TEMPLATES: { id: string; label: string; bg: string; text?: string }[] = [
+  { id: "rosa", label: "Rosa", bg: "linear-gradient(135deg,#ff5fa3,#ff84c0)" },
+  { id: "azul", label: "Azul", bg: "linear-gradient(135deg,#1d4ed8,#3b82f6)" },
+  { id: "escuro", label: "Escuro", bg: "linear-gradient(135deg,#111827,#1f2937)" },
+  { id: "roxo", label: "Roxo", bg: "linear-gradient(135deg,#7c3aed,#a855f7)" },
+  { id: "verde", label: "Verde", bg: "linear-gradient(135deg,#047857,#10b981)" },
+  { id: "custom", label: "Custom", bg: "linear-gradient(135deg,#374151,#4b5563)" },
+];
+
+const INTERACTIVE_TEMPLATES: { id: string; label: string; emoji: string; bg: string }[] = [
+  { id: "respondendo", label: "Respondendo", emoji: "😊", bg: "#e5e7eb" },
+  { id: "verificacao", label: "Verificação", emoji: "🛡️", bg: "#1e3a5f" },
+  { id: "countdown", label: "Countdown", emoji: "⏳", bg: "#1e40af" },
+  { id: "+18", label: "+18", emoji: "⚠️", bg: "#374151" },
+  { id: "presente", label: "Presente", emoji: "🎁", bg: "#3b0764" },
+];
+
+const RESPONSE_TIMES = ["1 minuto", "3 minutos", "5 minutos", "10 minutos", "15 minutos", "30 minutos"];
+
+function RedirectPageTab({ links, onChanged }: { links: TgRedirectLink[]; onChanged: () => void }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editing = links.find((l) => l.id === editingId) || null;
+
+  const toggleEnabled = async (l: TgRedirectLink, value: boolean) => {
+    const { error } = await (supabase as any)
+      .from("telegram_redirect_links")
+      .update({ page_enabled: value })
+      .eq("id", l.id);
+    if (error) {
+      toast.error("Erro ao atualizar");
+      return;
+    }
+    toast.success(value ? "Página ativada!" : "Página desativada!");
+    onChanged();
+  };
+
+  if (editing) {
+    return (
+      <RedirectPageEditor
+        link={editing}
+        onBack={() => setEditingId(null)}
+        onSaved={() => {
+          onChanged();
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {links.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-muted/10 py-12 text-center">
+          <ExternalLink className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">Crie um link primeiro para configurar sua página.</p>
+        </div>
+      ) : (
+        links.map((l) => {
+          const linkUrl = `${window.location.origin}/r/${l.slug}`;
+          return (
+            <div key={l.id} className="rounded-xl border border-border bg-card px-4 py-3 flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                <ExternalLink className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground truncate">{linkUrl}</p>
+                <p className="text-xs text-muted-foreground truncate">{l.slug}</p>
+              </div>
+              <Switch
+                checked={!!l.page_enabled}
+                onCheckedChange={(v) => toggleEnabled(l, v)}
+              />
+              <Button variant="outline" size="sm" onClick={() => setEditingId(l.id)}>
+                Configurar
+              </Button>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+function RedirectPageEditor({
+  link,
+  onBack,
+  onSaved,
+}: {
+  link: TgRedirectLink;
+  onBack: () => void;
+  onSaved: () => void;
+}) {
+  const initial: PageConfig = (link.page_config as PageConfig) || {};
+  const [enabled, setEnabled] = useState(!!link.page_enabled);
+  const [avatarUrl, setAvatarUrl] = useState(initial.avatar_url || "");
+  const [name, setName] = useState(initial.name || "");
+  const [verified, setVerified] = useState(!!initial.verified);
+  const [buttonText, setButtonText] = useState(initial.button_text || "Toque AQUI para me chamar");
+  const [responseTime, setResponseTime] = useState(initial.response_time || "3 minutos");
+  const [profileTemplate, setProfileTemplate] = useState(initial.profile_template || "rosa");
+  const [customColor, setCustomColor] = useState(initial.custom_color || "#374151");
+  const [interactive, setInteractive] = useState(initial.interactive_template || "respondendo");
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleUpload = async (file: File) => {
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error("Imagem máxima 4MB");
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `tg-redirect/${link.id}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("flow-media").upload(path, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("flow-media").getPublicUrl(path);
+      setAvatarUrl(data.publicUrl);
+      toast.success("Foto enviada!");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro no upload");
+    }
+    setUploading(false);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    const config: PageConfig = {
+      avatar_url: avatarUrl,
+      name,
+      verified,
+      button_text: buttonText,
+      response_time: responseTime,
+      profile_template: profileTemplate,
+      custom_color: customColor,
+      interactive_template: interactive,
+    };
+    const { error } = await (supabase as any)
+      .from("telegram_redirect_links")
+      .update({ page_enabled: enabled, page_config: config })
+      .eq("id", link.id);
+    setSaving(false);
+    if (error) {
+      toast.error("Erro ao salvar");
+      return;
+    }
+    toast.success("Configuração salva!");
+    onSaved();
+  };
+
+  const tpl = PROFILE_TEMPLATES.find((t) => t.id === profileTemplate) || PROFILE_TEMPLATES[0];
+  const intTpl = INTERACTIVE_TEMPLATES.find((t) => t.id === interactive) || INTERACTIVE_TEMPLATES[0];
+  const previewBg = profileTemplate === "custom" ? customColor : tpl.bg;
+
+  return (
+    <div className="space-y-4">
+      <button
+        onClick={onBack}
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <X className="h-4 w-4" /> Voltar
+      </button>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Editor */}
+        <div className="rounded-2xl border border-border bg-card p-5 space-y-5">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-semibold">Página personalizada</Label>
+            <Switch checked={enabled} onCheckedChange={setEnabled} />
+          </div>
+
+          <div>
+            <Label className="text-xs text-muted-foreground">Foto de Perfil</Label>
+            <div className="flex items-center gap-3 mt-1.5">
+              <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="avatar" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-muted-foreground text-sm">?</span>
+                )}
+              </div>
+              <label className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors">
+                {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UploadIcon className="h-3.5 w-3.5" />}
+                Upload
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => e.target.files && handleUpload(e.target.files[0])}
+                />
+              </label>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1.5">
+              Se vazio, usa a foto do bot automaticamente.
+            </p>
+          </div>
+
+          <div>
+            <Label className="text-xs text-muted-foreground">Nome</Label>
+            <Input
+              placeholder="Ex: Larine"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="mt-1.5"
+              maxLength={60}
+            />
+          </div>
+
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <Label className="text-xs">Badge Verificado</Label>
+              <p className="text-[11px] text-muted-foreground">Mostra selo azul ao lado do nome.</p>
+            </div>
+            <Switch checked={verified} onCheckedChange={setVerified} />
+          </div>
+
+          <div>
+            <Label className="text-xs text-muted-foreground">Texto do Botão</Label>
+            <Input
+              value={buttonText}
+              onChange={(e) => setButtonText(e.target.value)}
+              className="mt-1.5"
+              maxLength={80}
+            />
+          </div>
+
+          <div>
+            <Label className="text-xs text-muted-foreground">Tempo de Resposta</Label>
+            <Select value={responseTime} onValueChange={setResponseTime}>
+              <SelectTrigger className="mt-1.5">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {RESPONSE_TIMES.map((t) => (
+                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="text-xs text-muted-foreground mb-2 block">Templates de Perfil</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {PROFILE_TEMPLATES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setProfileTemplate(t.id)}
+                  className={`h-16 rounded-xl text-white text-xs font-semibold flex items-center justify-center transition-all ${
+                    profileTemplate === t.id ? "ring-2 ring-primary ring-offset-2 ring-offset-card" : "opacity-90 hover:opacity-100"
+                  }`}
+                  style={{ background: t.bg }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            {profileTemplate === "custom" && (
+              <div className="mt-2 flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground">Cor:</Label>
+                <input
+                  type="color"
+                  value={customColor}
+                  onChange={(e) => setCustomColor(e.target.value)}
+                  className="h-8 w-12 rounded cursor-pointer bg-transparent border border-border"
+                />
+                <span className="text-xs font-mono text-muted-foreground">{customColor}</span>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <Label className="text-xs text-muted-foreground mb-2 block">Templates Interativos</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {INTERACTIVE_TEMPLATES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setInteractive(t.id)}
+                  className={`h-16 rounded-xl text-white text-xs font-semibold flex flex-col items-center justify-center gap-0.5 transition-all ${
+                    interactive === t.id ? "ring-2 ring-primary ring-offset-2 ring-offset-card" : "opacity-90 hover:opacity-100"
+                  }`}
+                  style={{ background: t.bg }}
+                >
+                  <span className="text-lg leading-none">{t.emoji}</span>
+                  <span>{t.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <Button onClick={save} disabled={saving} className="w-full gap-2">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              {saving ? "Salvando..." : "Salvar configuração"}
+            </Button>
+          </div>
+        </div>
+
+        {/* Preview */}
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
+            <Eye className="h-3.5 w-3.5" /> Preview
+          </div>
+          {!enabled ? (
+            <div className="rounded-xl border border-dashed border-border bg-muted/10 py-20 text-center">
+              <Eye className="h-6 w-6 text-muted-foreground/40 mx-auto mb-2" />
+              <p className="text-xs text-muted-foreground">
+                Ative a página personalizada para ver o preview
+              </p>
+            </div>
+          ) : (
+            <div
+              className="rounded-xl overflow-hidden min-h-[420px] flex flex-col items-center justify-center px-6 py-10 text-white text-center"
+              style={{ background: previewBg }}
+            >
+              <div className="h-24 w-24 rounded-full bg-white/10 flex items-center justify-center overflow-hidden border-4 border-white/20 mb-3">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-3xl">👤</span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <h3 className="text-xl font-bold">{name || "Seu nome"}</h3>
+                {verified && <BadgeCheck className="h-5 w-5 text-blue-400 fill-blue-400/30" />}
+              </div>
+              <div className="text-xs opacity-80 mb-6 inline-flex items-center gap-1.5">
+                <span
+                  className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"
+                />
+                Responde em {responseTime}
+              </div>
+
+              <div
+                className="w-full max-w-xs rounded-2xl px-4 py-3 mb-4 text-sm flex items-center gap-2"
+                style={{ background: intTpl.bg, color: intTpl.id === "respondendo" ? "#111" : "#fff" }}
+              >
+                <span className="text-lg">{intTpl.emoji}</span>
+                <span className="font-medium">{intTpl.label}...</span>
+              </div>
+
+              <button
+                type="button"
+                className="w-full max-w-xs rounded-full bg-white text-black font-semibold py-3 text-sm shadow-lg"
+              >
+                {buttonText}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
