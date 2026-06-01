@@ -226,6 +226,16 @@ const PublicTelegramRedirect = () => {
       );
     }
 
+    if (pageConfig.interactive_template === "presente") {
+      return (
+        <PresenteView
+          buttonText={buttonText}
+          confirming={confirming}
+          onConfirm={handleConfirm}
+        />
+      );
+    }
+
     return (
       <main className="fixed inset-0 flex items-center justify-center px-6" style={{ background: bg }}>
         <div className="w-full max-w-xs bg-white rounded-3xl shadow-2xl p-6 flex flex-col items-center text-center">
