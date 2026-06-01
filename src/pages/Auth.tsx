@@ -354,6 +354,15 @@ const Auth = () => {
               <InputField icon={<Mail size={16} />} type="email" placeholder="seu@email.com" value={email} onChange={setEmail} disabled={loading} />
               <InputField icon={<Lock size={16} />} type="password" placeholder="••••••••" value={password} onChange={setPassword} disabled={loading} />
               <SubmitButton loading={loading} label="Entrar" loadingLabel="Entrando..." />
+              <div style={{ textAlign: "center", marginTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => { setForgotEmail(email); setShowForgot(true); }}
+                  style={{ background: "transparent", border: "none", color: "var(--lp-accent)", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 4 }}
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
             </form>
           ) : (
             <form onSubmit={handleSignup} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
