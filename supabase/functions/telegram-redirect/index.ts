@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
   const admin = createClient(supabaseUrl, serviceKey);
   const { data: link, error: linkError } = await admin
     .from("telegram_redirect_links")
-    .select("id,user_id,slug,destination_type,destination_bot_id,destination_channel,flow_ids,click_count,active,cloaker,cloaker_v2,cloaker_block_method,cloaker_redirect_url,cloaker_block_ads")
+    .select("id,user_id,slug,destination_type,destination_bot_id,destination_channel,flow_ids,click_count,active,cloaker,cloaker_v2,cloaker_block_method,cloaker_redirect_url,cloaker_block_ads,page_enabled,page_config")
     .eq("slug", slug)
     .eq("active", true)
     .maybeSingle();
@@ -99,6 +99,11 @@ Deno.serve(async (req) => {
   }
 
   if (!destination) return json({ error: "Destino não configurado" }, 404);
+
+  const confirm = Boolean(body?.confirm);
+  if (link.page_enabled && !confirm) {
+    return json({ page: true, pageConfig: link.page_config || {}, destination });
+  }
 
   await admin
     .from("telegram_redirect_links")
