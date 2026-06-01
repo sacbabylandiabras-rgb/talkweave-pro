@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 interface RenewDialogProps {
   open: boolean;
@@ -53,6 +54,7 @@ const plans = [
 ];
 
 export function RenewDialog({ open, onOpenChange }: RenewDialogProps) {
+  const { t } = useTranslation();
   const handleRenew = (planLink: string) => {
     window.open(planLink, "_blank");
     onOpenChange(false);
@@ -64,10 +66,10 @@ export function RenewDialog({ open, onOpenChange }: RenewDialogProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <CreditCard className="w-6 h-6" />
-            Renovar Assinatura
+            {t("Renovar Assinatura")}
           </DialogTitle>
           <DialogDescription>
-            Escolha o plano ideal para suas necessidades e continue aproveitando todos os recursos do ZapLynx
+            {t("Escolha o plano ideal para suas necessidades e continue aproveitando todos os recursos do ZapLynx")}
           </DialogDescription>
         </DialogHeader>
         
@@ -81,7 +83,7 @@ export function RenewDialog({ open, onOpenChange }: RenewDialogProps) {
             >
               {plan.popular && (
                 <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  Mais Popular
+                  {t("Mais Popular")}
                 </Badge>
               )}
               
@@ -90,7 +92,7 @@ export function RenewDialog({ open, onOpenChange }: RenewDialogProps) {
                   <h3 className="font-bold text-xl">{plan.name}</h3>
                   <div className="mt-2">
                     <span className="text-3xl font-bold">{plan.price}</span>
-                    <span className="text-muted-foreground">{plan.period}</span>
+                    <span className="text-muted-foreground">{t(plan.period)}</span>
                   </div>
                 </div>
 
@@ -98,7 +100,7 @@ export function RenewDialog({ open, onOpenChange }: RenewDialogProps) {
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-start gap-2 text-sm">
                       <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                      <span>{feature}</span>
+                      <span>{t(feature)}</span>
                     </li>
                   ))}
                 </ul>
@@ -108,7 +110,7 @@ export function RenewDialog({ open, onOpenChange }: RenewDialogProps) {
                   variant={plan.popular ? "default" : "outline"}
                   onClick={() => handleRenew(plan.link)}
                 >
-                  Renovar Agora
+                  {t("Renovar Agora")}
                 </Button>
               </div>
             </Card>
@@ -117,7 +119,7 @@ export function RenewDialog({ open, onOpenChange }: RenewDialogProps) {
 
         <div className="border-t pt-4">
           <p className="text-sm text-muted-foreground text-center">
-            Todas as renovações são processadas de forma segura. Você pode cancelar a qualquer momento.
+            {t("Todas as renovações são processadas de forma segura. Você pode cancelar a qualquer momento.")}
           </p>
         </div>
       </DialogContent>

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useWebPush } from "@/hooks/useWebPush";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useTranslation } from "react-i18next";
 
 interface Notification {
   id: string;
@@ -50,6 +51,7 @@ interface NotificationsDialogProps {
 }
 
 export function NotificationsDialog({ open, onOpenChange }: NotificationsDialogProps) {
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState(mockNotifications);
   const { pushEnabled, pushBusy, permissionStatus, enablePush } = useWebPush();
   const { toast } = useToast();
@@ -74,16 +76,16 @@ export function NotificationsDialog({ open, onOpenChange }: NotificationsDialogP
   const markAllAsRead = () => {
     setNotifications(notifications.map(n => ({ ...n, read: true })));
     toast({
-      title: "Notificações marcadas como lidas",
-      description: "Todas as notificações foram marcadas como lidas.",
+      title: t("Notificações marcadas como lidas"),
+      description: t("Todas as notificações foram marcadas como lidas."),
     });
   };
 
   const clearAll = () => {
     setNotifications([]);
     toast({
-      title: "Notificações limpas",
-      description: "Todas as notificações foram removidas.",
+      title: t("Notificações limpas"),
+      description: t("Todas as notificações foram removidas."),
     });
   };
 
@@ -93,22 +95,22 @@ export function NotificationsDialog({ open, onOpenChange }: NotificationsDialogP
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bell className="w-5 h-5" />
-            Notificações
+            {t("Notificações")}
           </DialogTitle>
           <DialogDescription>
-            Visualize e gerencie suas notificações recentes
+            {t("Visualize e gerencie suas notificações recentes")}
           </DialogDescription>
         </DialogHeader>
         
         {permissionStatus !== "granted" && (
           <Alert className="mb-4 bg-primary/10 border-primary/20">
             <Shield className="w-4 h-4 text-primary" />
-            <AlertTitle className="text-sm font-semibold">Notificações Desativadas</AlertTitle>
+            <AlertTitle className="text-sm font-semibold">{t("Notificações Desativadas")}</AlertTitle>
             <AlertDescription className="text-xs">
-              Ative as notificações para receber alertas de vendas e PIX em tempo real.
+              {t("Ative as notificações para receber alertas de vendas e PIX em tempo real.")}
               {isIOS && !isPWA && (
                 <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded text-yellow-500 font-medium">
-                  <Smartphone className="w-3 h-3 inline mr-1" /> No iOS, você precisa clicar em "Compartilhar" e "Adicionar à Tela de Início" primeiro.
+                  <Smartphone className="w-3 h-3 inline mr-1" /> {t('No iOS, você precisa clicar em "Compartilhar" e "Adicionar à Tela de Início" primeiro.')}
                 </div>
               )}
             </AlertDescription>
@@ -117,13 +119,13 @@ export function NotificationsDialog({ open, onOpenChange }: NotificationsDialogP
               disabled={pushBusy || (isIOS && !isPWA)}
               onClick={() => {
                 enablePush().then(() => {
-                  toast({ title: "Notificações ativadas!", description: "Você receberá alertas em tempo real agora." });
+                  toast({ title: t("Notificações ativadas!"), description: t("Você receberá alertas em tempo real agora.") });
                 }).catch(e => {
-                  toast({ title: "Erro ao ativar", description: e.message, variant: "destructive" });
+                  toast({ title: t("Erro ao ativar"), description: e.message, variant: "destructive" });
                 });
               }}
             >
-              {pushBusy ? "Ativando..." : "Ativar Notificações"}
+              {pushBusy ? t("Ativando...") : t("Ativar Notificações")}
             </Button>
           </Alert>
         )}
@@ -133,7 +135,7 @@ export function NotificationsDialog({ open, onOpenChange }: NotificationsDialogP
             {notifications.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Bell className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>Nenhuma notificação</p>
+                <p>{t("Nenhuma notificação")}</p>
               </div>
             ) : (
               notifications.map((notification) => (
@@ -149,7 +151,7 @@ export function NotificationsDialog({ open, onOpenChange }: NotificationsDialogP
                     <div className="flex items-start justify-between gap-2">
                       <h4 className="font-medium text-sm">{notification.title}</h4>
                       {!notification.read && (
-                        <Badge variant="secondary" className="text-xs">Nova</Badge>
+                        <Badge variant="secondary" className="text-xs">{t("Nova")}</Badge>
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground">{notification.message}</p>
@@ -166,11 +168,11 @@ export function NotificationsDialog({ open, onOpenChange }: NotificationsDialogP
           <div className="flex gap-2 pt-4 border-t">
             <Button variant="outline" size="sm" className="flex-1" onClick={markAllAsRead}>
               <Check className="w-4 h-4 mr-2" />
-              Marcar todas como lidas
+              {t("Marcar todas como lidas")}
             </Button>
             <Button variant="outline" size="sm" className="flex-1" onClick={clearAll}>
               <X className="w-4 h-4 mr-2" />
-              Limpar todas
+              {t("Limpar todas")}
             </Button>
           </div>
         )}
