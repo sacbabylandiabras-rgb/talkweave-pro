@@ -639,6 +639,115 @@ function CreateRedirectDialog({
             </div>
           )}
 
+          {(cloaker || cloakerV2) && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+                <AlertTriangle className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span className="text-xs text-primary">
+                  <span className="font-semibold">Cloaker ativo:</span>{" "}
+                  {cloakerV2
+                    ? "Sistema avançado de detecção com scoring de bots e crawlers."
+                    : "Bloqueia acessos sem o parâmetro shk."}
+                </span>
+              </div>
+
+              <div>
+                <Label className="text-[11px] uppercase text-muted-foreground tracking-wide">
+                  Método de Bloqueio
+                </Label>
+                <div className="grid grid-cols-2 gap-2 mt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setBlockMethod("page")}
+                    className={`text-left rounded-lg border p-3 transition ${
+                      blockMethod === "page"
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-foreground/30"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span
+                        className={`h-3.5 w-3.5 rounded-full border-2 ${
+                          blockMethod === "page"
+                            ? "border-primary bg-primary"
+                            : "border-muted-foreground"
+                        }`}
+                      />
+                      <FileText className="h-3.5 w-3.5 text-foreground" />
+                      <span className="text-sm font-semibold">Página Segura</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Exibe página inline</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBlockMethod("redirect")}
+                    className={`text-left rounded-lg border p-3 transition ${
+                      blockMethod === "redirect"
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-foreground/30"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span
+                        className={`h-3.5 w-3.5 rounded-full border-2 ${
+                          blockMethod === "redirect"
+                            ? "border-primary bg-primary"
+                            : "border-muted-foreground"
+                        }`}
+                      />
+                      <ArrowRight className="h-3.5 w-3.5 text-foreground" />
+                      <span className="text-sm font-semibold">Redirect</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Redireciona para URL</p>
+                  </button>
+                </div>
+
+                {blockMethod === "page" ? (
+                  <div className="mt-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-3 py-2">
+                    <p className="text-[11px] text-emerald-500">
+                      Visitantes bloqueados verão uma página de segurança. Nenhuma URL externa necessária.
+                    </p>
+                  </div>
+                ) : (
+                  <Input
+                    className="mt-2"
+                    placeholder="https://exemplo.com/pagina-segura"
+                    value={redirectUrl}
+                    onChange={(e) => setRedirectUrl(e.target.value)}
+                  />
+                )}
+              </div>
+
+              <div className="rounded-lg border border-border p-3 flex items-center gap-3">
+                <div className="h-8 w-8 rounded-md bg-rose-500/15 flex items-center justify-center shrink-0">
+                  <Shield className="h-4 w-4 text-rose-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold">Bloquear Bots de Ads</div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Crawlers do Facebook, Google e TikTok serão bloqueados
+                  </p>
+                </div>
+                <Switch checked={blockAds} onCheckedChange={setBlockAds} />
+              </div>
+
+              <div className="rounded-lg border border-border p-3 flex items-center gap-3">
+                <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center shrink-0">
+                  <Share2 className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold">Anti-Compartilhamento</div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {antiShare
+                      ? "Cada link só pode ser acessado uma vez"
+                      : "Qualquer pessoa com o link pode acessar"}
+                  </p>
+                </div>
+                <Switch checked={antiShare} onCheckedChange={setAntiShare} />
+              </div>
+            </div>
+          )}
+
           {/* Domain display */}
           <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5">
             <Globe className="h-4 w-4 text-primary" />
