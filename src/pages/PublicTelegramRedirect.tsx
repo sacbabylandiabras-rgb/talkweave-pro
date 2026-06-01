@@ -46,13 +46,13 @@ const VerificacaoView = ({ buttonText, confirming, onConfirm }: RaspadinhaViewPr
             <button
               onClick={handleCheck}
               aria-label="Confirmar verificação"
-              className="w-6 h-6 rounded-sm border-2 border-gray-400 bg-white flex items-center justify-center transition"
+              className={`w-6 h-6 rounded-sm border-2 flex items-center justify-center transition ${checked ? "bg-green-500 border-green-500" : "bg-white border-gray-400"}`}
             >
               {verifying && (
                 <span className="w-4 h-4 border-2 border-gray-300 border-t-[#4285f4] rounded-full animate-spin" />
               )}
               {checked && !verifying && (
-                <Check className="w-4 h-4 text-[#4285f4]" strokeWidth={3.5} />
+                <Check className="w-4 h-4 text-white" strokeWidth={3.5} />
               )}
             </button>
             <span className="text-sm text-gray-800">Sou maior de 18 anos</span>
@@ -67,17 +67,16 @@ const VerificacaoView = ({ buttonText, confirming, onConfirm }: RaspadinhaViewPr
             <span className="text-[7px] text-gray-400">Privacidade - Termos</span>
           </div>
         </div>
+        {checked && (
+          <button
+            onClick={onConfirm}
+            disabled={confirming}
+            className="mt-5 w-full rounded-xl py-3.5 px-4 font-bold text-white text-sm tracking-wide transition active:scale-[0.98] shadow-md bg-gradient-to-r from-[#8b7cf6] to-[#6d5ee6] hover:opacity-95 animate-in fade-in slide-in-from-bottom-2 duration-300"
+          >
+            {confirming ? "ABRINDO..." : "VERIFICAR E ASSISTIR"}
+          </button>
+        )}
       </div>
-      {checked && (
-        <button
-          onClick={onConfirm}
-          disabled={confirming}
-          className="w-full max-w-sm rounded-2xl py-3.5 px-4 font-semibold text-white text-sm transition active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg bg-[#2AABEE] hover:bg-[#1f95d2] animate-in fade-in slide-in-from-bottom-2 duration-300"
-        >
-          <Send className="w-4 h-4 shrink-0" fill="currentColor" strokeWidth={0} />
-          <span>{confirming ? "Abrindo..." : (buttonText || "Acessar Conteúdo")}</span>
-        </button>
-      )}
     </main>
   );
 };
