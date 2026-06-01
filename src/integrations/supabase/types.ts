@@ -2577,6 +2577,60 @@ export type Database = {
           },
         ]
       }
+      telegram_redirect_links: {
+        Row: {
+          active: boolean
+          click_count: number
+          cloaker: boolean
+          cloaker_v2: boolean
+          created_at: string
+          destination_bot_id: string | null
+          destination_channel: string | null
+          destination_type: string
+          flow_ids: string[]
+          id: string
+          mode: string
+          slug: string
+          slug_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          click_count?: number
+          cloaker?: boolean
+          cloaker_v2?: boolean
+          created_at?: string
+          destination_bot_id?: string | null
+          destination_channel?: string | null
+          destination_type?: string
+          flow_ids?: string[]
+          id?: string
+          mode?: string
+          slug: string
+          slug_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          click_count?: number
+          cloaker?: boolean
+          cloaker_v2?: boolean
+          created_at?: string
+          destination_bot_id?: string | null
+          destination_channel?: string | null
+          destination_type?: string
+          flow_ids?: string[]
+          id?: string
+          mode?: string
+          slug?: string
+          slug_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_email_templates: {
         Row: {
           category: string | null
