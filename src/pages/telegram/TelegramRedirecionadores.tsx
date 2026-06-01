@@ -42,7 +42,7 @@ import {
   Upload as UploadIcon,
   Eye,
   ChevronLeft,
-  BadgeCheck,
+  Send,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -1841,6 +1841,11 @@ const INTERACTIVE_TEMPLATES: { id: string; label: string; emoji: string; bg: str
 ];
 
 const RESPONSE_TIMES = ["1 minuto", "3 minutos", "5 minutos", "10 minutos", "15 minutos", "30 minutos"];
+const DEFAULT_REDIRECT_BUTTON_TEXT = "Toque AQUI para me chamar";
+const normalizeRedirectButtonText = (value?: string) => {
+  const text = (value || "").trim();
+  return !text || text === "Entrar agora" ? DEFAULT_REDIRECT_BUTTON_TEXT : text;
+};
 
 function RedirectPageTab({ links, onChanged }: { links: TgRedirectLink[]; onChanged: () => void }) {
   const [editingId, setEditingId] = useState<string | null>(null);
