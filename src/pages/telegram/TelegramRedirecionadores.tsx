@@ -35,6 +35,10 @@ import {
   ArrowRight,
   Shield,
   Share2,
+  Loader2,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
