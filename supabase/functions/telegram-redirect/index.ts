@@ -31,6 +31,9 @@ Deno.serve(async (req) => {
   const slug = String(body?.slug || "").toLowerCase().trim();
   if (!/^[a-z0-9-]{1,80}$/.test(slug)) return json({ error: "Link inválido" }, 400);
 
+  const shk = String(body?.shk || "").trim();
+  const userAgent = String(body?.userAgent || req.headers.get("user-agent") || "").toLowerCase();
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !serviceKey) return json({ error: "Configuração indisponível" }, 500);
@@ -38,7 +41,7 @@ Deno.serve(async (req) => {
   const admin = createClient(supabaseUrl, serviceKey);
   const { data: link, error: linkError } = await admin
     .from("telegram_redirect_links")
-    .select("id,user_id,slug,destination_type,destination_bot_id,destination_channel,flow_ids,click_count,active")
+    .select("id,user_id,slug,destination_type,destination_bot_id,destination_channel,flow_ids,click_count,active,cloaker,cloaker_v2")
     .eq("slug", slug)
     .eq("active", true)
     .maybeSingle();
@@ -48,6 +51,19 @@ Deno.serve(async (req) => {
     return json({ error: "Erro ao buscar link" }, 500);
   }
   if (!link) return json({ error: "Link não encontrado ou inativo" }, 404);
+
+  // Cloaker: requires `shk` param and blocks known bots/scrapers
+  if (link.cloaker || link.cloaker_v2) {
+    if (!shk) {
+      return json({ blocked: true, reason: "missing_param" }, 200);
+    }
+    if (link.cloaker_v2) {
+      const botRegex = /(bot|crawler|spider|facebookexternalhit|whatsapp|telegrambot|slackbot|discordbot|twitterbot|linkedinbot|bingpreview|googlebot|adsbot|preview|monitor|curl|wget|python-requests|axios|node-fetch|headless)/i;
+      if (!userAgent || botRegex.test(userAgent)) {
+        return json({ blocked: true, reason: "bot_detected" }, 200);
+      }
+    }
+  }
 
   let destination = "";
   if (link.destination_type === "channel") {
