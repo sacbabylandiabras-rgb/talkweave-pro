@@ -2594,6 +2594,8 @@ export type Database = {
           flow_ids: string[]
           id: string
           mode: string
+          page_config: Json
+          page_enabled: boolean
           slug: string
           slug_type: string
           updated_at: string
@@ -2615,6 +2617,8 @@ export type Database = {
           flow_ids?: string[]
           id?: string
           mode?: string
+          page_config?: Json
+          page_enabled?: boolean
           slug: string
           slug_type?: string
           updated_at?: string
@@ -2636,6 +2640,8 @@ export type Database = {
           flow_ids?: string[]
           id?: string
           mode?: string
+          page_config?: Json
+          page_enabled?: boolean
           slug?: string
           slug_type?: string
           updated_at?: string
