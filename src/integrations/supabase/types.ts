@@ -2582,6 +2582,10 @@ export type Database = {
           active: boolean
           click_count: number
           cloaker: boolean
+          cloaker_anti_share: boolean
+          cloaker_block_ads: boolean
+          cloaker_block_method: string
+          cloaker_redirect_url: string
           cloaker_v2: boolean
           created_at: string
           destination_bot_id: string | null
@@ -2599,6 +2603,10 @@ export type Database = {
           active?: boolean
           click_count?: number
           cloaker?: boolean
+          cloaker_anti_share?: boolean
+          cloaker_block_ads?: boolean
+          cloaker_block_method?: string
+          cloaker_redirect_url?: string
           cloaker_v2?: boolean
           created_at?: string
           destination_bot_id?: string | null
@@ -2616,6 +2624,10 @@ export type Database = {
           active?: boolean
           click_count?: number
           cloaker?: boolean
+          cloaker_anti_share?: boolean
+          cloaker_block_ads?: boolean
+          cloaker_block_method?: string
+          cloaker_redirect_url?: string
           cloaker_v2?: boolean
           created_at?: string
           destination_bot_id?: string | null
