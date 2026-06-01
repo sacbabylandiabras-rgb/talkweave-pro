@@ -602,6 +602,14 @@ function PagamentoNode({ id, data, selected }: any) {
   const pricingMode: "custom" | "plan" = data?.pricingMode === "plan" ? "plan" : "custom";
   const planId: string = data?.planId ?? "";
   const [plans, setPlans] = useState<Array<{ id: string; name: string; price: number; billing_cycle?: string | null }>>([]);
+  const [pixMsgOpen, setPixMsgOpen] = useState(false);
+  const pixPreMessage: string = data?.pixPreMessage ?? "Aguarde um momento enquanto preparamos tudo :)";
+  const pixInstructionMessage: string =
+    data?.pixInstructionMessage ??
+    'Para efetuar o pagamento, utilize a opção "Pagar" > "PIX copia e Cola" no aplicativo do seu banco.';
+  const pixStatusMessage: string =
+    data?.pixStatusMessage ?? "Após efetuar o pagamento, clique no botão abaixo 👇";
+  const pixButtonText: string = data?.pixButtonText ?? "EFETUEI O PAGAMENTO";
 
   useEffect(() => {
     let active = true;
@@ -857,6 +865,87 @@ function PagamentoNode({ id, data, selected }: any) {
           </div>
         </div>
       </div>
+
+      {/* Configurar mensagens do PIX */}
+      <div className="px-4 pb-3 nodrag">
+        <button
+          type="button"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            setPixMsgOpen(true);
+          }}
+          className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-[12px] font-medium py-2 transition"
+        >
+          <CreditCard className="h-3.5 w-3.5" />
+          Configurar mensagens do PIX
+        </button>
+      </div>
+
+      <Dialog open={pixMsgOpen} onOpenChange={setPixMsgOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Mensagem do PIX</DialogTitle>
+            <DialogDescription>
+              Configure as mensagens personalizadas para o processo de pagamento PIX do bot
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-[12px]">
+                Pré-mensagem de criação do PIX<span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                value={pixPreMessage}
+                onChange={(e) => patch({ pixPreMessage: e.target.value })}
+                rows={2}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[12px]">
+                Mensagem de instrução para o pagamento do PIX<span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                value={pixInstructionMessage}
+                onChange={(e) => patch({ pixInstructionMessage: e.target.value })}
+                rows={2}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[12px]">
+                Mensagem de como verificar o status de pagamento<span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                value={pixStatusMessage}
+                onChange={(e) => patch({ pixStatusMessage: e.target.value })}
+                rows={2}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[12px]">
+                Texto do botão para verificar status do pagamento<span className="text-destructive">*</span>
+              </Label>
+              <Input
+                value={pixButtonText}
+                onChange={(e) => patch({ pixButtonText: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setPixMsgOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                setPixMsgOpen(false);
+                toast.success("Mensagens do PIX configuradas");
+              }}
+            >
+              Configurar mensagem
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
