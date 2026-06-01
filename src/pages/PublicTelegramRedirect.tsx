@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck, ArrowRight } from "lucide-react";
 
 interface PageConfig {
   avatar_url?: string;
@@ -107,45 +107,44 @@ const PublicTelegramRedirect = () => {
     const responseTime = pageConfig.response_time || "3 minutos";
 
     return (
-      <main className="fixed inset-0 flex items-center justify-center px-4" style={{ background: bg }}>
-        <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden">
-          <div className="p-6 flex flex-col items-center text-center">
-            <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 mb-4 ring-4 ring-white shadow-lg">
-              {pageConfig.avatar_url ? (
-                <img src={pageConfig.avatar_url} alt={name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-gray-400">
-                  {name.charAt(0).toUpperCase()}
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 mb-1">
-              <h1 className="text-xl font-bold text-gray-900">{name}</h1>
-              {pageConfig.verified && <BadgeCheck className="w-5 h-5 text-blue-500 fill-blue-500 text-white" />}
-            </div>
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-5">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-              </span>
-              Responde em {responseTime}
-            </div>
-            <div
-              className="w-full rounded-xl px-4 py-3 mb-4 flex items-center gap-2 text-sm font-medium"
-              style={{ background: inter.bg, color: inter.color }}
-            >
-              <span className="text-lg">{inter.emoji}</span>
-              <span>Online agora</span>
-            </div>
-            <button
-              onClick={handleConfirm}
-              disabled={confirming}
-              className="w-full rounded-xl py-3.5 font-semibold text-white text-base transition active:scale-[0.98] disabled:opacity-60"
-              style={{ background: bg }}
-            >
-              {confirming ? "Abrindo..." : buttonText}
-            </button>
+      <main className="fixed inset-0 flex items-center justify-center px-6" style={{ background: bg }}>
+        <div className="w-full max-w-xs bg-white rounded-3xl shadow-2xl p-6 flex flex-col items-center text-center">
+          <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 mb-4 ring-4 ring-white shadow-md">
+            {pageConfig.avatar_url ? (
+              <img src={pageConfig.avatar_url} alt={name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-gray-400">
+                {name.charAt(0).toUpperCase()}
+              </div>
+            )}
           </div>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <h1 className="text-lg font-bold text-gray-900">{name}</h1>
+            {pageConfig.verified && (
+              <BadgeCheck className="w-5 h-5 text-white" fill="#3b82f6" strokeWidth={2.5} />
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            <span className="font-medium text-green-600">Online</span>
+          </div>
+          <p className="text-xs text-gray-500 mb-5">
+            Tempo médio de resposta: {responseTime}
+          </p>
+          <button
+            onClick={handleConfirm}
+            disabled={confirming}
+            className="w-full rounded-2xl py-3.5 px-4 font-semibold text-white text-sm transition active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg"
+            style={{ background: bg }}
+          >
+            <span className="w-7 h-7 rounded-full bg-white/25 flex items-center justify-center shrink-0">
+              <ArrowRight className="w-4 h-4" />
+            </span>
+            <span className="flex-1">{confirming ? "Abrindo..." : buttonText}</span>
+          </button>
         </div>
       </main>
     );
