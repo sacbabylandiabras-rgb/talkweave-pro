@@ -14,12 +14,15 @@
  *    element marked with `data-i18n-skip`.
  */
 
-import i18n from "./index";
+import type { i18n as I18nInstance } from "i18next";
 import { dictionary } from "./dictionary";
 import { supabase } from "@/integrations/supabase/client";
 
 const ORIG = new WeakMap<Text, string>();
 const TRANSLATABLE_ATTRS = ["placeholder", "title", "aria-label", "alt"];
+const dictionaryLower: Record<string, string> = Object.fromEntries(
+  Object.entries(dictionary).map(([key, value]) => [key.toLocaleLowerCase("pt-BR"), value]),
+);
 const SKIP_TAGS = new Set([
   "SCRIPT",
   "STYLE",
@@ -39,6 +42,9 @@ const aiCache: Record<string, string> = (() => {
     return {};
   }
 })();
+for (const [key, value] of Object.entries(dictionary)) {
+  if (!aiCache[key]) aiCache[key] = value;
+}
 function persistCache() {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(aiCache));
@@ -130,7 +136,10 @@ function queueForAi(text: string, hostNode: Node) {
 function lookup(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
-  const hit = dictionary[trimmed] ?? aiCache[trimmed];
+  const hit =
+    dictionary[trimmed] ??
+    aiCache[trimmed] ??
+    dictionaryLower[trimmed.toLocaleLowerCase("pt-BR")];
   if (!hit) return null;
   // Preserve surrounding whitespace
   const leading = raw.match(/^\s*/)?.[0] ?? "";
@@ -271,7 +280,7 @@ function apply(lng: string) {
   if (toEnglish) startObserver();
 }
 
-export function installAutoTranslator() {
+export function installAutoTranslator(i18n: I18nInstance) {
   const run = () => {
     apply(i18n.language);
     i18n.on("languageChanged", apply);
