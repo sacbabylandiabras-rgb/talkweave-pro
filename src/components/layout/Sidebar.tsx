@@ -146,6 +146,7 @@ const telegramIntegracoesSubItems = [
   { id: "tg-integracoes", label: "Traqueamento", icon: Target, path: "/telegram/integracoes" },
   { id: "tg-links-traq", label: "Links de Traqueamento", icon: Link2, path: "/telegram/links-traqueamento" },
   { id: "tg-links-utm", label: "Links UTM", icon: LinkIcon, path: "/telegram/links-utm" },
+  { id: "tg-redirecionadores", label: "Redirecionadores", icon: Share2, path: "/telegram/redirecionadores" },
 ];
 
 const metaMenuItems = [
