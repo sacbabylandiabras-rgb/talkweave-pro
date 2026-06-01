@@ -278,20 +278,20 @@ export default function TelegramDashboard() {
 
           {/* Bots + Recent messages */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="glass-card rounded-2xl p-6 lg:col-span-2">
+            <div className="glass-card rounded-2xl p-6 lg:col-span-2 bg-card border border-border">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-white">Seus bots</h2>
+                <h2 className="text-lg font-semibold text-foreground">Seus bots</h2>
                 <Link
                   to="/telegram/criar-bot"
-                  className="text-xs text-[#60a5fa] hover:underline inline-flex items-center gap-1"
+                  className="text-xs text-primary hover:underline inline-flex items-center gap-1"
                 >
                   Gerenciar <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
               {bots.length === 0 ? (
                 <div className="text-center py-10">
-                  <Bot className="w-10 h-10 text-white/20 mx-auto mb-3" />
-                  <p className="text-white/60 text-sm mb-4">Você ainda não conectou nenhum bot.</p>
+                  <Bot className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+                  <p className="text-muted-foreground text-sm mb-4">Você ainda não conectou nenhum bot.</p>
                   <Link to="/telegram/criar-bot">
                     <Button size="sm">
                       <Plus className="w-4 h-4 mr-1" /> Conectar primeiro bot
@@ -303,28 +303,28 @@ export default function TelegramDashboard() {
                   {bots.slice(0, 6).map((b) => (
                     <div
                       key={b.id}
-                      className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10"
+                      className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-full bg-[rgba(96,165,250,0.2)] flex items-center justify-center shrink-0">
-                          <Bot className="w-4 h-4 text-[#60a5fa]" />
+                        <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                          <Bot className="w-4 h-4 text-primary" />
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-white text-sm font-medium truncate">
+                            <span className="text-foreground text-sm font-medium truncate">
                               {b.first_name || "(sem nome)"}
                             </span>
                             {b.active ? (
-                              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                              <span className="text-[10px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3" /> ativo
                               </span>
                             ) : (
-                              <span className="text-[10px] bg-white/10 text-white/60 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                              <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                                 <PauseCircle className="w-3 h-3" /> pausado
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-white/50 flex items-center gap-2">
+                          <div className="text-[11px] text-muted-foreground flex items-center gap-2">
                             <span>@{b.username}</span>
                             <span>·</span>
                             <span className="inline-flex items-center gap-1">
@@ -345,7 +345,7 @@ export default function TelegramDashboard() {
                           onClick={() => disconnect(b)}
                           disabled={disconnecting === b.id}
                           title="Desconectar bot"
-                          className="text-red-300 hover:text-red-200 hover:bg-red-500/10"
+                          className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
                         >
                           <Unplug className="w-4 h-4 mr-1" />
                           {disconnecting === b.id ? "..." : "Desconectar"}
@@ -357,28 +357,28 @@ export default function TelegramDashboard() {
               )}
             </div>
 
-            <div className="glass-card rounded-2xl p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">Mensagens recentes</h2>
+            <div className="glass-card rounded-2xl p-6 bg-card border border-border">
+              <h2 className="text-lg font-semibold text-foreground mb-4">Mensagens recentes</h2>
               {recentMessages.length === 0 ? (
                 <div className="text-center py-8">
-                  <MessageSquare className="w-9 h-9 text-white/20 mx-auto mb-3" />
-                  <p className="text-white/50 text-xs">
+                  <MessageSquare className="w-9 h-9 text-muted-foreground/40 mx-auto mb-3" />
+                  <p className="text-muted-foreground text-xs">
                     Nenhuma mensagem recebida ainda. O polling roda a cada minuto.
                   </p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {recentMessages.map((m) => (
-                    <div key={m.id} className="p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div key={m.id} className="p-3 rounded-lg bg-muted/40 border border-border">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-white font-medium truncate">
+                        <span className="text-xs text-foreground font-medium truncate">
                           {m.from_first_name || m.from_username || `chat ${m.chat_id}`}
                         </span>
-                        <span className="text-[10px] text-white/40 shrink-0 ml-2">
+                        <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
                           {formatRelative(m.created_at)}
                         </span>
                       </div>
-                      <p className="text-xs text-white/70 line-clamp-2">
+                      <p className="text-xs text-muted-foreground line-clamp-2">
                         {m.text || <span className="italic text-white/40">(sem texto)</span>}
                       </p>
                     </div>
