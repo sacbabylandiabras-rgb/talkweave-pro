@@ -353,16 +353,24 @@ const Auth = () => {
             <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <InputField icon={<Mail size={16} />} type="email" placeholder="seu@email.com" value={email} onChange={setEmail} disabled={loading} />
               <InputField icon={<Lock size={16} />} type="password" placeholder="••••••••" value={password} onChange={setPassword} disabled={loading} />
+              <button
+                type="button"
+                onClick={() => { setForgotEmail(email); setShowForgot(true); }}
+                style={{
+                  width: "100%",
+                  padding: "12px 0",
+                  borderRadius: 4,
+                  border: "1px solid var(--lp-accent)",
+                  background: "color-mix(in srgb, var(--lp-accent) 10%, transparent)",
+                  color: "var(--lp-accent)",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Esqueci minha senha / Redefinir senha
+              </button>
               <SubmitButton loading={loading} label="Entrar" loadingLabel="Entrando..." />
-              <div style={{ textAlign: "center", marginTop: 4 }}>
-                <button
-                  type="button"
-                  onClick={() => { setForgotEmail(email); setShowForgot(true); }}
-                  style={{ background: "transparent", border: "none", color: "var(--lp-accent)", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 4 }}
-                >
-                  Esqueci minha senha
-                </button>
-              </div>
             </form>
           ) : (
             <form onSubmit={handleSignup} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
