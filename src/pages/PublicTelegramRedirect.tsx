@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Check, Send } from "lucide-react";
+import { useRef } from "react";
 
 interface PageConfig {
   avatar_url?: string;
@@ -125,6 +126,16 @@ const PublicTelegramRedirect = () => {
     const name = pageConfig.name || "Canal";
     const buttonText = normalizeButtonText(pageConfig.button_text);
     const responseTime = pageConfig.response_time || "3 minutos";
+
+    if (pageConfig.interactive_template === "raspadinha") {
+      return (
+        <RaspadinhaView
+          buttonText={buttonText}
+          confirming={confirming}
+          onConfirm={handleConfirm}
+        />
+      );
+    }
 
     return (
       <main className="fixed inset-0 flex items-center justify-center px-6" style={{ background: bg }}>
