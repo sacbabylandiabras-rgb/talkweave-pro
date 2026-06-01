@@ -22,6 +22,10 @@ const PublicTelegramRedirect = () => {
           throw new Error(fnError?.message || "Link não encontrado");
         }
         if (data?.blocked) {
+          if (data.blockMethod === "redirect" && data.redirectUrl) {
+            window.location.replace(data.redirectUrl);
+            return;
+          }
           if (!cancelled) setBlocked(true);
           return;
         }
