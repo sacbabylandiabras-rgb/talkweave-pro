@@ -88,6 +88,15 @@ function randomSlug(len = 8) {
   return s;
 }
 
+// Quando o cloaker está ativo, o link precisa do parâmetro ?shk= para liberar o acesso.
+// Adicionamos automaticamente um valor padrão para que o link copiado já funcione.
+function withCloakerParam(url: string, link: { cloaker?: boolean; cloaker_v2?: boolean } | null | undefined): string {
+  if (!link || (!link.cloaker && !link.cloaker_v2)) return url;
+  if (/[?&]shk=/.test(url)) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}shk=1`;
+}
+
 export default function TelegramRedirecionadores() {
   const [tab, setTab] = useState<TabId>("links");
   const [links, setLinks] = useState<TgRedirectLink[]>([]);
