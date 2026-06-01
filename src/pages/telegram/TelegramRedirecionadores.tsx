@@ -1927,7 +1927,15 @@ function RedirectPageEditor({
   const [buttonText, setButtonText] = useState(normalizeRedirectButtonText(initial.button_text));
   const [responseTime, setResponseTime] = useState(initial.response_time || "3 minutos");
   const [profileTemplate, setProfileTemplate] = useState(initial.profile_template || "rosa");
-  const [customColor, setCustomColor] = useState(initial.custom_color || "#374151");
+  const parsedCustom = (() => {
+    const raw = initial.custom_color || "";
+    if (raw.startsWith("{")) {
+      try { return JSON.parse(raw); } catch { /* noop */ }
+    }
+    return { color: raw || "#f472b6", pattern: "limpo" };
+  })();
+  const [customColor, setCustomColor] = useState<string>(parsedCustom.color);
+  const [customPattern, setCustomPattern] = useState<string>(parsedCustom.pattern || "limpo");
   const [interactive, setInteractive] = useState(initial.interactive_template || "respondendo");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1968,7 +1976,7 @@ function RedirectPageEditor({
       button_text: buttonText,
       response_time: responseTime,
       profile_template: profileTemplate,
-      custom_color: customColor,
+      custom_color: JSON.stringify({ color: customColor, pattern: customPattern }),
       interactive_template: interactive,
     };
     const { error } = await (supabase as any)
@@ -1985,7 +1993,16 @@ function RedirectPageEditor({
   };
 
   const tpl = PROFILE_TEMPLATES.find((t) => t.id === profileTemplate) || PROFILE_TEMPLATES[0];
-  const previewBg = profileTemplate === "custom" ? customColor : tpl.bg;
+  const buildCustomBg = (color: string, pattern: string) => {
+    if (pattern === "bolinhas") {
+      return `radial-gradient(circle, rgba(255,255,255,0.18) 1.5px, transparent 2px) 0 0 / 16px 16px, ${color}`;
+    }
+    if (pattern === "listras") {
+      return `repeating-linear-gradient(45deg, rgba(255,255,255,0.10) 0 10px, transparent 10px 20px), ${color}`;
+    }
+    return color;
+  };
+  const previewBg = profileTemplate === "custom" ? buildCustomBg(customColor, customPattern) : tpl.bg;
 
   return (
     <div className="space-y-4">
