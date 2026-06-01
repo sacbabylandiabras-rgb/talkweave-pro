@@ -2108,15 +2108,47 @@ function RedirectPageEditor({
               ))}
             </div>
             {profileTemplate === "custom" && (
-              <div className="mt-2 flex items-center gap-2">
-                <Label className="text-xs text-muted-foreground">Cor:</Label>
-                <input
-                  type="color"
-                  value={customColor}
-                  onChange={(e) => setCustomColor(e.target.value)}
-                  className="h-8 w-12 rounded cursor-pointer bg-transparent border border-border"
-                />
-                <span className="text-xs font-mono text-muted-foreground">{customColor}</span>
+              <div className="mt-3 space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Cor</Label>
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-2 py-1.5">
+                    <input
+                      type="color"
+                      value={customColor}
+                      onChange={(e) => setCustomColor(e.target.value)}
+                      className="h-7 w-9 rounded cursor-pointer bg-transparent border-0 p-0"
+                    />
+                    <input
+                      type="text"
+                      value={customColor}
+                      onChange={(e) => setCustomColor(e.target.value)}
+                      className="flex-1 bg-transparent text-xs font-mono outline-none"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Padrão</Label>
+                  <div className="flex gap-2">
+                    {[
+                      { id: "bolinhas", label: "Bolinhas" },
+                      { id: "listras", label: "Listras" },
+                      { id: "limpo", label: "Limpo" },
+                    ].map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setCustomPattern(p.id)}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                          customPattern === p.id
+                            ? "bg-primary/15 text-primary border border-primary/40"
+                            : "bg-muted/30 text-muted-foreground border border-border hover:bg-muted/50"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>
