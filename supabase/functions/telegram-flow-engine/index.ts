@@ -834,6 +834,68 @@ Deno.serve(async (req) => {
     await tgApi(bot.bot_token, "answerCallbackQuery", { callback_query_id: cb.id });
   }
 
+  // === Botão "Efetuei o pagamento" — verifica status da cobrança ===
+  if (cb?.data === "__chkpay__") {
+    const { data: sess } = await admin
+      .from("telegram_flow_sessions")
+      .select("*")
+      .eq("bot_id", bot.id)
+      .eq("chat_id", chatId)
+      .maybeSingle();
+    const payment = (sess?.variables as any)?.payment;
+    const externalId = payment?.externalId;
+    let approved = false;
+    if (externalId) {
+      const { data: tx } = await admin
+        .from("gateway_transactions")
+        .select("status")
+        .eq("external_id", externalId)
+        .maybeSingle();
+      approved = tx?.status === "approved" || tx?.status === "paid";
+    }
+    if (!approved) {
+      await tgApi(bot.bot_token, "sendMessage", {
+        chat_id: chatId,
+        text: "Ainda não identificamos o seu pagamento. Tente novamente em instantes.",
+      });
+      return new Response(JSON.stringify({ ok: true, info: "payment_pending" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // Pagamento aprovado — avança pelo handle "paid"
+    if (sess) {
+      const { data: flow } = await admin
+        .from("flow_automations")
+        .select("*")
+        .eq("id", sess.flow_id)
+        .maybeSingle();
+      const edges: FlowEdge[] = flow?.edges || [];
+      const nextEdge =
+        nextEdgeFor(edges, sess.current_node_id || "", "paid") ||
+        nextEdgeFor(edges, sess.current_node_id || "");
+      if (flow && nextEdge) {
+        const vars = { ...(sess.variables || {}) };
+        (vars as any).payment = { ...((vars as any).payment || {}), status: "approved" };
+        await admin
+          .from("telegram_flow_sessions")
+          .update({ waiting_for: null, waiting_var: null, variables: vars })
+          .eq("id", sess.id);
+        await runFlow({
+          admin,
+          bot,
+          chatId,
+          flow,
+          startNodeId: nextEdge.target,
+          variables: vars,
+          sessionId: sess.id,
+        });
+      }
+    }
+    return new Response(JSON.stringify({ ok: true, info: "payment_approved" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const incomingCommand = typeof msg?.text === "string" && msg.text.trim().startsWith("/");
 
   // Load existing session
