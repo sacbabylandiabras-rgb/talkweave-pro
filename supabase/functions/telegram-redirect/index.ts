@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
   const admin = createClient(supabaseUrl, serviceKey);
   const { data: link, error: linkError } = await admin
     .from("telegram_redirect_links")
-    .select("id,user_id,slug,destination_type,destination_bot_id,destination_channel,flow_ids,click_count,active,cloaker,cloaker_v2")
+    .select("id,user_id,slug,destination_type,destination_bot_id,destination_channel,flow_ids,click_count,active,cloaker,cloaker_v2,cloaker_block_method,cloaker_redirect_url,cloaker_block_ads")
     .eq("slug", slug)
     .eq("active", true)
     .maybeSingle();
@@ -54,13 +54,23 @@ Deno.serve(async (req) => {
 
   // Cloaker: requires `shk` param and blocks known bots/scrapers
   if (link.cloaker || link.cloaker_v2) {
-    if (!shk) {
-      return json({ blocked: true, reason: "missing_param" }, 200);
+    const blockResponse = (reason: string) => {
+      const method = link.cloaker_block_method === "redirect" ? "redirect" : "page";
+      const url = String(link.cloaker_redirect_url || "").trim();
+      if (method === "redirect" && /^https?:\/\//i.test(url)) {
+        return json({ blocked: true, reason, blockMethod: "redirect", redirectUrl: url });
+      }
+      return json({ blocked: true, reason, blockMethod: "page" });
+    };
+    if (!shk) return blockResponse("missing_param");
+    const adBotRegex = /(facebookexternalhit|meta-externalagent|facebot|adsbot|googlebot|google-adwords|bingbot|tiktokspider|bytespider|tiktok)/i;
+    if (link.cloaker_block_ads && userAgent && adBotRegex.test(userAgent)) {
+      return blockResponse("ad_bot");
     }
     if (link.cloaker_v2) {
       const botRegex = /(bot|crawler|spider|facebookexternalhit|whatsapp|telegrambot|slackbot|discordbot|twitterbot|linkedinbot|bingpreview|googlebot|adsbot|preview|monitor|curl|wget|python-requests|axios|node-fetch|headless)/i;
       if (!userAgent || botRegex.test(userAgent)) {
-        return json({ blocked: true, reason: "bot_detected" }, 200);
+        return blockResponse("bot_detected");
       }
     }
   }
