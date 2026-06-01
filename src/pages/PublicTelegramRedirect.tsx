@@ -561,3 +561,53 @@ const CountdownView = ({ buttonText, confirming, onConfirm }: CountdownViewProps
     </main>
   );
 };
+
+interface Mais18ViewProps {
+  buttonText: string;
+  confirming: boolean;
+  onConfirm: () => void;
+}
+
+const Mais18View = ({ buttonText, confirming, onConfirm }: Mais18ViewProps) => {
+  return (
+    <main className="fixed inset-0 flex items-center justify-center px-6" style={{ background: "#000" }}>
+      <div
+        className="w-full max-w-sm rounded-2xl p-8 flex flex-col items-center text-center"
+        style={{ background: "#1f2937", boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}
+      >
+        <div
+          className="flex items-center justify-center rounded-xl mb-5"
+          style={{ width: 56, height: 56, background: "rgba(245, 158, 11, 0.15)" }}
+        >
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <path d="M12 3 L22 20 L2 20 Z" stroke="#f59e0b" strokeWidth="2" strokeLinejoin="round" fill="rgba(245,158,11,0.1)"/>
+            <line x1="12" y1="10" x2="12" y2="14" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
+            <circle cx="12" cy="17" r="1" fill="#f59e0b"/>
+          </svg>
+        </div>
+        <h1 className="text-white text-xl font-bold mb-3">Conteúdo Restrito</h1>
+        <p className="text-[#9ca3af] text-xs leading-relaxed mb-6 px-2">
+          Este conteúdo é destinado exclusivamente para maiores de 18 anos. Ao continuar, você confirma ter idade legal.
+        </p>
+        <div className="w-full flex gap-3 mb-5">
+          <button
+            onClick={onConfirm}
+            disabled={confirming}
+            className="flex-1 py-3 rounded-lg font-semibold text-white text-sm transition-opacity disabled:opacity-60"
+            style={{ background: "#10b981" }}
+          >
+            {confirming ? "Abrindo..." : (buttonText || "Tenho +18")}
+          </button>
+          <button
+            onClick={() => { window.location.href = "https://www.google.com"; }}
+            className="flex-1 py-3 rounded-lg font-semibold text-sm"
+            style={{ background: "#374151", color: "#9ca3af" }}
+          >
+            Sair
+          </button>
+        </div>
+        <p className="text-[10px] uppercase tracking-widest text-[#4b5563]">Verificação obrigatória</p>
+      </div>
+    </main>
+  );
+};
