@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redirecionando</title>
+  <style>
+    html, body { width: 100%; height: 100%; margin: 0; background: #ffffff !important; color: #1f2937; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { min-height: 100vh; overflow: hidden; }
+    main { position: fixed; inset: 0; z-index: 999999; display: flex; align-items: center; justify-content: center; background: #ffffff !important; padding: 16px; }
+    .spinner { width: 32px; height: 32px; border-radius: 999px; border: 3px solid #e5e7eb; border-top-color: #9ca3af; animation: spin .8s linear infinite; }
+    .message { max-width: 320px; text-align: center; }
+    .message h1 { margin: 0 0 8px; font-size: 20px; line-height: 1.25; font-weight: 700; color: #1f2937; }
+    .message p { margin: 0; font-size: 14px; line-height: 1.5; color: #6b7280; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <main id="screen"><div class="spinner" aria-label="Redirecionando"></div></main>
+  <script>
+    (function () {
+      var PROJECT_ID = "yodgjxdekuraxquxkxhx";
+      var ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZGdqeGRla3VyYXhxdXhreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MTA4NTYsImV4cCI6MjA3NDM4Njg1Nn0.S7GLD19jE_HN2wcUJKZXgV_dmA4qSYpk7w-B4arQmi8";
+      var screen = document.getElementById("screen");
+      function show(title, text) {
+        screen.innerHTML = '<div class="message"><h1>' + title + '</h1><p>' + text + '</p></div>';
+      }
+      function getSlug() {
+        var match = window.location.pathname.match(/^\/r\/([^/?#]+)/i);
+        return match ? decodeURIComponent(match[1]) : "";
+      }
+      var slug = getSlug();
+      if (!slug) { show("Link não encontrado", "Este link não existe ou foi desativado."); return; }
+      var qs = new URLSearchParams(window.location.search);
+      var shk = qs.get("shk") || "";
+      fetch("https://" + PROJECT_ID + ".supabase.co/functions/v1/telegram-redirect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": ANON_KEY, "Authorization": "Bearer " + ANON_KEY },
+        body: JSON.stringify({ slug: slug, shk: shk, userAgent: navigator.userAgent })
+      })
+        .then(function (res) { return res.json().then(function (json) { return { ok: res.ok, json: json }; }); })
+        .then(function (result) {
+          var data = result.json || {};
+          if (data.blocked) {
+            if (data.blockMethod === "redirect" && data.redirectUrl) { window.location.replace(data.redirectUrl); return; }
+            show("Página não encontrada", "O conteúdo que você está procurando não está disponível.");
+            return;
+          }
+          if (!result.ok || !data.destination) { show("Link não encontrado", data.error || "Este link não existe ou foi desativado."); return; }
+          window.location.replace(data.destination);
+        })
+        .catch(function () { show("Erro", "Não foi possível redirecionar agora. Tente novamente."); });
+    })();
+  </script>
+</body>
+</html>

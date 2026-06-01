@@ -35,6 +35,10 @@ import {
   ArrowRight,
   Shield,
   Share2,
+  Loader2,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -902,32 +906,39 @@ function CreateRedirectDialog({
 
 interface CustomDomain {
   id: string;
-  domain: string;
-  active: boolean;
+  hostname: string;
+  status: string;
+  ssl_status: string | null;
   created_at: string;
 }
 
-const DOMAIN_STORAGE_KEY = "tg_redirect_custom_domains";
-const CNAME_TARGET = "links.zaplynx.com";
+const CNAME_TARGET = "cname.vercel-dns.com";
 
 function DominioTab() {
   const [domains, setDomains] = useState<CustomDomain[]>([]);
   const [input, setInput] = useState("");
   const [adding, setAdding] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await (supabase as any)
+      .from("tg_custom_domains")
+      .select("id, hostname, status, ssl_status, created_at")
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao carregar domínios");
+    } else {
+      setDomains((data || []) as CustomDomain[]);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(DOMAIN_STORAGE_KEY);
-      if (raw) setDomains(JSON.parse(raw));
-    } catch {}
+    load();
   }, []);
-
-  const persist = (next: CustomDomain[]) => {
-    setDomains(next);
-    try {
-      localStorage.setItem(DOMAIN_STORAGE_KEY, JSON.stringify(next));
-    } catch {}
-  };
 
   const normalize = (raw: string) =>
     raw
@@ -936,40 +947,96 @@ function DominioTab() {
       .replace(/^https?:\/\//, "")
       .replace(/\/.*$/, "");
 
-  const handleAdd = () => {
-    const domain = normalize(input);
-    if (!domain) {
+  const handleAdd = async () => {
+    const hostname = normalize(input);
+    if (!hostname) {
       toast.error("Informe um domínio válido");
       return;
     }
-    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain)) {
+    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(hostname)) {
       toast.error("Domínio inválido");
       return;
     }
-    if (domains.some((d) => d.domain === domain)) {
+    if (domains.some((d) => d.hostname === hostname)) {
       toast.error("Domínio já adicionado");
       return;
     }
     setAdding(true);
-    const novo: CustomDomain = {
-      id: crypto.randomUUID(),
-      domain,
-      active: true,
-      created_at: new Date().toISOString(),
-    };
-    persist([novo, ...domains]);
-    setInput("");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sessão expirada");
+
+      const { data: provData, error: provErr } = await supabase.functions.invoke(
+        "manage-custom-domain",
+        { body: { action: "create", hostname } }
+      );
+      if (provErr) throw provErr;
+      if (provData?.error) throw new Error(provData.error);
+
+      const { error: insErr } = await (supabase as any)
+        .from("tg_custom_domains")
+        .insert({
+          user_id: user.id,
+          hostname,
+          status: provData?.status || "pending",
+          ssl_status: provData?.ssl_status || null,
+          verification: provData?.verification || null,
+        });
+      if (insErr) throw insErr;
+
+      setInput("");
+      toast.success("Domínio adicionado! Configure o DNS para ativar.");
+      await load();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || "Erro ao adicionar domínio");
+    }
     setAdding(false);
-    toast.success("Domínio adicionado!");
   };
 
-  const handleRemove = (id: string) => {
-    persist(domains.filter((d) => d.id !== id));
+  const handleRemove = async (d: CustomDomain) => {
+    if (!confirm(`Remover ${d.hostname}?`)) return;
+    try {
+      await supabase.functions.invoke("manage-custom-domain", {
+        body: { action: "delete", hostname: d.hostname },
+      });
+    } catch (err) {
+      console.error("vercel delete", err);
+    }
+    const { error } = await (supabase as any)
+      .from("tg_custom_domains")
+      .delete()
+      .eq("id", d.id);
+    if (error) {
+      toast.error("Erro ao remover");
+      return;
+    }
     toast.success("Domínio removido.");
+    load();
   };
 
-  const copyExample = (domain: string) => {
-    navigator.clipboard.writeText(`https://${domain}/seu-slug`);
+  const handleRefresh = async (d: CustomDomain) => {
+    setRefreshingId(d.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-custom-domain", {
+        body: { action: "status", hostname: d.hostname },
+      });
+      if (error) throw error;
+      const newStatus = data?.status === "active" ? "active" : "pending";
+      await (supabase as any)
+        .from("tg_custom_domains")
+        .update({ status: newStatus, ssl_status: data?.ssl_status || null, verification: data?.verification || null })
+        .eq("id", d.id);
+      toast.success(newStatus === "active" ? "Domínio ativo!" : "Ainda propagando...");
+      load();
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao verificar");
+    }
+    setRefreshingId(null);
+  };
+
+  const copyExample = (hostname: string) => {
+    navigator.clipboard.writeText(`https://${hostname}/r/seu-slug`);
     toast.success("URL copiada!");
   };
 
@@ -986,21 +1053,21 @@ function DominioTab() {
               Adicionar Domínio Próprio
             </h2>
             <p className="text-sm text-muted-foreground">
-              Use seu próprio domínio para links de redirecionamento
+              Use seu próprio subdomínio para servir os links de redirecionamento
             </p>
           </div>
         </div>
 
         <div className="flex flex-col md:flex-row gap-2">
           <Input
-            placeholder="exemplo.com"
+            placeholder="links.seusite.com"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAdd()}
             className="flex-1"
           />
           <Button onClick={handleAdd} disabled={adding} className="gap-2">
-            <Plus className="h-4 w-4" />
+            {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             Adicionar
           </Button>
         </div>
@@ -1008,18 +1075,18 @@ function DominioTab() {
         <div className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-3 text-xs text-muted-foreground space-y-1.5">
           <p>
             <span className="font-semibold text-foreground">Como funciona:</span>{" "}
-            Após adicionar o domínio, configure um registro CNAME no DNS
-            apontando para{" "}
+            Após adicionar, crie um registro <strong>CNAME</strong> no DNS do seu
+            domínio apontando para{" "}
             <code className="px-1.5 py-0.5 rounded bg-background text-primary font-mono">
               {CNAME_TARGET}
             </code>
+            . O SSL é provisionado automaticamente.
           </p>
           <p>
-            <span className="font-semibold text-foreground">
-              Domínios raiz (ex: seusite.com):
-            </span>{" "}
-            Use CNAME com nome "@" ou seu DNS suportar CNAME Flattening
-            (Cloudflare, Route53) ou ALIAS/ANAME.
+            <span className="font-semibold text-foreground">Dica:</span> use um
+            subdomínio como <code>links.seusite.com</code> ou{" "}
+            <code>go.seusite.com</code>. Para domínio raiz, use Cloudflare
+            (CNAME Flattening) ou ALIAS/ANAME.
           </p>
         </div>
       </div>
@@ -1035,7 +1102,11 @@ function DominioTab() {
           </span>
         </div>
 
-        {domains.length === 0 ? (
+        {loading ? (
+          <div className="rounded-2xl border border-dashed border-border bg-muted/10 py-12 text-center">
+            <Loader2 className="h-6 w-6 text-muted-foreground/50 mx-auto animate-spin" />
+          </div>
+        ) : domains.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-muted/10 py-12 text-center">
             <Globe className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">
@@ -1043,55 +1114,73 @@ function DominioTab() {
             </p>
           </div>
         ) : (
-          domains.map((d) => (
-            <div
-              key={d.id}
-              className="rounded-xl border border-border bg-card overflow-hidden"
-            >
-              <div className="flex items-center justify-between gap-3 p-4">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="h-8 w-8 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0">
-                    <Check className="h-4 w-4 text-emerald-500" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-foreground truncate">
-                      {d.domain}
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-500 font-semibold">
-                        Ativo
-                      </span>
-                      <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-semibold">
-                        Global
-                      </span>
+          domains.map((d) => {
+            const active = d.status === "active";
+            return (
+              <div key={d.id} className="rounded-xl border border-border bg-card overflow-hidden">
+                <div className="flex items-center justify-between gap-3 p-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${active ? "bg-emerald-500/15" : "bg-amber-500/15"}`}>
+                      {active ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Loader2 className="h-4 w-4 text-amber-500 animate-spin" />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-foreground truncate">{d.hostname}</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded font-semibold ${active ? "bg-emerald-500/15 text-emerald-500" : "bg-amber-500/15 text-amber-500"}`}>
+                          {active ? "Ativo" : "Pendente DNS"}
+                        </span>
+                        {d.ssl_status && (
+                          <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-semibold">
+                            SSL: {d.ssl_status}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button variant="ghost" size="icon" onClick={() => handleRefresh(d)} disabled={refreshingId === d.id} title="Verificar status">
+                      {refreshingId === d.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleRemove(d)} className="text-muted-foreground hover:text-destructive" title="Remover">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemove(d.id)}
-                  className="text-muted-foreground hover:text-destructive shrink-0"
-                  title="Remover"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {!active && (
+                  <div className="border-t border-border bg-amber-500/5 px-4 py-3 text-xs space-y-2">
+                    <p className="text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5" /> Configure este CNAME no seu DNS:
+                    </p>
+                    <div className="grid grid-cols-3 gap-2 font-mono text-[11px]">
+                      <div className="rounded bg-background px-2 py-1.5">
+                        <div className="text-muted-foreground text-[9px] uppercase">Tipo</div>
+                        <div className="text-foreground font-semibold">CNAME</div>
+                      </div>
+                      <div className="rounded bg-background px-2 py-1.5 truncate">
+                        <div className="text-muted-foreground text-[9px] uppercase">Nome</div>
+                        <div className="text-foreground font-semibold truncate">{d.hostname.split(".")[0]}</div>
+                      </div>
+                      <div className="rounded bg-background px-2 py-1.5 truncate">
+                        <div className="text-muted-foreground text-[9px] uppercase">Valor</div>
+                        <div className="text-primary font-semibold truncate">{CNAME_TARGET}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {active && (
+                  <div className="border-t border-border bg-muted/20 px-4 py-2.5 flex items-center gap-2 text-xs">
+                    <span className="text-muted-foreground">Use</span>
+                    <code className="flex-1 px-2 py-1 rounded bg-background text-primary font-mono truncate">
+                      https://{d.hostname}/r/seu-slug
+                    </code>
+                    <button onClick={() => copyExample(d.hostname)} className="text-muted-foreground hover:text-foreground" title="Copiar">
+                      <Copy className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="border-t border-border bg-muted/20 px-4 py-2.5 flex items-center gap-2 text-xs">
-                <span className="text-muted-foreground">Domínio ativo. Use</span>
-                <code className="flex-1 px-2 py-1 rounded bg-background text-primary font-mono truncate">
-                  https://{d.domain}/seu-slug
-                </code>
-                <button
-                  onClick={() => copyExample(d.domain)}
-                  className="text-muted-foreground hover:text-foreground"
-                  title="Copiar"
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
