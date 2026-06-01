@@ -316,6 +316,7 @@ function CreateRedirectDialog({
       const { data: flowsData } = await (supabase as any)
         .from("flow_automations")
         .select("id, name")
+        .eq("category", "telegram")
         .order("created_at", { ascending: false });
       setFlows(flowsData || []);
     })();
