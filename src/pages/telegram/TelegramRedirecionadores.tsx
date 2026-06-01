@@ -198,8 +198,7 @@ function LinksTab({
     );
   }
 
-  const baseDomain =
-    typeof window !== "undefined" ? window.location.host : "serverflow.dad";
+  const baseDomain = "zaplynx.com";
 
   return (
     <div className="space-y-3">
@@ -302,8 +301,7 @@ function CreateRedirectDialog({
   const [selectedFlows, setSelectedFlows] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const domain =
-    typeof window !== "undefined" ? window.location.host : "serverflow.dad";
+  const domain = "zaplynx.com";
 
   useEffect(() => {
     if (!open) return;
