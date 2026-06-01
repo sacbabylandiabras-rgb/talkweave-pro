@@ -226,6 +226,16 @@ const PublicTelegramRedirect = () => {
       );
     }
 
+    if (pageConfig.interactive_template === "presente") {
+      return (
+        <PresenteView
+          buttonText={buttonText}
+          confirming={confirming}
+          onConfirm={handleConfirm}
+        />
+      );
+    }
+
     return (
       <main className="fixed inset-0 flex items-center justify-center px-6" style={{ background: bg }}>
         <div className="w-full max-w-xs bg-white rounded-3xl shadow-2xl p-6 flex flex-col items-center text-center">
@@ -608,6 +618,116 @@ const Mais18View = ({ buttonText, confirming, onConfirm }: Mais18ViewProps) => {
         </div>
         <p className="text-[10px] uppercase tracking-widest text-[#4b5563]">Verificação obrigatória</p>
       </div>
+    </main>
+  );
+};
+
+interface PresenteViewProps {
+  buttonText: string;
+  confirming: boolean;
+  onConfirm: () => void;
+}
+
+const PresenteView = ({ buttonText, confirming, onConfirm }: PresenteViewProps) => {
+  const [opening, setOpening] = useState(false);
+
+  const handleClick = () => {
+    if (opening || confirming) return;
+    setOpening(true);
+    setTimeout(() => onConfirm(), 900);
+  };
+
+  return (
+    <main
+      className="fixed inset-0 flex items-center justify-center px-6 cursor-pointer select-none"
+      style={{ background: "radial-gradient(circle at 50% 50%, #1e1240 0%, #0f0820 70%, #07030f 100%)" }}
+      onClick={handleClick}
+    >
+      <div className="flex flex-col items-center text-center">
+        <div
+          className="relative"
+          style={{
+            width: 180,
+            height: 180,
+            filter: "drop-shadow(0 0 40px rgba(236,72,153,0.55))",
+            animation: opening ? "giftOpen 0.9s ease-in forwards" : "giftFloat 2.4s ease-in-out infinite",
+          }}
+        >
+          {/* Lid */}
+          <div
+            className="absolute left-1/2 -translate-x-1/2"
+            style={{
+              top: 14,
+              width: 170,
+              height: 44,
+              background: "linear-gradient(180deg,#ff4d8d,#ec4899)",
+              borderRadius: 8,
+              boxShadow: "inset 0 -4px 0 rgba(0,0,0,0.15)",
+              animation: opening ? "lidFly 0.9s ease-in forwards" : undefined,
+            }}
+          />
+          {/* Bow */}
+          <div
+            className="absolute left-1/2 -translate-x-1/2"
+            style={{
+              top: -4,
+              fontSize: 36,
+              animation: opening ? "lidFly 0.9s ease-in forwards" : undefined,
+            }}
+          >
+            🎀
+          </div>
+          {/* Box body */}
+          <div
+            className="absolute left-1/2 -translate-x-1/2"
+            style={{
+              top: 56,
+              width: 150,
+              height: 120,
+              background: "linear-gradient(180deg,#ec4899,#db2777)",
+              borderRadius: 10,
+              boxShadow: "inset 0 -10px 0 rgba(0,0,0,0.15)",
+            }}
+          >
+            {/* Vertical ribbon */}
+            <div
+              className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2"
+              style={{ width: 22, background: "linear-gradient(180deg,#fbbf24,#f59e0b)" }}
+            />
+            {/* Horizontal ribbon */}
+            <div
+              className="absolute left-0 right-0 top-1/2 -translate-y-1/2"
+              style={{ height: 22, background: "linear-gradient(180deg,#fbbf24,#f59e0b)" }}
+            />
+          </div>
+        </div>
+
+        <p
+          className="mt-6 font-bold text-base"
+          style={{ color: "#a78bfa", textShadow: "0 0 10px rgba(167,139,250,0.4)" }}
+        >
+          {opening || confirming ? "Abrindo..." : (buttonText || "Toque para abrir")}
+        </p>
+        <p className="mt-1 text-xs" style={{ color: "#6d5b9e" }}>
+          Você recebeu um presente exclusivo
+        </p>
+      </div>
+
+      <style>{`
+        @keyframes giftFloat {
+          0%, 100% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-8px) scale(1.04); }
+        }
+        @keyframes giftOpen {
+          0% { transform: scale(1); }
+          40% { transform: scale(1.15); }
+          100% { transform: scale(1.4); opacity: 0.2; }
+        }
+        @keyframes lidFly {
+          0% { transform: translate(-50%, 0) rotate(0deg); opacity: 1; }
+          100% { transform: translate(-50%, -120px) rotate(-25deg); opacity: 0; }
+        }
+      `}</style>
     </main>
   );
 };
