@@ -606,7 +606,7 @@ const Mais18View = ({ buttonText, confirming, onConfirm }: Mais18ViewProps) => {
             className="flex-1 py-3 rounded-lg font-semibold text-white text-sm transition-opacity disabled:opacity-60"
             style={{ background: "#10b981" }}
           >
-            {confirming ? "Abrindo..." : (buttonText || "Tenho +18")}
+            {confirming ? "Abrindo..." : "Tenho +18"}
           </button>
           <button
             onClick={() => { window.location.href = "https://www.google.com"; }}
