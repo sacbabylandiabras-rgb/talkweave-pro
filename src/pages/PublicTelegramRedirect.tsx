@@ -489,3 +489,65 @@ const RaspadinhaView = ({ buttonText, confirming, onConfirm }: RaspadinhaViewPro
     </main>
   );
 };
+
+interface CountdownViewProps {
+  buttonText: string;
+  confirming: boolean;
+  onConfirm: () => void;
+}
+
+const CountdownView = ({ buttonText, confirming, onConfirm }: CountdownViewProps) => {
+  const [count, setCount] = useState(3);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    if (count <= 0) {
+      setDone(true);
+      return;
+    }
+    const t = setTimeout(() => setCount((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [count]);
+
+  useEffect(() => {
+    if (done) onConfirm();
+  }, [done, onConfirm]);
+
+  const total = 3;
+  const progress = done ? 100 : ((total - count) / total) * 100;
+
+  return (
+    <main className="fixed inset-0 flex items-center justify-center px-6" style={{ background: "linear-gradient(180deg,#0f2547,#0a1a36)" }}>
+      <div className="w-full max-w-xs flex flex-col items-center text-center">
+        <div
+          key={count}
+          className="text-white font-extrabold leading-none"
+          style={{
+            fontSize: "120px",
+            textShadow: "0 0 40px rgba(56,189,248,0.5)",
+            animation: "countPulse 1s ease-out",
+          }}
+        >
+          {done ? "0" : count}
+        </div>
+        <p className="text-white/80 text-sm mt-6 mb-4">
+          {confirming ? "Abrindo..." : "Preparando seu acesso..."}
+        </p>
+        <div className="w-48 h-1.5 rounded-full bg-white/15 overflow-hidden">
+          <div
+            className="h-full bg-[#2AABEE] transition-all duration-700 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        {buttonText ? <span className="sr-only">{buttonText}</span> : null}
+      </div>
+      <style>{`
+        @keyframes countPulse {
+          0% { transform: scale(0.6); opacity: 0; }
+          40% { transform: scale(1.15); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
+    </main>
+  );
+};
