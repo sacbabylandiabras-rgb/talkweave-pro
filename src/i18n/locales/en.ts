@@ -34,7 +34,6 @@ export const en: Record<string, string> = {
   "Produtos": "Products",
 
   // ===== Sidebar – Email =====
-  "Configuração": "Settings",
   "Caixa de Entrada": "Inbox",
   "Disparo": "Broadcast",
   "Templates": "Templates",
