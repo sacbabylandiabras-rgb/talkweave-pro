@@ -14,6 +14,13 @@ interface PageConfig {
   interactive_template?: string;
 }
 
+const DEFAULT_BUTTON_TEXT = "Toque AQUI para me chamar";
+
+const normalizeButtonText = (value?: string) => {
+  const text = (value || "").trim();
+  return !text || text === "Entrar agora" ? DEFAULT_BUTTON_TEXT : text;
+};
+
 const PROFILE_BG: Record<string, string> = {
   rosa: "linear-gradient(135deg,#ff5fa3,#ff84c0)",
   azul: "linear-gradient(135deg,#1d4ed8,#3b82f6)",
@@ -103,7 +110,7 @@ const PublicTelegramRedirect = () => {
       : PROFILE_BG[profile] || PROFILE_BG.rosa;
     const inter = INTERACTIVE[pageConfig.interactive_template || "respondendo"] || INTERACTIVE.respondendo;
     const name = pageConfig.name || "Canal";
-    const buttonText = pageConfig.button_text || "Toque AQUI para me chamar";
+    const buttonText = normalizeButtonText(pageConfig.button_text);
     const responseTime = pageConfig.response_time || "3 minutos";
 
     return (

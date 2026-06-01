@@ -42,7 +42,7 @@ import {
   Upload as UploadIcon,
   Eye,
   ChevronLeft,
-  BadgeCheck,
+  Send,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -1841,6 +1841,11 @@ const INTERACTIVE_TEMPLATES: { id: string; label: string; emoji: string; bg: str
 ];
 
 const RESPONSE_TIMES = ["1 minuto", "3 minutos", "5 minutos", "10 minutos", "15 minutos", "30 minutos"];
+const DEFAULT_REDIRECT_BUTTON_TEXT = "Toque AQUI para me chamar";
+const normalizeRedirectButtonText = (value?: string) => {
+  const text = (value || "").trim();
+  return !text || text === "Entrar agora" ? DEFAULT_REDIRECT_BUTTON_TEXT : text;
+};
 
 function RedirectPageTab({ links, onChanged }: { links: TgRedirectLink[]; onChanged: () => void }) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1919,7 +1924,7 @@ function RedirectPageEditor({
   const [avatarUrl, setAvatarUrl] = useState(initial.avatar_url || "");
   const [name, setName] = useState(initial.name || "");
   const [verified, setVerified] = useState(!!initial.verified);
-  const [buttonText, setButtonText] = useState(initial.button_text || "Toque AQUI para me chamar");
+  const [buttonText, setButtonText] = useState(normalizeRedirectButtonText(initial.button_text));
   const [responseTime, setResponseTime] = useState(initial.response_time || "3 minutos");
   const [profileTemplate, setProfileTemplate] = useState(initial.profile_template || "rosa");
   const [customColor, setCustomColor] = useState(initial.custom_color || "#374151");
@@ -1980,7 +1985,6 @@ function RedirectPageEditor({
   };
 
   const tpl = PROFILE_TEMPLATES.find((t) => t.id === profileTemplate) || PROFILE_TEMPLATES[0];
-  const intTpl = INTERACTIVE_TEMPLATES.find((t) => t.id === interactive) || INTERACTIVE_TEMPLATES[0];
   const previewBg = profileTemplate === "custom" ? customColor : tpl.bg;
 
   return (
@@ -2145,37 +2149,42 @@ function RedirectPageEditor({
               className="rounded-xl overflow-hidden min-h-[420px] flex flex-col items-center justify-center px-6 py-10 text-white text-center"
               style={{ background: previewBg }}
             >
-              <div className="h-24 w-24 rounded-full bg-white/10 flex items-center justify-center overflow-hidden border-4 border-white/20 mb-3">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-3xl">👤</span>
-                )}
+              <div
+                className="rounded-full p-[3px] mb-4 shadow-md"
+                style={{ background: "linear-gradient(135deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5)" }}
+              >
+                <div className="h-24 w-24 rounded-full overflow-hidden bg-white p-[2px]">
+                  <div className="h-full w-full rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-3xl text-gray-400">👤</span>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="flex items-center gap-1.5 mb-1">
                 <h3 className="text-xl font-bold">{name || "Seu nome"}</h3>
-                {verified && <BadgeCheck className="h-5 w-5 text-blue-400 fill-blue-400/30" />}
+                {verified && (
+                  <span className="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[#3b82f6]">
+                    <Check className="h-3 w-3 text-white" strokeWidth={3.5} />
+                  </span>
+                )}
               </div>
-              <div className="text-xs opacity-80 mb-6 inline-flex items-center gap-1.5">
+              <div className="text-xs opacity-80 mb-1 inline-flex items-center gap-1.5">
                 <span
                   className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"
                 />
-                Responde em {responseTime}
+                Online
               </div>
-
-              <div
-                className="w-full max-w-xs rounded-2xl px-4 py-3 mb-4 text-sm flex items-center gap-2"
-                style={{ background: intTpl.bg, color: intTpl.id === "respondendo" ? "#111" : "#fff" }}
-              >
-                <span className="text-lg">{intTpl.emoji}</span>
-                <span className="font-medium">{intTpl.label}...</span>
-              </div>
+              <p className="text-xs opacity-80 mb-5">Tempo médio de resposta: {responseTime}</p>
 
               <button
                 type="button"
-                className="w-full max-w-xs rounded-full bg-white text-black font-semibold py-3 text-sm shadow-lg"
+                className="w-full max-w-xs rounded-2xl bg-[#2AABEE] px-4 py-3.5 text-sm font-semibold text-white shadow-lg inline-flex items-center justify-center gap-2"
               >
-                {buttonText}
+                <Send className="h-4 w-4 shrink-0" fill="currentColor" strokeWidth={0} />
+                {normalizeRedirectButtonText(buttonText)}
               </button>
             </div>
           )}
