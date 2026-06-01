@@ -63,6 +63,7 @@ import { useDeviceType } from "@/hooks/useDeviceType";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface SidebarProps {
   activeItem?: string;
@@ -199,6 +200,7 @@ const gatewayBottomItems = [
 ];
 
 export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
+  const { t } = useTranslation();
   const { isAdmin, loading } = useUserRole(userId);
   const { activeWorkspace, workspaceLabel } = useWorkspace();
   const { isNative } = useDeviceType();
@@ -247,7 +249,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
         )} />
         {!collapsed && (
           <>
-            <span className="truncate flex-1">{item.label}</span>
+            <span className="truncate flex-1">{t(item.label)}</span>
             {item.badge && (
               <span className="ml-auto rounded-full bg-primary/20 text-primary text-[9px] font-bold px-1.5 py-0.5 leading-none">
                 {item.badge}
@@ -282,7 +284,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
           </TooltipTrigger>
           {collapsed && (
             <TooltipContent side="right" className="font-medium text-xs">
-              {item.label}
+              {t(item.label)}
             </TooltipContent>
           )}
         </Tooltip>
