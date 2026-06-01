@@ -1935,8 +1935,11 @@ function RedirectPageEditor({
     }
     setUploading(true);
     try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (!uid) throw new Error("Sessão expirada, faça login novamente");
       const ext = file.name.split(".").pop() || "jpg";
-      const path = `tg-redirect/${link.id}-${Date.now()}.${ext}`;
+      const path = `${uid}/tg-redirect/${link.id}-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("flow-media").upload(path, file, {
         cacheControl: "3600",
         upsert: true,
