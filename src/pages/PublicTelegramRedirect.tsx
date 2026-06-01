@@ -30,7 +30,7 @@ const PROFILE_BG: Record<string, string> = {
 };
 
 const INTERACTIVE: Record<string, { emoji: string; bg: string; color: string }> = {
-  respondendo: { emoji: "😊", bg: "#e5e7eb", color: "#111827" },
+  raspadinha: { emoji: "🪙", bg: "#d1d5db", color: "#111827" },
   verificacao: { emoji: "🛡️", bg: "#1e3a5f", color: "#fff" },
   countdown: { emoji: "⏳", bg: "#1e40af", color: "#fff" },
   "+18": { emoji: "⚠️", bg: "#374151", color: "#fff" },
@@ -121,7 +121,7 @@ const PublicTelegramRedirect = () => {
     const bg = profile === "custom"
       ? buildCustomBg(custom.color, custom.pattern)
       : PROFILE_BG[profile] || PROFILE_BG.rosa;
-    const inter = INTERACTIVE[pageConfig.interactive_template || "respondendo"] || INTERACTIVE.respondendo;
+    const inter = INTERACTIVE[pageConfig.interactive_template || "raspadinha"] || INTERACTIVE.raspadinha;
     const name = pageConfig.name || "Canal";
     const buttonText = normalizeButtonText(pageConfig.button_text);
     const responseTime = pageConfig.response_time || "3 minutos";
