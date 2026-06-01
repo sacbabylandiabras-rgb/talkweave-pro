@@ -19,7 +19,14 @@ import { dictionary } from "./dictionary";
 import { supabase } from "@/integrations/supabase/client";
 
 const ORIG = new WeakMap<Text, string>();
-const TRANSLATABLE_ATTRS = ["placeholder", "title", "aria-label", "alt"];
+const TRANSLATABLE_ATTRS = [
+  "placeholder",
+  "title",
+  "aria-label",
+  "aria-description",
+  "alt",
+  "data-placeholder",
+];
 const dictionaryLower: Record<string, string> = Object.fromEntries(
   Object.entries(dictionary).map(([key, value]) => [key.toLocaleLowerCase("pt-BR"), value]),
 );
@@ -29,9 +36,9 @@ const SKIP_TAGS = new Set([
   "NOSCRIPT",
   "CODE",
   "PRE",
-  "TEXTAREA",
   "IFRAME",
 ]);
+const ATTRIBUTE_SKIP_TAGS = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "CODE", "PRE", "IFRAME"]);
 
 // ---------- Runtime cache populated by AI translation ----------
 const CACHE_KEY = "i18n_runtime_cache_v1";
@@ -89,11 +96,12 @@ async function flushTranslationBatch() {
   for (let i = 0; i < items.length; i += chunkSize) {
     const chunk = items.slice(i, i + chunkSize);
     try {
-      const { data, error } = await supabase.functions.invoke("translate-batch", {
+    const { data, error } = await supabase.functions.invoke("translate-batch", {
         body: { target: "en", texts: chunk },
       });
       if (error) {
         console.warn("[i18n] translate-batch error", error.message);
+        chunk.forEach((text) => requested.delete(text));
         continue;
       }
       const translations: Record<string, string> = data?.translations || {};
@@ -107,6 +115,7 @@ async function flushTranslationBatch() {
       if (changed) persistCache();
     } catch (e) {
       console.warn("[i18n] translate-batch failed", e);
+      chunk.forEach((text) => requested.delete(text));
     }
   }
 
