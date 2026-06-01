@@ -16,6 +16,7 @@ import { Capacitor } from "@capacitor/core";
 const Landing = lazyWithRecovery(() => import("./pages/Landing"));
 const LandingWhatsApp = lazyWithRecovery(() => import("./pages/LandingWhatsApp"));
 const Auth = lazyWithRecovery(() => import("./pages/Auth"));
+const ResetPassword = lazyWithRecovery(() => import("./pages/ResetPassword"));
 import NativeAppLayout from "./components/layout/NativeAppLayout";
 const Dashboard = lazyWithRecovery(() => import("./pages/Dashboard"));
 const DashboardMeta = lazyWithRecovery(() => import("./pages/DashboardMeta"));
@@ -164,6 +165,7 @@ const App = () => (
                  <Routes>
                  <Route path="/auth" element={<Auth />} />
                  <Route path="/login" element={<Auth />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                    <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
                    <Route path="/termos-servico" element={<TermosServico />} />
                    <Route path="/exclusao-dados" element={<ExclusaoDados />} />
@@ -174,6 +176,7 @@ const App = () => (
                 <Route path="/" element={<Landing />} />
                 <Route path="/whatsapp" element={<LandingWhatsApp />} />
                 <Route path="/auth" element={<Auth />} />
+                 <Route path="/reset-password" element={<ResetPassword />} />
                  <Route path="/preview-app" element={<PreviewApp />} />
                   <Route path="/aplicativo" element={<CustomInputPage />} />
                   <Route path="/aplicativo/index.html" element={<CustomInputPage />} />
