@@ -1833,7 +1833,7 @@ const PROFILE_TEMPLATES: { id: string; label: string; bg: string; text?: string 
 ];
 
 const INTERACTIVE_TEMPLATES: { id: string; label: string; emoji: string; bg: string }[] = [
-  { id: "respondendo", label: "Respondendo", emoji: "😊", bg: "#e5e7eb" },
+  { id: "raspadinha", label: "Raspadinha", emoji: "🪙", bg: "#d1d5db" },
   { id: "verificacao", label: "Verificação", emoji: "🛡️", bg: "#1e3a5f" },
   { id: "countdown", label: "Countdown", emoji: "⏳", bg: "#1e40af" },
   { id: "+18", label: "+18", emoji: "⚠️", bg: "#374151" },
@@ -1936,7 +1936,7 @@ function RedirectPageEditor({
   })();
   const [customColor, setCustomColor] = useState<string>(parsedCustom.color);
   const [customPattern, setCustomPattern] = useState<string>(parsedCustom.pattern || "limpo");
-  const [interactive, setInteractive] = useState(initial.interactive_template || "respondendo");
+  const [interactive, setInteractive] = useState(initial.interactive_template || "raspadinha");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
