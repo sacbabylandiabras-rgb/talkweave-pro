@@ -105,8 +105,21 @@ const PublicTelegramRedirect = () => {
 
   if (pageConfig) {
     const profile = pageConfig.profile_template || "rosa";
+    const parseCustom = (raw?: string) => {
+      if (!raw) return { color: "#f472b6", pattern: "limpo" };
+      if (raw.startsWith("{")) {
+        try { const p = JSON.parse(raw); return { color: p.color || "#f472b6", pattern: p.pattern || "limpo" }; } catch { /* noop */ }
+      }
+      return { color: raw, pattern: "limpo" };
+    };
+    const buildCustomBg = (color: string, pattern: string) => {
+      if (pattern === "bolinhas") return `radial-gradient(circle, rgba(255,255,255,0.18) 1.5px, transparent 2px) 0 0 / 16px 16px, ${color}`;
+      if (pattern === "listras") return `repeating-linear-gradient(45deg, rgba(255,255,255,0.10) 0 10px, transparent 10px 20px), ${color}`;
+      return color;
+    };
+    const custom = parseCustom(pageConfig.custom_color);
     const bg = profile === "custom"
-      ? `linear-gradient(135deg, ${pageConfig.custom_color || "#374151"}, ${pageConfig.custom_color || "#4b5563"})`
+      ? buildCustomBg(custom.color, custom.pattern)
       : PROFILE_BG[profile] || PROFILE_BG.rosa;
     const inter = INTERACTIVE[pageConfig.interactive_template || "respondendo"] || INTERACTIVE.respondendo;
     const name = pageConfig.name || "Canal";

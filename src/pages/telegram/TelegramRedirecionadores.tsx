@@ -1927,7 +1927,15 @@ function RedirectPageEditor({
   const [buttonText, setButtonText] = useState(normalizeRedirectButtonText(initial.button_text));
   const [responseTime, setResponseTime] = useState(initial.response_time || "3 minutos");
   const [profileTemplate, setProfileTemplate] = useState(initial.profile_template || "rosa");
-  const [customColor, setCustomColor] = useState(initial.custom_color || "#374151");
+  const parsedCustom = (() => {
+    const raw = initial.custom_color || "";
+    if (raw.startsWith("{")) {
+      try { return JSON.parse(raw); } catch { /* noop */ }
+    }
+    return { color: raw || "#f472b6", pattern: "limpo" };
+  })();
+  const [customColor, setCustomColor] = useState<string>(parsedCustom.color);
+  const [customPattern, setCustomPattern] = useState<string>(parsedCustom.pattern || "limpo");
   const [interactive, setInteractive] = useState(initial.interactive_template || "respondendo");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1968,7 +1976,7 @@ function RedirectPageEditor({
       button_text: buttonText,
       response_time: responseTime,
       profile_template: profileTemplate,
-      custom_color: customColor,
+      custom_color: JSON.stringify({ color: customColor, pattern: customPattern }),
       interactive_template: interactive,
     };
     const { error } = await (supabase as any)
@@ -1985,7 +1993,16 @@ function RedirectPageEditor({
   };
 
   const tpl = PROFILE_TEMPLATES.find((t) => t.id === profileTemplate) || PROFILE_TEMPLATES[0];
-  const previewBg = profileTemplate === "custom" ? customColor : tpl.bg;
+  const buildCustomBg = (color: string, pattern: string) => {
+    if (pattern === "bolinhas") {
+      return `radial-gradient(circle, rgba(255,255,255,0.18) 1.5px, transparent 2px) 0 0 / 16px 16px, ${color}`;
+    }
+    if (pattern === "listras") {
+      return `repeating-linear-gradient(45deg, rgba(255,255,255,0.10) 0 10px, transparent 10px 20px), ${color}`;
+    }
+    return color;
+  };
+  const previewBg = profileTemplate === "custom" ? buildCustomBg(customColor, customPattern) : tpl.bg;
 
   return (
     <div className="space-y-4">
@@ -2091,15 +2108,47 @@ function RedirectPageEditor({
               ))}
             </div>
             {profileTemplate === "custom" && (
-              <div className="mt-2 flex items-center gap-2">
-                <Label className="text-xs text-muted-foreground">Cor:</Label>
-                <input
-                  type="color"
-                  value={customColor}
-                  onChange={(e) => setCustomColor(e.target.value)}
-                  className="h-8 w-12 rounded cursor-pointer bg-transparent border border-border"
-                />
-                <span className="text-xs font-mono text-muted-foreground">{customColor}</span>
+              <div className="mt-3 space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Cor</Label>
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-2 py-1.5">
+                    <input
+                      type="color"
+                      value={customColor}
+                      onChange={(e) => setCustomColor(e.target.value)}
+                      className="h-7 w-9 rounded cursor-pointer bg-transparent border-0 p-0"
+                    />
+                    <input
+                      type="text"
+                      value={customColor}
+                      onChange={(e) => setCustomColor(e.target.value)}
+                      className="flex-1 bg-transparent text-xs font-mono outline-none"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Padrão</Label>
+                  <div className="flex gap-2">
+                    {[
+                      { id: "bolinhas", label: "Bolinhas" },
+                      { id: "listras", label: "Listras" },
+                      { id: "limpo", label: "Limpo" },
+                    ].map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setCustomPattern(p.id)}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                          customPattern === p.id
+                            ? "bg-primary/15 text-primary border border-primary/40"
+                            : "bg-muted/30 text-muted-foreground border border-border hover:bg-muted/50"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>
