@@ -12,12 +12,14 @@ import { NotificationsDialog } from "./NotificationsDialog";
 import { SettingsDialog } from "./SettingsDialog";
 import { RenewDialog } from "./RenewDialog";
 import { WorkspaceSelector } from "./WorkspaceSelector";
+import { useTranslation } from "react-i18next";
 
 interface HeaderProps {
   onNavigate?: (page: string) => void;
 }
 
 export function Header({ onNavigate }: HeaderProps) {
+  const { t } = useTranslation();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [renewOpen, setRenewOpen] = useState(false);
@@ -50,7 +52,7 @@ export function Header({ onNavigate }: HeaderProps) {
            <DropdownMenuContent align="end" className="w-32 rounded-xl bg-popover border-border">
               <DropdownMenuItem onClick={() => toggleTheme("white")} className="flex items-center gap-2 cursor-pointer hover:bg-accent hover:text-accent-foreground">
                 <div className="w-3 h-3 rounded-full bg-white border border-gray-200" />
-               <span className="text-foreground">Branco</span>
+               <span className="text-foreground">{t("Branco")}</span>
               </DropdownMenuItem>
            </DropdownMenuContent>
         </DropdownMenu>
@@ -62,7 +64,7 @@ export function Header({ onNavigate }: HeaderProps) {
             className="btn-glass-renew text-xs h-8 px-3 rounded-full"
             onClick={() => setRenewOpen(true)}
           >
-            Renovar
+            {t("Renovar")}
           </Button>
 
           <div className="w-px h-5 bg-white/10 mx-1" />
