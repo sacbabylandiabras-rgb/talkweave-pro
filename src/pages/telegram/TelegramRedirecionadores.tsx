@@ -115,7 +115,10 @@ export default function TelegramRedirecionadores() {
             Configure seus links de redirecionamento
           </p>
         </div>
-        <Button onClick={() => setDialogOpen(true)} className="gap-2">
+        <Button
+          onClick={() => (tab === "vendas" ? setVendasDialogOpen(true) : setDialogOpen(true))}
+          className="gap-2"
+        >
           <Plus className="h-4 w-4" />
           {tab === "vendas" ? "Criar Codigo" : "Criar Link"}
         </Button>
@@ -156,7 +159,15 @@ export default function TelegramRedirecionadores() {
           }}
         />
       )}
-      {tab !== "links" && (
+      {tab === "vendas" && (
+        <VendasTab
+          links={links}
+          onCreate={() => setVendasDialogOpen(true)}
+          dialogOpen={vendasDialogOpen}
+          setDialogOpen={setVendasDialogOpen}
+        />
+      )}
+      {tab !== "links" && tab !== "vendas" && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="h-14 w-14 rounded-2xl bg-muted/40 flex items-center justify-center mb-3">
             <LinkIcon className="h-6 w-6 text-muted-foreground" />
