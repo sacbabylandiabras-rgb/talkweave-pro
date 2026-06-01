@@ -384,6 +384,47 @@ const Auth = () => {
         </div>
       </div>
       </div>
+      {showForgot && (
+        <div
+          onClick={() => !forgotLoading && setShowForgot(false)}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 9999, padding: 16,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--lp-surface)", border: "1px solid var(--lp-border)",
+              borderRadius: 8, padding: "32px 28px", width: "100%", maxWidth: 420,
+              boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+            }}
+          >
+            <h3 style={{ margin: 0, color: "var(--lp-text)", fontSize: 20, fontWeight: 700 }}>
+              Redefinir senha
+            </h3>
+            <p style={{ color: "var(--lp-muted)", fontSize: 13, marginTop: 8, marginBottom: 20 }}>
+              Informe o email da sua conta. Enviaremos um link para você criar uma nova senha.
+            </p>
+            <form onSubmit={handleForgotPassword} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <InputField icon={<Mail size={16} />} type="email" placeholder="seu@email.com" value={forgotEmail} onChange={setForgotEmail} disabled={forgotLoading} />
+              <SubmitButton loading={forgotLoading} label="Enviar link de redefinição" loadingLabel="Enviando..." />
+              <button
+                type="button"
+                onClick={() => setShowForgot(false)}
+                disabled={forgotLoading}
+                style={{
+                  background: "transparent", border: "none", color: "var(--lp-muted)",
+                  fontSize: 13, cursor: forgotLoading ? "not-allowed" : "pointer", padding: 4,
+                }}
+              >
+                Cancelar
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
