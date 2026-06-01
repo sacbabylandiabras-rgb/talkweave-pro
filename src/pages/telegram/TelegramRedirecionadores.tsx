@@ -1828,7 +1828,7 @@ const PROFILE_TEMPLATES: { id: string; label: string; bg: string; text?: string 
   { id: "azul", label: "Azul", bg: "linear-gradient(160deg,#0a1e3a,#1e4b8f 60%,#2563eb)" },
   { id: "escuro", label: "Escuro", bg: "linear-gradient(180deg,#16181d,#1f2228)" },
   { id: "roxo", label: "Roxo", bg: "linear-gradient(180deg,#6b21a8,#7c3aed 55%,#a855f7)" },
-  { id: "verde", label: "Verde", bg: "linear-gradient(135deg,#047857,#10b981)" },
+  { id: "verde", label: "Verde", bg: "linear-gradient(180deg,#0f6e52,#1f9d76)" },
   { id: "custom", label: "Custom", bg: "linear-gradient(135deg,#374151,#4b5563)" },
 ];
 
