@@ -30,6 +30,9 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [activeTab, setActiveTab] = useState<"login" | "signup">(searchParams.get("signup") ? "signup" : "login");
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -108,6 +111,33 @@ const Auth = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetEmail = forgotEmail.trim();
+    if (!targetEmail) {
+      toast({ title: "Informe o email", description: "Digite o email da sua conta", variant: "destructive" });
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast({
+        title: "✅ Email enviado!",
+        description: "Verifique sua caixa de entrada para redefinir sua senha.",
+        duration: 10000,
+      });
+      setShowForgot(false);
+      setForgotEmail("");
+    } catch (error: any) {
+      toast({ title: "Erro ao enviar email", description: error?.message || "Tente novamente", variant: "destructive" });
+    } finally {
+      setForgotLoading(false);
     }
   };
 
