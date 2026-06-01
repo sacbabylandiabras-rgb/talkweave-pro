@@ -123,6 +123,7 @@ const TelegramDownsell = lazyWithRecovery(() => import("./pages/telegram/Telegra
 const TelegramIntegracoes = lazyWithRecovery(() => import("./pages/telegram/TelegramIntegracoes"));
 const TelegramLinksTraqueamento = lazyWithRecovery(() => import("./pages/telegram/TelegramLinksTraqueamento"));
 const TelegramLinksUtm = lazyWithRecovery(() => import("./pages/telegram/TelegramLinksUtm"));
+const TelegramRedirecionadores = lazyWithRecovery(() => import("./pages/telegram/TelegramRedirecionadores"));
 const FluxoTelegram = lazyWithRecovery(() => import("./pages/FluxoTelegram"));
  const DashboardInstagram = lazyWithRecovery(() => import("./pages/instagram/DashboardInstagram"));
  const ModelosInstagram = lazyWithRecovery(() => import("./pages/instagram/ModelosInstagram"));
@@ -249,6 +250,7 @@ const App = () => (
                   <Route path="/telegram/traqueamento" element={<TelegramPlaceholder title="Traqueamento" description="Configure pixels e eventos de conversão." />} />
                   <Route path="/telegram/links-traqueamento" element={<TelegramLinksTraqueamento />} />
                   <Route path="/telegram/links-utm" element={<TelegramLinksUtm />} />
+                  <Route path="/telegram/redirecionadores" element={<TelegramRedirecionadores />} />
                   <Route path="/telegram/fluxo" element={<FluxoTelegram />} />
                   {/* Email routes */}
                   <Route path="/email/configuracao" element={<EmailConfiguracao />} />
