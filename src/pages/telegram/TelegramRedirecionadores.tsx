@@ -30,6 +30,7 @@ import {
   Trash2,
   Check,
   ExternalLink,
+  AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -314,6 +315,7 @@ function CreateRedirectDialog({
   const [active, setActive] = useState(true);
   const [cloaker, setCloaker] = useState(false);
   const [cloakerV2, setCloakerV2] = useState(false);
+  const [confirmCloaker, setConfirmCloaker] = useState<null | "cloaker" | "cloakerV2">(null);
   const [destinationType, setDestinationType] = useState<"bot" | "channel">("bot");
   const [bots, setBots] = useState<{ id: string; first_name: string | null; username: string | null }[]>([]);
   const [destinationBotId, setDestinationBotId] = useState<string>("");
@@ -544,14 +546,70 @@ function CreateRedirectDialog({
               <span className="text-sm">Ativo</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <Switch checked={cloaker} onCheckedChange={setCloaker} />
+              <Switch
+                checked={cloaker}
+                onCheckedChange={(v) => {
+                  if (v) setConfirmCloaker("cloaker");
+                  else setCloaker(false);
+                }}
+              />
               <span className="text-sm">Cloaker</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <Switch checked={cloakerV2} onCheckedChange={setCloakerV2} />
+              <Switch
+                checked={cloakerV2}
+                onCheckedChange={(v) => {
+                  if (v) setConfirmCloaker("cloakerV2");
+                  else setCloakerV2(false);
+                }}
+              />
               <span className="text-sm">Cloaker V2</span>
             </label>
           </div>
+
+          {confirmCloaker && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                <span className="text-sm font-semibold text-foreground">
+                  Ativar {confirmCloaker === "cloakerV2" ? "Cloaker V2 + AntiClone" : "Cloaker"}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O cloaker requer configuração adicional. Leia antes de ativar:
+              </p>
+              <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
+                <li>
+                  O parâmetro <span className="font-mono font-semibold text-amber-500">shk</span>{" "}
+                  deve estar em todos os links de tráfego pago.
+                </li>
+                <li>
+                  Sem o parâmetro, o cloaker vai{" "}
+                  <span className="font-semibold text-foreground">bloquear o acesso</span> dos visitantes.
+                </li>
+              </ul>
+              <p className="text-xs text-primary">
+                Use a aba "Gerador UTM" para criar links com o parâmetro correto.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (confirmCloaker === "cloakerV2") setCloakerV2(true);
+                    else setCloaker(true);
+                    setConfirmCloaker(null);
+                  }}
+                  className="gap-2 bg-amber-600 hover:bg-amber-600/90 text-white"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  Sim, ativar
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setConfirmCloaker(null)}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Domain display */}
           <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5">

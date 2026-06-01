@@ -5,17 +5,27 @@ import { supabase } from "@/integrations/supabase/client";
 const PublicTelegramRedirect = () => {
   const { slug = "" } = useParams();
   const [error, setError] = useState("");
+  const [blocked, setBlocked] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     const resolveRedirect = async () => {
       try {
+        const params = new URLSearchParams(window.location.search);
+        const shk = params.get("shk") || "";
         const { data, error: fnError } = await (supabase as any).functions.invoke("telegram-redirect", {
-          body: { slug },
+          body: { slug, shk, userAgent: navigator.userAgent },
         });
 
-        if (fnError || !data?.destination) {
+        if (fnError) {
+          throw new Error(fnError?.message || "Link não encontrado");
+        }
+        if (data?.blocked) {
+          if (!cancelled) setBlocked(true);
+          return;
+        }
+        if (!data?.destination) {
           throw new Error(data?.error || fnError?.message || "Link não encontrado");
         }
 
@@ -31,6 +41,19 @@ const PublicTelegramRedirect = () => {
       cancelled = true;
     };
   }, [slug]);
+
+  if (blocked) {
+    return (
+      <main className="fixed inset-0 z-[9999] flex items-center justify-center bg-background px-4 text-center">
+        <div className="space-y-2 max-w-sm">
+          <h1 className="text-2xl font-bold text-foreground">Página não encontrada</h1>
+          <p className="text-sm text-muted-foreground">
+            O conteúdo que você está procurando não está disponível.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="fixed inset-0 z-[9999] flex items-center justify-center bg-background px-4 text-center">
