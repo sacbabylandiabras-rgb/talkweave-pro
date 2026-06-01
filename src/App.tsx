@@ -96,6 +96,7 @@ const CheckoutBuilder = lazyWithRecovery(() => import("./pages/gateway/CheckoutB
 const PublicCheckout = lazyWithRecovery(() => import("./pages/PublicCheckout"));
 const PublicLandingPreview = lazyWithRecovery(() => import("./pages/PublicLandingPreview"));
 const PublicRedirectTracker = lazyWithRecovery(() => import("./pages/PublicRedirectTracker"));
+const PublicTelegramRedirect = lazyWithRecovery(() => import("./pages/PublicTelegramRedirect"));
 const ThankYou = lazyWithRecovery(() => import("./pages/ThankYou"));
 const PublicOrder = lazyWithRecovery(() => import("./pages/PublicOrder"));
 import GatewayKycGate from "./components/gateway/GatewayKycGate";
@@ -301,6 +302,7 @@ const App = () => (
                 <Route path="/pedido/:id" element={<PublicOrder />} />
                 <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
                 <Route path="/termos-servico" element={<TermosServico />} />
+                 <Route path="/r/:slug" element={<PublicTelegramRedirect />} />
                 <Route path="/r" element={<PublicRedirectTracker />} />
                 <Route path="*" element={<NotFound />} />
                  </Routes>
