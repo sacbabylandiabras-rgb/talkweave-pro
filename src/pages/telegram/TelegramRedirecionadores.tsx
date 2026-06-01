@@ -2237,6 +2237,15 @@ function RedirectPageEditor({
               );
             })()
           )}
+          {enabled && interactive === "raspadinha" && (
+            <div className="mt-4 rounded-xl bg-[#d1d5db] py-14 px-6 flex flex-col items-center justify-center text-center">
+              <svg className="h-8 w-8 text-gray-500 mb-3" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M5 2l4 14 2.5-5 5-2.5L5 2z" />
+              </svg>
+              <p className="text-sm font-bold tracking-wide text-gray-700">RASPE PARA VER</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Use a roda para descobrir</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
