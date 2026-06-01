@@ -30,7 +30,7 @@ const PROFILE_BG: Record<string, string> = {
 };
 
 const INTERACTIVE: Record<string, { emoji: string; bg: string; color: string }> = {
-  respondendo: { emoji: "😊", bg: "#e5e7eb", color: "#111827" },
+  raspadinha: { emoji: "🪙", bg: "#d1d5db", color: "#111827" },
   verificacao: { emoji: "🛡️", bg: "#1e3a5f", color: "#fff" },
   countdown: { emoji: "⏳", bg: "#1e40af", color: "#fff" },
   "+18": { emoji: "⚠️", bg: "#374151", color: "#fff" },
@@ -121,7 +121,7 @@ const PublicTelegramRedirect = () => {
     const bg = profile === "custom"
       ? buildCustomBg(custom.color, custom.pattern)
       : PROFILE_BG[profile] || PROFILE_BG.rosa;
-    const inter = INTERACTIVE[pageConfig.interactive_template || "respondendo"] || INTERACTIVE.respondendo;
+    const inter = INTERACTIVE[pageConfig.interactive_template || "raspadinha"] || INTERACTIVE.raspadinha;
     const name = pageConfig.name || "Canal";
     const buttonText = normalizeButtonText(pageConfig.button_text);
     const responseTime = pageConfig.response_time || "3 minutos";
@@ -172,6 +172,15 @@ const PublicTelegramRedirect = () => {
             <span>{confirming ? "Abrindo..." : buttonText}</span>
           </button>
         </div>
+        {pageConfig.interactive_template === "raspadinha" && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-xs rounded-2xl bg-[#d1d5db] py-10 px-6 flex flex-col items-center justify-center text-center shadow-xl">
+            <svg className="h-8 w-8 text-gray-500 mb-3" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M5 2l4 14 2.5-5 5-2.5L5 2z" />
+            </svg>
+            <p className="text-sm font-bold tracking-wide text-gray-700">RASPE PARA VER</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">Use a roda para descobrir</p>
+          </div>
+        )}
       </main>
     );
   }

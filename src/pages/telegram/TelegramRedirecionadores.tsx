@@ -1833,7 +1833,7 @@ const PROFILE_TEMPLATES: { id: string; label: string; bg: string; text?: string 
 ];
 
 const INTERACTIVE_TEMPLATES: { id: string; label: string; emoji: string; bg: string }[] = [
-  { id: "respondendo", label: "Respondendo", emoji: "😊", bg: "#e5e7eb" },
+  { id: "raspadinha", label: "Raspadinha", emoji: "🪙", bg: "#d1d5db" },
   { id: "verificacao", label: "Verificação", emoji: "🛡️", bg: "#1e3a5f" },
   { id: "countdown", label: "Countdown", emoji: "⏳", bg: "#1e40af" },
   { id: "+18", label: "+18", emoji: "⚠️", bg: "#374151" },
@@ -1936,7 +1936,7 @@ function RedirectPageEditor({
   })();
   const [customColor, setCustomColor] = useState<string>(parsedCustom.color);
   const [customPattern, setCustomPattern] = useState<string>(parsedCustom.pattern || "limpo");
-  const [interactive, setInteractive] = useState(initial.interactive_template || "respondendo");
+  const [interactive, setInteractive] = useState(initial.interactive_template || "raspadinha");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -2236,6 +2236,15 @@ function RedirectPageEditor({
             </div>
               );
             })()
+          )}
+          {enabled && interactive === "raspadinha" && (
+            <div className="mt-4 rounded-xl bg-[#d1d5db] py-14 px-6 flex flex-col items-center justify-center text-center">
+              <svg className="h-8 w-8 text-gray-500 mb-3" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M5 2l4 14 2.5-5 5-2.5L5 2z" />
+              </svg>
+              <p className="text-sm font-bold tracking-wide text-gray-700">RASPE PARA VER</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Use a roda para descobrir</p>
+            </div>
           )}
         </div>
       </div>
