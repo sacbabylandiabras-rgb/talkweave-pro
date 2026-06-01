@@ -385,8 +385,8 @@ function CreateRedirectDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="p-6 pb-3 border-b border-border">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-primary/15 flex items-center justify-center">
               <Plus className="h-4 w-4 text-primary" />
@@ -400,7 +400,7 @@ function CreateRedirectDialog({
           </div>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 px-6 py-4 overflow-y-auto flex-1">
           {/* Tipo de slug */}
           <div>
             <Label className="text-[11px] uppercase text-muted-foreground tracking-wide">
@@ -616,7 +616,7 @@ function CreateRedirectDialog({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 pt-2">
+        <div className="grid grid-cols-2 gap-2 p-4 border-t border-border bg-background">
           <Button onClick={save} disabled={saving} className="gap-2">
             <Check className="h-4 w-4" />
             {saving ? "Criando..." : "Criar"}
