@@ -42,6 +42,6 @@ export function setAppLanguage(lng: string) {
 }
 
 // Activate the runtime DOM auto-translator (covers strings not yet wrapped with t()).
-installAutoTranslator();
+installAutoTranslator(i18n);
 
 export default i18n;
