@@ -356,7 +356,6 @@ function CreateRedirectDialog({
     }
     const { error } = await (supabase as any).from("telegram_redirect_links").insert({
       user_id: user.id,
-      name: slug,
       slug: slug
         .toLowerCase()
         .trim()
@@ -366,7 +365,6 @@ function CreateRedirectDialog({
       active,
       cloaker,
       cloaker_v2: cloakerV2,
-      domain,
       destination_type: destinationType,
       destination_bot_id: destinationType === "bot" ? destinationBotId || null : null,
       destination_channel:
