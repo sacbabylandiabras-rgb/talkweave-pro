@@ -306,6 +306,8 @@ const RaspadinhaView = ({ buttonText, confirming, onConfirm }: RaspadinhaViewPro
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [revealed, setRevealed] = useState(false);
   const drawingRef = useRef(false);
+  const lastPosRef = useRef<{ x: number; y: number } | null>(null);
+  const moveCountRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -341,6 +343,10 @@ const RaspadinhaView = ({ buttonText, confirming, onConfirm }: RaspadinhaViewPro
     ctx.fillText("CONTEÚDO", w / 2, h / 2 + 8);
 
     ctx.globalCompositeOperation = "destination-out";
+    // Continuous stroke settings so it erases as a smooth path, not dots
+    ctx.lineWidth = 48;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
   }, []);
 
   const checkReveal = () => {
@@ -360,7 +366,7 @@ const RaspadinhaView = ({ buttonText, confirming, onConfirm }: RaspadinhaViewPro
         total++;
       }
     }
-    if (cleared / total > 0.45) setRevealed(true);
+    if (cleared / total > 0.6) setRevealed(true);
   };
 
   const scratch = (clientX: number, clientY: number) => {
@@ -371,23 +377,36 @@ const RaspadinhaView = ({ buttonText, confirming, onConfirm }: RaspadinhaViewPro
     const rect = canvas.getBoundingClientRect();
     const x = ((clientX - rect.left) / rect.width) * canvas.width;
     const y = ((clientY - rect.top) / rect.height) * canvas.height;
+    const last = lastPosRef.current;
     ctx.beginPath();
-    ctx.arc(x, y, 28, 0, Math.PI * 2);
-    ctx.fill();
+    if (last) {
+      ctx.moveTo(last.x, last.y);
+      ctx.lineTo(x, y);
+    } else {
+      ctx.moveTo(x - 0.01, y);
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    lastPosRef.current = { x, y };
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
     drawingRef.current = true;
+    lastPosRef.current = null;
+    moveCountRef.current = 0;
     (e.target as Element).setPointerCapture(e.pointerId);
     scratch(e.clientX, e.clientY);
   };
   const onPointerMove = (e: React.PointerEvent) => {
     if (!drawingRef.current) return;
     scratch(e.clientX, e.clientY);
+    moveCountRef.current++;
+    if (moveCountRef.current % 6 === 0) checkReveal();
   };
   const onPointerUp = () => {
     if (!drawingRef.current) return;
     drawingRef.current = false;
+    lastPosRef.current = null;
     checkReveal();
   };
 
@@ -414,15 +433,17 @@ const RaspadinhaView = ({ buttonText, confirming, onConfirm }: RaspadinhaViewPro
           className={`absolute inset-0 w-full h-full touch-none cursor-grab transition-opacity duration-500 ${revealed ? "opacity-0 pointer-events-none" : "opacity-100"}`}
         />
       </div>
-      <button
-        onClick={onConfirm}
-        disabled={confirming || !revealed}
-        className={`w-[280px] rounded-2xl py-3.5 px-4 font-semibold text-white text-sm transition active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg bg-gradient-to-r from-[#2AABEE] to-[#56c5f5] ${revealed ? "opacity-100" : "opacity-40 pointer-events-none"}`}
-        style={revealed ? { boxShadow: "0 0 30px rgba(42,171,238,0.6)" } : undefined}
-      >
-        <Send className="w-4 h-4 shrink-0" fill="currentColor" strokeWidth={0} />
-        <span>{confirming ? "Abrindo..." : (buttonText || "Acessar Conteúdo")}</span>
-      </button>
+      {revealed && (
+        <button
+          onClick={onConfirm}
+          disabled={confirming}
+          className="w-[280px] rounded-2xl py-3.5 px-4 font-semibold text-white text-sm transition active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg bg-gradient-to-r from-[#2AABEE] to-[#56c5f5] animate-pulse"
+          style={{ boxShadow: "0 0 30px rgba(42,171,238,0.6)" }}
+        >
+          <Send className="w-4 h-4 shrink-0" fill="currentColor" strokeWidth={0} />
+          <span>{confirming ? "Abrindo..." : (buttonText || "Acessar Conteúdo")}</span>
+        </button>
+      )}
     </main>
   );
 };
