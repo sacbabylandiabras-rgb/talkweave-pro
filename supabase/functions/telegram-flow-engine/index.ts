@@ -387,6 +387,16 @@ async function runFlow({
 
         try {
           console.log("[engine] generating PIX", { node: node.id, amountCents, userId: bot.user_id });
+
+          // Pré-mensagem (configurável no node)
+          const pixPreMessage = String(data.pixPreMessage || "").trim();
+          if (pixPreMessage) {
+            await tgApi(bot.bot_token, "sendMessage", {
+              chat_id: chatId,
+              text: pixPreMessage,
+            });
+          }
+
           const resp = await fetch(
             `${Deno.env.get("SUPABASE_URL")}/functions/v1/gateway-flow-charge`,
             {
@@ -502,6 +512,33 @@ async function runFlow({
               text: caption,
               parse_mode: "Markdown",
               ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+            });
+          }
+
+          // Mensagem de instrução
+          const pixInstructionMessage = String(data.pixInstructionMessage || "").trim();
+          if (pixInstructionMessage && brCode) {
+            await tgApi(bot.bot_token, "sendMessage", {
+              chat_id: chatId,
+              text: pixInstructionMessage,
+            });
+          }
+
+          // Mensagem de verificação de status + botão "Efetuei o pagamento"
+          if (brCode) {
+            const pixStatusMessage =
+              String(data.pixStatusMessage || "").trim() ||
+              "Após efetuar o pagamento, clique no botão abaixo 👇";
+            const pixButtonText =
+              String(data.pixButtonText || "").trim() || "EFETUEI O PAGAMENTO";
+            await tgApi(bot.bot_token, "sendMessage", {
+              chat_id: chatId,
+              text: pixStatusMessage,
+              reply_markup: {
+                inline_keyboard: [[
+                  { text: pixButtonText, callback_data: "__chkpay__" },
+                ]],
+              },
             });
           }
 
