@@ -897,6 +897,307 @@ function CreateRedirectDialog({
   );
 }
 
+// ============ UTM Generator Tab ============
+
+interface UtmFields {
+  source: string;
+  campaign: string;
+  medium: string;
+  content: string;
+  term: string;
+  id: string;
+}
+
+const UTM_MODELS: Record<string, { label: string; values: UtmFields }> = {
+  personalizado: {
+    label: "Personalizado",
+    values: { source: "", campaign: "", medium: "", content: "", term: "", id: "" },
+  },
+  meta: {
+    label: "UTMs Meta Ads",
+    values: {
+      source: "FB",
+      campaign: "{{campaign.name}}|{{campaign.id}}",
+      medium: "{{adset.name}}|{{adset.id}}",
+      content: "{{ad.name}}|{{ad.id}}",
+      term: "{{placement}}",
+      id: "{{campaign.id}}",
+    },
+  },
+  google: {
+    label: "UTMs Google Ads",
+    values: {
+      source: "google",
+      campaign: "{campaignid}",
+      medium: "cpc",
+      content: "{creative}",
+      term: "{keyword}",
+      id: "{campaignid}",
+    },
+  },
+  tiktok: {
+    label: "UTMs TikTok Ads",
+    values: {
+      source: "tiktok",
+      campaign: "__CAMPAIGN_NAME__|__CAMPAIGN_ID__",
+      medium: "__AID_NAME__|__AID__",
+      content: "__CID_NAME__|__CID__",
+      term: "__PLACEMENT__",
+      id: "__CAMPAIGN_ID__",
+    },
+  },
+};
+
+function CopyField({ value, variant = "default" }: { value: string; variant?: "default" | "info" | "success" | "warn" }) {
+  const styles =
+    variant === "info"
+      ? "border-primary/30 bg-primary/5"
+      : variant === "success"
+      ? "border-emerald-500/30 bg-emerald-500/5"
+      : variant === "warn"
+      ? "border-amber-500/30 bg-amber-500/5"
+      : "border-border bg-muted/30";
+  return (
+    <div className={`rounded-lg border ${styles} p-3 flex items-center gap-2`}>
+      <code className="flex-1 text-[11px] text-foreground break-all font-mono leading-relaxed">
+        {value}
+      </code>
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-8 w-8 shrink-0"
+        onClick={() => {
+          navigator.clipboard.writeText(value);
+          toast.success("Copiado");
+        }}
+      >
+        <Copy className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+function UtmTab({ links }: { links: TgRedirectLink[] }) {
+  const baseDomain = "zaplynx.com";
+  const [linkId, setLinkId] = useState<string>("");
+  const [model, setModel] = useState<string>("meta");
+  const [fields, setFields] = useState<UtmFields>(UTM_MODELS.meta.values);
+  const [cv, setCv] = useState("");
+  const [shk, setShk] = useState("");
+  const [salesCodes, setSalesCodes] = useState<Array<{ code: string; name: string; link_id: string }>>([]);
+
+  useEffect(() => {
+    if (!linkId && links.length) setLinkId(links[0].id);
+  }, [links, linkId]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("telegram_sales_codes")
+        .select("code,name,link_id");
+      setSalesCodes(data || []);
+    })();
+  }, []);
+
+  const handleModel = (v: string) => {
+    setModel(v);
+    const preset = UTM_MODELS[v];
+    if (preset) setFields(preset.values);
+  };
+
+  const selectedLink = links.find((l) => l.id === linkId);
+  const linkSalesCodes = salesCodes.filter((c) => c.link_id === linkId);
+
+  const baseUrl = selectedLink
+    ? `https://${baseDomain}/r/${selectedLink.slug}`
+    : `https://${baseDomain}/r/...`;
+
+  const paramsString = useMemo(() => {
+    const parts: string[] = [];
+    if (fields.source) parts.push(`utm_source=${fields.source}`);
+    if (fields.campaign) parts.push(`utm_campaign=${fields.campaign}`);
+    if (fields.medium) parts.push(`utm_medium=${fields.medium}`);
+    if (fields.content) parts.push(`utm_content=${fields.content}`);
+    if (fields.term) parts.push(`utm_term=${fields.term}`);
+    if (fields.id) parts.push(`utm_id=${fields.id}`);
+    return parts.join("&");
+  }, [fields]);
+
+  const extraParams = useMemo(() => {
+    const parts: string[] = [];
+    if (cv.trim()) parts.push(`cv=${encodeURIComponent(cv.trim())}`);
+    if (shk.trim()) parts.push(`shk=${encodeURIComponent(shk.trim())}`);
+    return parts.join("&");
+  }, [cv, shk]);
+
+  const managerUrl = useMemo(() => {
+    return extraParams ? `${baseUrl}?${extraParams}` : baseUrl;
+  }, [baseUrl, extraParams]);
+
+  const fullUrl = useMemo(() => {
+    const all = [paramsString, extraParams].filter(Boolean).join("&");
+    return all ? `${baseUrl}?${all}` : baseUrl;
+  }, [baseUrl, paramsString, extraParams]);
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 space-y-6">
+      <div className="flex items-start gap-3 border-l-4 border-primary pl-3">
+        <div className="h-9 w-9 rounded-lg bg-primary/15 flex items-center justify-center">
+          <Shuffle className="h-4 w-4 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Gerador de Links UTM</h2>
+          <p className="text-sm text-muted-foreground">
+            Monte links com parâmetros UTM para rastrear campanhas
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label>Link Base</Label>
+          <Select value={linkId} onValueChange={setLinkId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione um link" />
+            </SelectTrigger>
+            <SelectContent>
+              {links.length === 0 && (
+                <div className="px-3 py-2 text-xs text-muted-foreground">
+                  Nenhum link criado
+                </div>
+              )}
+              {links.map((l) => (
+                <SelectItem key={l.id} value={l.id}>
+                  /{l.slug}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1">
+            <Globe className="h-3 w-3" /> Domínio
+          </Label>
+          <div className="h-10 flex items-center px-3 rounded-md border border-border bg-muted/30 text-sm">
+            {baseDomain}
+            <Check className="h-3.5 w-3.5 ml-auto text-emerald-500" />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Modelo UTM</Label>
+          <Select value={model} onValueChange={handleModel}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(UTM_MODELS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>
+                  {v.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-2.5 text-xs text-muted-foreground flex items-center gap-2">
+        <Hash className="h-3.5 w-3.5" />
+        {linkSalesCodes.length === 0
+          ? "Nenhum código de vendas vinculado a este link"
+          : `${linkSalesCodes.length} código(s) de vendas vinculado(s) a este link`}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {[
+          { key: "source", label: "UTM SOURCE" },
+          { key: "campaign", label: "UTM CAMPAIGN" },
+          { key: "medium", label: "UTM MEDIUM" },
+          { key: "content", label: "UTM CONTENT" },
+          { key: "term", label: "UTM TERM" },
+          { key: "id", label: "UTM ID" },
+        ].map((f) => (
+          <div key={f.key} className="space-y-1.5">
+            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              {f.label}
+            </Label>
+            <Input
+              value={(fields as any)[f.key]}
+              onChange={(e) =>
+                setFields((prev) => ({ ...prev, [f.key]: e.target.value }))
+              }
+              maxLength={200}
+            />
+          </div>
+        ))}
+
+        <div className="space-y-1.5">
+          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Código de Vendas (opcional)
+          </Label>
+          <Input
+            value={cv}
+            onChange={(e) => setCv(e.target.value)}
+            placeholder="Ex: 123"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Shark ID (Cloaker)
+          </Label>
+          <Input
+            value={shk}
+            onChange={(e) => setShk(e.target.value)}
+            placeholder="Ex: bb8ste2u"
+          />
+        </div>
+      </div>
+
+      <Button
+        className="w-full"
+        variant="secondary"
+        onClick={() => {
+          navigator.clipboard.writeText(fullUrl);
+          toast.success("Link completo copiado");
+        }}
+      >
+        Gerar Link
+      </Button>
+
+      <div className="space-y-3 pt-2">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+            <Globe className="h-3.5 w-3.5" />
+            USE ESTA URL NO SITE NO GERENCIADOR DE ANÚNCIOS
+          </div>
+          <CopyField value={managerUrl} variant="info" />
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-500">
+            <Check className="h-3.5 w-3.5" />
+            USE ESTES NOS PARÂMETROS DA URL, NO FACEBOOK
+          </div>
+          <CopyField value={paramsString} variant="success" />
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-500">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            LINK COMPLETO – APENAS PARA DEBUG
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Não cole no gerenciador de anúncios. Use a URL acima.
+          </p>
+          <CopyField value={fullUrl} variant="warn" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface SalesCode {
   id: string;
   name: string;
