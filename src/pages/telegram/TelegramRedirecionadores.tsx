@@ -167,7 +167,8 @@ export default function TelegramRedirecionadores() {
           setDialogOpen={setVendasDialogOpen}
         />
       )}
-      {tab !== "links" && tab !== "vendas" && (
+      {tab === "utm" && <UtmTab links={links} />}
+      {tab !== "links" && tab !== "vendas" && tab !== "utm" && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="h-14 w-14 rounded-2xl bg-muted/40 flex items-center justify-center mb-3">
             <LinkIcon className="h-6 w-6 text-muted-foreground" />
