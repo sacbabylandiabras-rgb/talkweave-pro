@@ -79,7 +79,6 @@ export const en: Record<string, string> = {
   "Taxas": "Fees",
   "Pixels": "Pixels",
   "Saques": "Withdrawals",
-  "Configurações": "Settings",
 
   // ===== Sidebar – Bottom =====
   "Perfil": "Profile",
