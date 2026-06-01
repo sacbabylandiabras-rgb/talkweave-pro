@@ -168,7 +168,8 @@ export default function TelegramRedirecionadores() {
         />
       )}
       {tab === "utm" && <UtmTab links={links} />}
-      {tab !== "links" && tab !== "vendas" && tab !== "utm" && (
+      {tab === "dominio" && <DominioTab />}
+      {tab !== "links" && tab !== "vendas" && tab !== "utm" && tab !== "dominio" && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="h-14 w-14 rounded-2xl bg-muted/40 flex items-center justify-center mb-3">
             <LinkIcon className="h-6 w-6 text-muted-foreground" />
