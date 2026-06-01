@@ -69,6 +69,8 @@ interface TgRedirectLink {
   flow_ids: string[];
   click_count: number;
   created_at: string;
+  page_enabled?: boolean;
+  page_config?: any;
 }
 
 const TABS: { id: TabId; label: string; icon: any }[] = [
