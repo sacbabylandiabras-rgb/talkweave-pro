@@ -42,6 +42,9 @@ const aiCache: Record<string, string> = (() => {
     return {};
   }
 })();
+for (const [key, value] of Object.entries(dictionary)) {
+  if (!aiCache[key]) aiCache[key] = value;
+}
 function persistCache() {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(aiCache));
