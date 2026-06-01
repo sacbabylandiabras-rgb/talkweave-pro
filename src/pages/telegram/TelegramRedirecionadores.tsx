@@ -985,6 +985,11 @@ function UtmTab({ links }: { links: TgRedirectLink[] }) {
   const [cv, setCv] = useState("");
   const [shk, setShk] = useState("");
   const [salesCodes, setSalesCodes] = useState<Array<{ code: string; name: string; link_id: string }>>([]);
+  const [generated, setGenerated] = useState(false);
+
+  useEffect(() => {
+    setGenerated(false);
+  }, [linkId, model, fields, cv, shk]);
 
   useEffect(() => {
     if (!linkId && links.length) setLinkId(links[0].id);
@@ -1159,13 +1164,18 @@ function UtmTab({ links }: { links: TgRedirectLink[] }) {
         className="w-full"
         variant="secondary"
         onClick={() => {
-          navigator.clipboard.writeText(fullUrl);
-          toast.success("Link completo copiado");
+          if (!selectedLink) {
+            toast.error("Selecione um link base");
+            return;
+          }
+          setGenerated(true);
+          toast.success("Link gerado!");
         }}
       >
         Gerar Link
       </Button>
 
+      {generated && (
       <div className="space-y-3 pt-2">
         <div className="space-y-1.5">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
@@ -1194,6 +1204,7 @@ function UtmTab({ links }: { links: TgRedirectLink[] }) {
           <CopyField value={fullUrl} variant="warn" />
         </div>
       </div>
+      )}
     </div>
   );
 }
