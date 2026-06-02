@@ -80,7 +80,7 @@ function evalCondition(node: Node, ctx: any): boolean {
 async function processRun(admin: any, run: any) {
   const { data: flow } = await admin
     .from("telegram_group_flows")
-    .select("nodes, edges, bot_id")
+    .select("nodes, edges, bot_id, trigger_type, trigger_config")
     .eq("id", run.flow_id)
     .maybeSingle();
   if (!flow) {
@@ -88,6 +88,19 @@ async function processRun(admin: any, run: any) {
       status: "failed", last_error: "flow_deleted", next_run_at: null,
     }).eq("id", run.id);
     return;
+  }
+
+  if (run.trigger_source === "manual" && flow.trigger_type === "scheduled") {
+    const scheduledAt = new Date(flow.trigger_config?.scheduled_at || "").getTime();
+    const runCreatedAt = new Date(run.created_at || "").getTime();
+    if (Number.isFinite(scheduledAt) && Number.isFinite(runCreatedAt) && runCreatedAt < scheduledAt) {
+      await admin.from("telegram_group_flow_runs").update({
+        status: "failed",
+        last_error: "manual_run_before_schedule_cancelled",
+        next_run_at: null,
+      }).eq("id", run.id);
+      return;
+    }
   }
 
   const { data: bot } = await admin
