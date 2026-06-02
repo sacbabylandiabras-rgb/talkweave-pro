@@ -138,11 +138,17 @@ function mediaIcon(kind: TelegramMediaKind) {
 }
 
 function TelegramMediaBubble({ media, botId }: { media: ChatMedia; botId?: string }) {
-  const [url, setUrl] = useState<string>("");
-  const [contentType, setContentType] = useState("");
+  const [url, setUrl] = useState<string>(media.url || "");
+  const [contentType, setContentType] = useState(media.mimeType || "");
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    if (media.url) {
+      setUrl(media.url);
+      setContentType(media.mimeType || "");
+      setFailed(false);
+      return;
+    }
     let objectUrl = "";
     let cancelled = false;
     async function loadFile() {
@@ -169,7 +175,7 @@ function TelegramMediaBubble({ media, botId }: { media: ChatMedia; botId?: strin
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [media.fileId, media.kind, botId]);
+  }, [media.fileId, media.kind, media.url, media.mimeType, botId]);
 
   if (media.kind === "location" || media.kind === "venue") {
     const lat = media.extra?.latitude;
@@ -192,14 +198,14 @@ function TelegramMediaBubble({ media, botId }: { media: ChatMedia; botId?: strin
   return (
     <div className="mt-2 overflow-hidden rounded-xl border bg-muted/40">
       {url && media.kind === "photo" && <img src={url} alt={media.label} className="max-h-80 w-full object-contain" />}
-      {url && (media.kind === "video" || media.kind === "animation" || media.kind === "video_note") && <video src={url} controls className="max-h-80 w-full" />}
+      {url && (media.kind === "video" || media.kind === "animation" || media.kind === "video_note") && <video src={url} controls playsInline className="max-h-80 w-full" />}
       {url && (media.kind === "audio" || media.kind === "voice") && <audio src={url} controls className="w-full p-2" />}
       {url && media.kind === "sticker" && contentType.startsWith("image/") && <img src={url} alt={media.label} className="max-h-48 w-full object-contain p-2" />}
       {url && media.kind === "sticker" && contentType.startsWith("video/") && <video src={url} controls className="max-h-48 w-full" />}
       {(media.kind === "document" || !url || (media.kind === "sticker" && !contentType.startsWith("image/") && !contentType.startsWith("video/"))) && (
         <div className="flex items-center gap-2 p-3 text-xs">
           {mediaIcon(media.kind)}
-          <span className="min-w-0 flex-1 truncate">{failed ? "Não foi possível carregar a mídia" : (media.fileName || media.label)}</span>
+          <span className="min-w-0 flex-1 truncate">{failed ? "Não foi possível carregar a mídia" : (url ? (media.fileName || media.label) : "Carregando mídia...")}</span>
           {url && <a href={url} download={media.fileName || media.label} title="Baixar"><Download className="h-4 w-4" /></a>}
         </div>
       )}
