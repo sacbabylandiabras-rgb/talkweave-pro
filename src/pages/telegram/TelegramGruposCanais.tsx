@@ -3,6 +3,7 @@ import {
   readTelegramGroupsChannels,
   writeTelegramGroupsChannels,
 } from "@/hooks/useTelegramGroups";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Plus,
   Trash2,
@@ -45,8 +47,11 @@ import {
   Check,
   Tag,
   HelpCircle,
+  GitBranch,
+  List,
 } from "lucide-react";
 import { toast } from "sonner";
+import TelegramGruposCanaisFluxos from "./TelegramGruposCanaisFluxos";
 
 type GroupKind = "group" | "channel";
 
