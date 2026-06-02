@@ -9,6 +9,7 @@ const corsHeaders = {
 
 const MAX_STEPS_PER_RUN = 25;
 const MAX_RUNS_PER_TICK = 50;
+const MAX_SCHEDULED_FLOWS_PER_TICK = 50;
 
 type Node = {
   id: string;
@@ -79,7 +80,7 @@ function evalCondition(node: Node, ctx: any): boolean {
 async function processRun(admin: any, run: any) {
   const { data: flow } = await admin
     .from("telegram_group_flows")
-    .select("nodes, edges, bot_id")
+    .select("nodes, edges, bot_id, trigger_type, trigger_config")
     .eq("id", run.flow_id)
     .maybeSingle();
   if (!flow) {
@@ -87,6 +88,19 @@ async function processRun(admin: any, run: any) {
       status: "failed", last_error: "flow_deleted", next_run_at: null,
     }).eq("id", run.id);
     return;
+  }
+
+  if (run.trigger_source === "manual" && flow.trigger_type === "scheduled") {
+    const scheduledAt = new Date(flow.trigger_config?.scheduled_at || "").getTime();
+    const runCreatedAt = new Date(run.created_at || "").getTime();
+    if (Number.isFinite(scheduledAt) && Number.isFinite(runCreatedAt) && runCreatedAt < scheduledAt) {
+      await admin.from("telegram_group_flow_runs").update({
+        status: "failed",
+        last_error: "manual_run_before_schedule_cancelled",
+        next_run_at: null,
+      }).eq("id", run.id);
+      return;
+    }
   }
 
   const { data: bot } = await admin
@@ -243,26 +257,98 @@ async function processRun(admin: any, run: any) {
   }
 }
 
+function getScheduledAtMs(flow: any): number | null {
+  const raw = flow?.next_run_at || flow?.trigger_config?.scheduled_at;
+  if (!raw) return null;
+  const ms = new Date(raw).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+
+async function resolveFlowChatId(admin: any, flow: any): Promise<number | null> {
+  if (flow?.chat_id != null) {
+    const directChatId = Number(flow.chat_id);
+    if (Number.isFinite(directChatId)) return directChatId;
+  }
+
+  const { data: ch } = await admin
+    .from("telegram_free_channels")
+    .select("chat_id")
+    .eq("bot_id", flow.bot_id)
+    .maybeSingle();
+
+  if (!ch?.chat_id) return null;
+  const channelChatId = Number(ch.chat_id);
+  return Number.isFinite(channelChatId) ? channelChatId : null;
+}
+
+async function startFlowRunFromTick(admin: any, flow: any) {
+  const scheduledAtMs = getScheduledAtMs(flow);
+  const scheduledAtIso = scheduledAtMs ? new Date(scheduledAtMs).toISOString() : new Date().toISOString();
+  const startNodeId = flow.start_node_id || (Array.isArray(flow.nodes) && flow.nodes[0]?.id) || null;
+  if (!startNodeId) return { ok: false, error: "flow_sem_nó_inicial" };
+
+  const chatId = await resolveFlowChatId(admin, flow);
+  if (!chatId) return { ok: false, error: "canal_não_configurado" };
+
+  // Evita duplicar se dois ticks pegarem o mesmo agendamento ao mesmo tempo.
+  const { data: existing } = await admin
+    .from("telegram_group_flow_runs")
+    .select("id")
+    .eq("flow_id", flow.id)
+    .eq("trigger_source", flow.trigger_type)
+    .gte("created_at", new Date(new Date(scheduledAtIso).getTime() - 60_000).toISOString())
+    .limit(1)
+    .maybeSingle();
+  if (existing?.id) return { ok: true, duplicate: true };
+
+  const { data: run, error } = await admin
+    .from("telegram_group_flow_runs")
+    .insert({
+      flow_id: flow.id,
+      user_id: flow.user_id,
+      bot_id: flow.bot_id,
+      chat_id: chatId,
+      trigger_source: flow.trigger_type,
+      current_node_id: startNodeId,
+      status: "running",
+      next_run_at: new Date().toISOString(),
+      context: { variables: {} },
+    })
+    .select("id")
+    .single();
+
+  if (error) return { ok: false, error: error.message };
+
+  await admin
+    .from("telegram_group_flows")
+    .update({ last_run_at: new Date().toISOString() })
+    .eq("id", flow.id);
+
+  return { ok: true, run_id: run?.id };
+}
+
 async function processScheduledFlows(admin: any) {
-  const nowIso = new Date().toISOString();
+  const nowMs = Date.now();
   const { data: flows } = await admin
     .from("telegram_group_flows")
-    .select("id, trigger_type, trigger_config, next_run_at, bot_id")
+    .select("*")
     .eq("is_active", true)
     .in("trigger_type", ["scheduled", "recurring"])
-    .lte("next_run_at", nowIso)
-    .limit(20);
+    .limit(MAX_SCHEDULED_FLOWS_PER_TICK);
 
   for (const f of flows ?? []) {
-    // dispara
-    await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/telegram-group-flow-trigger`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-      },
-      body: JSON.stringify({ flow_id: f.id, trigger_source: f.trigger_type }),
-    }).catch(() => {});
+    const dueMs = getScheduledAtMs(f);
+    if (!dueMs || dueMs > nowMs) continue;
+    if (f.trigger_type === "scheduled") {
+      const lastRunMs = f.last_run_at ? new Date(f.last_run_at).getTime() : 0;
+      if (Number.isFinite(lastRunMs) && lastRunMs >= dueMs) continue;
+    }
+
+    const started = await startFlowRunFromTick(admin, f);
+    if (!started.ok) {
+      console.warn("scheduled flow start failed", f.id, started.error);
+      continue;
+    }
 
     // calcula próximo run
     let nextRun: string | null = null;
