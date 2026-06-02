@@ -365,15 +365,20 @@ function EditorInner() {
     });
   }, [screenToFlowPosition]);
 
-  function createNodeFromMenu(type: CanvasNodeType) {
+  function createNodeFromMenu(kind: "message" | "delay" | "schedule") {
     if (!connectMenu) return;
     const nid = newId();
+    const type: CanvasNodeType = kind === "message" ? "message" : "delay";
+    const dataPayload =
+      kind === "message"
+        ? { message: { content_type: "text", text: "", buttons: [] } }
+        : kind === "schedule"
+          ? { delay: { mode: "until", seconds: 60, until: null } }
+          : { delay: { mode: "duration", seconds: 60 } };
     const newNode: Node = {
       id: nid, type,
       position: { x: connectMenu.flowX, y: connectMenu.flowY },
-      data: type === "message"
-        ? { message: { content_type: "text", text: "", buttons: [] } }
-        : { delay: { seconds: 60 } },
+      data: dataPayload,
     };
     setNodes((nds) => [...nds, newNode]);
     setEdges((eds) => addEdge({
