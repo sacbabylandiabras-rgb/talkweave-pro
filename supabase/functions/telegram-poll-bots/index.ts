@@ -67,6 +67,19 @@ async function processChannelPostsPending() {
   }
 }
 
+async function processGroupFlowsPending() {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const res = await fetch(`${supabaseUrl}/functions/v1/telegram-group-flow-tick`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+    body: "{}",
+  });
+  if (!res.ok) {
+    console.warn("group flow tick failed", res.status, await res.text());
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -82,6 +95,10 @@ Deno.serve(async (req) => {
 
   await processChannelPostsPending().catch((e) =>
     console.warn("channel post pending processing failed", (e as Error).message)
+  );
+
+  await processGroupFlowsPending().catch((e) =>
+    console.warn("group flows pending processing failed", (e as Error).message)
   );
 
   const { data: bots, error } = await admin
