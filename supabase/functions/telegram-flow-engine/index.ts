@@ -180,7 +180,7 @@ function inferAmountFromText(text: string): number {
 
 function inferPaymentFromContext(userInput: string, recentMessages: any[] = [], fallbackText = "") {
   const newestFirst = [...recentMessages].reverse();
-  const candidates = [userInput, ...newestFirst.map((m) => String(m?.text || "")), fallbackText].filter(Boolean);
+  const candidates = [userInput, ...newestFirst.map((m) => String(m?.text || m?.content || "")), fallbackText].filter(Boolean);
   for (const text of candidates) {
     const amountCents = inferAmountFromText(text);
     if (amountCents > 0) {
