@@ -535,20 +535,43 @@ serve(async (req) => {
                   .single();
                 
                 if (sendInfo?.campaign_id) {
-                  // Verificar se ainda existem pendentes para esta campanha
+                  // Verificar se TODOS os contatos do target_audience já foram processados
+                  // (não apenas os campaign_sends existentes — senão marca como concluída
+                  // após o primeiro lote, antes do restante ser despachado).
                   const { count: pendingCount } = await supabase
                     .from("campaign_sends")
                     .select("id", { count: "exact", head: true })
                     .eq("campaign_id", sendInfo.campaign_id)
                     .in("status", ["pending", "sent"]);
-                  
+
                   if (pendingCount === 0) {
-                    console.log(`🏁 All messages for campaign ${sendInfo.campaign_id} are processed. Marking as completed.`);
-                    await supabase
+                    const { data: campaignRow } = await supabase
                       .from("campaigns")
-                      .update({ status: "completed", updated_at: new Date().toISOString() })
+                      .select("target_audience")
                       .eq("id", sendInfo.campaign_id)
-                      .in("status", ["active", "paused"]);
+                      .single();
+
+                    const targetContacts = Array.isArray((campaignRow?.target_audience as any)?.contacts)
+                      ? (campaignRow!.target_audience as any).contacts.filter((c: any) => Boolean(c?.phone))
+                      : [];
+                    const targetCount = targetContacts.length;
+
+                    const { count: processedDistinctCount } = await supabase
+                      .from("campaign_sends")
+                      .select("phone", { count: "exact", head: true })
+                      .eq("campaign_id", sendInfo.campaign_id)
+                      .in("status", ["delivered", "failed", "read"]);
+
+                    if (targetCount === 0 || (processedDistinctCount ?? 0) >= targetCount) {
+                      console.log(`🏁 All messages for campaign ${sendInfo.campaign_id} are processed (${processedDistinctCount}/${targetCount}). Marking as completed.`);
+                      await supabase
+                        .from("campaigns")
+                        .update({ status: "completed", updated_at: new Date().toISOString() })
+                        .eq("id", sendInfo.campaign_id)
+                        .in("status", ["active", "paused"]);
+                    } else {
+                      console.log(`⏳ Campaign ${sendInfo.campaign_id}: ${processedDistinctCount}/${targetCount} contatos processados — aguardando lotes restantes.`);
+                    }
                   }
                 }
               }
