@@ -188,7 +188,7 @@ Deno.serve(async (req) => {
               }) }
           : undefined;
         if (text) {
-          const sendRes = await sendWelcomeText(bot.bot_token, {
+          const sendRes = await sendWelcomeText(admin, bot, {
             chat_id: privateChatId,
             text,
             parse_mode: "HTML",
@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
       } else {
         const text = interpolate(cfg?.welcome_message || "").trim();
         if (text) {
-          const sendRes = await sendWelcomeText(bot.bot_token, {
+          const sendRes = await sendWelcomeText(admin, bot, {
             chat_id: privateChatId,
             text,
             parse_mode: "HTML",
