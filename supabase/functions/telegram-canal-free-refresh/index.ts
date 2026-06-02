@@ -101,6 +101,37 @@ async function persistChannel(admin: any, bot: any, channel: { chat_id: number; 
   return channel;
 }
 
+async function queueJoinedMembersWelcome(admin: any, bot: any, update: any) {
+  const msg = update?.message ?? update?.edited_message;
+  const chat = msg?.chat;
+  const members = Array.isArray(msg?.new_chat_members) ? msg.new_chat_members : [];
+  if (!chat?.id || members.length === 0) return;
+
+  const { data: cfg } = await admin
+    .from("telegram_free_channels")
+    .select("chat_id")
+    .eq("bot_id", bot.id)
+    .maybeSingle();
+  if (!cfg || String(cfg.chat_id) !== String(chat.id)) return;
+
+  for (const member of members) {
+    if (!member?.id || member?.is_bot) continue;
+    const now = new Date().toISOString();
+    await queueFreeJoinRequest(admin, {
+      bot_id: bot.id,
+      user_id: bot.user_id,
+      chat_id: chat.id,
+      from_user_id: member.id,
+      user_chat_id: member.id,
+      from_username: member?.username ?? null,
+      from_first_name: member?.first_name ?? null,
+      requested_at: now,
+      approve_at: now,
+      status: "pending",
+    });
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -157,6 +188,8 @@ Deno.serve(async (req) => {
       if (channel) {
         detectedChannel = await persistChannel(admin, bot, channel) ?? detectedChannel;
       }
+
+      await queueJoinedMembersWelcome(admin, bot, u);
 
       if (u.chat_join_request) {
         const jr = u.chat_join_request;
