@@ -1,17 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -19,42 +10,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  Plus, Trash2, Workflow, Play, Pause, Edit, MessageSquare, Clock,
-  Image as ImageIcon, Video, FileText, Upload, Loader2, X, ArrowDown,
-  Zap, Calendar as CalendarIcon, Repeat, Hash,
+  Plus, Trash2, Workflow, Play, Pause, Edit,
 } from "lucide-react";
 import { toast } from "sonner";
 
 type TriggerType = "manual" | "scheduled" | "recurring" | "keyword";
-type NodeType = "message" | "delay";
-type ContentType = "text" | "photo" | "video" | "document";
-type Btn = { text: string; url: string };
-
-type FlowNode =
-  | {
-      id: string;
-      type: "message";
-      data: {
-        content_type: ContentType;
-        text?: string;
-        media_url?: string | null;
-        buttons?: Btn[];
-      };
-    }
-  | {
-      id: string;
-      type: "delay";
-      data: { seconds: number };
-    };
 
 type Flow = {
   id: string;
   name: string;
   trigger_type: TriggerType;
-  trigger_config: any;
-  nodes: FlowNode[];
-  edges: Array<{ source: string; target: string; sourceHandle?: string | null }>;
-  start_node_id: string | null;
+  nodes: any[];
   is_active: boolean;
   next_run_at: string | null;
   last_run_at: string | null;
@@ -71,19 +37,6 @@ type Run = {
   updated_at: string;
 };
 
-const intervalPresets = [
-  { label: "A cada 30 minutos", minutes: 30 },
-  { label: "A cada 1 hora", minutes: 60 },
-  { label: "A cada 3 horas", minutes: 180 },
-  { label: "A cada 6 horas", minutes: 360 },
-  { label: "A cada 12 horas", minutes: 720 },
-  { label: "1x por dia", minutes: 1440 },
-];
-
-function newId() {
-  return `n_${Math.random().toString(36).slice(2, 10)}`;
-}
-
 function triggerLabel(t: TriggerType) {
   if (t === "manual") return "Manual";
   if (t === "scheduled") return "Agendado";
@@ -97,22 +50,13 @@ function fmt(iso: string | null) {
   catch { return iso; }
 }
 
-function buildLinearEdges(nodes: FlowNode[]) {
-  const edges: Array<{ source: string; target: string }> = [];
-  for (let i = 0; i < nodes.length - 1; i++) {
-    edges.push({ source: nodes[i].id, target: nodes[i + 1].id });
-  }
-  return edges;
-}
-
 export default function TelegramCanalFreeFluxos({
   botId, chatId, channelTitle,
 }: { botId: string; chatId: number | null; channelTitle: string }) {
+  const navigate = useNavigate();
   const [flows, setFlows] = useState<Flow[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
   const [loading, setLoading] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<Flow | null>(null);
 
   async function load() {
     if (!botId) { setFlows([]); setRuns([]); return; }
@@ -159,26 +103,11 @@ export default function TelegramCanalFreeFluxos({
   }
 
   function openNew() {
-    setEditing({
-      id: "",
-      name: "Novo fluxo",
-      trigger_type: "manual",
-      trigger_config: {},
-      nodes: [
-        { id: newId(), type: "message", data: { content_type: "text", text: "", buttons: [] } },
-      ],
-      edges: [],
-      start_node_id: null,
-      is_active: true,
-      next_run_at: null,
-      last_run_at: null,
-    });
-    setDialogOpen(true);
+    navigate(`/telegram/canal-free/fluxos/novo?botId=${botId}`);
   }
 
   function openEdit(flow: Flow) {
-    setEditing(JSON.parse(JSON.stringify(flow)));
-    setDialogOpen(true);
+    navigate(`/telegram/canal-free/fluxos/${flow.id}?botId=${botId}`);
   }
 
   return (
