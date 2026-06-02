@@ -38,7 +38,11 @@ type MessageData = {
   media_url?: string | null;
   buttons?: Btn[];
 };
-type DelayData = { seconds: number };
+type DelayData = {
+  mode?: "duration" | "until";
+  seconds: number;
+  until?: string | null; // ISO datetime for "until" mode
+};
 type FlowNode =
   | { id: string; type: "message"; data: MessageData }
   | { id: string; type: "delay"; data: DelayData };
@@ -194,11 +198,18 @@ function MessageNode({ id, data, selected }: any) {
 }
 
 function DelayNode({ id, data, selected }: any) {
-  const s = data?.delay?.seconds ?? 60;
+  const d: DelayData = data?.delay || { seconds: 60 };
+  const isUntil = d.mode === "until" && d.until;
+  const subtitle = isUntil
+    ? new Date(d.until!).toLocaleString()
+    : `${d.seconds ?? 60} segundos`;
+  const body = isUntil
+    ? "Aguarda até a data/hora definida"
+    : "Aguarda antes do próximo passo";
   return nodeShell(
     selected, "bg-amber-500/10", "text-amber-500",
-    <Clock className="h-4 w-4" />, "Esperar", `${s} segundos`,
-    <div>Aguarda antes do próximo passo</div>,
+    <Clock className="h-4 w-4" />, "Esperar", subtitle,
+    <div>{body}</div>,
     true, true,
     () => data?._remove?.(id),
   );
@@ -617,18 +628,71 @@ function EditorInner() {
             <>
               <SheetHeader>
                 <SheetTitle>Esperar</SheetTitle>
-                <SheetDescription>Quanto tempo aguardar antes do próximo passo</SheetDescription>
+                <SheetDescription>Defina por duração ou aguarde até uma data/hora</SheetDescription>
               </SheetHeader>
-              <div className="pt-4 flex items-center gap-2">
-                <Input
-                  type="number" min={1} className="w-32"
-                  value={selectedNode.data.delay?.seconds ?? 60}
-                  onChange={(e) => updateNodeData(selectedNode.id, (cur) => ({
-                    ...cur, delay: { seconds: Math.max(1, Number(e.target.value) || 1) },
-                  }))}
-                />
-                <span className="text-sm text-muted-foreground">segundos</span>
-              </div>
+              {(() => {
+                const d: DelayData = selectedNode.data.delay || { seconds: 60 };
+                const mode = d.mode === "until" ? "until" : "duration";
+                return (
+                  <Tabs
+                    value={mode}
+                    onValueChange={(v) => updateNodeData(selectedNode.id, (cur) => ({
+                      ...cur,
+                      delay: {
+                        ...(cur.delay || { seconds: 60 }),
+                        mode: v as "duration" | "until",
+                      },
+                    }))}
+                    className="pt-4"
+                  >
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="duration">Duração</TabsTrigger>
+                      <TabsTrigger value="until">Data/Hora</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="duration" className="pt-4 space-y-3">
+                      <Label className="text-xs">Aguardar por</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number" min={1} className="w-32"
+                          value={d.seconds ?? 60}
+                          onChange={(e) => updateNodeData(selectedNode.id, (cur) => ({
+                            ...cur,
+                            delay: {
+                              ...(cur.delay || {}),
+                              mode: "duration",
+                              seconds: Math.max(1, Number(e.target.value) || 1),
+                            },
+                          }))}
+                        />
+                        <span className="text-sm text-muted-foreground">segundos</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Dica: 60 = 1 min · 3600 = 1 h · 86400 = 1 dia
+                      </p>
+                    </TabsContent>
+                    <TabsContent value="until" className="pt-4 space-y-3">
+                      <Label className="text-xs">Aguardar até</Label>
+                      <Input
+                        type="datetime-local"
+                        value={d.until ? d.until.slice(0, 16) : ""}
+                        onChange={(e) => updateNodeData(selectedNode.id, (cur) => ({
+                          ...cur,
+                          delay: {
+                            ...(cur.delay || { seconds: 60 }),
+                            mode: "until",
+                            until: e.target.value
+                              ? new Date(e.target.value).toISOString()
+                              : null,
+                          },
+                        }))}
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        O fluxo pausa neste passo até chegar a data/hora definida.
+                      </p>
+                    </TabsContent>
+                  </Tabs>
+                );
+              })()}
             </>
           )}
         </SheetContent>
