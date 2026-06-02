@@ -1043,21 +1043,28 @@ serve(async (req) => {
       }
 
       if (rotatePool.length === 0) {
-        await supabase
-          .from("campaigns")
-          .update({ status: "paused", updated_at: new Date().toISOString() })
-          .eq("id", campaignId);
+        if (rawRotatePool.length > 0) {
+          console.log(
+            `⚠️ No instances reported as connected, but proceeding anyway with ${rawRotatePool.length} instance(s). Messages may be enqueued by the provider.`,
+          );
+          rotatePool = rawRotatePool;
+        } else {
+          await supabase
+            .from("campaigns")
+            .update({ status: "paused", updated_at: new Date().toISOString() })
+            .eq("id", campaignId);
 
-        return new Response(
-          JSON.stringify({
-            error: "Nenhuma instância conectada disponível no modo rotativo. A campanha foi pausada.",
-            stopped: true,
-          }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json", ...corsHeaders },
-          },
-        );
+          return new Response(
+            JSON.stringify({
+              error: "Nenhuma instância disponível no modo rotativo. A campanha foi pausada.",
+              stopped: true,
+            }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json", ...corsHeaders },
+            },
+          );
+        }
       }
     } else if (requestedInstanceId) {
       const specificInstance = await resolveContactInstance(supabase, credentials.userId, requestedInstanceId, true);
