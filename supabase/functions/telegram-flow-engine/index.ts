@@ -70,7 +70,13 @@ const tgSend = async (
         from_first_name: r.from?.first_name ?? "Bot",
         message_type: "message",
         text: r.text ?? r.caption ?? fallbackText,
-        raw_update: { message: { ...r, from: { ...(r.from || {}), is_bot: true } } },
+        raw_update: {
+          message: {
+            ...r,
+            reply_markup: r.reply_markup ?? body?.reply_markup,
+            from: { ...(r.from || {}), is_bot: true },
+          },
+        },
       });
     }
   } catch (e) {
