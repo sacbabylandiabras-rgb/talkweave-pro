@@ -120,7 +120,11 @@ export default function TelegramChat() {
   };
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    const el = scrollRef.current;
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    });
   }, [activeId, active?.messages.length]);
 
   async function send() {
@@ -238,7 +242,7 @@ export default function TelegramChat() {
         </div>
 
         {/* Painel direito - Conversa */}
-        <div className="flex flex-col">
+        <div className="flex flex-col min-h-0 min-w-0 overflow-hidden">
           {active ? (
             <>
               <div className="p-3 border-b flex items-center justify-between">
