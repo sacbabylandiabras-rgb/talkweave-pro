@@ -135,9 +135,26 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
+      // Team support: if employee, query under owner_id and filter by allowed list
+      let queryUserId = user.id;
+      let allowedInstanceIds: string[] | null = null;
+      try {
+        const { data: member } = await (supabase as any)
+          .from('team_members')
+          .select('allowed_instance_ids, status, team:teams(owner_id)')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .maybeSingle();
+        if (member?.team?.owner_id) {
+          queryUserId = member.team.owner_id;
+          allowedInstanceIds = Array.isArray(member.allowed_instance_ids) && member.allowed_instance_ids.length > 0
+            ? member.allowed_instance_ids : null;
+        }
+      } catch { /* ignore */ }
+
       let allInstances: ZapiInstance[] = [];
       
-      const fetchZapiPromise = fetchInstancesWithRetry(user.id);
+      const fetchZapiPromise = fetchInstancesWithRetry(queryUserId);
       let metaPromise: any = Promise.resolve({ data: [] });
       
        const WHATSAPP_META_APP_ID = "26985190684454065";
@@ -145,7 +162,7 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
          metaPromise = supabase
            .from("meta_credentials" as any)
            .select("*")
-           .eq("user_id", user.id)
+           .eq("user_id", queryUserId)
            .eq("app_id", WHATSAPP_META_APP_ID)
            .eq("connected", true)
            .not("phone_number_id", "is", null)
@@ -209,9 +226,9 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
       }
 
       const deduped = normalizeInstances(allInstances, options?.includeWarmup, options?.provider);
-
-      setInstances(deduped);
-      setActiveInstance((current) => deduped.find(i => i.id === current?.id) || deduped.find(i => i.is_default) || deduped[0] || null);
+      const finalList = allowedInstanceIds ? deduped.filter(i => allowedInstanceIds!.includes(i.id)) : deduped;
+      setInstances(finalList);
+      setActiveInstance((current) => finalList.find(i => i.id === current?.id) || finalList.find(i => i.is_default) || finalList[0] || null);
       writeCachedInstances(user.id, deduped, options?.includeMeta);
     } catch (error: any) {
       console.error('Erro ao buscar instâncias:', error);

@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { WorkspaceProvider, WorkspaceRouteSync } from "@/contexts/WorkspaceContext";
+import { TeamProvider } from "@/contexts/TeamContext";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { usePushNotifications } from "./hooks/usePushNotifications";
 import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
@@ -138,6 +139,8 @@ const DisparoOculto = lazyWithRecovery(() => import("./pages/DisparoOculto"));
 const AdminDisparoOculto = lazyWithRecovery(() => import("./pages/AdminDisparoOculto"));
 const Comunidades = lazyWithRecovery(() => import("./pages/Comunidades"));
 const Prospeccao = lazyWithRecovery(() => import("./pages/Prospeccao"));
+const Equipe = lazyWithRecovery(() => import("./pages/Equipe"));
+const AceitarConvite = lazyWithRecovery(() => import("./pages/AceitarConvite"));
 
 const queryClient = new QueryClient();
 
@@ -157,6 +160,7 @@ const App = () => (
      <ThemeProvider attribute="data-theme" defaultTheme="white" enableSystem={false} forcedTheme="white">
       <TooltipProvider>
         <WorkspaceProvider>
+          <TeamProvider>
           <Toaster />
           <Sonner />
           <AppContent />
@@ -179,6 +183,7 @@ const App = () => (
                 <Route path="/whatsapp" element={<LandingWhatsApp />} />
                 <Route path="/auth" element={<Auth />} />
                  <Route path="/reset-password" element={<ResetPassword />} />
+                 <Route path="/aceitar-convite" element={<AceitarConvite />} />
                  <Route path="/preview-app" element={<PreviewApp />} />
                   <Route path="/aplicativo" element={<CustomInputPage />} />
                   <Route path="/aplicativo/index.html" element={<CustomInputPage />} />
@@ -214,6 +219,7 @@ const App = () => (
                   <Route path="/comunidades" element={<PaidRouteGuard><Comunidades /></PaidRouteGuard>} />
                    <Route path="/canais" element={<PaidRouteGuard><Canais /></PaidRouteGuard>} />
                    <Route path="/prospeccao" element={<Prospeccao />} />
+                   <Route path="/equipe" element={<Equipe />} />
                    
                    <Route path="/agente-ia" element={<AgenteIA />} />
                    <Route path="/departamento" element={<Departamento />} />
@@ -317,6 +323,7 @@ const App = () => (
              </Suspense>
             {!isNative && <WhatsAppFloatingButton />}
           </BrowserRouter>
+          </TeamProvider>
         </WorkspaceProvider>
       </TooltipProvider>
     </ThemeProvider>
