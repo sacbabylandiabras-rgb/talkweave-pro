@@ -29,7 +29,7 @@ async function ensureWebhook(bot: { id: string; bot_token: string }) {
     body: JSON.stringify({
       url: webhookUrl,
       secret_token: secretToken,
-      allowed_updates: ["message", "callback_query"],
+      allowed_updates: ["message", "callback_query", "my_chat_member", "chat_join_request"],
       drop_pending_updates: false,
     }),
   });
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           offset: currentOffset,
           timeout: PER_BOT_TIMEOUT,
-          allowed_updates: ["message", "callback_query"],
+          allowed_updates: ["message", "callback_query", "my_chat_member", "chat_join_request"],
         }),
       });
       const tgJson = await tgRes.json();
