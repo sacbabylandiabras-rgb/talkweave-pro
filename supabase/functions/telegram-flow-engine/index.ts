@@ -296,33 +296,33 @@ async function runFlow({
         const mediaUrl: string | undefined = data.mediaUrl || data.fileUrl || data.url;
 
         if (contentType === "image" || contentType === "photo") {
-          await tgApi(bot.bot_token, "sendPhoto", {
+          await tgSend(admin, bot, {
             chat_id: chatId,
             photo: mediaUrl,
             caption: text || undefined,
             reply_markup,
-          });
+          }, "sendPhoto");
         } else if (contentType === "video") {
-          await tgApi(bot.bot_token, "sendVideo", {
+          await tgSend(admin, bot, {
             chat_id: chatId,
             video: mediaUrl,
             caption: text || undefined,
             reply_markup,
-          });
+          }, "sendVideo");
         } else if (contentType === "audio") {
-          await tgApi(bot.bot_token, "sendAudio", {
+          await tgSend(admin, bot, {
             chat_id: chatId,
             audio: mediaUrl,
             caption: text || undefined,
             reply_markup,
-          });
+          }, "sendAudio");
         } else if (contentType === "document" || contentType === "file") {
-          await tgApi(bot.bot_token, "sendDocument", {
+          await tgSend(admin, bot, {
             chat_id: chatId,
             document: mediaUrl,
             caption: text || undefined,
             reply_markup,
-          });
+          }, "sendDocument");
         } else {
           await tgSend(admin, bot, {
             chat_id: chatId,
@@ -543,13 +543,13 @@ async function runFlow({
             : undefined;
 
           if (qrImage && /^https?:\/\//i.test(qrImage)) {
-            await tgApi(bot.bot_token, "sendPhoto", {
+            await tgSend(admin, bot, {
               chat_id: chatId,
               photo: qrImage,
               caption,
               parse_mode: "Markdown",
               ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
-            });
+            }, "sendPhoto");
           } else {
             await tgSend(admin, bot, {
               chat_id: chatId,
