@@ -29,7 +29,13 @@ interface ChatMedia {
   extra?: Record<string, any>;
 }
 
-interface ChatMsg { id: string; from: "me" | "them"; text: string; time: string; media: ChatMedia[]; }
+interface ChatButton {
+  text: string;
+  url?: string;
+  callbackData?: string;
+}
+
+interface ChatMsg { id: string; from: "me" | "them"; text: string; time: string; media: ChatMedia[]; buttons: ChatButton[][]; }
 interface Conversation {
   id: string;
   name: string;
@@ -69,6 +75,30 @@ function extractMedia(message: any): ChatMedia[] {
   if (message.venue) return [{ kind: "venue", label: message.venue.title || "Local", extra: message.venue }];
   if (message.contact) return [{ kind: "contact", label: message.contact.first_name || "Contato", extra: message.contact }];
   if (message.poll) return [{ kind: "poll", label: message.poll.question || "Enquete", extra: message.poll }];
+  return [];
+}
+
+function extractButtons(message: any): ChatButton[][] {
+  const inlineKeyboard = message?.reply_markup?.inline_keyboard;
+  if (Array.isArray(inlineKeyboard)) {
+    return inlineKeyboard
+      .map((row: any[]) => Array.isArray(row) ? row.map((button: any) => ({
+        text: String(button?.text || "Botão"),
+        url: button?.url || button?.web_app?.url || button?.login_url?.url,
+        callbackData: button?.callback_data || button?.switch_inline_query || button?.switch_inline_query_current_chat,
+      })) : [])
+      .filter((row) => row.length > 0);
+  }
+
+  const keyboard = message?.reply_markup?.keyboard;
+  if (Array.isArray(keyboard)) {
+    return keyboard
+      .map((row: any[]) => Array.isArray(row) ? row.map((button: any) => ({
+        text: typeof button === "string" ? button : String(button?.text || "Botão"),
+      })) : [])
+      .filter((row) => row.length > 0);
+  }
+
   return [];
 }
 
@@ -175,6 +205,33 @@ function TelegramMediaBubble({ media, botId }: { media: ChatMedia; botId?: strin
   );
 }
 
+function TelegramButtons({ rows }: { rows: ChatButton[][] }) {
+  if (!rows.length) return null;
+  return (
+    <div className="mt-2 space-y-1.5">
+      {rows.map((row, rowIndex) => (
+        <div key={rowIndex} className="flex flex-wrap gap-1.5">
+          {row.map((button, buttonIndex) => {
+            const className = "rounded-lg border bg-background/80 px-3 py-1.5 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-muted";
+            if (button.url) {
+              return (
+                <a key={buttonIndex} href={button.url} target="_blank" rel="noreferrer" className={className}>
+                  {button.text}
+                </a>
+              );
+            }
+            return (
+              <span key={buttonIndex} className={className} title={button.callbackData || button.text}>
+                {button.text}
+              </span>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function TelegramChat() {
   const [convs, setConvs] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string>("");
@@ -206,6 +263,7 @@ export default function TelegramChat() {
       const key = `${row.bot_id}:${row.chat_id}`;
       const telegramMessage = getTelegramMessage(row.raw_update);
       const media = extractMedia(telegramMessage);
+      const buttons = extractButtons(telegramMessage);
       const fromBot = telegramMessage?.from?.is_bot === true;
       const time = new Date(row.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
       const msg: ChatMsg = {
@@ -214,8 +272,9 @@ export default function TelegramChat() {
         text: row.text || telegramMessage?.caption || "",
         time,
         media,
+        buttons,
       };
-      const previewText = msg.text || mediaPreview(media) || "Mensagem";
+      const previewText = msg.text || mediaPreview(media) || (buttons.length ? "Botões" : "Mensagem");
       const existing = grouped.get(key);
       if (existing) {
         existing.messages.push(msg);
@@ -287,7 +346,7 @@ export default function TelegramChat() {
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      const newMsg: ChatMsg = { id: crypto.randomUUID(), from: "me", text: draft.trim(), time: "Agora", media: [] };
+      const newMsg: ChatMsg = { id: crypto.randomUUID(), from: "me", text: draft.trim(), time: "Agora", media: [], buttons: [] };
       setConvs((prev) => prev.map((c) => c.id === activeId
         ? { ...c, messages: [...c.messages, newMsg], last_msg: newMsg.text, last_time: "Agora" }
         : c,
@@ -461,7 +520,8 @@ export default function TelegramChat() {
                       {m.media.map((media, index) => (
                         <TelegramMediaBubble key={`${m.id}-${index}`} media={media} botId={active.bot_id} />
                       ))}
-                      {!m.text && m.media.length === 0 && <p>Mensagem</p>}
+                      <TelegramButtons rows={m.buttons} />
+                      {!m.text && m.media.length === 0 && m.buttons.length === 0 && <p>Mensagem</p>}
                       <p className={cn("text-[10px] mt-1", m.from === "me" ? "text-primary-foreground/70" : "text-muted-foreground")}>{m.time}</p>
                     </div>
                   </div>
