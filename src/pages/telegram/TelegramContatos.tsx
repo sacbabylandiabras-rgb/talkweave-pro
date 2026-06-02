@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -25,8 +26,6 @@ interface Contact {
   status: "ATIVO" | "INATIVO" | "TRIAL" | "EXPIRADO";
 }
 
-const MOCK: Contact[] = [];
-
 const STATUS_STYLE: Record<Contact["status"], string> = {
   ATIVO: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
   INATIVO: "bg-muted text-muted-foreground border-border",
@@ -38,9 +37,87 @@ export default function TelegramContatos() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [perPage, setPerPage] = useState("10");
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const { data: auth } = await supabase.auth.getUser();
+        const uid = auth?.user?.id;
+        if (!uid) { setContacts([]); return; }
+
+        // 1) Distinct telegram contacts from messages
+        const { data: msgs } = await supabase
+          .from("telegram_messages")
+          .select("chat_id, from_user_id, from_username, from_first_name, created_at")
+          .eq("user_id", uid)
+          .order("created_at", { ascending: false })
+          .limit(1000);
+
+        const map = new Map<string, Contact>();
+        (msgs || []).forEach((m: any) => {
+          const key = String(m.chat_id);
+          if (map.has(key)) return;
+          const handle = m.from_username ? `@${m.from_username}` : (m.from_first_name || `chat ${key}`);
+          map.set(key, {
+            id: key,
+            cliente: m.from_first_name || m.from_username || `Chat ${key}`,
+            email: "",
+            telefone: "",
+            telegram: handle,
+            vencimento: "",
+            status: "INATIVO",
+          });
+        });
+
+        // 2) Enrich with transactions (paid -> ATIVO)
+        const { data: txs } = await supabase
+          .from("gateway_transactions")
+          .select("status, customer_name, customer_email, customer_phone, metadata, created_at")
+          .eq("user_id", uid)
+          .order("created_at", { ascending: false })
+          .limit(1000);
+
+        (txs || []).forEach((t: any) => {
+          const meta = t.metadata || {};
+          const chatId = meta.telegramChatId || meta.chat_id;
+          if (!chatId) return;
+          const key = String(chatId);
+          const existing = map.get(key) || {
+            id: key,
+            cliente: t.customer_name || `Chat ${key}`,
+            email: "",
+            telefone: "",
+            telegram: `chat ${key}`,
+            vencimento: "",
+            status: "INATIVO" as const,
+          };
+          existing.cliente = existing.cliente || t.customer_name || existing.cliente;
+          existing.email = existing.email || t.customer_email || "";
+          existing.telefone = existing.telefone || t.customer_phone || "";
+          const st = String(t.status || "").toLowerCase();
+          if (["paid", "approved", "completed", "succeeded"].includes(st)) {
+            existing.status = "ATIVO";
+          } else if (existing.status === "INATIVO" && ["pending", "waiting"].includes(st)) {
+            existing.status = "TRIAL";
+          }
+          map.set(key, existing);
+        });
+
+        setContacts(Array.from(map.values()));
+      } catch (e) {
+        console.error("Erro ao carregar contatos:", e);
+        setContacts([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const filtered = useMemo(() => {
-    return MOCK.filter((c) => {
+    return contacts.filter((c) => {
       const q = search.toLowerCase();
       const matchSearch = !q ||
         c.cliente.toLowerCase().includes(q) ||
@@ -49,7 +126,7 @@ export default function TelegramContatos() {
       const matchStatus = statusFilter === "all" || c.status === statusFilter;
       return matchSearch && matchStatus;
     });
-  }, [search, statusFilter]);
+  }, [search, statusFilter, contacts]);
 
   return (
     <div className="space-y-6">
@@ -135,7 +212,7 @@ export default function TelegramContatos() {
                 {filtered.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-16 text-muted-foreground">
-                      Nenhum contato encontrado.
+                      {loading ? "Carregando contatos..." : "Nenhum contato encontrado."}
                     </TableCell>
                   </TableRow>
                 ) : filtered.map((c) => (
