@@ -230,13 +230,13 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
     case 'set-last-seen':
       return { method: 'POST', path: '/privacy/last-seen', body: { visualizationType: payload?.visualizationType } };
     case 'set-photo-visualization':
-      return { method: 'POST', path: '/privacy/photo-visualization', body: { visualizationType: payload?.visualizationType } };
+      return { method: 'POST', path: '/privacy/photo', body: { visualizationType: payload?.visualizationType } };
     case 'set-privacy-description':
-      return { method: 'POST', path: '/privacy/privacy-description', body: { visualizationType: payload?.visualizationType } };
+      return { method: 'POST', path: '/privacy/description', body: { visualizationType: payload?.visualizationType } };
     case 'set-group-add-permission':
-      return { method: 'POST', path: '/privacy/group-add-permission', body: { visualizationType: payload?.visualizationType } };
+      return { method: 'POST', path: '/privacy/group-add', body: { visualizationType: payload?.visualizationType } };
     case 'set-privacy-online':
-      return { method: 'POST', path: '/privacy/privacy-online', body: { visualizationType: payload?.visualizationType } };
+      return { method: 'POST', path: '/privacy/online', body: { visualizationType: payload?.visualizationType } };
     case 'set-read-receipts': {
       const value = payload?.active === true || payload?.active === 'true' || payload?.value === 'enable' ? 'enable' : 'disable';
       return { method: 'POST', path: `/privacy/read-receipts?value=${value}` };
