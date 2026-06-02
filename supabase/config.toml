@@ -78,6 +78,12 @@ verify_jwt = false
 [functions.telegram-channel-post-send]
 verify_jwt = true
 
+[functions.telegram-group-flow-trigger]
+verify_jwt = true
+
+[functions.telegram-group-flow-tick]
+verify_jwt = false
+
 [functions.telegram-redirect]
 verify_jwt = false
 
