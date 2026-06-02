@@ -219,6 +219,17 @@ export default function TelegramCanalFree() {
       </Card>
 
       {/* Status Banner */}
+      <Tabs defaultValue="config" className="space-y-5">
+        <TabsList>
+          <TabsTrigger value="config" className="flex items-center gap-1.5">
+            <Settings className="w-4 h-4" /> Configuração
+          </TabsTrigger>
+          <TabsTrigger value="envio" className="flex items-center gap-1.5">
+            <Send className="w-4 h-4" /> Enviar conteúdo
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="config" className="space-y-5">
       <Card
         className={`p-5 border-l-4 ${
           isConfigured
@@ -373,6 +384,16 @@ export default function TelegramCanalFree() {
           </Button>
         </div>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="envio">
+          <TelegramCanalFreeEnvio
+            botId={botId}
+            chatId={chatId}
+            channelTitle={channelTitle}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Help Modal */}
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
