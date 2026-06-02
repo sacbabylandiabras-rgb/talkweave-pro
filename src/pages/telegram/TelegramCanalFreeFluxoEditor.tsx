@@ -529,8 +529,12 @@ function TriggerConfigForm({
         <Label>Data e hora</Label>
         <Input
           type="datetime-local"
-          value={triggerConfig?.scheduled_at
-            ? new Date(triggerConfig.scheduled_at).toISOString().slice(0, 16) : ""}
+          value={(() => {
+            if (!triggerConfig?.scheduled_at) return "";
+            const d = new Date(triggerConfig.scheduled_at);
+            const off = d.getTimezoneOffset() * 60000;
+            return new Date(d.getTime() - off).toISOString().slice(0, 16);
+          })()}
           onChange={(e) => onConfigChange({
             ...triggerConfig,
             scheduled_at: e.target.value ? new Date(e.target.value).toISOString() : null,
