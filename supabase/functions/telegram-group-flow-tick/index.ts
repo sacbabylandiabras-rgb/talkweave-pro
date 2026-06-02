@@ -9,6 +9,7 @@ const corsHeaders = {
 
 const MAX_STEPS_PER_RUN = 25;
 const MAX_RUNS_PER_TICK = 50;
+const MAX_SCHEDULED_FLOWS_PER_TICK = 50;
 
 type Node = {
   id: string;
@@ -241,6 +242,76 @@ async function processRun(admin: any, run: any) {
       step_count: stepCount, context: ctx,
     }).eq("id", run.id);
   }
+}
+
+function getScheduledAtMs(flow: any): number | null {
+  const raw = flow?.next_run_at || flow?.trigger_config?.scheduled_at;
+  if (!raw) return null;
+  const ms = new Date(raw).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+
+async function resolveFlowChatId(admin: any, flow: any): Promise<number | null> {
+  if (flow?.chat_id != null) {
+    const directChatId = Number(flow.chat_id);
+    if (Number.isFinite(directChatId)) return directChatId;
+  }
+
+  const { data: ch } = await admin
+    .from("telegram_free_channels")
+    .select("chat_id")
+    .eq("bot_id", flow.bot_id)
+    .maybeSingle();
+
+  if (!ch?.chat_id) return null;
+  const channelChatId = Number(ch.chat_id);
+  return Number.isFinite(channelChatId) ? channelChatId : null;
+}
+
+async function startFlowRunFromTick(admin: any, flow: any) {
+  const scheduledAtMs = getScheduledAtMs(flow);
+  const scheduledAtIso = scheduledAtMs ? new Date(scheduledAtMs).toISOString() : new Date().toISOString();
+  const startNodeId = flow.start_node_id || (Array.isArray(flow.nodes) && flow.nodes[0]?.id) || null;
+  if (!startNodeId) return { ok: false, error: "flow_sem_nó_inicial" };
+
+  const chatId = await resolveFlowChatId(admin, flow);
+  if (!chatId) return { ok: false, error: "canal_não_configurado" };
+
+  // Evita duplicar se dois ticks pegarem o mesmo agendamento ao mesmo tempo.
+  const { data: existing } = await admin
+    .from("telegram_group_flow_runs")
+    .select("id")
+    .eq("flow_id", flow.id)
+    .eq("trigger_source", flow.trigger_type)
+    .gte("created_at", new Date(new Date(scheduledAtIso).getTime() - 60_000).toISOString())
+    .limit(1)
+    .maybeSingle();
+  if (existing?.id) return { ok: true, duplicate: true };
+
+  const { data: run, error } = await admin
+    .from("telegram_group_flow_runs")
+    .insert({
+      flow_id: flow.id,
+      user_id: flow.user_id,
+      bot_id: flow.bot_id,
+      chat_id: chatId,
+      trigger_source: flow.trigger_type,
+      current_node_id: startNodeId,
+      status: "running",
+      next_run_at: new Date().toISOString(),
+      context: { variables: {} },
+    })
+    .select("id")
+    .single();
+
+  if (error) return { ok: false, error: error.message };
+
+  await admin
+    .from("telegram_group_flows")
+    .update({ last_run_at: new Date().toISOString() })
+    .eq("id", flow.id);
+
+  return { ok: true, run_id: run?.id };
 }
 
 async function processScheduledFlows(admin: any) {
