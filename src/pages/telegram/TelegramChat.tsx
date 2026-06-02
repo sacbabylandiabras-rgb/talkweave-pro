@@ -29,7 +29,13 @@ interface ChatMedia {
   extra?: Record<string, any>;
 }
 
-interface ChatMsg { id: string; from: "me" | "them"; text: string; time: string; media: ChatMedia[]; }
+interface ChatButton {
+  text: string;
+  url?: string;
+  callbackData?: string;
+}
+
+interface ChatMsg { id: string; from: "me" | "them"; text: string; time: string; media: ChatMedia[]; buttons: ChatButton[][]; }
 interface Conversation {
   id: string;
   name: string;
@@ -69,6 +75,30 @@ function extractMedia(message: any): ChatMedia[] {
   if (message.venue) return [{ kind: "venue", label: message.venue.title || "Local", extra: message.venue }];
   if (message.contact) return [{ kind: "contact", label: message.contact.first_name || "Contato", extra: message.contact }];
   if (message.poll) return [{ kind: "poll", label: message.poll.question || "Enquete", extra: message.poll }];
+  return [];
+}
+
+function extractButtons(message: any): ChatButton[][] {
+  const inlineKeyboard = message?.reply_markup?.inline_keyboard;
+  if (Array.isArray(inlineKeyboard)) {
+    return inlineKeyboard
+      .map((row: any[]) => Array.isArray(row) ? row.map((button: any) => ({
+        text: String(button?.text || "Botão"),
+        url: button?.url || button?.web_app?.url || button?.login_url?.url,
+        callbackData: button?.callback_data || button?.switch_inline_query || button?.switch_inline_query_current_chat,
+      })) : [])
+      .filter((row) => row.length > 0);
+  }
+
+  const keyboard = message?.reply_markup?.keyboard;
+  if (Array.isArray(keyboard)) {
+    return keyboard
+      .map((row: any[]) => Array.isArray(row) ? row.map((button: any) => ({
+        text: typeof button === "string" ? button : String(button?.text || "Botão"),
+      })) : [])
+      .filter((row) => row.length > 0);
+  }
+
   return [];
 }
 
