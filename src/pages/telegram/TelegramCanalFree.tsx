@@ -70,20 +70,25 @@ export default function TelegramCanalFree() {
       return;
     }
     setRefreshing(true);
-    const { data } = await supabase
-      .from("telegram_free_channels" as any)
-      .select("chat_id, title")
-      .eq("bot_id", botId)
-      .maybeSingle();
-    setRefreshing(false);
-    const row = data as any;
-    if (row?.title) {
-      setChannelTitle(row.title);
-      toast.success(`Canal encontrado: ${row.title}`);
-    } else {
-      toast.error(
-        "Não foi possível encontrar o canal. Adicione o bot como administrador do canal e tente novamente.",
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "telegram-canal-free-refresh",
+        { body: { bot_id: botId } },
       );
+      if (error) throw error;
+      const ch = (data as any)?.channel;
+      if (ch?.chat_id) {
+        setChannelTitle(ch.title || `Canal ${ch.chat_id}`);
+        toast.success(`Canal encontrado: ${ch.title || ch.chat_id}`);
+      } else {
+        toast.error(
+          "Não foi possível encontrar o canal. Confirme que o bot foi adicionado como administrador e tente novamente em alguns segundos.",
+        );
+      }
+    } catch (e: any) {
+      toast.error(`Erro ao atualizar: ${e?.message || "tente novamente"}`);
+    } finally {
+      setRefreshing(false);
     }
   }
 
