@@ -38,7 +38,11 @@ type MessageData = {
   media_url?: string | null;
   buttons?: Btn[];
 };
-type DelayData = { seconds: number };
+type DelayData = {
+  mode?: "duration" | "until";
+  seconds: number;
+  until?: string | null; // ISO datetime for "until" mode
+};
 type FlowNode =
   | { id: string; type: "message"; data: MessageData }
   | { id: string; type: "delay"; data: DelayData };
