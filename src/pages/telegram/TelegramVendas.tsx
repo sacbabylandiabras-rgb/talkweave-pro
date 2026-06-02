@@ -73,7 +73,9 @@ export default function TelegramVendas() {
 
     const telegramSales = (transactions ?? []).filter((tx: any) => {
       const meta = getMetadata(tx);
-      return meta.source === "telegram" || meta.channel === "telegram" || externalIds.has(String(tx.external_id || ""));
+      const description = String(meta.description || "").toLowerCase();
+      const legacyTelegramFlow = meta.source === "flow_visual" && !tx.customer_phone && !tx.customer_email;
+      return meta.source === "telegram" || meta.channel === "telegram" || externalIds.has(String(tx.external_id || "")) || description.includes("telegram") || legacyTelegramFlow;
     }).map((tx: any) => {
       const meta = getMetadata(tx);
       const session = flowSessions.find((s: any) => String(s?.variables?.payment?.externalId || "") === String(tx.external_id || ""));
@@ -107,10 +109,32 @@ export default function TelegramVendas() {
 
   const filtered = useMemo(() => sales.filter((s) => {
     const status = getStatusLabel(s.status);
-    return (statusFilter === "all" || status === statusFilter);
-  }), [sales, statusFilter]);
+    const meta = getMetadata(s);
+    const haystack = [
+      s.id,
+      s.external_id,
+      s.customer_name,
+      s.customer_email,
+      s.customer_phone,
+      s.chat_id,
+      meta.brCode,
+      meta.description,
+    ].map((v) => String(v || "").toLowerCase()).join(" ");
+    const provider = String(meta.provider || "").toLowerCase();
+    return (
+      (statusFilter === "all" || status === statusFilter) &&
+      (acquirer === "all" || provider === acquirer.toLowerCase()) &&
+      (!orderId.trim() || haystack.includes(orderId.trim().toLowerCase())) &&
+      (!clientId.trim() || haystack.includes(clientId.trim().toLowerCase())) &&
+      (!txId.trim() || haystack.includes(txId.trim().toLowerCase()))
+    );
+  }), [sales, statusFilter, acquirer, orderId, clientId, txId]);
 
-  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const fmt = (v: number) => (Number(v || 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const acquirers = useMemo(() => Array.from(new Set(
+    sales.map((s) => String(getMetadata(s).provider || "").trim()).filter(Boolean),
+  )), [sales]);
 
   const stats = useMemo(() => {
     const sumBy = (label: string) => sales
