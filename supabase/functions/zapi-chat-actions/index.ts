@@ -228,18 +228,18 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
      case 'get-disallowed-contacts':
       return { method: 'GET', path: '/privacy/disallowed-contacts' };
     case 'set-last-seen':
-      return { method: 'POST', path: '/privacy/last-seen', body: { visualizationType: payload?.visualizationType } };
+      return { method: 'PUT', path: '/privacy/last-seen', body: { visualizationType: payload?.visualizationType } };
     case 'set-photo-visualization':
-      return { method: 'POST', path: '/privacy/photo-visualization', body: { visualizationType: payload?.visualizationType } };
+      return { method: 'PUT', path: '/privacy/photo-visualization', body: { visualizationType: payload?.visualizationType } };
     case 'set-privacy-description':
-      return { method: 'POST', path: '/privacy/privacy-description', body: { visualizationType: payload?.visualizationType } };
+      return { method: 'PUT', path: '/privacy/privacy-description', body: { visualizationType: payload?.visualizationType } };
     case 'set-group-add-permission':
-      return { method: 'POST', path: '/privacy/group-add-permission', body: { visualizationType: payload?.visualizationType } };
+      return { method: 'PUT', path: '/privacy/group-add-permission', body: { visualizationType: payload?.visualizationType } };
     case 'set-privacy-online':
-      return { method: 'POST', path: '/privacy/privacy-online', body: { visualizationType: payload?.visualizationType } };
+      return { method: 'PUT', path: '/privacy/privacy-online', body: { visualizationType: payload?.visualizationType } };
     case 'set-read-receipts': {
       const value = payload?.active === true || payload?.active === 'true' || payload?.value === 'enable' ? 'enable' : 'disable';
-      return { method: 'POST', path: `/privacy/read-receipts?value=${value}` };
+      return { method: 'PUT', path: `/privacy/read-receipts?value=${value}` };
     }
     case 'set-messages-duration': {
       const durationMap: Record<string, string> = {
@@ -249,7 +249,7 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
         '7776000': 'days90',
       };
       const value = durationMap[String(payload?.duration ?? 0)] || 'disable';
-      return { method: 'POST', path: `/privacy/messages-duration?value=${value}` };
+      return { method: 'PUT', path: `/privacy/messages-duration?value=${value}` };
     }
 
      // Call Actions
