@@ -93,6 +93,84 @@ function mediaPreview(media: ChatMedia[]) {
   return labels[item.kind] || "📎 Mídia";
 }
 
+function mediaIcon(kind: TelegramMediaKind) {
+  if (kind === "photo") return <ImageIcon className="h-4 w-4" />;
+  if (kind === "video" || kind === "animation" || kind === "video_note") return <Video className="h-4 w-4" />;
+  if (kind === "audio") return <Music className="h-4 w-4" />;
+  if (kind === "voice") return <Mic className="h-4 w-4" />;
+  if (kind === "sticker") return <Sticker className="h-4 w-4" />;
+  if (kind === "location" || kind === "venue") return <MapPin className="h-4 w-4" />;
+  if (kind === "contact") return <User className="h-4 w-4" />;
+  if (kind === "poll") return <BarChart3 className="h-4 w-4" />;
+  return <FileText className="h-4 w-4" />;
+}
+
+function TelegramMediaBubble({ media, botId }: { media: ChatMedia; botId?: string }) {
+  const [url, setUrl] = useState<string>("");
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let objectUrl = "";
+    let cancelled = false;
+    async function loadFile() {
+      if (!media.fileId || !botId || media.kind === "location" || media.kind === "venue" || media.kind === "contact" || media.kind === "poll") return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/telegram-media?bot_id=${encodeURIComponent(botId)}&file_id=${encodeURIComponent(media.fileId)}`, {
+          headers: {
+            ...(SUPABASE_ANON_KEY ? { apikey: SUPABASE_ANON_KEY } : {}),
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          },
+        });
+        if (!res.ok) throw new Error("Falha ao carregar mídia");
+        const blob = await res.blob();
+        objectUrl = URL.createObjectURL(blob);
+        if (!cancelled) setUrl(objectUrl);
+      } catch (e) {
+        if (!cancelled) setFailed(true);
+      }
+    }
+    loadFile();
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [media.fileId, media.kind, botId]);
+
+  if (media.kind === "location" || media.kind === "venue") {
+    const lat = media.extra?.latitude;
+    const lon = media.extra?.longitude;
+    return (
+      <a className="mt-2 flex items-center gap-2 rounded-xl border bg-muted/40 p-3 text-xs underline-offset-4 hover:underline" href={lat && lon ? `https://maps.google.com/?q=${lat},${lon}` : undefined} target="_blank" rel="noreferrer">
+        {mediaIcon(media.kind)} <span>{media.label}</span>
+      </a>
+    );
+  }
+
+  if (media.kind === "contact") {
+    return <div className="mt-2 flex items-center gap-2 rounded-xl border bg-muted/40 p-3 text-xs">{mediaIcon(media.kind)}<span>{media.label} {media.extra?.phone_number ? `• ${media.extra.phone_number}` : ""}</span></div>;
+  }
+
+  if (media.kind === "poll") {
+    return <div className="mt-2 rounded-xl border bg-muted/40 p-3 text-xs"><div className="flex items-center gap-2 font-medium">{mediaIcon(media.kind)}<span>{media.label}</span></div>{media.extra?.options?.map((o: any, i: number) => <div key={i} className="mt-1 text-muted-foreground">• {o.text}</div>)}</div>;
+  }
+
+  return (
+    <div className="mt-2 overflow-hidden rounded-xl border bg-muted/40">
+      {url && media.kind === "photo" && <img src={url} alt={media.label} className="max-h-80 w-full object-contain" />}
+      {url && (media.kind === "video" || media.kind === "animation" || media.kind === "video_note") && <video src={url} controls className="max-h-80 w-full" />}
+      {url && (media.kind === "audio" || media.kind === "voice") && <audio src={url} controls className="w-full p-2" />}
+      {(media.kind === "document" || media.kind === "sticker" || !url) && (
+        <div className="flex items-center gap-2 p-3 text-xs">
+          {mediaIcon(media.kind)}
+          <span className="min-w-0 flex-1 truncate">{failed ? "Não foi possível carregar a mídia" : (media.fileName || media.label)}</span>
+          {url && <a href={url} download={media.fileName || media.label} title="Baixar"><Download className="h-4 w-4" /></a>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function TelegramChat() {
   const [convs, setConvs] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string>("");
