@@ -991,7 +991,8 @@ serve(async (req) => {
         .from("flow_automations")
         .select("*")
         .eq("user_id", userId)
-        .eq("active", true);
+        .eq("active", true)
+        .not("category", "in", "(telegram,meta)");
 
       if (flowsError) {
         console.error("[FlowTrigger] Error fetching flows:", flowsError);
