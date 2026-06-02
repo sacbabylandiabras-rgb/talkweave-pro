@@ -157,6 +157,22 @@ Deno.serve(async (req) => {
   }
 
   if (!detectedChannel) {
+    const { data: recentMessages } = await admin
+      .from("telegram_messages")
+      .select("raw_update")
+      .eq("bot_id", bot.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    for (const row of recentMessages ?? []) {
+      const channel = chatFromAdminUpdate(row.raw_update, bot.bot_id);
+      if (channel) {
+        detectedChannel = await persistChannel(admin, bot, channel) ?? detectedChannel;
+        if (detectedChannel) break;
+      }
+    }
+  }
+
+  if (!detectedChannel) {
     const { data: existing } = await admin
       .from("telegram_free_channels")
       .select("chat_id, title")
