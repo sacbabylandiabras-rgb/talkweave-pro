@@ -2455,6 +2455,80 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_channel_posts: {
+        Row: {
+          bot_id: string
+          buttons: Json
+          chat_id: number | null
+          content_type: string
+          created_at: string
+          id: string
+          last_error: string | null
+          last_sent_at: string | null
+          media_url: string | null
+          mode: string
+          next_run_at: string | null
+          recurring_interval_minutes: number | null
+          scheduled_at: string | null
+          sent_count: number
+          status: string
+          template_id: string | null
+          text: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bot_id: string
+          buttons?: Json
+          chat_id?: number | null
+          content_type?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_sent_at?: string | null
+          media_url?: string | null
+          mode?: string
+          next_run_at?: string | null
+          recurring_interval_minutes?: number | null
+          scheduled_at?: string | null
+          sent_count?: number
+          status?: string
+          template_id?: string | null
+          text?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bot_id?: string
+          buttons?: Json
+          chat_id?: number | null
+          content_type?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_sent_at?: string | null
+          media_url?: string | null
+          mode?: string
+          next_run_at?: string | null
+          recurring_interval_minutes?: number | null
+          scheduled_at?: string | null
+          sent_count?: number
+          status?: string
+          template_id?: string | null
+          text?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_channel_posts_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "telegram_bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       telegram_flow_sessions: {
         Row: {
           bot_id: string
