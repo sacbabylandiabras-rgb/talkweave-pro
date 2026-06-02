@@ -52,6 +52,7 @@ import {
   Tag,
   Mail,
   Search as SearchIcon,
+  Users2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -95,6 +96,7 @@ const zapiMenuItems = [
   { id: "departamento", label: "Departamento", icon: Building2, path: "/departamento" },
   { id: "skills", label: "Skills", icon: Sparkles, path: "/skills" },
   { id: "produtos", label: "Produtos", icon: ShoppingBag, path: "/produtos" },
+  { id: "equipe", label: "Equipe", icon: Users2, path: "/equipe", ownerOnly: true },
  ];
 
 const emailMenuItems = [
