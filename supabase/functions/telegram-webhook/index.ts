@@ -62,6 +62,44 @@ function chatFromAdminUpdate(update: any, botTelegramId?: number | null) {
   return null;
 }
 
+async function queueFreeJoinRequest(admin: any, row: Record<string, any>) {
+  const withoutUserChatId = () => {
+    const { user_chat_id: _userChatId, ...fallback } = row;
+    return fallback;
+  };
+  const retryWithoutUserChatId = (error: any) =>
+    String(error?.message || "").includes("user_chat_id") || error?.code === "PGRST204" || error?.code === "42703";
+
+  const { data: existing } = await admin
+    .from("telegram_free_join_requests")
+    .select("id")
+    .eq("bot_id", row.bot_id)
+    .eq("chat_id", row.chat_id)
+    .eq("from_user_id", row.from_user_id)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (existing?.id) {
+    const result = await admin
+      .from("telegram_free_join_requests")
+      .update(row)
+      .eq("id", existing.id);
+    if (result.error && retryWithoutUserChatId(result.error)) {
+      return await admin
+        .from("telegram_free_join_requests")
+        .update(withoutUserChatId())
+        .eq("id", existing.id);
+    }
+    return result;
+  }
+
+  const result = await admin.from("telegram_free_join_requests").insert(row);
+  if (result.error && retryWithoutUserChatId(result.error)) {
+    return await admin.from("telegram_free_join_requests").insert(withoutUserChatId());
+  }
+  return result;
+}
+
 async function tg(token: string, method: string, body: any = {}) {
   const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
     method: "POST",
@@ -143,20 +181,19 @@ Deno.serve(async (req) => {
         ? new Date(Number(jr.date) * 1000).toISOString()
         : new Date().toISOString();
 
-      await admin.from("telegram_free_join_requests").upsert(
-        {
-          bot_id: bot.id,
-          user_id: bot.user_id,
-          chat_id: chatId,
-          from_user_id: fromUserId,
-          from_username: jr?.from?.username ?? null,
-          from_first_name: jr?.from?.first_name ?? null,
-          requested_at: requestedAt,
-          approve_at: approveAt,
-          status: "pending",
-        },
-        { onConflict: "bot_id,chat_id,from_user_id,requested_at" },
-      );
+      const { error: queueErr } = await queueFreeJoinRequest(admin, {
+        bot_id: bot.id,
+        user_id: bot.user_id,
+        chat_id: chatId,
+        from_user_id: fromUserId,
+        user_chat_id: jr?.user_chat_id ?? fromUserId,
+        from_username: jr?.from?.username ?? null,
+        from_first_name: jr?.from?.first_name ?? null,
+        requested_at: requestedAt,
+        approve_at: approveAt,
+        status: "pending",
+      });
+      if (queueErr) console.error("free join request queue failed:", queueErr.message);
       return;
     }
 

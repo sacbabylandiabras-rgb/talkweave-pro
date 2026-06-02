@@ -41,6 +41,19 @@ async function ensureWebhook(bot: { id: string; bot_token: string }) {
   return true;
 }
 
+async function processCanalFreePending() {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const res = await fetch(`${supabaseUrl}/functions/v1/telegram-canal-free-tick`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+    body: "{}",
+  });
+  if (!res.ok) {
+    console.warn("canal free tick failed", res.status, await res.text());
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -48,6 +61,10 @@ Deno.serve(async (req) => {
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  await processCanalFreePending().catch((e) =>
+    console.warn("canal free pending processing failed", (e as Error).message)
   );
 
   const { data: bots, error } = await admin
