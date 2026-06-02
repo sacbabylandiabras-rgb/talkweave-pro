@@ -60,6 +60,7 @@ import { LogoImage } from "./LogoImage";
 import logoPayImage from "@/assets/logo-pay.png";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useTeam } from "@/contexts/TeamContext";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -206,6 +207,7 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const { t } = useTranslation();
   const { isAdmin, loading } = useUserRole(userId);
   const { activeWorkspace, workspaceLabel } = useWorkspace();
+  const team = useTeam();
   const { isNative } = useDeviceType();
   const { isPaid } = useSubscriptionStatus();
   const [collapsed, setCollapsed] = useState(false);
@@ -230,7 +232,24 @@ export function Sidebar({ activeItem = "painel", userId }: SidebarProps) {
   const allMenuItems = activeWorkspace === "gateway" ? gatewayMenuItems : activeWorkspace === "meta" ? metaMenuItems : zapiMenuItems;
   const allBottomItems = activeWorkspace === "gateway" ? gatewayBottomItems : activeWorkspace === "meta" ? metaBottomItems : zapiBottomItems;
 
-  const filteredMenuItems = allMenuItems;
+  const ITEM_PERMS: Record<string, string> = {
+    mensagens: "chat", pipeline: "chat", "campanhas": "campanhas",
+    contatos: "contatos", etiquetas: "etiquetas", modelos: "modelos",
+    "fluxo-visual": "fluxos", "fluxo-grupos": "fluxos",
+    "campanhas-grupo": "campanhas", "extrair-membros": "extrair_membros",
+    comunidades: "comunidades", canais: "canais", "agente-ia": "agente_ia",
+    relatorio: "relatorios", prospeccao: "extrair_membros",
+  };
+  const filteredMenuItems = allMenuItems.filter((i: any) => {
+    if (i.ownerOnly && team.isEmployee) return false;
+    if (team.isEmployee) {
+      const permKey = ITEM_PERMS[i.id];
+      if (permKey && !team.permissions[permKey]) return false;
+      // Hide instance/profile management for employees
+      if (["dispositivos", "perfil-empresa"].includes(i.id)) return false;
+    }
+    return true;
+  });
   const menuItems = isNative ? filteredMenuItems.filter(i => dashboardIds.includes(i.id)) : filteredMenuItems;
   const bottomItems = isNative ? [] : allBottomItems;
   const brandLabel = activeWorkspace === "gateway" ? "ZaplynxPay" : activeWorkspace === "meta" ? "Meta API" : "ZapLynx";
