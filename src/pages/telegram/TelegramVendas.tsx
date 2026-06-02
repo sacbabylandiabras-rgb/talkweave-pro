@@ -58,8 +58,9 @@ export default function TelegramVendas() {
       .eq("user_id", user.id)
       .not("variables->payment->>externalId", "is", null);
 
+    const flowSessions = (sessions ?? []) as any[];
     const externalIds = new Set(
-      (sessions ?? [])
+      flowSessions
         .map((s: any) => String(s?.variables?.payment?.externalId || ""))
         .filter(Boolean),
     );
@@ -75,7 +76,7 @@ export default function TelegramVendas() {
       return meta.source === "telegram" || meta.channel === "telegram" || externalIds.has(String(tx.external_id || ""));
     }).map((tx: any) => {
       const meta = getMetadata(tx);
-      const session = (sessions ?? []).find((s: any) => String(s?.variables?.payment?.externalId || "") === String(tx.external_id || ""));
+      const session = flowSessions.find((s: any) => String(s?.variables?.payment?.externalId || "") === String(tx.external_id || ""));
       const telegramInfo = meta.telegram || {};
       const botId = telegramInfo.bot_id || session?.bot_id || null;
       const tgUser = session?.variables?.user || {};
@@ -104,30 +105,26 @@ export default function TelegramVendas() {
      return () => { supabase.removeChannel(channel); };
    }, []);
 
-   const filtered = useMemo(() => sales.filter((s) => {
-     const status = s.status === "approved" || s.status === "paid" ? "PAGO" : 
-                    s.status === "pending" ? "PENDENTE" :
-                    s.status === "refunded" ? "REEMBOLSADO" : "FALHOU";
-     return (statusFilter === "all" || status === statusFilter);
-   }), [sales, statusFilter]);
+  const filtered = useMemo(() => sales.filter((s) => {
+    const status = getStatusLabel(s.status);
+    return (statusFilter === "all" || status === statusFilter);
+  }), [sales, statusFilter]);
 
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-   const stats = useMemo(() => {
-     const mapped = sales.map(s => ({
-       ...s,
-       status_label: s.status === "approved" || s.status === "paid" ? "PAGO" : 
-                    s.status === "pending" ? "PENDENTE" :
-                    s.status === "refunded" ? "REEMBOLSADO" : "FALHOU"
-     }));
+  const stats = useMemo(() => {
+    const sumBy = (label: string) => sales
+      .filter((s) => getStatusLabel(s.status) === label)
+      .reduce((a, s) => a + Number(s.amount || 0), 0);
+    const countBy = (label: string) => sales.filter((s) => getStatusLabel(s.status) === label).length;
 
-     return {
-       pago: { value: mapped.filter(s => s.status_label === "PAGO").reduce((a, s) => a + s.amount, 0), count: mapped.filter(s => s.status_label === "PAGO").length },
-       pendente: { value: mapped.filter(s => s.status_label === "PENDENTE").reduce((a, s) => a + s.amount, 0), count: mapped.filter(s => s.status_label === "PENDENTE").length },
-       falhou: { value: mapped.filter(s => s.status_label === "FALHOU").reduce((a, s) => a + s.amount, 0), count: mapped.filter(s => s.status_label === "FALHOU").length },
-       reembolsado: { value: mapped.filter(s => s.status_label === "REEMBOLSADO").reduce((a, s) => a + s.amount, 0), count: mapped.filter(s => s.status_label === "REEMBOLSADO").length },
-     };
-   }, [sales]);
+    return {
+      pago: { value: sumBy("PAGO"), count: countBy("PAGO") },
+      pendente: { value: sumBy("PENDENTE"), count: countBy("PENDENTE") },
+      falhou: { value: sumBy("FALHOU"), count: countBy("FALHOU") },
+      reembolsado: { value: sumBy("REEMBOLSADO"), count: countBy("REEMBOLSADO") },
+    };
+  }, [sales]);
 
    const total = sales.length;
 
