@@ -80,11 +80,11 @@ export default function TelegramCanalFree() {
   useEffect(() => {
     (async () => {
       const { data: tpl } = await supabase
-        .from("message_templates")
+        .from("telegram_message_templates" as any)
         .select("id, name, content")
         .eq("active", true)
         .order("name");
-      setTemplates((tpl as Template[]) || []);
+      setTemplates((tpl as unknown as Template[]) || []);
     })();
   }, []);
 

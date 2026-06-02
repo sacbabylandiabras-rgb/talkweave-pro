@@ -95,17 +95,24 @@ Deno.serve(async (req) => {
         }
       } else if (responseType === "template" && (cfg as any)?.template_id) {
         const { data: tpl } = await admin
-          .from("message_templates")
-          .select("content")
+          .from("telegram_message_templates")
+          .select("content, buttons")
           .eq("id", (cfg as any).template_id)
           .maybeSingle();
         const text = interpolate(tpl?.content || "");
+        const buttons = Array.isArray((tpl as any)?.buttons) ? (tpl as any).buttons : [];
+        const reply_markup = buttons.length > 0
+          ? { inline_keyboard: buttons
+              .filter((b: any) => b?.text && b?.url)
+              .map((b: any) => [{ text: String(b.text), url: String(b.url) }]) }
+          : undefined;
         if (text) {
           const sendRes = await tg(bot.bot_token, "sendMessage", {
             chat_id: row.from_user_id,
             text,
             parse_mode: "HTML",
             disable_web_page_preview: false,
+            ...(reply_markup ? { reply_markup } : {}),
           });
           if (!sendRes.ok) {
             lastError = (lastError ? lastError + " | " : "") + `welcome: ${sendRes.json?.description || "send_failed"}`;
