@@ -709,7 +709,7 @@ function EditorInner() {
                       <Label className="text-xs">Aguardar até</Label>
                       <Input
                         type="datetime-local"
-                        value={d.until ? d.until.slice(0, 16) : ""}
+                        value={toDateTimeLocalValue(d.until)}
                         onChange={(e) => updateNodeData(selectedNode.id, (cur) => ({
                           ...cur,
                           delay: {
