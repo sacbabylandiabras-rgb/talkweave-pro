@@ -60,6 +60,14 @@ function newId() { return `n_${Math.random().toString(36).slice(2, 10)}`; }
 
 const TRIGGER_ID = "trigger";
 
+function toDateTimeLocalValue(iso?: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "";
+  const off = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - off).toISOString().slice(0, 16);
+}
+
 /* ---------------- ReactFlow node components ---------------- */
 
 function nodeShell(
@@ -201,7 +209,7 @@ function DelayNode({ id, data, selected }: any) {
   const d: DelayData = data?.delay || { seconds: 60 };
   const isUntil = d.mode === "until" && d.until;
   const subtitle = isUntil
-    ? new Date(d.until!).toLocaleString()
+    ? new Date(d.until!).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
     : `${d.seconds ?? 60} segundos`;
   const body = isUntil
     ? "Aguarda até a data/hora definida"
@@ -701,7 +709,7 @@ function EditorInner() {
                       <Label className="text-xs">Aguardar até</Label>
                       <Input
                         type="datetime-local"
-                        value={d.until ? d.until.slice(0, 16) : ""}
+                        value={toDateTimeLocalValue(d.until)}
                         onChange={(e) => updateNodeData(selectedNode.id, (cur) => ({
                           ...cur,
                           delay: {
@@ -761,12 +769,7 @@ function TriggerConfigForm({
         <Label>Data e hora</Label>
         <Input
           type="datetime-local"
-          value={(() => {
-            if (!triggerConfig?.scheduled_at) return "";
-            const d = new Date(triggerConfig.scheduled_at);
-            const off = d.getTimezoneOffset() * 60000;
-            return new Date(d.getTime() - off).toISOString().slice(0, 16);
-          })()}
+          value={toDateTimeLocalValue(triggerConfig?.scheduled_at)}
           onChange={(e) => onConfigChange({
             ...triggerConfig,
             scheduled_at: e.target.value ? new Date(e.target.value).toISOString() : null,
