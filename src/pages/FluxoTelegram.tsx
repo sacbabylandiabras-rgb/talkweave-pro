@@ -3151,6 +3151,74 @@ function BlockEditor({
                 </>
               )}
             </div>
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-2.5 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-medium">Gerar pagamento (PIX)</span>
+                <Switch
+                  checked={!!d.tools?.pagamento}
+                  onCheckedChange={(c) =>
+                    onPatch({ tools: { ...(d.tools || {}), pagamento: c } })
+                  }
+                />
+              </div>
+              {d.tools?.pagamento && (
+                <>
+                  <Textarea
+                    value={d.tools?.pagamentoDescription || ""}
+                    onChange={(e) =>
+                      onPatch({
+                        tools: { ...(d.tools || {}), pagamentoDescription: e.target.value },
+                      })
+                    }
+                    rows={2}
+                    placeholder="Quando usar: ex. quando o cliente pedir para pagar, gerar PIX, link de pagamento ou demonstrar intenção clara de compra."
+                    className="text-xs"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">Valor padrão (R$)</Label>
+                      <Input
+                        value={d.tools?.pagamentoAmount ?? ""}
+                        onChange={(e) =>
+                          onPatch({
+                            tools: { ...(d.tools || {}), pagamentoAmount: e.target.value },
+                          })
+                        }
+                        placeholder="ex: 49,90"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">Descrição padrão</Label>
+                      <Input
+                        value={d.tools?.pagamentoDescricao ?? ""}
+                        onChange={(e) =>
+                          onPatch({
+                            tools: { ...(d.tools || {}), pagamentoDescricao: e.target.value },
+                          })
+                        }
+                        placeholder="ex: Plano Premium"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] text-muted-foreground">Aceitar cartão (gera link)</span>
+                    <Switch
+                      checked={d.tools?.pagamentoAceitaCartao !== false}
+                      onCheckedChange={(c) =>
+                        onPatch({
+                          tools: { ...(d.tools || {}), pagamentoAceitaCartao: c },
+                        })
+                      }
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    A IA pode usar o valor padrão ou informar um valor específico se o cliente mencionar (ex: "quero pagar R$ 99").
+                  </p>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
