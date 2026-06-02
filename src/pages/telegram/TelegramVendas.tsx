@@ -225,8 +225,8 @@ export default function TelegramVendas() {
                     <SelectTrigger className="flex-1"><SelectValue placeholder="Todos os adquirentes" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os adquirentes</SelectItem>
-                       {acquirers.map((name) => (
-                         <SelectItem key={name} value={name}>{name}</SelectItem>
+                       {ACQUIRER_OPTIONS.map((opt) => (
+                         <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                        ))}
                     </SelectContent>
                   </Select>
