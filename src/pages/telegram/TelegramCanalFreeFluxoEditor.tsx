@@ -209,7 +209,7 @@ function DelayNode({ id, data, selected }: any) {
   const d: DelayData = data?.delay || { seconds: 60 };
   const isUntil = d.mode === "until" && d.until;
   const subtitle = isUntil
-    ? new Date(d.until!).toLocaleString()
+    ? new Date(d.until!).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
     : `${d.seconds ?? 60} segundos`;
   const body = isUntil
     ? "Aguarda até a data/hora definida"
