@@ -22,6 +22,7 @@ type TelegramMediaKind = "photo" | "video" | "animation" | "document" | "audio" 
 interface ChatMedia {
   kind: TelegramMediaKind;
   label: string;
+  url?: string;
   fileId?: string;
   fileName?: string;
   mimeType?: string;
@@ -60,17 +61,18 @@ function getTelegramMessage(rawUpdate: any) {
 function extractMedia(message: any): ChatMedia[] {
   if (!message) return [];
   const caption = message.caption ? String(message.caption) : "";
+  const sourceUrl = message.source_media_url || message.photo_url || message.video_url || message.document_url || message.audio_url;
   if (message.photo?.length) {
     const photo = [...message.photo].sort((a: any, b: any) => (b.file_size || 0) - (a.file_size || 0))[0];
-    return [{ kind: "photo", label: caption || "Foto", fileId: photo?.file_id, downloadable: true }];
+    return [{ kind: "photo", label: caption || "Foto", url: sourceUrl, fileId: photo?.file_id, downloadable: true }];
   }
-  if (message.video) return [{ kind: "video", label: caption || "Vídeo", fileId: message.video.file_id, fileName: message.video.file_name, mimeType: message.video.mime_type, downloadable: true }];
-  if (message.animation) return [{ kind: "animation", label: caption || "GIF/animação", fileId: message.animation.file_id, fileName: message.animation.file_name, mimeType: message.animation.mime_type, downloadable: true }];
-  if (message.document) return [{ kind: "document", label: caption || message.document.file_name || "Documento", fileId: message.document.file_id, fileName: message.document.file_name, mimeType: message.document.mime_type, downloadable: true }];
-  if (message.audio) return [{ kind: "audio", label: caption || message.audio.title || message.audio.file_name || "Áudio", fileId: message.audio.file_id, fileName: message.audio.file_name, mimeType: message.audio.mime_type, downloadable: true }];
-  if (message.voice) return [{ kind: "voice", label: caption || "Mensagem de voz", fileId: message.voice.file_id, mimeType: message.voice.mime_type, downloadable: true }];
-  if (message.video_note) return [{ kind: "video_note", label: caption || "Vídeo circular", fileId: message.video_note.file_id, downloadable: true }];
-  if (message.sticker) return [{ kind: "sticker", label: message.sticker.emoji ? `Figurinha ${message.sticker.emoji}` : "Figurinha", fileId: message.sticker.file_id, fileName: message.sticker.file_name, mimeType: message.sticker.mime_type, downloadable: true }];
+  if (message.video) return [{ kind: "video", label: caption || "Vídeo", url: sourceUrl, fileId: message.video.file_id, fileName: message.video.file_name, mimeType: message.video.mime_type, downloadable: true }];
+  if (message.animation) return [{ kind: "animation", label: caption || "GIF/animação", url: sourceUrl, fileId: message.animation.file_id, fileName: message.animation.file_name, mimeType: message.animation.mime_type, downloadable: true }];
+  if (message.document) return [{ kind: "document", label: caption || message.document.file_name || "Documento", url: sourceUrl, fileId: message.document.file_id, fileName: message.document.file_name, mimeType: message.document.mime_type, downloadable: true }];
+  if (message.audio) return [{ kind: "audio", label: caption || message.audio.title || message.audio.file_name || "Áudio", url: sourceUrl, fileId: message.audio.file_id, fileName: message.audio.file_name, mimeType: message.audio.mime_type, downloadable: true }];
+  if (message.voice) return [{ kind: "voice", label: caption || "Mensagem de voz", url: sourceUrl, fileId: message.voice.file_id, mimeType: message.voice.mime_type, downloadable: true }];
+  if (message.video_note) return [{ kind: "video_note", label: caption || "Vídeo circular", url: sourceUrl, fileId: message.video_note.file_id, downloadable: true }];
+  if (message.sticker) return [{ kind: "sticker", label: message.sticker.emoji ? `Figurinha ${message.sticker.emoji}` : "Figurinha", url: sourceUrl, fileId: message.sticker.file_id, fileName: message.sticker.file_name, mimeType: message.sticker.mime_type, downloadable: true }];
   if (message.location) return [{ kind: "location", label: "Localização", extra: message.location }];
   if (message.venue) return [{ kind: "venue", label: message.venue.title || "Local", extra: message.venue }];
   if (message.contact) return [{ kind: "contact", label: message.contact.first_name || "Contato", extra: message.contact }];
