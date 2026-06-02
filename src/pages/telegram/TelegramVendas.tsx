@@ -1,5 +1,5 @@
- import { useMemo, useState, useEffect } from "react";
- import { supabase } from "@/integrations/supabase/client";
+import { useMemo, useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,22 @@ import {
 import {
   CheckCircle2, Clock, XCircle, RotateCcw, Search, Calendar, Inbox, ChevronLeft, ChevronRight,
 } from "lucide-react";
+
+type TelegramSale = Record<string, any> & {
+  bot_name?: string;
+  chat_id?: number | string | null;
+  customer_name?: string | null;
+};
+
+const getStatusLabel = (status?: string) => {
+  const normalized = String(status || "").toLowerCase();
+  if (["approved", "paid", "completed", "success"].includes(normalized)) return "PAGO";
+  if (["pending", "waiting_payment", "processing"].includes(normalized)) return "PENDENTE";
+  if (["refunded", "refund", "chargeback"].includes(normalized)) return "REEMBOLSADO";
+  return "FALHOU";
+};
+
+const getMetadata = (sale: any) => (sale?.metadata && typeof sale.metadata === "object" ? sale.metadata : {});
 
 export default function TelegramVendas() {
    const [sales, setSales] = useState<any[]>([]);
