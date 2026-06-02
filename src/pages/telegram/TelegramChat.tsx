@@ -256,8 +256,46 @@ export default function TelegramChat() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon"><Phone className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    title="Abrir no Telegram"
+                    onClick={() => {
+                      if (active?.username?.startsWith("@")) {
+                        window.open(`https://t.me/${active.username.slice(1)}`, "_blank");
+                      }
+                    }}
+                    disabled={!active?.username?.startsWith("@")}
+                  >
+                    <Phone className="w-4 h-4" />
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => loadConversations()}>
+                        Atualizar conversa
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (active) {
+                            navigator.clipboard.writeText(String(active.chat_id));
+                            toast.success("Chat ID copiado");
+                          }
+                        }}
+                      >
+                        Copiar Chat ID
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setActiveId(null);
+                        }}
+                      >
+                        Fechar conversa
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
 
