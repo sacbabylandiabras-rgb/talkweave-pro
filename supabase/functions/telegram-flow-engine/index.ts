@@ -927,6 +927,9 @@ async function runFlow({
 
           // Build tools the agent can call
           const toolsCfg = (data as any).tools || {};
+          const paymentToolAvailable = Boolean(
+            toolsCfg.pagamento || /\b(pix|cart[aã]o|pagamento|pagar|cobran[çc]a|r\$)\b/i.test(`${systemPrompt}\n${knowledge}`),
+          );
           const claudeTools: any[] = [];
           if (toolsCfg.previa) {
             claudeTools.push({
@@ -948,7 +951,7 @@ async function runFlow({
               input_schema: { type: "object", properties: {}, required: [] },
             });
           }
-          if (toolsCfg.pagamento) {
+          if (paymentToolAvailable) {
             claudeTools.push({
               name: "gerar_pagamento",
               description: String(
@@ -1029,7 +1032,7 @@ async function runFlow({
             if (toolUse?.name === "enviar_previa") iaNextHandle = "previa";
             else if (toolUse?.name === "enviar_prova_social") iaNextHandle = "prova_social";
             else if (toolUse?.name === "gerar_pagamento") iaNextHandle = "pagamento";
-            if (!iaNextHandle && toolsCfg.pagamento && isPaymentIntent(userInput)) {
+            if (!iaNextHandle && paymentToolAvailable && isPaymentIntent(userInput)) {
               iaNextHandle = "pagamento";
             }
             variables[saveAs] = reply;
