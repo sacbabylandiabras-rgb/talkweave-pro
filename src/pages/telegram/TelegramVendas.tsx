@@ -133,9 +133,10 @@ export default function TelegramVendas() {
   const fmt = (v: number) => (Number(v || 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const ACQUIRER_OPTIONS = useMemo(() => ([
-    { value: "openpix", label: "Adquirente 1" },
-    { value: "hubpague", label: "Adquirente 2" },
-    { value: "cartwave", label: "Adquirente 3" },
+    { value: "openpix", label: "Woovi (OpenPix)" },
+    { value: "hubpague", label: "HubPague" },
+    { value: "cartwave", label: "CartWave" },
+    { value: "pagarme", label: "Pagar.me" },
     { value: "pix", label: "Pix Padrão" },
     { value: "credit_card", label: "Cartão de Crédito" },
     { value: "boleto", label: "Boleto" },
