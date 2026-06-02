@@ -6,6 +6,10 @@ export interface WelcomeMessageConfig {
   id: string;
   active: boolean;
   message: string;
+  response_type: 'text' | 'template' | 'flow';
+  template_id: string | null;
+  flow_id: string | null;
+  instance_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -33,7 +37,7 @@ export const useWelcomeMessage = () => {
       if (error) throw error;
 
       if (data) {
-        setConfig(data);
+        setConfig(data as unknown as WelcomeMessageConfig);
       } else {
         // Criar configuração padrão se não existir
         const { data: newConfig, error: createError } = await supabase
@@ -46,7 +50,7 @@ export const useWelcomeMessage = () => {
           .single();
 
         if (createError) throw createError;
-        setConfig(newConfig);
+        setConfig(newConfig as unknown as WelcomeMessageConfig);
       }
     } catch (error) {
       console.error('Error loading welcome message config:', error);
@@ -80,19 +84,34 @@ export const useWelcomeMessage = () => {
     }
   };
 
-  const saveConfig = async (active: boolean, message: string) => {
+  const saveConfig = async (
+    active: boolean,
+    message: string,
+    extras: {
+      response_type?: 'text' | 'template' | 'flow';
+      template_id?: string | null;
+      flow_id?: string | null;
+      instance_id?: string | null;
+    } = {}
+  ) => {
     setLoading(true);
     try {
       if (!config) throw new Error('Config not loaded');
 
+      const payload: Record<string, unknown> = { active, message };
+      if (extras.response_type !== undefined) payload.response_type = extras.response_type;
+      if (extras.template_id !== undefined) payload.template_id = extras.template_id;
+      if (extras.flow_id !== undefined) payload.flow_id = extras.flow_id;
+      if (extras.instance_id !== undefined) payload.instance_id = extras.instance_id;
+
       const { error } = await supabase
         .from('welcome_message_config')
-        .update({ active, message })
+        .update(payload as any)
         .eq('id', config.id);
 
       if (error) throw error;
 
-      setConfig(prev => prev ? { ...prev, active, message } : null);
+      setConfig(prev => prev ? { ...prev, active, message, ...extras } as WelcomeMessageConfig : null);
       
       toast({
         title: 'Sucesso',
