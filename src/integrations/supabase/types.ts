@@ -2753,6 +2753,7 @@ export type Database = {
       telegram_group_flows: {
         Row: {
           bot_id: string
+          chat_id: number | null
           created_at: string
           edges: Json
           id: string
@@ -2769,6 +2770,7 @@ export type Database = {
         }
         Insert: {
           bot_id: string
+          chat_id?: number | null
           created_at?: string
           edges?: Json
           id?: string
@@ -2785,6 +2787,7 @@ export type Database = {
         }
         Update: {
           bot_id?: string
+          chat_id?: number | null
           created_at?: string
           edges?: Json
           id?: string
