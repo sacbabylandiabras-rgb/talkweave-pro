@@ -3,6 +3,7 @@ import {
   readTelegramGroupsChannels,
   writeTelegramGroupsChannels,
 } from "@/hooks/useTelegramGroups";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Plus,
   Trash2,
@@ -45,8 +47,11 @@ import {
   Check,
   Tag,
   HelpCircle,
+  GitBranch,
+  List,
 } from "lucide-react";
 import { toast } from "sonner";
+import TelegramGruposCanaisFluxos from "./TelegramGruposCanaisFluxos";
 
 type GroupKind = "group" | "channel";
 
@@ -78,6 +83,26 @@ function readAvailablePlans(): { id: string; name: string; price: string }[] {
 export default function TelegramGruposCanais() {
   const [items, setItems] = useState<TgGroup[]>([]);
   const [AVAILABLE_PLANS, setAvailablePlans] = useState(() => readAvailablePlans());
+
+  // Bots (para a aba de Fluxos)
+  const [bots, setBots] = useState<Array<{ id: string; first_name: string | null; username: string | null }>>([]);
+  const [flowBotId, setFlowBotId] = useState<string>("");
+  const [flowGroupId, setFlowGroupId] = useState<string>("");
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("telegram_bots")
+        .select("id, first_name, username")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+      const list = (data ?? []) as any[];
+      setBots(list);
+      if (list.length > 0) setFlowBotId(list[0].id);
+    })();
+  }, []);
 
   useEffect(() => {
     const reload = () => setAvailablePlans(readAvailablePlans());
@@ -253,8 +278,19 @@ export default function TelegramGruposCanais() {
         <p className="text-sm text-muted-foreground mt-1">Grupos e Canais</p>
       </div>
 
-      {/* Banner */}
-      <Card className="p-6 md:p-8 overflow-hidden relative">
+      <Tabs defaultValue="lista" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="lista" className="flex items-center gap-1.5">
+            <List className="w-4 h-4" /> Lista
+          </TabsTrigger>
+          <TabsTrigger value="fluxos" className="flex items-center gap-1.5">
+            <GitBranch className="w-4 h-4" /> Fluxos
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="lista" className="space-y-6">
+          {/* Banner */}
+          <Card className="p-6 md:p-8 overflow-hidden relative">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex-1 max-w-xl space-y-4">
             <h2 className="text-2xl font-bold text-foreground">
@@ -411,6 +447,56 @@ export default function TelegramGruposCanais() {
           </Table>
         </Card>
       </div>
+
+        </TabsContent>
+
+        <TabsContent value="fluxos" className="space-y-4">
+          <Card className="p-4 space-y-3">
+            <div className="grid md:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Bot</Label>
+                {bots.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum bot cadastrado. Crie um bot primeiro.</p>
+                ) : (
+                  <Select value={flowBotId} onValueChange={setFlowBotId}>
+                    <SelectTrigger><SelectValue placeholder="Selecione um bot" /></SelectTrigger>
+                    <SelectContent>
+                      {bots.map((b) => (
+                        <SelectItem key={b.id} value={b.id}>
+                          {b.first_name || b.username || b.id}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label>Grupo / Canal</Label>
+                {items.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Cadastre um grupo ou canal na aba "Lista".</p>
+                ) : (
+                  <Select value={flowGroupId} onValueChange={setFlowGroupId}>
+                    <SelectTrigger><SelectValue placeholder="Selecione um grupo/canal" /></SelectTrigger>
+                    <SelectContent>
+                      {items.map((g) => (
+                        <SelectItem key={g.id} value={g.group_id}>
+                          {KIND_LABEL[g.kind]} · {g.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </div>
+          </Card>
+
+          <TelegramGruposCanaisFluxos
+            botId={flowBotId}
+            chatId={flowGroupId ? Number(flowGroupId) : null}
+            groupTitle={items.find((g) => g.group_id === flowGroupId)?.title || ""}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Modal */}
       <Dialog open={open} onOpenChange={setOpen}>
