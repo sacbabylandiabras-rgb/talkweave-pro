@@ -855,14 +855,14 @@ async function runFlow({
               name: "gerar_pagamento",
               description: String(
                 toolsCfg.pagamentoDescription ||
-                  "Acione quando o usuário pedir para pagar, gerar PIX, link de pagamento, cobrança ou demonstrar intenção clara de comprar. Gera um PIX (copia-e-cola + QR Code) e envia ao usuário.",
+                  "Acione SEMPRE que o usuário pedir para pagar, gerar PIX, cobrança, link de pagamento, ou mencionar um valor que deseja pagar/comprar (ex.: 'quero pagar 50', 'gera um pix de 19,90', 'me manda 100 reais'). Você DEVE extrair o valor mencionado pelo usuário no parâmetro 'amount' (em reais, ex.: 49.90). Se o usuário não mencionou um valor explícito mas pediu para pagar, use o valor padrão do contexto. NÃO responda em texto antes de acionar — apenas chame a ferramenta. Ela gera automaticamente o PIX copia-e-cola, o QR Code e o botão para pagar com cartão.",
               ),
               input_schema: {
                 type: "object",
                 properties: {
                   amount: {
                     type: "number",
-                    description: "Valor em reais (opcional, padrão usa o valor configurado). Ex: 49.90",
+                    description: "Valor em reais que o usuário deseja pagar. SEMPRE extraia da mensagem do usuário quando ele mencionar um número/valor (ex.: '50' = 50.00, '19,90' = 19.90, 'cem reais' = 100.00). Apenas omita se o usuário não citou nenhum valor.",
                   },
                   description: {
                     type: "string",

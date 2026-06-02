@@ -3176,7 +3176,7 @@ function BlockEditor({
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <Label className="text-[10px] text-muted-foreground">Valor padrão (R$)</Label>
+                      <Label className="text-[10px] text-muted-foreground">Valor padrão (R$) — opcional</Label>
                       <Input
                         value={d.tools?.pagamentoAmount ?? ""}
                         onChange={(e) =>
@@ -3184,7 +3184,7 @@ function BlockEditor({
                             tools: { ...(d.tools || {}), pagamentoAmount: e.target.value },
                           })
                         }
-                        placeholder="ex: 49,90"
+                        placeholder="usado só se o cliente não falar um valor"
                         className="h-8 text-xs"
                       />
                     </div>
@@ -3214,7 +3214,7 @@ function BlockEditor({
                     />
                   </div>
                   <p className="text-[10px] text-muted-foreground">
-                    A IA pode usar o valor padrão ou informar um valor específico se o cliente mencionar (ex: "quero pagar R$ 99").
+                    Quando o cliente pedir para pagar e disser um valor (ex.: "quero pagar 50"), a IA gera o PIX automaticamente com esse valor — copia-e-cola + QR Code + botão "Pagar com cartão" logo abaixo.
                   </p>
                 </>
               )}
