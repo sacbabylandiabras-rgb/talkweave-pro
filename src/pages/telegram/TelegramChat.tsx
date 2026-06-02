@@ -107,6 +107,7 @@ function mediaIcon(kind: TelegramMediaKind) {
 
 function TelegramMediaBubble({ media, botId }: { media: ChatMedia; botId?: string }) {
   const [url, setUrl] = useState<string>("");
+  const [contentType, setContentType] = useState("");
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -125,6 +126,7 @@ function TelegramMediaBubble({ media, botId }: { media: ChatMedia; botId?: strin
         if (!res.ok) throw new Error("Falha ao carregar mídia");
         const blob = await res.blob();
         objectUrl = URL.createObjectURL(blob);
+        if (!cancelled) setContentType(blob.type || media.mimeType || "");
         if (!cancelled) setUrl(objectUrl);
       } catch (e) {
         if (!cancelled) setFailed(true);
@@ -160,7 +162,9 @@ function TelegramMediaBubble({ media, botId }: { media: ChatMedia; botId?: strin
       {url && media.kind === "photo" && <img src={url} alt={media.label} className="max-h-80 w-full object-contain" />}
       {url && (media.kind === "video" || media.kind === "animation" || media.kind === "video_note") && <video src={url} controls className="max-h-80 w-full" />}
       {url && (media.kind === "audio" || media.kind === "voice") && <audio src={url} controls className="w-full p-2" />}
-      {(media.kind === "document" || media.kind === "sticker" || !url) && (
+      {url && media.kind === "sticker" && contentType.startsWith("image/") && <img src={url} alt={media.label} className="max-h-48 w-full object-contain p-2" />}
+      {url && media.kind === "sticker" && contentType.startsWith("video/") && <video src={url} controls className="max-h-48 w-full" />}
+      {(media.kind === "document" || !url || (media.kind === "sticker" && !contentType.startsWith("image/") && !contentType.startsWith("video/"))) && (
         <div className="flex items-center gap-2 p-3 text-xs">
           {mediaIcon(media.kind)}
           <span className="min-w-0 flex-1 truncate">{failed ? "Não foi possível carregar a mídia" : (media.fileName || media.label)}</span>
