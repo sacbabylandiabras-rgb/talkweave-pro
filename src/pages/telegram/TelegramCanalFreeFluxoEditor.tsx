@@ -237,8 +237,11 @@ function EditorInner() {
   const navigate = useNavigate();
   const isNew = !id || id === "novo";
   const queryBotId = searchParams.get("botId") || "";
+  const queryChatId = searchParams.get("chatId") || "";
+  const returnTo = queryChatId ? "/telegram/grupos-canais" : "/telegram/canal-free";
 
   const [botId, setBotId] = useState<string>(queryBotId);
+  const [chatId, setChatId] = useState<string>(queryChatId);
   const [name, setName] = useState("Novo fluxo");
   const [isActive, setIsActive] = useState(true);
   const [triggerType, setTriggerType] = useState<TriggerType>("manual");
@@ -297,6 +300,7 @@ function EditorInner() {
       if (!row) { toast.error("Fluxo não encontrado"); navigate(-1); return; }
       flowId.current = row.id;
       setBotId(row.bot_id);
+      if (row.chat_id != null) setChatId(String(row.chat_id));
       setName(row.name);
       setIsActive(row.is_active);
       setTriggerType(row.trigger_type);
