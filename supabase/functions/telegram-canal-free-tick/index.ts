@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
 
     const { data: cfg } = await admin
       .from("telegram_free_channels")
-      .select("welcome_message")
+      .select("welcome_message, response_type, template_id, flow_id")
       .eq("bot_id", row.bot_id)
       .maybeSingle();
 
@@ -72,19 +72,58 @@ Deno.serve(async (req) => {
       lastError = String(approveRes.json?.description || "approve_failed");
     }
 
-    const welcome = (cfg?.welcome_message || "").trim();
-    if (welcome) {
-      const text = welcome
-        .replaceAll("{nome}", row.from_first_name || "")
-        .replaceAll("{name}", row.from_first_name || "");
-      const sendRes = await tg(bot.bot_token, "sendMessage", {
-        chat_id: row.from_user_id,
-        text,
-        parse_mode: "HTML",
-        disable_web_page_preview: false,
-      });
-      if (!sendRes.ok) {
-        lastError = (lastError ? lastError + " | " : "") + `welcome: ${sendRes.json?.description || "send_failed"}`;
+    const responseType = (cfg as any)?.response_type || "text";
+    const firstName = row.from_first_name || "";
+    const interpolate = (s: string) =>
+      String(s || "")
+        .replaceAll("{nome}", firstName)
+        .replaceAll("{name}", firstName);
+
+    if (approveRes.ok) {
+      if (responseType === "flow" && (cfg as any)?.flow_id) {
+        const { error: flowErr } = await admin.functions.invoke("telegram-flow-engine", {
+          body: {
+            mode: "start",
+            bot_id: row.bot_id,
+            chat_id: row.from_user_id,
+            flow_id: (cfg as any).flow_id,
+            user: { id: row.from_user_id, first_name: firstName },
+          },
+        });
+        if (flowErr) {
+          lastError = (lastError ? lastError + " | " : "") + `flow: ${flowErr.message || "invoke_failed"}`;
+        }
+      } else if (responseType === "template" && (cfg as any)?.template_id) {
+        const { data: tpl } = await admin
+          .from("message_templates")
+          .select("content")
+          .eq("id", (cfg as any).template_id)
+          .maybeSingle();
+        const text = interpolate(tpl?.content || "");
+        if (text) {
+          const sendRes = await tg(bot.bot_token, "sendMessage", {
+            chat_id: row.from_user_id,
+            text,
+            parse_mode: "HTML",
+            disable_web_page_preview: false,
+          });
+          if (!sendRes.ok) {
+            lastError = (lastError ? lastError + " | " : "") + `welcome: ${sendRes.json?.description || "send_failed"}`;
+          }
+        }
+      } else {
+        const text = interpolate(cfg?.welcome_message || "").trim();
+        if (text) {
+          const sendRes = await tg(bot.bot_token, "sendMessage", {
+            chat_id: row.from_user_id,
+            text,
+            parse_mode: "HTML",
+            disable_web_page_preview: false,
+          });
+          if (!sendRes.ok) {
+            lastError = (lastError ? lastError + " | " : "") + `welcome: ${sendRes.json?.description || "send_failed"}`;
+          }
+        }
       }
     }
 
