@@ -155,6 +155,59 @@ async function queueJoinedMembersWelcome(admin: any, bot: any, update: any) {
   }
 }
 
+async function dispatchGroupKeywordFlows(admin: any, bot: any, update: any) {
+  const msg = update?.message ?? update?.edited_message;
+  const chat = msg?.chat;
+  const text = String(msg?.text || msg?.caption || "").trim();
+  if (!chat?.id || !text) return;
+  if (!["group", "supergroup", "channel"].includes(chat.type)) return;
+
+  // garante que o chat é o Canal Free deste bot
+  const { data: cfg } = await admin
+    .from("telegram_free_channels")
+    .select("chat_id")
+    .eq("bot_id", bot.id)
+    .maybeSingle();
+  if (!cfg || String(cfg.chat_id) !== String(chat.id)) return;
+
+  const { data: flows } = await admin
+    .from("telegram_group_flows")
+    .select("id, trigger_config")
+    .eq("bot_id", bot.id)
+    .eq("trigger_type", "keyword")
+    .eq("is_active", true);
+
+  const lower = text.toLowerCase();
+  for (const f of flows ?? []) {
+    const cfg2 = f.trigger_config || {};
+    const keywords: string[] = Array.isArray(cfg2.keywords) ? cfg2.keywords : [];
+    const matchMode = cfg2.match_mode || "contains"; // contains | exact | startswith
+    const matched = keywords.some((kw) => {
+      const k = String(kw || "").toLowerCase().trim();
+      if (!k) return false;
+      if (matchMode === "exact") return lower === k;
+      if (matchMode === "startswith") return lower.startsWith(k);
+      return lower.includes(k);
+    });
+    if (!matched) continue;
+
+    fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/telegram-group-flow-trigger`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+      },
+      body: JSON.stringify({
+        flow_id: f.id,
+        chat_id: chat.id,
+        from_user_id: msg?.from?.id ?? null,
+        from_username: msg?.from?.username ?? null,
+        trigger_source: "keyword",
+      }),
+    }).catch(() => {});
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -232,6 +285,7 @@ Deno.serve(async (req) => {
     if (!update.message && !update.edited_message && !update.callback_query) return;
 
     await queueJoinedMembersWelcome(admin, bot, update);
+    await dispatchGroupKeywordFlows(admin, bot, update);
 
     const { error: insertErr } = await admin.from("telegram_messages").insert(rowFromUpdate(bot, update));
     if (insertErr) {
