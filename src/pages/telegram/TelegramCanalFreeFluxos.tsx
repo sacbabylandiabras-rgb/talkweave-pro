@@ -169,13 +169,19 @@ export default function TelegramCanalFreeFluxos({
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {(f.nodes?.length ?? 0)} passo(s) · último disparo: {fmt(f.last_run_at)}
-                  {f.trigger_type === "recurring" && f.next_run_at && (
-                    <> · próximo: {fmt(f.next_run_at)}</>
+                  {(f.trigger_type === "scheduled" || f.trigger_type === "recurring") && f.next_run_at && (
+                    <> · {f.trigger_type === "scheduled" ? "agendado para" : "próximo"}: {fmt(f.next_run_at)}</>
                   )}
                 </p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <Button size="sm" variant="ghost" onClick={() => runNow(f)} title="Disparar agora">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => runNow(f)}
+                  disabled={isScheduledForFuture(f)}
+                  title={isScheduledForFuture(f) ? `Agendado para ${fmt(f.next_run_at)}` : "Disparar agora"}
+                >
                   <Play className="w-4 h-4" />
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => toggleActive(f)}>
