@@ -32,8 +32,8 @@ const getStatusLabel = (status?: string) => {
 const getMetadata = (sale: any) => (sale?.metadata && typeof sale.metadata === "object" ? sale.metadata : {});
 
 export default function TelegramVendas() {
-   const [sales, setSales] = useState<any[]>([]);
-   const [loading, setLoading] = useState(true);
+  const [sales, setSales] = useState<TelegramSale[]>([]);
+  const [loading, setLoading] = useState(true);
   const [orderId, setOrderId] = useState("");
   const [clientId, setClientId] = useState("");
   const [txId, setTxId] = useState("");
@@ -41,22 +41,55 @@ export default function TelegramVendas() {
   const [acquirer, setAcquirer] = useState("all");
   const [perPage, setPerPage] = useState("10");
 
-   const loadData = async () => {
-     setLoading(true);
-     const { data: { user } } = await supabase.auth.getUser();
-     if (!user) return;
+  const loadData = async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSales([]); setLoading(false); return; }
 
-     // Mostra apenas transações originadas pelo Telegram (metadata.source = 'telegram')
-     const { data } = await supabase
-       .from("gateway_transactions" as any)
-       .select("*")
-       .eq("user_id", user.id)
-       .contains("metadata", { source: "telegram" })
-       .order("created_at", { ascending: false });
+    const { data: bots } = await supabase
+      .from("telegram_bots")
+      .select("id, first_name, username")
+      .eq("user_id", user.id);
+    const botNameById = new Map((bots ?? []).map((b: any) => [b.id, b.first_name || b.username || "Bot Telegram"]));
 
-     setSales(data || []);
-     setLoading(false);
-   };
+    const { data: sessions } = await supabase
+      .from("telegram_flow_sessions")
+      .select("bot_id, chat_id, variables, updated_at")
+      .eq("user_id", user.id)
+      .not("variables->payment->>externalId", "is", null);
+
+    const externalIds = new Set(
+      (sessions ?? [])
+        .map((s: any) => String(s?.variables?.payment?.externalId || ""))
+        .filter(Boolean),
+    );
+
+    const { data: transactions } = await supabase
+      .from("gateway_transactions" as any)
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    const telegramSales = (transactions ?? []).filter((tx: any) => {
+      const meta = getMetadata(tx);
+      return meta.source === "telegram" || meta.channel === "telegram" || externalIds.has(String(tx.external_id || ""));
+    }).map((tx: any) => {
+      const meta = getMetadata(tx);
+      const session = (sessions ?? []).find((s: any) => String(s?.variables?.payment?.externalId || "") === String(tx.external_id || ""));
+      const telegramInfo = meta.telegram || {};
+      const botId = telegramInfo.bot_id || session?.bot_id || null;
+      const tgUser = session?.variables?.user || {};
+      return {
+        ...tx,
+        bot_name: botNameById.get(botId) || "Bot Telegram",
+        chat_id: telegramInfo.chat_id || session?.chat_id || null,
+        customer_name: tx.customer_name || tgUser.first_name || "Cliente Telegram",
+      };
+    });
+
+    setSales(telegramSales);
+    setLoading(false);
+  };
 
    useEffect(() => {
      loadData();
