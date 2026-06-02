@@ -772,7 +772,13 @@ serve(async (req) => {
 
       const { data: flow } = await supabase.from("flow_automations").select("*").eq("id", flowId).maybeSingle();
 
-      if (flow) {
+      if (flow && flow.active === false) {
+        console.log(`[FlowResume] Flow ${flowId} is deactivated. Clearing session and skipping.`);
+        await supabase
+          .from("flow_captured_data")
+          .update({ last_node_id: null, updated_at: new Date().toISOString() })
+          .eq("id", flowState.id);
+      } else if (flow) {
         const nodes = flow.nodes || [];
         const edges = flow.edges || [];
         const lastNode = lastNodeId ? nodes.find((n: any) => n.id === lastNodeId) : null;
