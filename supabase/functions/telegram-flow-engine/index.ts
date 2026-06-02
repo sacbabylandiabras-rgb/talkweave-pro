@@ -1029,6 +1029,9 @@ async function runFlow({
             if (toolUse?.name === "enviar_previa") iaNextHandle = "previa";
             else if (toolUse?.name === "enviar_prova_social") iaNextHandle = "prova_social";
             else if (toolUse?.name === "gerar_pagamento") iaNextHandle = "pagamento";
+            if (!iaNextHandle && toolsCfg.pagamento && isPaymentIntent(userInput)) {
+              iaNextHandle = "pagamento";
+            }
             variables[saveAs] = reply;
             // Quando a IA aciona uma ferramenta, NÃO enviamos o texto: o próximo bloco assume.
             if (sendReply && reply && !iaNextHandle) {
@@ -1041,15 +1044,9 @@ async function runFlow({
             // Tool de pagamento: gera o PIX agora e pausa a sessão até confirmar.
             if (iaNextHandle === "pagamento") {
               const input = (toolUse?.input || {}) as any;
-              const rawAmount = input?.amount ?? toolsCfg.pagamentoAmount ?? 0;
-              let amountCents = 0;
-              if (typeof rawAmount === "number") {
-                amountCents = Math.round(rawAmount * 100);
-              } else if (typeof rawAmount === "string") {
-                const s = rawAmount.replace(/\./g, "").replace(",", ".");
-                amountCents = Math.round(parseFloat(s || "0") * 100);
-              }
-              const desc = String(input?.description || toolsCfg.pagamentoDescricao || data.label || "Pagamento");
+              const inferred = inferPaymentFromContext(userInput, recentMessages, `${systemPrompt}\n${knowledge}`);
+              const amountCents = moneyToCents(input?.amount) || inferred.amountCents || moneyToCents(toolsCfg.pagamentoAmount);
+              const desc = String(input?.description || toolsCfg.pagamentoDescricao || inferred.description || data.label || "Pagamento");
               if (!amountCents || amountCents <= 0) {
                 await tgSend(admin, bot, {
                   chat_id: chatId,
