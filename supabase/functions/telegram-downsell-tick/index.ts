@@ -173,10 +173,8 @@ Deno.serve(async (req) => {
       );
       if (r.ok) {
         totalSent++;
-        await admin.rpc; // noop placeholder
-        await admin.from("telegram_downsells")
-          .update({ envios: (await admin.from("telegram_downsells").select("envios").eq("id", d.id).single()).data?.envios + 1 || 1 })
-          .eq("id", d.id);
+        const { data: cur } = await admin.from("telegram_downsells").select("envios").eq("id", d.id).single();
+        await admin.from("telegram_downsells").update({ envios: (cur?.envios ?? 0) + 1 }).eq("id", d.id);
       } else {
         totalErrors++;
         console.error("send failed", t.chat_id, r.json);
