@@ -146,6 +146,81 @@ const normalize = (s: string) =>
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
 
+function moneyToCents(value: string | number | null | undefined): number {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.round(value * 100);
+  const raw = String(value ?? "").trim();
+  if (!raw) return 0;
+  const cleaned = raw.replace(/[^\d,.]/g, "");
+  if (!cleaned) return 0;
+  const normalized = cleaned.includes(",")
+    ? cleaned.replace(/\./g, "").replace(",", ".")
+    : cleaned;
+  const amount = Number.parseFloat(normalized);
+  return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
+}
+
+function isPaymentIntent(text: string): boolean {
+  return /\b(pix|qr\s*code|qrcode|pagar|pagamento|cobran[çc]a|cart[aã]o|link\s+de\s+pagamento|finalizar|comprar|fechar|vou\s+querer)\b/i.test(text || "");
+}
+
+function inferAmountFromText(text: string): number {
+  const s = String(text || "");
+  const patterns = [
+    /r\$\s*(\d{1,7}(?:[.,]\d{1,2})?)/i,
+    /(\d{1,7}(?:[.,]\d{1,2})?)\s*(?:reais|real|brl)\b/i,
+    /(?:pagar|pix|cobran[çc]a|qr\s*code|qrcode|valor|link\s+de\s+pagamento)[^\d]{0,30}(\d{1,7}(?:[.,]\d{1,2})?)/i,
+  ];
+  for (const pattern of patterns) {
+    const match = s.match(pattern);
+    const cents = moneyToCents(match?.[1]);
+    if (cents > 0) return cents;
+  }
+  return 0;
+}
+
+function inferPaymentFromContext(userInput: string, recentMessages: any[] = [], fallbackText = "") {
+  const newestFirst = [...recentMessages].reverse();
+  const candidates = [userInput, ...newestFirst.map((m) => String(m?.text || "")), fallbackText].filter(Boolean);
+  for (const text of candidates) {
+    const amountCents = inferAmountFromText(text);
+    if (amountCents > 0) {
+      const line = String(text).split(/\n/).find((l) => inferAmountFromText(l) > 0) || String(text);
+      const description = line
+        .replace(/r\$\s*\d{1,7}(?:[.,]\d{1,2})?/i, "")
+        .replace(/\d{1,7}(?:[.,]\d{1,2})?\s*(?:reais|real|brl)\b/i, "")
+        .replace(/[\-–—:•]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 80);
+      return { amountCents, description: description || "Pagamento via Telegram" };
+    }
+  }
+  return { amountCents: 0, description: "Pagamento via Telegram" };
+}
+
+async function resolveQrImageUrl(admin: any, userId: string, qrImage: string, externalId?: string | null) {
+  const raw = String(qrImage || "").trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const b64 = raw.startsWith("data:image/") ? raw.split(",").pop() || "" : raw;
+  if (!/^[A-Za-z0-9+/=\s_-]{200,}$/.test(b64)) return "";
+  try {
+    const normalized = b64.replace(/-/g, "+").replace(/_/g, "/").replace(/\s/g, "");
+    const bytes = Uint8Array.from(atob(normalized), (c) => c.charCodeAt(0));
+    const path = `${userId}/pix-${externalId || Date.now()}.png`;
+    const { error } = await admin.storage.from("flow-media").upload(path, bytes, {
+      contentType: "image/png",
+      upsert: true,
+    });
+    if (error) throw error;
+    const { data } = admin.storage.from("flow-media").getPublicUrl(path);
+    return data?.publicUrl || "";
+  } catch (e) {
+    console.warn("[engine] qr image upload failed", (e as Error).message);
+    return "";
+  }
+}
+
 // Returns the trigger node in a flow: either legacy blocoInicial/blocoGatilho,
 // or new-format step node with data.kind === 'gatilho'.
 function findTriggerNode(nodes: FlowNode[]): FlowNode | null {
