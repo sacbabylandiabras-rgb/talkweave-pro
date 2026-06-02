@@ -2524,6 +2524,93 @@ export type Database = {
           },
         ]
       }
+      telegram_free_channels: {
+        Row: {
+          approval_delay_seconds: number
+          bot_id: string
+          chat_id: number | null
+          created_at: string
+          flow_id: string | null
+          response_type: string
+          template_id: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+          welcome_message: string
+        }
+        Insert: {
+          approval_delay_seconds?: number
+          bot_id: string
+          chat_id?: number | null
+          created_at?: string
+          flow_id?: string | null
+          response_type?: string
+          template_id?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          welcome_message?: string
+        }
+        Update: {
+          approval_delay_seconds?: number
+          bot_id?: string
+          chat_id?: number | null
+          created_at?: string
+          flow_id?: string | null
+          response_type?: string
+          template_id?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          welcome_message?: string
+        }
+        Relationships: []
+      }
+      telegram_free_join_requests: {
+        Row: {
+          approve_at: string
+          bot_id: string
+          chat_id: number
+          from_first_name: string | null
+          from_user_id: number
+          from_username: string | null
+          id: string
+          last_error: string | null
+          processed_at: string | null
+          requested_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          approve_at: string
+          bot_id: string
+          chat_id: number
+          from_first_name?: string | null
+          from_user_id: number
+          from_username?: string | null
+          id?: string
+          last_error?: string | null
+          processed_at?: string | null
+          requested_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          approve_at?: string
+          bot_id?: string
+          chat_id?: number
+          from_first_name?: string | null
+          from_user_id?: number
+          from_username?: string | null
+          id?: string
+          last_error?: string | null
+          processed_at?: string | null
+          requested_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       telegram_message_templates: {
         Row: {
           active: boolean

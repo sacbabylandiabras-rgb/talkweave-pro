@@ -17,6 +17,16 @@ async function tg(botToken: string, method: string, body: any) {
   return { ok: res.ok && json?.ok, json };
 }
 
+async function sendWelcomeText(botToken: string, body: any) {
+  const first = await tg(botToken, "sendMessage", body);
+  const description = String(first.json?.description || "").toLowerCase();
+  if (!first.ok && body?.parse_mode && description.includes("can't parse")) {
+    const { parse_mode: _parseMode, ...plainBody } = body;
+    return await tg(botToken, "sendMessage", plainBody);
+  }
+  return first;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -27,7 +37,7 @@ Deno.serve(async (req) => {
 
   const { data: ready, error } = await admin
     .from("telegram_free_join_requests")
-    .select("id, bot_id, chat_id, from_user_id, from_first_name")
+    .select("*")
     .eq("status", "pending")
     .lte("approve_at", new Date().toISOString())
     .limit(200);
@@ -62,15 +72,8 @@ Deno.serve(async (req) => {
       .eq("bot_id", row.bot_id)
       .maybeSingle();
 
-    const approveRes = await tg(bot.bot_token, "approveChatJoinRequest", {
-      chat_id: row.chat_id,
-      user_id: row.from_user_id,
-    });
-
     let lastError: string | null = null;
-    if (!approveRes.ok) {
-      lastError = String(approveRes.json?.description || "approve_failed");
-    }
+    const privateChatId = (row as any).user_chat_id || row.from_user_id;
 
     const responseType = (cfg as any)?.response_type || "text";
     const firstName = row.from_first_name || "";
@@ -79,19 +82,19 @@ Deno.serve(async (req) => {
         .replaceAll("{nome}", firstName)
         .replaceAll("{name}", firstName);
 
-    if (approveRes.ok) {
+    const sendWelcome = async () => {
       if (responseType === "flow" && (cfg as any)?.flow_id) {
         const { error: flowErr } = await admin.functions.invoke("telegram-flow-engine", {
           body: {
             mode: "start",
             bot_id: row.bot_id,
-            chat_id: row.from_user_id,
+            chat_id: privateChatId,
             flow_id: (cfg as any).flow_id,
             user: { id: row.from_user_id, first_name: firstName },
           },
         });
         if (flowErr) {
-          lastError = (lastError ? lastError + " | " : "") + `flow: ${flowErr.message || "invoke_failed"}`;
+          return `flow: ${flowErr.message || "invoke_failed"}`;
         }
       } else if (responseType === "template" && (cfg as any)?.template_id) {
         const { data: tpl } = await admin
@@ -113,42 +116,68 @@ Deno.serve(async (req) => {
               }) }
           : undefined;
         if (text) {
-          const sendRes = await tg(bot.bot_token, "sendMessage", {
-            chat_id: row.from_user_id,
+          const sendRes = await sendWelcomeText(bot.bot_token, {
+            chat_id: privateChatId,
             text,
             parse_mode: "HTML",
             disable_web_page_preview: false,
             ...(reply_markup ? { reply_markup } : {}),
           });
           if (!sendRes.ok) {
-            lastError = (lastError ? lastError + " | " : "") + `welcome: ${sendRes.json?.description || "send_failed"}`;
+            return `welcome: ${sendRes.json?.description || "send_failed"}`;
           }
         }
       } else {
         const text = interpolate(cfg?.welcome_message || "").trim();
         if (text) {
-          const sendRes = await tg(bot.bot_token, "sendMessage", {
-            chat_id: row.from_user_id,
+          const sendRes = await sendWelcomeText(bot.bot_token, {
+            chat_id: privateChatId,
             text,
             parse_mode: "HTML",
             disable_web_page_preview: false,
           });
           if (!sendRes.ok) {
-            lastError = (lastError ? lastError + " | " : "") + `welcome: ${sendRes.json?.description || "send_failed"}`;
+            return `welcome: ${sendRes.json?.description || "send_failed"}`;
           }
         }
       }
+      return null;
+    };
+
+    let welcomeAlreadyAttempted = false;
+    if ((row as any).user_chat_id) {
+      const welcomeErr = await sendWelcome();
+      welcomeAlreadyAttempted = true;
+      if (welcomeErr) lastError = welcomeErr;
+    }
+
+    const approveRes = await tg(bot.bot_token, "approveChatJoinRequest", {
+      chat_id: row.chat_id,
+      user_id: row.from_user_id,
+    });
+
+    if (!approveRes.ok) {
+      lastError = (lastError ? lastError + " | " : "") + String(approveRes.json?.description || "approve_failed");
+    }
+
+    const approveDescription = String(approveRes.json?.description || "").toLowerCase();
+    const alreadyParticipant = approveDescription.includes("already") || approveDescription.includes("participant");
+    const canSendWelcome = approveRes.ok || alreadyParticipant;
+
+    if (canSendWelcome && !welcomeAlreadyAttempted) {
+      const welcomeErr = await sendWelcome();
+      if (welcomeErr) lastError = (lastError ? lastError + " | " : "") + welcomeErr;
     }
 
     await admin.from("telegram_free_join_requests")
       .update({
-        status: approveRes.ok ? "approved" : "failed",
+        status: canSendWelcome ? "approved" : "failed",
         processed_at: new Date().toISOString(),
         last_error: lastError,
       })
       .eq("id", row.id);
 
-    if (approveRes.ok) approved++; else failed++;
+    if (canSendWelcome) approved++; else failed++;
   }
 
   return new Response(JSON.stringify({ ok: true, approved, failed, scanned: ready?.length ?? 0 }), {
