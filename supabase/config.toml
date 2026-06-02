@@ -63,6 +63,9 @@ verify_jwt = false
 [functions.telegram-media]
 verify_jwt = false
 
+[functions.telegram-user-avatar]
+verify_jwt = false
+
 [functions.telegram-redirect]
 verify_jwt = false
 

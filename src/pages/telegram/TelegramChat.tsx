@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -49,6 +49,7 @@ interface Conversation {
   messages: ChatMsg[];
   bot_id?: string;
   chat_id?: number;
+  from_user_id?: number;
 }
 
 const SUPABASE_FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co"}/functions/v1`;
@@ -247,6 +248,42 @@ function TelegramButtons({ rows }: { rows: ChatButton[][] }) {
   );
 }
 
+function TelegramAvatar({ botId, tgUserId, name, className }: { botId?: string; tgUserId?: number; name: string; className?: string }) {
+  const [src, setSrc] = useState<string>("");
+  useEffect(() => {
+    if (!botId || !tgUserId) return;
+    let objectUrl = "";
+    let cancelled = false;
+    (async () => {
+      try {
+        const cacheKey = `tg-avatar:${botId}:${tgUserId}`;
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached === "none") return;
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/telegram-user-avatar?bot_id=${encodeURIComponent(botId)}&tg_user_id=${encodeURIComponent(tgUserId)}`, {
+          headers: {
+            ...(SUPABASE_ANON_KEY ? { apikey: SUPABASE_ANON_KEY } : {}),
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          },
+        });
+        if (!res.ok) { sessionStorage.setItem(cacheKey, "none"); return; }
+        const blob = await res.blob();
+        objectUrl = URL.createObjectURL(blob);
+        if (!cancelled) setSrc(objectUrl);
+      } catch {
+        /* silent */
+      }
+    })();
+    return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [botId, tgUserId]);
+  return (
+    <Avatar className={className}>
+      {src ? <AvatarImage src={src} alt={name} /> : null}
+      <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
+    </Avatar>
+  );
+}
+
 export default function TelegramChat() {
   const [convs, setConvs] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string>("");
@@ -265,7 +302,7 @@ export default function TelegramChat() {
 
     const { data, error } = await (supabase as any)
       .from("telegram_messages")
-      .select("id, bot_id, chat_id, from_username, from_first_name, text, raw_update, created_at")
+      .select("id, bot_id, chat_id, from_user_id, from_username, from_first_name, text, raw_update, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(2000);
@@ -299,6 +336,9 @@ export default function TelegramChat() {
           existing.name = row.from_first_name || row.from_username;
           existing.username = row.from_username ? `@${row.from_username}` : `#${row.chat_id}`;
         }
+        if (!fromBot && row.from_user_id && !existing.from_user_id) {
+          existing.from_user_id = Number(row.from_user_id);
+        }
       } else {
         const fallbackName = fromBot ? `Chat ${row.chat_id}` : (row.from_first_name || row.from_username || `Chat ${row.chat_id}`);
         grouped.set(key, {
@@ -313,6 +353,7 @@ export default function TelegramChat() {
           messages: [msg],
           bot_id: row.bot_id,
           chat_id: row.chat_id,
+          from_user_id: !fromBot && row.from_user_id ? Number(row.from_user_id) : undefined,
         });
       }
     }
@@ -448,7 +489,7 @@ export default function TelegramChat() {
                 )}
               >
                 <div className="relative">
-                  <Avatar className="w-10 h-10"><AvatarFallback>{c.name.charAt(0)}</AvatarFallback></Avatar>
+                  <TelegramAvatar botId={c.bot_id} tgUserId={c.from_user_id} name={c.name} className="w-10 h-10" />
                   {c.online && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-background" />}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -472,7 +513,7 @@ export default function TelegramChat() {
             <>
               <div className="p-3 border-b flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Avatar className="w-9 h-9"><AvatarFallback>{active.name.charAt(0)}</AvatarFallback></Avatar>
+                  <TelegramAvatar botId={active.bot_id} tgUserId={active.from_user_id} name={active.name} className="w-9 h-9" />
                   <div>
                     <p className="font-medium text-sm">{active.name}</p>
                     <p className="text-xs text-muted-foreground">
