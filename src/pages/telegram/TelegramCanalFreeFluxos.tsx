@@ -48,6 +48,12 @@ function fmt(iso: string | null) {
   catch { return iso; }
 }
 
+function isScheduledForFuture(flow: Flow) {
+  if (flow.trigger_type !== "scheduled" || !flow.next_run_at) return false;
+  const scheduledAt = new Date(flow.next_run_at).getTime();
+  return Number.isFinite(scheduledAt) && scheduledAt > Date.now();
+}
+
 export default function TelegramCanalFreeFluxos({
   botId, chatId, channelTitle,
 }: { botId: string; chatId: number | null; channelTitle: string }) {
@@ -90,6 +96,10 @@ export default function TelegramCanalFreeFluxos({
   }
 
   async function runNow(flow: Flow) {
+    if (isScheduledForFuture(flow)) {
+      toast.info(`Este fluxo está agendado para ${fmt(flow.next_run_at)}. Ele não será disparado antes do horário.`);
+      return;
+    }
     const { data, error } = await supabase.functions.invoke("telegram-group-flow-trigger", {
       body: { flow_id: flow.id, trigger_source: "manual" },
     });
@@ -159,13 +169,19 @@ export default function TelegramCanalFreeFluxos({
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {(f.nodes?.length ?? 0)} passo(s) · último disparo: {fmt(f.last_run_at)}
-                  {f.trigger_type === "recurring" && f.next_run_at && (
-                    <> · próximo: {fmt(f.next_run_at)}</>
+                  {(f.trigger_type === "scheduled" || f.trigger_type === "recurring") && f.next_run_at && (
+                    <> · {f.trigger_type === "scheduled" ? "agendado para" : "próximo"}: {fmt(f.next_run_at)}</>
                   )}
                 </p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <Button size="sm" variant="ghost" onClick={() => runNow(f)} title="Disparar agora">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => runNow(f)}
+                  disabled={isScheduledForFuture(f)}
+                  title={isScheduledForFuture(f) ? `Agendado para ${fmt(f.next_run_at)}` : "Disparar agora"}
+                >
                   <Play className="w-4 h-4" />
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => toggleActive(f)}>
