@@ -537,6 +537,10 @@ function EditorInner() {
           onPaneClick={() => { setSelectedId(null); setConnectMenu(null); }}
           nodeTypes={nodeTypes}
           fitView
+          deleteKeyCode={["Delete", "Backspace"]}
+          onNodesDelete={(deleted) => {
+            deleted.forEach((n) => { if (n.id !== TRIGGER_ID) removeNode(n.id); });
+          }}
           defaultEdgeOptions={{ animated: true, markerEnd: { type: MarkerType.ArrowClosed } }}
         >
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
