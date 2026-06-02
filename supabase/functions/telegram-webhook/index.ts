@@ -38,6 +38,53 @@ function rowFromUpdate(bot: any, update: any) {
   };
 }
 
+function chatFromAdminUpdate(update: any, botTelegramId?: number | null) {
+  const cm = update?.my_chat_member;
+  if (cm) {
+    const newStatus = cm?.new_chat_member?.status;
+    const chat = cm?.chat;
+    if (chat?.id && ["channel", "supergroup", "group"].includes(chat.type) &&
+        (newStatus === "administrator" || newStatus === "creator")) {
+      return { chat_id: chat.id, title: chat.title ?? null };
+    }
+  }
+
+  const msg = update?.message ?? update?.edited_message;
+  const members = msg?.new_chat_members;
+  const chat = msg?.chat;
+  if (chat?.id && Array.isArray(members) && ["channel", "supergroup", "group"].includes(chat.type)) {
+    const botWasAdded = members.some((m: any) =>
+      m?.is_bot && (!botTelegramId || Number(m.id) === Number(botTelegramId)),
+    );
+    if (botWasAdded) return { chat_id: chat.id, title: chat.title ?? null };
+  }
+
+  return null;
+}
+
+async function tg(token: string, method: string, body: any = {}) {
+  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  return { ok: res.ok && json?.ok, json };
+}
+
+async function persistFreeChannel(admin: any, bot: any, channel: { chat_id: number; title: string | null }) {
+  const chatMember = bot.bot_id
+    ? await tg(bot.bot_token, "getChatMember", { chat_id: channel.chat_id, user_id: bot.bot_id })
+    : { ok: true, json: {} };
+  const status = chatMember.json?.result?.status;
+  if (chatMember.ok && status && status !== "administrator" && status !== "creator") return;
+
+  await admin.from("telegram_free_channels").upsert(
+    { bot_id: bot.id, user_id: bot.user_id, chat_id: channel.chat_id, title: channel.title },
+    { onConflict: "bot_id" },
+  );
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -52,7 +99,7 @@ Deno.serve(async (req) => {
 
   const { data: bot } = await admin
     .from("telegram_bots")
-    .select("id,user_id,bot_token,active")
+    .select("id,user_id,bot_token,bot_id,active")
     .eq("id", botId)
     .maybeSingle();
   if (!bot || !bot.active) return new Response(JSON.stringify({ ok: true, skipped: "bot_inactive" }));
@@ -69,23 +116,10 @@ Deno.serve(async (req) => {
   }
 
   const processUpdate = async () => {
-    // Canal Free: bot promovido a admin de um canal/grupo
-    if (update.my_chat_member) {
-      const cm = update.my_chat_member;
-      const newStatus = cm?.new_chat_member?.status;
-      const chat = cm?.chat;
-      if (chat?.id && (chat.type === "channel" || chat.type === "supergroup" || chat.type === "group") &&
-          (newStatus === "administrator" || newStatus === "creator")) {
-        await admin.from("telegram_free_channels").upsert(
-          {
-            bot_id: bot.id,
-            user_id: bot.user_id,
-            chat_id: chat.id,
-            title: chat.title ?? null,
-          },
-          { onConflict: "bot_id" },
-        );
-      }
+    // Canal Free: bot promovido/adicionado como admin de um canal/grupo
+    const freeChannel = chatFromAdminUpdate(update, bot.bot_id);
+    if (freeChannel) {
+      await persistFreeChannel(admin, bot, freeChannel);
       return;
     }
 
