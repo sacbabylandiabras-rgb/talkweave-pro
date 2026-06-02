@@ -360,7 +360,7 @@ function EditorInner() {
     };
     setNodes((nds) => [...nds, newNode]);
     setEdges((eds) => addEdge({
-      source: connectMenu.sourceId, target: nid,
+      source: connectMenu.sourceId, target: nid, sourceHandle: null, targetHandle: null,
       animated: true, markerEnd: { type: MarkerType.ArrowClosed },
     }, eds));
     setSelectedId(nid);
