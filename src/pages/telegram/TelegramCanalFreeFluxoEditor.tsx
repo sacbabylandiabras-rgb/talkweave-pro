@@ -365,15 +365,20 @@ function EditorInner() {
     });
   }, [screenToFlowPosition]);
 
-  function createNodeFromMenu(type: CanvasNodeType) {
+  function createNodeFromMenu(kind: "message" | "delay" | "schedule") {
     if (!connectMenu) return;
     const nid = newId();
+    const type: CanvasNodeType = kind === "message" ? "message" : "delay";
+    const dataPayload =
+      kind === "message"
+        ? { message: { content_type: "text", text: "", buttons: [] } }
+        : kind === "schedule"
+          ? { delay: { mode: "until", seconds: 60, until: null } }
+          : { delay: { mode: "duration", seconds: 60 } };
     const newNode: Node = {
       id: nid, type,
       position: { x: connectMenu.flowX, y: connectMenu.flowY },
-      data: type === "message"
-        ? { message: { content_type: "text", text: "", buttons: [] } }
-        : { delay: { seconds: 60 } },
+      data: dataPayload,
     };
     setNodes((nds) => [...nds, newNode]);
     setEdges((eds) => addEdge({
@@ -528,6 +533,18 @@ function EditorInner() {
           <Button size="sm" variant="outline" onClick={() => addNodeAt("delay")}>
             <Clock className="w-3.5 h-3.5 mr-1" /> Esperar
           </Button>
+          <Button size="sm" variant="outline" onClick={() => {
+            const nid = newId();
+            const base = nodes[nodes.length - 1];
+            const pos = base ? { x: base.position.x + 320, y: base.position.y } : { x: 380, y: 160 };
+            setNodes((nds) => [...nds, {
+              id: nid, type: "delay", position: pos,
+              data: { delay: { mode: "until", seconds: 60, until: null } },
+            }]);
+            setSelectedId(nid);
+          }}>
+            <CalendarIcon className="w-3.5 h-3.5 mr-1" /> Agendamento
+          </Button>
           <Button size="sm" onClick={save} disabled={saving}>
             {saving ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Save className="w-4 h-4 mr-1.5" />}
             Salvar
@@ -586,6 +603,16 @@ function EditorInner() {
                 <Clock className="h-3.5 w-3.5" />
               </span>
               Esperar (delay)
+            </button>
+            <button
+              type="button"
+              onClick={() => createNodeFromMenu("schedule")}
+              className="w-full flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-muted/70 transition"
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
+                <CalendarIcon className="h-3.5 w-3.5" />
+              </span>
+              Agendamento (data/hora)
             </button>
           </div>
         )}
