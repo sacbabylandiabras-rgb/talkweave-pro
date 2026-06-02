@@ -50,6 +50,26 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: tgJson.description || "Falha ao enviar" }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Persist outgoing message so it appears in the in-app chat view.
+    try {
+      const r = tgJson.result ?? {};
+      const syntheticUpdateId = -(Date.now() * 1000 + Math.floor(Math.random() * 1000));
+      await admin.from("telegram_messages").insert({
+        bot_id: bot_id,
+        user_id: user.id,
+        update_id: syntheticUpdateId,
+        chat_id: r.chat?.id ?? chat_id,
+        from_user_id: r.from?.id ?? null,
+        from_username: r.from?.username ?? null,
+        from_first_name: r.from?.first_name ?? "Bot",
+        message_type: "message",
+        text: r.text ?? text,
+        raw_update: { message: { ...r, from: { ...(r.from || {}), is_bot: true } } },
+      });
+    } catch (e) {
+      console.warn("persist outgoing failed:", (e as Error).message);
+    }
+
     return new Response(JSON.stringify({ ok: true, message_id: tgJson.result?.message_id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
