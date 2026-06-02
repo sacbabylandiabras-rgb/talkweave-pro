@@ -88,38 +88,39 @@ const tgSend = async (
 };
 
 const sendTelegramMedia = async (
-  token: string,
+  admin: any,
+  bot: any,
   chatId: number | string,
   mediaUrl: string,
   mediaType: string,
   caption?: string,
 ) => {
   if (mediaType === "photo") {
-    return tgApi(token, "sendPhoto", {
+    return tgSend(admin, bot, {
       chat_id: chatId,
       photo: mediaUrl,
       ...(caption ? { caption } : {}),
-    });
+    }, "sendPhoto");
   }
   if (mediaType === "video") {
-    return tgApi(token, "sendVideo", {
+    return tgSend(admin, bot, {
       chat_id: chatId,
       video: mediaUrl,
       ...(caption ? { caption } : {}),
-    });
+    }, "sendVideo");
   }
   if (mediaType === "audio") {
-    return tgApi(token, "sendAudio", {
+    return tgSend(admin, bot, {
       chat_id: chatId,
       audio: mediaUrl,
       ...(caption ? { caption } : {}),
-    });
+    }, "sendAudio");
   }
-  return tgApi(token, "sendDocument", {
+  return tgSend(admin, bot, {
     chat_id: chatId,
     document: mediaUrl,
     ...(caption ? { caption } : {}),
-  });
+  }, "sendDocument");
 };
 
 const renderTemplate = (tpl: string, vars: Record<string, any>) =>
