@@ -228,18 +228,18 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
      case 'get-disallowed-contacts':
       return { method: 'GET', path: '/privacy/disallowed-contacts' };
     case 'set-last-seen':
-      return { method: 'PUT', path: '/privacy/last-seen', body: { visualizationType: payload?.visualizationType } };
+      return { method: 'POST', path: '/privacy/last-seen', body: { visualizationType: payload?.visualizationType } };
     case 'set-photo-visualization':
-      return { method: 'PUT', path: '/privacy/photo-visualization', body: { visualizationType: payload?.visualizationType } };
+      return { method: 'POST', path: '/privacy/photo-visualization', body: { visualizationType: payload?.visualizationType } };
     case 'set-privacy-description':
-      return { method: 'PUT', path: '/privacy/privacy-description', body: { visualizationType: payload?.visualizationType } };
+      return { method: 'POST', path: '/privacy/privacy-description', body: { visualizationType: payload?.visualizationType } };
     case 'set-group-add-permission':
-      return { method: 'PUT', path: '/privacy/group-add-permission', body: { visualizationType: payload?.visualizationType } };
+      return { method: 'POST', path: '/privacy/group-add-permission', body: { visualizationType: payload?.visualizationType } };
     case 'set-privacy-online':
-      return { method: 'PUT', path: '/privacy/privacy-online', body: { visualizationType: payload?.visualizationType } };
+      return { method: 'POST', path: '/privacy/privacy-online', body: { visualizationType: payload?.visualizationType } };
     case 'set-read-receipts': {
       const value = payload?.active === true || payload?.active === 'true' || payload?.value === 'enable' ? 'enable' : 'disable';
-      return { method: 'PUT', path: `/privacy/read-receipts?value=${value}` };
+      return { method: 'POST', path: `/privacy/read-receipts?value=${value}` };
     }
     case 'set-messages-duration': {
       const durationMap: Record<string, string> = {
@@ -249,7 +249,7 @@ function endpointFor(action: string, phone: string, payload: any, apiProvider: s
         '7776000': 'days90',
       };
       const value = durationMap[String(payload?.duration ?? 0)] || 'disable';
-      return { method: 'PUT', path: `/privacy/messages-duration?value=${value}` };
+      return { method: 'POST', path: `/privacy/messages-duration?value=${value}` };
     }
 
      // Call Actions
@@ -515,7 +515,12 @@ Deno.serve(async (req) => {
 
     console.log(`[zapi-chat-actions] Z-API Response (${resp.status}):`, text);
 
-    if (!resp.ok) {
+    // Z-API sometimes returns HTTP 200 with an embedded error payload
+    const embeddedError = data && typeof data === 'object' && !Array.isArray(data)
+      ? (data as any).error
+      : null;
+
+    if (!resp.ok || embeddedError) {
       console.error(`[zapi-chat-actions] Z-API Error: ${ep.method} ${url} -> ${resp.status}`, text);
       return new Response(JSON.stringify({ error: formatErrorMessage(data, `Erro HTTP ${resp.status}`), details: data, status: resp.status }), {
         status: 200,
