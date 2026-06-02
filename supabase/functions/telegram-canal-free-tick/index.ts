@@ -103,8 +103,14 @@ Deno.serve(async (req) => {
         const buttons = Array.isArray((tpl as any)?.buttons) ? (tpl as any).buttons : [];
         const reply_markup = buttons.length > 0
           ? { inline_keyboard: buttons
-              .filter((b: any) => b?.text && b?.url)
-              .map((b: any) => [{ text: String(b.text), url: String(b.url) }]) }
+              .filter((b: any) => b?.text && (b?.url || b?.type === "reply"))
+              .map((b: any) => {
+                if (b?.type === "reply") {
+                  const payload = String(b.payload || b.text || "btn").slice(0, 60);
+                  return [{ text: String(b.text), callback_data: `tplreply:${payload}` }];
+                }
+                return [{ text: String(b.text), url: String(b.url) }];
+              }) }
           : undefined;
         if (text) {
           const sendRes = await tg(bot.bot_token, "sendMessage", {
