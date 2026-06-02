@@ -601,8 +601,10 @@ function MessageNodeEditor({
   async function uploadFile(file: File) {
     setUploading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sessão expirada");
       const ext = file.name.split(".").pop() || "bin";
-      const path = `group-flows/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const path = `${user.id}/group-flows/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from("flow-media").upload(path, file);
       if (error) throw error;
       const { data } = supabase.storage.from("flow-media").getPublicUrl(path);
