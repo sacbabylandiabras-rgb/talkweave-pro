@@ -278,8 +278,19 @@ export default function TelegramGruposCanais() {
         <p className="text-sm text-muted-foreground mt-1">Grupos e Canais</p>
       </div>
 
-      {/* Banner */}
-      <Card className="p-6 md:p-8 overflow-hidden relative">
+      <Tabs defaultValue="lista" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="lista" className="flex items-center gap-1.5">
+            <List className="w-4 h-4" /> Lista
+          </TabsTrigger>
+          <TabsTrigger value="fluxos" className="flex items-center gap-1.5">
+            <GitBranch className="w-4 h-4" /> Fluxos
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="lista" className="space-y-6">
+          {/* Banner */}
+          <Card className="p-6 md:p-8 overflow-hidden relative">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex-1 max-w-xl space-y-4">
             <h2 className="text-2xl font-bold text-foreground">
