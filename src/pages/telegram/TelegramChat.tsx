@@ -7,6 +7,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import {
   Search, Send, Paperclip, Smile, MessageSquare, Settings, ChevronDown, Phone, MoreVertical,
 } from "lucide-react";
 import { toast } from "sonner";
