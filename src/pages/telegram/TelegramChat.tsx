@@ -513,7 +513,7 @@ export default function TelegramChat() {
             <>
               <div className="p-3 border-b flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Avatar className="w-9 h-9"><AvatarFallback>{active.name.charAt(0)}</AvatarFallback></Avatar>
+                  <TelegramAvatar botId={active.bot_id} tgUserId={active.from_user_id} name={active.name} className="w-9 h-9" />
                   <div>
                     <p className="font-medium text-sm">{active.name}</p>
                     <p className="text-xs text-muted-foreground">
