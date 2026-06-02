@@ -14,10 +14,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
-import { FileText, Plus, Pencil, Trash2, Link as LinkIcon, X } from "lucide-react";
+import { FileText, Plus, Pencil, Trash2, Link as LinkIcon, X, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
-type TgButton = { text: string; url: string };
+type TgButton = { type: "url" | "reply"; text: string; url?: string; payload?: string };
 type TgTemplate = {
   id: string;
   name: string;
