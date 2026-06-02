@@ -754,7 +754,7 @@ async function runFlow({
                     if (!mediaUrl) continue;
                     const mediaType = String(file?.type || "document");
                     const caption = renderTemplate(String(file?.caption || ""), variables);
-                    await sendTelegramMedia(bot.bot_token, chatId, mediaUrl, mediaType, caption);
+                    await sendTelegramMedia(admin, bot, chatId, mediaUrl, mediaType, caption);
                   }
                 } catch (mErr) {
                   console.error("[engine] IA tool media send failed", (mErr as Error).message);
