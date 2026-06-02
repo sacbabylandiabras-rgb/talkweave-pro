@@ -448,6 +448,56 @@ export default function TelegramGruposCanais() {
         </Card>
       </div>
 
+        </TabsContent>
+
+        <TabsContent value="fluxos" className="space-y-4">
+          <Card className="p-4 space-y-3">
+            <div className="grid md:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Bot</Label>
+                {bots.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum bot cadastrado. Crie um bot primeiro.</p>
+                ) : (
+                  <Select value={flowBotId} onValueChange={setFlowBotId}>
+                    <SelectTrigger><SelectValue placeholder="Selecione um bot" /></SelectTrigger>
+                    <SelectContent>
+                      {bots.map((b) => (
+                        <SelectItem key={b.id} value={b.id}>
+                          {b.first_name || b.username || b.id}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label>Grupo / Canal</Label>
+                {items.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Cadastre um grupo ou canal na aba "Lista".</p>
+                ) : (
+                  <Select value={flowGroupId} onValueChange={setFlowGroupId}>
+                    <SelectTrigger><SelectValue placeholder="Selecione um grupo/canal" /></SelectTrigger>
+                    <SelectContent>
+                      {items.map((g) => (
+                        <SelectItem key={g.id} value={g.group_id}>
+                          {KIND_LABEL[g.kind]} · {g.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </div>
+          </Card>
+
+          <TelegramGruposCanaisFluxos
+            botId={flowBotId}
+            chatId={flowGroupId ? Number(flowGroupId) : null}
+            groupTitle={items.find((g) => g.group_id === flowGroupId)?.title || ""}
+          />
+        </TabsContent>
+      </Tabs>
+
       {/* Modal */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
