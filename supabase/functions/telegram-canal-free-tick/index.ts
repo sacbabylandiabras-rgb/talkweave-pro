@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
   for (const row of ready ?? []) {
     const { data: bot } = await admin
       .from("telegram_bots")
-      .select("bot_token")
+      .select("id,user_id,bot_token,bot_id")
       .eq("id", row.bot_id)
       .maybeSingle();
     if (!bot?.bot_token) {
