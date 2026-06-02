@@ -436,7 +436,7 @@ export default function TelegramChat() {
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => {
-                          setActiveId(null);
+                          setActiveId("");
                         }}
                       >
                         Fechar conversa
