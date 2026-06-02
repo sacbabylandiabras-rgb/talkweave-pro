@@ -2150,12 +2150,7 @@ export default function FluxoTelegram() {
           </ReactFlow>
           </div>
         ) : (
-          <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-            <div className="text-center">
-              <Activity className="h-10 w-10 mx-auto mb-2 opacity-30" />
-              <p>Desempenho do flow estará disponível em breve.</p>
-            </div>
-          </div>
+          <TelegramFlowDesempenho flowId={currentId} />
         )}
 
         {/* Floating block picker (drop on pane) */}
