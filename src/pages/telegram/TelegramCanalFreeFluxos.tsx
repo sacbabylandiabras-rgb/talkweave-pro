@@ -48,6 +48,12 @@ function fmt(iso: string | null) {
   catch { return iso; }
 }
 
+function isScheduledForFuture(flow: Flow) {
+  if (flow.trigger_type !== "scheduled" || !flow.next_run_at) return false;
+  const scheduledAt = new Date(flow.next_run_at).getTime();
+  return Number.isFinite(scheduledAt) && scheduledAt > Date.now();
+}
+
 export default function TelegramCanalFreeFluxos({
   botId, chatId, channelTitle,
 }: { botId: string; chatId: number | null; channelTitle: string }) {
@@ -90,6 +96,10 @@ export default function TelegramCanalFreeFluxos({
   }
 
   async function runNow(flow: Flow) {
+    if (isScheduledForFuture(flow)) {
+      toast.info(`Este fluxo está agendado para ${fmt(flow.next_run_at)}. Ele não será disparado antes do horário.`);
+      return;
+    }
     const { data, error } = await supabase.functions.invoke("telegram-group-flow-trigger", {
       body: { flow_id: flow.id, trigger_source: "manual" },
     });
