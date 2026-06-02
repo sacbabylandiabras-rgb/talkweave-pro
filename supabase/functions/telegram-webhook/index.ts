@@ -123,6 +123,38 @@ async function persistFreeChannel(admin: any, bot: any, channel: { chat_id: numb
   );
 }
 
+async function queueJoinedMembersWelcome(admin: any, bot: any, update: any) {
+  const msg = update?.message ?? update?.edited_message;
+  const chat = msg?.chat;
+  const members = Array.isArray(msg?.new_chat_members) ? msg.new_chat_members : [];
+  if (!chat?.id || members.length === 0) return;
+
+  const { data: cfg } = await admin
+    .from("telegram_free_channels")
+    .select("chat_id")
+    .eq("bot_id", bot.id)
+    .maybeSingle();
+  if (!cfg || String(cfg.chat_id) !== String(chat.id)) return;
+
+  for (const member of members) {
+    if (!member?.id || member?.is_bot) continue;
+    const now = new Date().toISOString();
+    const { error: queueErr } = await queueFreeJoinRequest(admin, {
+      bot_id: bot.id,
+      user_id: bot.user_id,
+      chat_id: chat.id,
+      from_user_id: member.id,
+      user_chat_id: member.id,
+      from_username: member?.username ?? null,
+      from_first_name: member?.first_name ?? null,
+      requested_at: now,
+      approve_at: now,
+      status: "pending",
+    });
+    if (queueErr) console.error("joined member welcome queue failed:", queueErr.message);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -198,6 +230,8 @@ Deno.serve(async (req) => {
     }
 
     if (!update.message && !update.edited_message && !update.callback_query) return;
+
+    await queueJoinedMembersWelcome(admin, bot, update);
 
     const { error: insertErr } = await admin.from("telegram_messages").insert(rowFromUpdate(bot, update));
     if (insertErr) {
