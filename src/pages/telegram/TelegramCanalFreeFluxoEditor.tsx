@@ -502,6 +502,7 @@ function EditorInner() {
       user_id: user.id, bot_id: botId, name: name.trim(),
       trigger_type: triggerType, trigger_config, nodes: flowNodes, edges: persistedEdges,
       start_node_id, is_active: isActive, next_run_at,
+      chat_id: chatId ? Number(chatId) : null,
     };
     const q = flowId.current
       ? supabase.from("telegram_group_flows" as any).update(row).eq("id", flowId.current)
@@ -510,7 +511,7 @@ function EditorInner() {
     setSaving(false);
     if (error) return toast.error(`Erro: ${error.message}`);
     toast.success("Fluxo salvo!");
-    navigate("/telegram/canal-free");
+    navigate(returnTo);
   }
 
   if (loading) {
@@ -526,7 +527,7 @@ function EditorInner() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3 bg-card">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/telegram/canal-free")}>
+          <Button variant="ghost" size="sm" onClick={() => navigate(returnTo)}>
             <ArrowLeft className="w-4 h-4 mr-1" /> Voltar
           </Button>
           <Input
