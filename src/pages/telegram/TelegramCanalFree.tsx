@@ -14,10 +14,11 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   AlertCircle, RefreshCw, HelpCircle, Save, CheckCircle2,
-  MessageSquare, FileText, Workflow, Settings, Send,
+  MessageSquare, FileText, Workflow, Settings, Send, GitBranch,
 } from "lucide-react";
 import { toast } from "sonner";
 import TelegramCanalFreeEnvio from "./TelegramCanalFreeEnvio";
+import TelegramCanalFreeFluxos from "./TelegramCanalFreeFluxos";
 
 type Bot = { id: string; first_name: string | null; username: string | null };
 type Template = { id: string; name: string; content: string | null };
@@ -227,6 +228,9 @@ export default function TelegramCanalFree() {
           <TabsTrigger value="envio" className="flex items-center gap-1.5">
             <Send className="w-4 h-4" /> Enviar conteúdo
           </TabsTrigger>
+          <TabsTrigger value="fluxos" className="flex items-center gap-1.5">
+            <GitBranch className="w-4 h-4" /> Fluxos
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="config" className="space-y-5">
@@ -388,6 +392,14 @@ export default function TelegramCanalFree() {
 
         <TabsContent value="envio">
           <TelegramCanalFreeEnvio
+            botId={botId}
+            chatId={chatId}
+            channelTitle={channelTitle}
+          />
+        </TabsContent>
+
+        <TabsContent value="fluxos">
+          <TelegramCanalFreeFluxos
             botId={botId}
             chatId={chatId}
             channelTitle={channelTitle}
