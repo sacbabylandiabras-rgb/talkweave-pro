@@ -35,6 +35,34 @@ const tgApi = async (token: string, method: string, body: any) => {
   return json;
 };
 
+// Sends a Telegram text message AND persists it into telegram_messages so the
+// in-app chat view (TelegramChat) shows the bot's outgoing messages alongside
+// inbound ones from users.
+const tgSend = async (admin: any, bot: any, body: any) => {
+  const json = await tgApi(bot.bot_token, "sendMessage", body);
+  try {
+    if (json?.ok && json?.result) {
+      const r = json.result;
+      const syntheticUpdateId = -(Date.now() * 1000 + Math.floor(Math.random() * 1000));
+      await admin.from("telegram_messages").insert({
+        bot_id: bot.id,
+        user_id: bot.user_id,
+        update_id: syntheticUpdateId,
+        chat_id: r.chat?.id ?? body.chat_id,
+        from_user_id: r.from?.id ?? null,
+        from_username: r.from?.username ?? null,
+        from_first_name: r.from?.first_name ?? "Bot",
+        message_type: "message",
+        text: r.text ?? body.text ?? null,
+        raw_update: { message: { ...r, from: { ...(r.from || {}), is_bot: true } } },
+      });
+    }
+  } catch (e) {
+    console.warn("[tgSend] persist outgoing failed:", (e as Error).message);
+  }
+  return json;
+};
+
 const sendTelegramMedia = async (
   token: string,
   chatId: number | string,
