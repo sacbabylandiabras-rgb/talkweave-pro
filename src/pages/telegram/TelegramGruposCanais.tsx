@@ -84,6 +84,26 @@ export default function TelegramGruposCanais() {
   const [items, setItems] = useState<TgGroup[]>([]);
   const [AVAILABLE_PLANS, setAvailablePlans] = useState(() => readAvailablePlans());
 
+  // Bots (para a aba de Fluxos)
+  const [bots, setBots] = useState<Array<{ id: string; first_name: string | null; username: string | null }>>([]);
+  const [flowBotId, setFlowBotId] = useState<string>("");
+  const [flowGroupId, setFlowGroupId] = useState<string>("");
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("telegram_bots")
+        .select("id, first_name, username")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+      const list = (data ?? []) as any[];
+      setBots(list);
+      if (list.length > 0) setFlowBotId(list[0].id);
+    })();
+  }, []);
+
   useEffect(() => {
     const reload = () => setAvailablePlans(readAvailablePlans());
     window.addEventListener("storage", reload);
