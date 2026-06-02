@@ -72,7 +72,7 @@ export default function TelegramDownsell() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
     const [d, b] = await Promise.all([
-      supabase.from("telegram_downsells").select("*").order("created_at", { ascending: false }),
+      supabase.from("telegram_downsells" as any).select("*").order("created_at", { ascending: false }),
       supabase.from("telegram_bots").select("id, first_name, username").eq("user_id", user.id).eq("active", true),
     ]);
     if (d.error) toast.error("Falha ao carregar"); else setItems((d.data ?? []) as any);
@@ -126,8 +126,8 @@ export default function TelegramDownsell() {
     };
 
     const res = editing
-      ? await supabase.from("telegram_downsells").update(payload).eq("id", editing.id)
-      : await supabase.from("telegram_downsells").insert(payload);
+      ? await supabase.from("telegram_downsells" as any).update(payload).eq("id", editing.id)
+      : await supabase.from("telegram_downsells" as any).insert(payload);
     if (res.error) { toast.error(res.error.message); return; }
     toast.success(editing ? "Atualizado" : "Disparo criado");
     setOpen(false);
@@ -135,13 +135,13 @@ export default function TelegramDownsell() {
   }
 
   async function toggle(d: Downsell) {
-    const { error } = await supabase.from("telegram_downsells").update({ status: !d.status }).eq("id", d.id);
+    const { error } = await supabase.from("telegram_downsells" as any).update({ status: !d.status }).eq("id", d.id);
     if (error) toast.error(error.message); else load();
   }
 
   async function remover(id: string) {
     if (!confirm("Remover este disparo?")) return;
-    const { error } = await supabase.from("telegram_downsells").delete().eq("id", id);
+    const { error } = await supabase.from("telegram_downsells" as any).delete().eq("id", id);
     if (error) toast.error(error.message); else { toast.success("Removido"); load(); }
   }
 

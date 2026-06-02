@@ -1,5 +1,5 @@
- import { useMemo, useState, useEffect } from "react";
- import { supabase } from "@/integrations/supabase/client";
+import { useMemo, useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,25 @@ import {
   CheckCircle2, Clock, XCircle, RotateCcw, Search, Calendar, Inbox, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
+type TelegramSale = Record<string, any> & {
+  bot_name?: string;
+  chat_id?: number | string | null;
+  customer_name?: string | null;
+};
+
+const getStatusLabel = (status?: string) => {
+  const normalized = String(status || "").toLowerCase();
+  if (["approved", "paid", "completed", "success"].includes(normalized)) return "PAGO";
+  if (["pending", "waiting_payment", "processing"].includes(normalized)) return "PENDENTE";
+  if (["refunded", "refund", "chargeback"].includes(normalized)) return "REEMBOLSADO";
+  return "FALHOU";
+};
+
+const getMetadata = (sale: any) => (sale?.metadata && typeof sale.metadata === "object" ? sale.metadata : {});
+
 export default function TelegramVendas() {
-   const [sales, setSales] = useState<any[]>([]);
-   const [loading, setLoading] = useState(true);
+  const [sales, setSales] = useState<TelegramSale[]>([]);
+  const [loading, setLoading] = useState(true);
   const [orderId, setOrderId] = useState("");
   const [clientId, setClientId] = useState("");
   const [txId, setTxId] = useState("");
@@ -25,22 +41,58 @@ export default function TelegramVendas() {
   const [acquirer, setAcquirer] = useState("all");
   const [perPage, setPerPage] = useState("10");
 
-   const loadData = async () => {
-     setLoading(true);
-     const { data: { user } } = await supabase.auth.getUser();
-     if (!user) return;
+  const loadData = async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSales([]); setLoading(false); return; }
 
-     // Mostra apenas transações originadas pelo Telegram (metadata.source = 'telegram')
-     const { data } = await supabase
-       .from("gateway_transactions" as any)
-       .select("*")
-       .eq("user_id", user.id)
-       .contains("metadata", { source: "telegram" })
-       .order("created_at", { ascending: false });
+    const { data: bots } = await supabase
+      .from("telegram_bots")
+      .select("id, first_name, username")
+      .eq("user_id", user.id);
+    const botNameById = new Map((bots ?? []).map((b: any) => [b.id, b.first_name || b.username || "Bot Telegram"]));
 
-     setSales(data || []);
-     setLoading(false);
-   };
+    const { data: sessions } = await supabase
+      .from("telegram_flow_sessions" as any)
+      .select("bot_id, chat_id, variables, updated_at")
+      .eq("user_id", user.id)
+      .not("variables->payment->>externalId", "is", null);
+
+    const flowSessions = (sessions ?? []) as any[];
+    const externalIds = new Set(
+      flowSessions
+        .map((s: any) => String(s?.variables?.payment?.externalId || ""))
+        .filter(Boolean),
+    );
+
+    const { data: transactions } = await supabase
+      .from("gateway_transactions" as any)
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    const telegramSales = (transactions ?? []).filter((tx: any) => {
+      const meta = getMetadata(tx);
+      const description = String(meta.description || "").toLowerCase();
+      const legacyTelegramFlow = meta.source === "flow_visual" && String(tx.external_id || "").startsWith(`flow_${user.id.slice(0, 8)}_`) && !tx.customer_phone && !tx.customer_email;
+      return meta.source === "telegram" || meta.channel === "telegram" || externalIds.has(String(tx.external_id || "")) || description.includes("telegram") || legacyTelegramFlow;
+    }).map((tx: any) => {
+      const meta = getMetadata(tx);
+      const session = flowSessions.find((s: any) => String(s?.variables?.payment?.externalId || "") === String(tx.external_id || ""));
+      const telegramInfo = meta.telegram || {};
+      const botId = telegramInfo.bot_id || session?.bot_id || null;
+      const tgUser = session?.variables?.user || {};
+      return {
+        ...tx,
+        bot_name: botNameById.get(botId) || "Bot Telegram",
+        chat_id: telegramInfo.chat_id || session?.chat_id || null,
+        customer_name: tx.customer_name || tgUser.first_name || "Cliente Telegram",
+      };
+    });
+
+    setSales(telegramSales);
+    setLoading(false);
+  };
 
    useEffect(() => {
      loadData();
@@ -55,30 +107,48 @@ export default function TelegramVendas() {
      return () => { supabase.removeChannel(channel); };
    }, []);
 
-   const filtered = useMemo(() => sales.filter((s) => {
-     const status = s.status === "approved" || s.status === "paid" ? "PAGO" : 
-                    s.status === "pending" ? "PENDENTE" :
-                    s.status === "refunded" ? "REEMBOLSADO" : "FALHOU";
-     return (statusFilter === "all" || status === statusFilter);
-   }), [sales, statusFilter]);
+  const filtered = useMemo(() => sales.filter((s) => {
+    const status = getStatusLabel(s.status);
+    const meta = getMetadata(s);
+    const haystack = [
+      s.id,
+      s.external_id,
+      s.customer_name,
+      s.customer_email,
+      s.customer_phone,
+      s.chat_id,
+      meta.brCode,
+      meta.description,
+    ].map((v) => String(v || "").toLowerCase()).join(" ");
+    const provider = String(meta.provider || "").toLowerCase();
+    return (
+      (statusFilter === "all" || status === statusFilter) &&
+      (acquirer === "all" || provider === acquirer.toLowerCase()) &&
+      (!orderId.trim() || haystack.includes(orderId.trim().toLowerCase())) &&
+      (!clientId.trim() || haystack.includes(clientId.trim().toLowerCase())) &&
+      (!txId.trim() || haystack.includes(txId.trim().toLowerCase()))
+    );
+  }), [sales, statusFilter, acquirer, orderId, clientId, txId]);
 
-  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const fmt = (v: number) => (Number(v || 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-   const stats = useMemo(() => {
-     const mapped = sales.map(s => ({
-       ...s,
-       status_label: s.status === "approved" || s.status === "paid" ? "PAGO" : 
-                    s.status === "pending" ? "PENDENTE" :
-                    s.status === "refunded" ? "REEMBOLSADO" : "FALHOU"
-     }));
+  const acquirers = useMemo(() => Array.from(new Set(
+    sales.map((s) => String(getMetadata(s).provider || "").trim()).filter(Boolean),
+  )), [sales]);
 
-     return {
-       pago: { value: mapped.filter(s => s.status_label === "PAGO").reduce((a, s) => a + s.amount, 0), count: mapped.filter(s => s.status_label === "PAGO").length },
-       pendente: { value: mapped.filter(s => s.status_label === "PENDENTE").reduce((a, s) => a + s.amount, 0), count: mapped.filter(s => s.status_label === "PENDENTE").length },
-       falhou: { value: mapped.filter(s => s.status_label === "FALHOU").reduce((a, s) => a + s.amount, 0), count: mapped.filter(s => s.status_label === "FALHOU").length },
-       reembolsado: { value: mapped.filter(s => s.status_label === "REEMBOLSADO").reduce((a, s) => a + s.amount, 0), count: mapped.filter(s => s.status_label === "REEMBOLSADO").length },
-     };
-   }, [sales]);
+  const stats = useMemo(() => {
+    const sumBy = (label: string) => sales
+      .filter((s) => getStatusLabel(s.status) === label)
+      .reduce((a, s) => a + Number(s.amount || 0), 0);
+    const countBy = (label: string) => sales.filter((s) => getStatusLabel(s.status) === label).length;
+
+    return {
+      pago: { value: sumBy("PAGO"), count: countBy("PAGO") },
+      pendente: { value: sumBy("PENDENTE"), count: countBy("PENDENTE") },
+      falhou: { value: sumBy("FALHOU"), count: countBy("FALHOU") },
+      reembolsado: { value: sumBy("REEMBOLSADO"), count: countBy("REEMBOLSADO") },
+    };
+  }, [sales]);
 
    const total = sales.length;
 
@@ -150,6 +220,9 @@ export default function TelegramVendas() {
                     <SelectTrigger className="flex-1"><SelectValue placeholder="Todos os adquirentes" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os adquirentes</SelectItem>
+                       {acquirers.map((name) => (
+                         <SelectItem key={name} value={name}>{name}</SelectItem>
+                       ))}
                     </SelectContent>
                   </Select>
                   <Button variant="outline" size="icon"><Search className="w-4 h-4" /></Button>
@@ -191,7 +264,13 @@ export default function TelegramVendas() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.length === 0 ? (
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="py-16 text-center text-sm text-muted-foreground">
+                        Carregando vendas reais do Telegram...
+                      </TableCell>
+                    </TableRow>
+                  ) : filtered.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="py-16">
                         <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
@@ -201,17 +280,28 @@ export default function TelegramVendas() {
                       </TableCell>
                     </TableRow>
                    ) : filtered.map((s) => {
+                     const meta = getMetadata(s);
                      const paymentMethod = s.payment_method || "PIX";
-                     const date = new Date(s.created_at).toLocaleString("pt-BR");
+                     const date = s.created_at ? new Date(s.created_at).toLocaleString("pt-BR") : "—";
+                     const status = getStatusLabel(s.status);
                      return (
                        <TableRow key={s.id}>
-                         <TableCell>ZapLynx Bot</TableCell>
-                         <TableCell>{s.customer_name || "Cliente"}</TableCell>
-                         <TableCell className="uppercase">{paymentMethod}</TableCell>
+                         <TableCell className="font-medium">{s.bot_name || "Bot Telegram"}</TableCell>
+                         <TableCell>
+                           <div className="font-medium">{s.customer_name || "Cliente Telegram"}</div>
+                           {s.chat_id && <div className="text-xs text-muted-foreground">Chat: {String(s.chat_id)}</div>}
+                         </TableCell>
+                         <TableCell>
+                           <div className="uppercase">{paymentMethod}</div>
+                           <div className="text-xs text-muted-foreground">{meta.provider || "gateway"}</div>
+                         </TableCell>
                          <TableCell className="text-xs">{date}</TableCell>
-                         <TableCell className="font-medium">{fmt(s.amount)}</TableCell>
+                         <TableCell>
+                           <div className="font-medium">{fmt(s.amount)}</div>
+                           <Badge variant="outline" className="mt-1">{status}</Badge>
+                         </TableCell>
                          <TableCell className="text-right">
-                           <Button variant="ghost" size="sm">Ver</Button>
+                           <Button variant="ghost" size="sm" title={String(s.external_id || s.id)}>Ver</Button>
                          </TableCell>
                        </TableRow>
                      );

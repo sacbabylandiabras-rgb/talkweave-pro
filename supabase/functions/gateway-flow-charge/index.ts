@@ -19,6 +19,12 @@ serve(async (req) => {
     const customerEmail = body.customerEmail || null;
     const customerPhone = body.customerPhone || null;
     const customerCpf = body.customerCpf || null;
+    const requestedSource = String(body.source || "flow_visual").trim().toLowerCase();
+    const allowedSources = new Set(["flow_visual", "telegram", "whatsapp", "agent", "campaign"]);
+    const source = allowedSources.has(requestedSource) ? requestedSource : "flow_visual";
+    const telegramBotId = body.telegramBotId ? String(body.telegramBotId) : null;
+    const telegramChatId = body.telegramChatId != null ? Number(body.telegramChatId) : null;
+    const telegramSessionId = body.telegramSessionId ? String(body.telegramSessionId) : null;
 
     if (!userId || !amount || amount <= 0) {
       return new Response(JSON.stringify({ error: "userId e amount > 0 obrigatórios" }), {
@@ -173,6 +179,23 @@ serve(async (req) => {
       qrCodeImage = charge?.qrCodeImage || "";
     }
 
+    const transactionMetadata = {
+      source,
+      channel: source,
+      provider: acquirer,
+      description,
+      brCode,
+      ...(source === "telegram"
+        ? {
+            telegram: {
+              bot_id: telegramBotId,
+              chat_id: telegramChatId,
+              session_id: telegramSessionId,
+            },
+          }
+        : {}),
+    };
+
     // Persiste a transação para conciliação
     await supabase.from("gateway_transactions").insert({
       user_id: userId,
@@ -185,8 +208,25 @@ serve(async (req) => {
       customer_name: customerName,
       customer_email: customerEmail,
       customer_phone: customerPhone,
-      metadata: { source: "flow_visual", provider: acquirer, description, brCode },
+      metadata: transactionMetadata,
     });
+
+    // Também registra a venda pendente do Telegram para relatórios/downsells.
+    // Se a migração ainda não foi aplicada, não quebramos a cobrança.
+    if (source === "telegram" && telegramBotId && telegramChatId) {
+      const { error: pendingSaleError } = await supabase.from("telegram_pending_sales").insert({
+        user_id: userId,
+        bot_id: telegramBotId,
+        chat_id: telegramChatId,
+        plan_id: null,
+        plan_name: description || "Pagamento via Telegram",
+        amount,
+        status: "pending",
+      });
+      if (pendingSaleError) {
+        console.warn("telegram_pending_sales insert skipped:", pendingSaleError.message);
+      }
+    }
 
     return new Response(
       JSON.stringify({ brCode, qrCodeImage, externalId, provider: acquirer, amount }),

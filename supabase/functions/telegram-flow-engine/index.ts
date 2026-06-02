@@ -359,6 +359,10 @@ async function executePixPayment({
           amount: amountCents,
           description: description || "Pagamento via Telegram",
           customerName: variables?.user?.first_name || "Cliente Telegram",
+          source: "telegram",
+          telegramBotId: bot.id,
+          telegramChatId: chatId,
+          telegramSessionId: sessionId,
         }),
       },
     );
@@ -726,6 +730,10 @@ async function runFlow({
                 amount: amountCents,
                 description: resolvedDescription || "Pagamento via Telegram",
                 customerName: variables?.user?.first_name || "Cliente Telegram",
+                source: "telegram",
+                telegramBotId: bot.id,
+                telegramChatId: chatId,
+                telegramSessionId: sessionId,
               }),
             },
           );
