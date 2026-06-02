@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import ReactFlow, {
   Background, BackgroundVariant, Controls, Handle, MarkerType,
-  Position, ReactFlowProvider, addEdge, useEdgesState, useNodesState,
+  Position, ReactFlowProvider, addEdge, useEdgesState, useNodesState, useReactFlow,
   type Connection, type Edge, type Node, type NodeTypes,
 } from "reactflow";
 import "reactflow/dist/style.css";
@@ -225,6 +225,12 @@ function EditorInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { screenToFlowPosition } = useReactFlow();
+  const connectFromRef = useRef<string | null>(null);
+  const flowWrapperRef = useRef<HTMLDivElement | null>(null);
+  const [connectMenu, setConnectMenu] = useState<
+    { screenX: number; screenY: number; flowX: number; flowY: number; sourceId: string } | null
+  >(null);
 
   const flowId = useRef<string>("");
 
@@ -317,6 +323,49 @@ function EditorInner() {
       ...c, animated: true, markerEnd: { type: MarkerType.ArrowClosed },
     }, eds));
   }, [setEdges]);
+
+  const onConnectStart = useCallback((_: any, params: { nodeId: string | null; handleType: string | null }) => {
+    connectFromRef.current = params.handleType === "source" ? params.nodeId : null;
+  }, []);
+
+  const onConnectEnd = useCallback((event: MouseEvent | TouchEvent) => {
+    const sourceId = connectFromRef.current;
+    connectFromRef.current = null;
+    if (!sourceId) return;
+    const target = (event as any).target as HTMLElement | null;
+    const droppedOnPane = !!target?.classList?.contains("react-flow__pane");
+    if (!droppedOnPane) return;
+    const clientX = "clientX" in event ? (event as MouseEvent).clientX : (event as TouchEvent).changedTouches[0].clientX;
+    const clientY = "clientY" in event ? (event as MouseEvent).clientY : (event as TouchEvent).changedTouches[0].clientY;
+    const flowPos = screenToFlowPosition({ x: clientX, y: clientY });
+    const rect = flowWrapperRef.current?.getBoundingClientRect();
+    setConnectMenu({
+      screenX: clientX - (rect?.left ?? 0),
+      screenY: clientY - (rect?.top ?? 0),
+      flowX: flowPos.x,
+      flowY: flowPos.y,
+      sourceId,
+    });
+  }, [screenToFlowPosition]);
+
+  function createNodeFromMenu(type: CanvasNodeType) {
+    if (!connectMenu) return;
+    const nid = newId();
+    const newNode: Node = {
+      id: nid, type,
+      position: { x: connectMenu.flowX, y: connectMenu.flowY },
+      data: type === "message"
+        ? { message: { content_type: "text", text: "", buttons: [] } }
+        : { delay: { seconds: 60 } },
+    };
+    setNodes((nds) => [...nds, newNode]);
+    setEdges((eds) => addEdge({
+      source: connectMenu.sourceId, target: nid, sourceHandle: null, targetHandle: null,
+      animated: true, markerEnd: { type: MarkerType.ArrowClosed },
+    }, eds));
+    setSelectedId(nid);
+    setConnectMenu(null);
+  }
 
   function addNodeAt(type: CanvasNodeType) {
     const nid = newId();
@@ -470,15 +519,17 @@ function EditorInner() {
       </div>
 
       {/* Canvas */}
-      <div className="flex-1 relative bg-muted/30">
+      <div className="flex-1 relative bg-muted/30" ref={flowWrapperRef}>
         <ReactFlow
           nodes={decoratedNodes}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onConnectStart={onConnectStart}
+          onConnectEnd={onConnectEnd}
           onNodeClick={(_, n) => setSelectedId(n.id)}
-          onPaneClick={() => setSelectedId(null)}
+          onPaneClick={() => { setSelectedId(null); setConnectMenu(null); }}
           nodeTypes={nodeTypes}
           fitView
           defaultEdgeOptions={{ animated: true, markerEnd: { type: MarkerType.ArrowClosed } }}
@@ -486,6 +537,37 @@ function EditorInner() {
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
           <Controls position="bottom-left" />
         </ReactFlow>
+        {connectMenu && (
+          <div
+            className="absolute z-50 w-48 rounded-xl border border-border/70 bg-popover shadow-xl p-1.5"
+            style={{ left: connectMenu.screenX, top: connectMenu.screenY }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="px-2 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+              Adicionar bloco
+            </div>
+            <button
+              type="button"
+              onClick={() => createNodeFromMenu("message")}
+              className="w-full flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-muted/70 transition"
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <MessageSquare className="h-3.5 w-3.5" />
+              </span>
+              Mensagem
+            </button>
+            <button
+              type="button"
+              onClick={() => createNodeFromMenu("delay")}
+              className="w-full flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-muted/70 transition"
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <Clock className="h-3.5 w-3.5" />
+              </span>
+              Esperar (delay)
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Right-side properties */}
