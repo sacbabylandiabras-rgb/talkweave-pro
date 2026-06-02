@@ -69,8 +69,58 @@ serve(async (req) => {
       );
     }
 
+    const responseType: string = (config as any).response_type || 'text';
+
+    // Resolver conteúdo baseado no tipo configurado
+    let message: string = config.message;
+
+    if (responseType === 'template' && (config as any).template_id) {
+      const { data: tpl } = await supabase
+        .from('message_templates')
+        .select('content')
+        .eq('id', (config as any).template_id)
+        .maybeSingle();
+      if (tpl?.content) message = tpl.content as string;
+    }
+
+    if (responseType === 'flow' && (config as any).flow_id) {
+      // Dispara o fluxo via webhook-zapi engine
+      const credentials = await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
+      const instanceId = credentials.instanceId;
+
+      const { error: invokeError } = await supabase.functions.invoke('webhook-zapi', {
+        body: {
+          phone,
+          message: { text: contactName || 'welcome', fromMe: false },
+          fromMe: false,
+          flowId: (config as any).flow_id,
+          instanceId,
+          timestamp: Math.floor(Date.now() / 1000),
+          __manual_flow_trigger__: true,
+          __respect_selected_instance__: true,
+        },
+      });
+
+      if (invokeError) {
+        console.error('Failed to trigger welcome flow:', invokeError);
+        throw new Error('Falha ao disparar fluxo de boas-vindas');
+      }
+
+      await supabase.from('welcome_message_sent').insert({ phone });
+      await supabase.from('message_logs').insert({
+        phone,
+        message_received: 'NEW_CONTACT',
+        keyword_matched: 'WELCOME_MESSAGE_FLOW',
+        response_sent: `flow:${(config as any).flow_id}`,
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Welcome flow triggered' }),
+        { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
     // Processar variáveis na mensagem
-    let message = config.message;
     if (contactName) {
       message = message.replace(/{nome}/g, contactName);
     }
