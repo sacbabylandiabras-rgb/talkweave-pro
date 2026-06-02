@@ -62,13 +62,72 @@ Deno.serve(async (req) => {
   if (!safeEqual(actualSecret, expectedSecret)) return new Response("Unauthorized", { status: 401 });
 
   const update = await req.json().catch(() => null);
-  if (!update?.update_id || (!update.message && !update.edited_message && !update.callback_query)) {
+  if (!update?.update_id) {
     return new Response(JSON.stringify({ ok: true, ignored: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
   const processUpdate = async () => {
+    // Canal Free: bot promovido a admin de um canal/grupo
+    if (update.my_chat_member) {
+      const cm = update.my_chat_member;
+      const newStatus = cm?.new_chat_member?.status;
+      const chat = cm?.chat;
+      if (chat?.id && (chat.type === "channel" || chat.type === "supergroup" || chat.type === "group") &&
+          (newStatus === "administrator" || newStatus === "creator")) {
+        await admin.from("telegram_free_channels").upsert(
+          {
+            bot_id: bot.id,
+            user_id: bot.user_id,
+            chat_id: chat.id,
+            title: chat.title ?? null,
+          },
+          { onConflict: "bot_id" },
+        );
+      }
+      return;
+    }
+
+    // Canal Free: solicitação de entrada (precisa link com aprovação)
+    if (update.chat_join_request) {
+      const jr = update.chat_join_request;
+      const chatId = jr?.chat?.id;
+      const fromUserId = jr?.from?.id;
+      if (!chatId || !fromUserId) return;
+
+      const { data: cfg } = await admin
+        .from("telegram_free_channels")
+        .select("chat_id, approval_delay_seconds")
+        .eq("bot_id", bot.id)
+        .maybeSingle();
+      if (!cfg || String(cfg.chat_id) !== String(chatId)) return;
+
+      const delay = Math.max(1, Number(cfg.approval_delay_seconds || 60));
+      const approveAt = new Date(Date.now() + delay * 1000).toISOString();
+      const requestedAt = jr?.date
+        ? new Date(Number(jr.date) * 1000).toISOString()
+        : new Date().toISOString();
+
+      await admin.from("telegram_free_join_requests").upsert(
+        {
+          bot_id: bot.id,
+          user_id: bot.user_id,
+          chat_id: chatId,
+          from_user_id: fromUserId,
+          from_username: jr?.from?.username ?? null,
+          from_first_name: jr?.from?.first_name ?? null,
+          requested_at: requestedAt,
+          approve_at: approveAt,
+          status: "pending",
+        },
+        { onConflict: "bot_id,chat_id,from_user_id,requested_at" },
+      );
+      return;
+    }
+
+    if (!update.message && !update.edited_message && !update.callback_query) return;
+
     const { error: insertErr } = await admin.from("telegram_messages").insert(rowFromUpdate(bot, update));
     if (insertErr) {
       if (insertErr.code === "23505") return;
