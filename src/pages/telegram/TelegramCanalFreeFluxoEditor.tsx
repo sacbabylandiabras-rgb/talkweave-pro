@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import ReactFlow, {
   Background, BackgroundVariant, Controls, Handle, MarkerType,
-  Position, ReactFlowProvider, addEdge, useEdgesState, useNodesState,
+  Position, ReactFlowProvider, addEdge, useEdgesState, useNodesState, useReactFlow,
   type Connection, type Edge, type Node, type NodeTypes,
 } from "reactflow";
 import "reactflow/dist/style.css";
