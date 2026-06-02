@@ -11,12 +11,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Search, Send, Paperclip, Smile, MessageSquare, Settings, ChevronDown, Phone, MoreVertical,
+  FileText, Download, MapPin, User, BarChart3, Image as ImageIcon, Video, Music, Mic, Sticker,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
-interface ChatMsg { id: string; from: "me" | "them"; text: string; time: string; }
+type TelegramMediaKind = "photo" | "video" | "animation" | "document" | "audio" | "voice" | "video_note" | "sticker" | "location" | "venue" | "contact" | "poll" | "unknown";
+
+interface ChatMedia {
+  kind: TelegramMediaKind;
+  label: string;
+  fileId?: string;
+  fileName?: string;
+  mimeType?: string;
+  downloadable?: boolean;
+  extra?: Record<string, any>;
+}
+
+interface ChatMsg { id: string; from: "me" | "them"; text: string; time: string; media: ChatMedia[]; }
 interface Conversation {
   id: string;
   name: string;
@@ -29,6 +42,137 @@ interface Conversation {
   messages: ChatMsg[];
   bot_id?: string;
   chat_id?: number;
+}
+
+const SUPABASE_FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co"}/functions/v1`;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+
+function getTelegramMessage(rawUpdate: any) {
+  return rawUpdate?.message ?? rawUpdate?.edited_message ?? rawUpdate?.callback_query?.message ?? null;
+}
+
+function extractMedia(message: any): ChatMedia[] {
+  if (!message) return [];
+  const caption = message.caption ? String(message.caption) : "";
+  if (message.photo?.length) {
+    const photo = [...message.photo].sort((a: any, b: any) => (b.file_size || 0) - (a.file_size || 0))[0];
+    return [{ kind: "photo", label: caption || "Foto", fileId: photo?.file_id, downloadable: true }];
+  }
+  if (message.video) return [{ kind: "video", label: caption || "Vídeo", fileId: message.video.file_id, fileName: message.video.file_name, mimeType: message.video.mime_type, downloadable: true }];
+  if (message.animation) return [{ kind: "animation", label: caption || "GIF/animação", fileId: message.animation.file_id, fileName: message.animation.file_name, mimeType: message.animation.mime_type, downloadable: true }];
+  if (message.document) return [{ kind: "document", label: caption || message.document.file_name || "Documento", fileId: message.document.file_id, fileName: message.document.file_name, mimeType: message.document.mime_type, downloadable: true }];
+  if (message.audio) return [{ kind: "audio", label: caption || message.audio.title || message.audio.file_name || "Áudio", fileId: message.audio.file_id, fileName: message.audio.file_name, mimeType: message.audio.mime_type, downloadable: true }];
+  if (message.voice) return [{ kind: "voice", label: caption || "Mensagem de voz", fileId: message.voice.file_id, mimeType: message.voice.mime_type, downloadable: true }];
+  if (message.video_note) return [{ kind: "video_note", label: caption || "Vídeo circular", fileId: message.video_note.file_id, downloadable: true }];
+  if (message.sticker) return [{ kind: "sticker", label: message.sticker.emoji ? `Figurinha ${message.sticker.emoji}` : "Figurinha", fileId: message.sticker.file_id, fileName: message.sticker.file_name, mimeType: message.sticker.mime_type, downloadable: true }];
+  if (message.location) return [{ kind: "location", label: "Localização", extra: message.location }];
+  if (message.venue) return [{ kind: "venue", label: message.venue.title || "Local", extra: message.venue }];
+  if (message.contact) return [{ kind: "contact", label: message.contact.first_name || "Contato", extra: message.contact }];
+  if (message.poll) return [{ kind: "poll", label: message.poll.question || "Enquete", extra: message.poll }];
+  return [];
+}
+
+function mediaPreview(media: ChatMedia[]) {
+  const item = media[0];
+  if (!item) return "";
+  const labels: Record<TelegramMediaKind, string> = {
+    photo: "📷 Foto",
+    video: "🎬 Vídeo",
+    animation: "🎞️ GIF",
+    document: "📎 Documento",
+    audio: "🎵 Áudio",
+    voice: "🎙️ Voz",
+    video_note: "🎥 Vídeo circular",
+    sticker: "💟 Figurinha",
+    location: "📍 Localização",
+    venue: "📍 Local",
+    contact: "👤 Contato",
+    poll: "📊 Enquete",
+    unknown: "📎 Mídia",
+  };
+  return labels[item.kind] || "📎 Mídia";
+}
+
+function mediaIcon(kind: TelegramMediaKind) {
+  if (kind === "photo") return <ImageIcon className="h-4 w-4" />;
+  if (kind === "video" || kind === "animation" || kind === "video_note") return <Video className="h-4 w-4" />;
+  if (kind === "audio") return <Music className="h-4 w-4" />;
+  if (kind === "voice") return <Mic className="h-4 w-4" />;
+  if (kind === "sticker") return <Sticker className="h-4 w-4" />;
+  if (kind === "location" || kind === "venue") return <MapPin className="h-4 w-4" />;
+  if (kind === "contact") return <User className="h-4 w-4" />;
+  if (kind === "poll") return <BarChart3 className="h-4 w-4" />;
+  return <FileText className="h-4 w-4" />;
+}
+
+function TelegramMediaBubble({ media, botId }: { media: ChatMedia; botId?: string }) {
+  const [url, setUrl] = useState<string>("");
+  const [contentType, setContentType] = useState("");
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let objectUrl = "";
+    let cancelled = false;
+    async function loadFile() {
+      if (!media.fileId || !botId || media.kind === "location" || media.kind === "venue" || media.kind === "contact" || media.kind === "poll") return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/telegram-media?bot_id=${encodeURIComponent(botId)}&file_id=${encodeURIComponent(media.fileId)}`, {
+          headers: {
+            ...(SUPABASE_ANON_KEY ? { apikey: SUPABASE_ANON_KEY } : {}),
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          },
+        });
+        if (!res.ok) throw new Error("Falha ao carregar mídia");
+        const blob = await res.blob();
+        objectUrl = URL.createObjectURL(blob);
+        if (!cancelled) setContentType(blob.type || media.mimeType || "");
+        if (!cancelled) setUrl(objectUrl);
+      } catch (e) {
+        if (!cancelled) setFailed(true);
+      }
+    }
+    loadFile();
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [media.fileId, media.kind, botId]);
+
+  if (media.kind === "location" || media.kind === "venue") {
+    const lat = media.extra?.latitude;
+    const lon = media.extra?.longitude;
+    return (
+      <a className="mt-2 flex items-center gap-2 rounded-xl border bg-muted/40 p-3 text-xs underline-offset-4 hover:underline" href={lat && lon ? `https://maps.google.com/?q=${lat},${lon}` : undefined} target="_blank" rel="noreferrer">
+        {mediaIcon(media.kind)} <span>{media.label}</span>
+      </a>
+    );
+  }
+
+  if (media.kind === "contact") {
+    return <div className="mt-2 flex items-center gap-2 rounded-xl border bg-muted/40 p-3 text-xs">{mediaIcon(media.kind)}<span>{media.label} {media.extra?.phone_number ? `• ${media.extra.phone_number}` : ""}</span></div>;
+  }
+
+  if (media.kind === "poll") {
+    return <div className="mt-2 rounded-xl border bg-muted/40 p-3 text-xs"><div className="flex items-center gap-2 font-medium">{mediaIcon(media.kind)}<span>{media.label}</span></div>{media.extra?.options?.map((o: any, i: number) => <div key={i} className="mt-1 text-muted-foreground">• {o.text}</div>)}</div>;
+  }
+
+  return (
+    <div className="mt-2 overflow-hidden rounded-xl border bg-muted/40">
+      {url && media.kind === "photo" && <img src={url} alt={media.label} className="max-h-80 w-full object-contain" />}
+      {url && (media.kind === "video" || media.kind === "animation" || media.kind === "video_note") && <video src={url} controls className="max-h-80 w-full" />}
+      {url && (media.kind === "audio" || media.kind === "voice") && <audio src={url} controls className="w-full p-2" />}
+      {url && media.kind === "sticker" && contentType.startsWith("image/") && <img src={url} alt={media.label} className="max-h-48 w-full object-contain p-2" />}
+      {url && media.kind === "sticker" && contentType.startsWith("video/") && <video src={url} controls className="max-h-48 w-full" />}
+      {(media.kind === "document" || !url || (media.kind === "sticker" && !contentType.startsWith("image/") && !contentType.startsWith("video/"))) && (
+        <div className="flex items-center gap-2 p-3 text-xs">
+          {mediaIcon(media.kind)}
+          <span className="min-w-0 flex-1 truncate">{failed ? "Não foi possível carregar a mídia" : (media.fileName || media.label)}</span>
+          {url && <a href={url} download={media.fileName || media.label} title="Baixar"><Download className="h-4 w-4" /></a>}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function TelegramChat() {
@@ -60,18 +204,22 @@ export default function TelegramChat() {
     const grouped = new Map<string, Conversation>();
     for (const row of ([...(data ?? [])] as any[]).reverse()) {
       const key = `${row.bot_id}:${row.chat_id}`;
-      const fromBot = row.raw_update?.message?.from?.is_bot === true;
+      const telegramMessage = getTelegramMessage(row.raw_update);
+      const media = extractMedia(telegramMessage);
+      const fromBot = telegramMessage?.from?.is_bot === true;
       const time = new Date(row.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
       const msg: ChatMsg = {
         id: row.id,
         from: fromBot ? "me" : "them",
-        text: row.text || "(mídia)",
+        text: row.text || telegramMessage?.caption || "",
         time,
+        media,
       };
+      const previewText = msg.text || mediaPreview(media) || "Mensagem";
       const existing = grouped.get(key);
       if (existing) {
         existing.messages.push(msg);
-        existing.last_msg = msg.text;
+        existing.last_msg = previewText;
         existing.last_time = time;
         if (!fromBot && (row.from_first_name || row.from_username)) {
           existing.name = row.from_first_name || row.from_username;
@@ -83,7 +231,7 @@ export default function TelegramChat() {
           id: key,
           name: fallbackName,
           username: !fromBot && row.from_username ? `@${row.from_username}` : `#${row.chat_id}`,
-          last_msg: msg.text,
+          last_msg: previewText,
           last_time: time,
           unread: 0,
           online: false,
@@ -139,7 +287,7 @@ export default function TelegramChat() {
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      const newMsg: ChatMsg = { id: crypto.randomUUID(), from: "me", text: draft.trim(), time: "Agora" };
+      const newMsg: ChatMsg = { id: crypto.randomUUID(), from: "me", text: draft.trim(), time: "Agora", media: [] };
       setConvs((prev) => prev.map((c) => c.id === activeId
         ? { ...c, messages: [...c.messages, newMsg], last_msg: newMsg.text, last_time: "Agora" }
         : c,
@@ -292,7 +440,7 @@ export default function TelegramChat() {
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => {
-                          setActiveId(null);
+                          setActiveId("");
                         }}
                       >
                         Fechar conversa
@@ -309,7 +457,11 @@ export default function TelegramChat() {
                       "max-w-[70%] rounded-2xl px-3 py-2 text-sm shadow-sm",
                       m.from === "me" ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-background border rounded-bl-sm",
                     )}>
-                      <p>{m.text}</p>
+                      {m.text && <p className="whitespace-pre-wrap break-words">{m.text}</p>}
+                      {m.media.map((media, index) => (
+                        <TelegramMediaBubble key={`${m.id}-${index}`} media={media} botId={active.bot_id} />
+                      ))}
+                      {!m.text && m.media.length === 0 && <p>Mensagem</p>}
                       <p className={cn("text-[10px] mt-1", m.from === "me" ? "text-primary-foreground/70" : "text-muted-foreground")}>{m.time}</p>
                     </div>
                   </div>

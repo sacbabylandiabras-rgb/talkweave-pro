@@ -60,6 +60,9 @@ verify_jwt = false
 [functions.telegram-webhook]
 verify_jwt = false
 
+[functions.telegram-media]
+verify_jwt = false
+
 [functions.telegram-redirect]
 verify_jwt = false
 
