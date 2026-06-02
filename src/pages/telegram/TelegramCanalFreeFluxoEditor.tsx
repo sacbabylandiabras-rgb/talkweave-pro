@@ -60,6 +60,14 @@ function newId() { return `n_${Math.random().toString(36).slice(2, 10)}`; }
 
 const TRIGGER_ID = "trigger";
 
+function toDateTimeLocalValue(iso?: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "";
+  const off = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - off).toISOString().slice(0, 16);
+}
+
 /* ---------------- ReactFlow node components ---------------- */
 
 function nodeShell(
