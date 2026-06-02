@@ -302,7 +302,7 @@ export default function TelegramChat() {
 
     const { data, error } = await (supabase as any)
       .from("telegram_messages")
-      .select("id, bot_id, chat_id, from_username, from_first_name, text, raw_update, created_at")
+      .select("id, bot_id, chat_id, from_user_id, from_username, from_first_name, text, raw_update, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(2000);
@@ -336,6 +336,9 @@ export default function TelegramChat() {
           existing.name = row.from_first_name || row.from_username;
           existing.username = row.from_username ? `@${row.from_username}` : `#${row.chat_id}`;
         }
+        if (!fromBot && row.from_user_id && !existing.from_user_id) {
+          existing.from_user_id = Number(row.from_user_id);
+        }
       } else {
         const fallbackName = fromBot ? `Chat ${row.chat_id}` : (row.from_first_name || row.from_username || `Chat ${row.chat_id}`);
         grouped.set(key, {
@@ -350,6 +353,7 @@ export default function TelegramChat() {
           messages: [msg],
           bot_id: row.bot_id,
           chat_id: row.chat_id,
+          from_user_id: !fromBot && row.from_user_id ? Number(row.from_user_id) : undefined,
         });
       }
     }
