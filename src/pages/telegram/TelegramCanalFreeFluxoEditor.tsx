@@ -324,6 +324,49 @@ function EditorInner() {
     }, eds));
   }, [setEdges]);
 
+  const onConnectStart = useCallback((_: any, params: { nodeId: string | null; handleType: string | null }) => {
+    connectFromRef.current = params.handleType === "source" ? params.nodeId : null;
+  }, []);
+
+  const onConnectEnd = useCallback((event: MouseEvent | TouchEvent) => {
+    const sourceId = connectFromRef.current;
+    connectFromRef.current = null;
+    if (!sourceId) return;
+    const target = (event as any).target as HTMLElement | null;
+    const droppedOnPane = !!target?.classList?.contains("react-flow__pane");
+    if (!droppedOnPane) return;
+    const clientX = "clientX" in event ? (event as MouseEvent).clientX : (event as TouchEvent).changedTouches[0].clientX;
+    const clientY = "clientY" in event ? (event as MouseEvent).clientY : (event as TouchEvent).changedTouches[0].clientY;
+    const flowPos = screenToFlowPosition({ x: clientX, y: clientY });
+    const rect = flowWrapperRef.current?.getBoundingClientRect();
+    setConnectMenu({
+      screenX: clientX - (rect?.left ?? 0),
+      screenY: clientY - (rect?.top ?? 0),
+      flowX: flowPos.x,
+      flowY: flowPos.y,
+      sourceId,
+    });
+  }, [screenToFlowPosition]);
+
+  function createNodeFromMenu(type: CanvasNodeType) {
+    if (!connectMenu) return;
+    const nid = newId();
+    const newNode: Node = {
+      id: nid, type,
+      position: { x: connectMenu.flowX, y: connectMenu.flowY },
+      data: type === "message"
+        ? { message: { content_type: "text", text: "", buttons: [] } }
+        : { delay: { seconds: 60 } },
+    };
+    setNodes((nds) => [...nds, newNode]);
+    setEdges((eds) => addEdge({
+      source: connectMenu.sourceId, target: nid,
+      animated: true, markerEnd: { type: MarkerType.ArrowClosed },
+    }, eds));
+    setSelectedId(nid);
+    setConnectMenu(null);
+  }
+
   function addNodeAt(type: CanvasNodeType) {
     const nid = newId();
     const base = nodes[nodes.length - 1];
