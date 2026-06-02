@@ -14,9 +14,10 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   AlertCircle, RefreshCw, HelpCircle, Save, CheckCircle2,
-  MessageSquare, FileText, Workflow,
+  MessageSquare, FileText, Workflow, Settings, Send,
 } from "lucide-react";
 import { toast } from "sonner";
+import TelegramCanalFreeEnvio from "./TelegramCanalFreeEnvio";
 
 type Bot = { id: string; first_name: string | null; username: string | null };
 type Template = { id: string; name: string; content: string | null };
@@ -26,6 +27,7 @@ export default function TelegramCanalFree() {
   const [bots, setBots] = useState<Bot[]>([]);
   const [botId, setBotId] = useState<string>("");
   const [channelTitle, setChannelTitle] = useState("");
+  const [chatId, setChatId] = useState<number | null>(null);
   const [welcomeMessage, setWelcomeMessage] = useState("");
   const [delaySeconds, setDelaySeconds] = useState("");
   const [responseType, setResponseType] = useState<"text" | "template" | "flow">("text");
@@ -68,6 +70,7 @@ export default function TelegramCanalFree() {
         .maybeSingle();
       const row = data as any;
       setChannelTitle(row?.title || "");
+      setChatId(row?.chat_id ?? null);
       setWelcomeMessage(row?.welcome_message || "");
       setDelaySeconds(row?.approval_delay_seconds ? String(row.approval_delay_seconds) : "");
       setResponseType((row?.response_type as any) || "text");
@@ -116,6 +119,7 @@ export default function TelegramCanalFree() {
       const ch = (data as any)?.channel;
       if (ch?.chat_id) {
         setChannelTitle(ch.title || `Canal ${ch.chat_id}`);
+        setChatId(ch.chat_id);
         toast.success(`Canal encontrado: ${ch.title || ch.chat_id}`);
       } else {
         toast.error(
