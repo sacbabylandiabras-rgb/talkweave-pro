@@ -315,25 +315,27 @@ async function startFlowRunFromTick(admin: any, flow: any) {
 }
 
 async function processScheduledFlows(admin: any) {
-  const nowIso = new Date().toISOString();
+  const nowMs = Date.now();
   const { data: flows } = await admin
     .from("telegram_group_flows")
-    .select("id, trigger_type, trigger_config, next_run_at, bot_id")
+    .select("*")
     .eq("is_active", true)
     .in("trigger_type", ["scheduled", "recurring"])
-    .lte("next_run_at", nowIso)
-    .limit(20);
+    .limit(MAX_SCHEDULED_FLOWS_PER_TICK);
 
   for (const f of flows ?? []) {
-    // dispara
-    await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/telegram-group-flow-trigger`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-      },
-      body: JSON.stringify({ flow_id: f.id, trigger_source: f.trigger_type }),
-    }).catch(() => {});
+    const dueMs = getScheduledAtMs(f);
+    if (!dueMs || dueMs > nowMs) continue;
+    if (f.trigger_type === "scheduled") {
+      const lastRunMs = f.last_run_at ? new Date(f.last_run_at).getTime() : 0;
+      if (Number.isFinite(lastRunMs) && lastRunMs >= dueMs) continue;
+    }
+
+    const started = await startFlowRunFromTick(admin, f);
+    if (!started.ok) {
+      console.warn("scheduled flow start failed", f.id, started.error);
+      continue;
+    }
 
     // calcula próximo run
     let nextRun: string | null = null;
