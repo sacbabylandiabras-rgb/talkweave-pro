@@ -731,8 +731,12 @@ async function runFlow({
           );
           const charge = await resp.json().catch(() => ({}));
           console.log("[engine] gateway-flow-charge resp", resp.status, charge?.externalId, !!charge?.brCode);
+          if (!resp.ok) {
+            console.error("[engine] gateway-flow-charge failed", resp.status, charge?.error || charge);
+            throw new Error(charge?.error || "gateway-flow-charge failed");
+          }
           const brCode: string = charge?.brCode || "";
-          const qrImage: string = charge?.qrCodeImage || "";
+          const qrImage: string = await resolveQrImageUrl(admin, bot.user_id, charge?.qrCodeImage || "", charge?.externalId || null);
 
           const amountLabel = (amountCents / 100).toFixed(2).replace(".", ",");
           const caption =
