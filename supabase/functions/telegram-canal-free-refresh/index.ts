@@ -25,6 +25,44 @@ async function tg(token: string, method: string, body: any = {}) {
   return { ok: res.ok && json?.ok, json };
 }
 
+function chatFromAdminUpdate(update: any, botTelegramId?: number | null) {
+  const cm = update?.my_chat_member;
+  if (cm) {
+    const newStatus = cm?.new_chat_member?.status;
+    const chat = cm?.chat;
+    if (chat?.id && ["channel", "supergroup", "group"].includes(chat.type) &&
+        (newStatus === "administrator" || newStatus === "creator")) {
+      return { chat_id: chat.id, title: chat.title ?? null };
+    }
+  }
+
+  const msg = update?.message ?? update?.edited_message;
+  const members = msg?.new_chat_members;
+  const chat = msg?.chat;
+  if (chat?.id && Array.isArray(members) && ["channel", "supergroup", "group"].includes(chat.type)) {
+    const botWasAdded = members.some((m: any) =>
+      m?.is_bot && (!botTelegramId || Number(m.id) === Number(botTelegramId)),
+    );
+    if (botWasAdded) return { chat_id: chat.id, title: chat.title ?? null };
+  }
+
+  return null;
+}
+
+async function persistChannel(admin: any, bot: any, channel: { chat_id: number; title: string | null }) {
+  const chatMember = bot.bot_id
+    ? await tg(bot.bot_token, "getChatMember", { chat_id: channel.chat_id, user_id: bot.bot_id })
+    : { ok: true, json: {} };
+  const status = chatMember.json?.result?.status;
+  if (chatMember.ok && status && status !== "administrator" && status !== "creator") return null;
+
+  await admin.from("telegram_free_channels").upsert(
+    { bot_id: bot.id, user_id: bot.user_id, chat_id: channel.chat_id, title: channel.title },
+    { onConflict: "bot_id" },
+  );
+  return channel;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -51,7 +89,7 @@ Deno.serve(async (req) => {
 
   const { data: bot } = await admin
     .from("telegram_bots")
-    .select("id, user_id, bot_token")
+    .select("id, user_id, bot_token, bot_id")
     .eq("id", bot_id)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -77,18 +115,9 @@ Deno.serve(async (req) => {
     for (const u of updates) {
       if (u.update_id > maxUpdateId) maxUpdateId = u.update_id;
 
-      if (u.my_chat_member) {
-        const cm = u.my_chat_member;
-        const newStatus = cm?.new_chat_member?.status;
-        const chat = cm?.chat;
-        if (chat?.id && (chat.type === "channel" || chat.type === "supergroup" || chat.type === "group") &&
-            (newStatus === "administrator" || newStatus === "creator")) {
-          await admin.from("telegram_free_channels").upsert(
-            { bot_id: bot.id, user_id: bot.user_id, chat_id: chat.id, title: chat.title ?? null },
-            { onConflict: "bot_id" },
-          );
-          detectedChannel = { chat_id: chat.id, title: chat.title ?? null };
-        }
+      const channel = chatFromAdminUpdate(u, bot.bot_id);
+      if (channel) {
+        detectedChannel = await persistChannel(admin, bot, channel) ?? detectedChannel;
       }
 
       if (u.chat_join_request) {
