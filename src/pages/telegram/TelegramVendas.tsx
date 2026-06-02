@@ -74,8 +74,7 @@ export default function TelegramVendas() {
     const telegramSales = (transactions ?? []).filter((tx: any) => {
       const meta = getMetadata(tx);
       const description = String(meta.description || "").toLowerCase();
-      const legacyTelegramFlow = meta.source === "flow_visual" && !tx.customer_phone && !tx.customer_email;
-      return meta.source === "telegram" || meta.channel === "telegram" || externalIds.has(String(tx.external_id || "")) || description.includes("telegram") || legacyTelegramFlow;
+      return meta.source === "telegram" || meta.channel === "telegram" || externalIds.has(String(tx.external_id || "")) || description.includes("telegram");
     }).map((tx: any) => {
       const meta = getMetadata(tx);
       const session = flowSessions.find((s: any) => String(s?.variables?.payment?.externalId || "") === String(tx.external_id || ""));
