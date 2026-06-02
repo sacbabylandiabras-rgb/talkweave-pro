@@ -48,14 +48,14 @@ export default function TelegramChat() {
       .from("telegram_messages")
       .select("id, bot_id, chat_id, from_username, from_first_name, text, raw_update, created_at")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(2000);
 
     if (error) { console.error(error); setLoading(false); return; }
 
     // Group by chat_id
     const grouped = new Map<string, Conversation>();
-    for (const row of (data ?? []) as any[]) {
+    for (const row of ([...(data ?? [])] as any[]).reverse()) {
       const key = `${row.bot_id}:${row.chat_id}`;
       const fromBot = row.raw_update?.message?.from?.is_bot === true;
       const time = new Date(row.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -70,12 +70,16 @@ export default function TelegramChat() {
         existing.messages.push(msg);
         existing.last_msg = msg.text;
         existing.last_time = time;
+        if (!fromBot && (row.from_first_name || row.from_username)) {
+          existing.name = row.from_first_name || row.from_username;
+          existing.username = row.from_username ? `@${row.from_username}` : `#${row.chat_id}`;
+        }
       } else {
-        const name = row.from_first_name || row.from_username || `Chat ${row.chat_id}`;
+        const fallbackName = fromBot ? `Chat ${row.chat_id}` : (row.from_first_name || row.from_username || `Chat ${row.chat_id}`);
         grouped.set(key, {
           id: key,
-          name,
-          username: row.from_username ? `@${row.from_username}` : `#${row.chat_id}`,
+          name: fallbackName,
+          username: !fromBot && row.from_username ? `@${row.from_username}` : `#${row.chat_id}`,
           last_msg: msg.text,
           last_time: time,
           unread: 0,
