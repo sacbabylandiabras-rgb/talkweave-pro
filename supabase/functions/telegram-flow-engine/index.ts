@@ -1205,6 +1205,89 @@ Deno.serve(async (req) => {
 
   const { bot_id, update } = body || {};
   if (!bot_id || !update) {
+    // Manual start mode: { mode: "start", bot_id, chat_id, flow_id, user? }
+    if (body?.mode === "start" && body?.bot_id && body?.chat_id && body?.flow_id) {
+      const { data: bot } = await admin
+        .from("telegram_bots")
+        .select("id,user_id,bot_token,active")
+        .eq("id", body.bot_id)
+        .maybeSingle();
+      if (!bot || !bot.active) {
+        return new Response(JSON.stringify({ ok: true, skipped: "bot_inactive" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: flow } = await admin
+        .from("flow_automations")
+        .select("*")
+        .eq("id", body.flow_id)
+        .maybeSingle();
+      if (!flow) {
+        return new Response(JSON.stringify({ ok: false, error: "flow_not_found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const chatId = Number(body.chat_id);
+      const baseVars: Record<string, any> = {
+        trigger: { type: "manual" },
+        user: {
+          id: body.user?.id ?? chatId,
+          first_name: body.user?.first_name ?? "",
+          username: body.user?.username ?? "",
+        },
+        chat: { id: chatId },
+        last_message: "",
+        lead: {
+          name: body.user?.first_name ?? "",
+          phone: "",
+          email: "",
+        },
+      };
+      const { data: upserted } = await admin
+        .from("telegram_flow_sessions")
+        .upsert(
+          {
+            bot_id: bot.id,
+            user_id: bot.user_id,
+            chat_id: chatId,
+            flow_id: flow.id,
+            current_node_id: null,
+            variables: baseVars,
+            waiting_for: null,
+            waiting_var: null,
+            resume_at: null,
+            status: "active",
+          },
+          { onConflict: "bot_id,chat_id" },
+        )
+        .select("id")
+        .single();
+      const nodesArr = (flow.nodes as FlowNode[]) || [];
+      const trigger = findTriggerNode(nodesArr);
+      const firstEdge = nextEdgeFor(flow.edges || [], trigger?.id || "1");
+      if (!firstEdge) {
+        await admin
+          .from("telegram_flow_sessions")
+          .update({ status: "finished" })
+          .eq("id", upserted!.id);
+        return new Response(JSON.stringify({ ok: true, info: "empty_flow" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      await runFlow({
+        admin,
+        bot,
+        chatId,
+        flow,
+        startNodeId: firstEdge.target,
+        variables: baseVars,
+        sessionId: upserted!.id,
+      });
+      return new Response(JSON.stringify({ ok: true, started: flow.id }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     return new Response(JSON.stringify({ error: "bot_id and update required" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
