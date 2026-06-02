@@ -57,7 +57,14 @@ export default function TelegramModelos() {
         id: r.id,
         name: r.name,
         content: r.content || "",
-        buttons: Array.isArray(r.buttons) ? r.buttons : [],
+        buttons: Array.isArray(r.buttons)
+          ? r.buttons.map((b: any) => ({
+              type: b?.type === "reply" ? "reply" : "url",
+              text: String(b?.text || ""),
+              url: b?.url ? String(b.url) : undefined,
+              payload: b?.payload ? String(b.payload) : undefined,
+            }))
+          : [],
         active: !!r.active,
       })),
     );
@@ -214,30 +221,59 @@ export default function TelegramModelos() {
                   </p>
                 )}
                 {form.buttons.map((b, i) => (
-                  <div key={i} className="grid grid-cols-[1fr_1.5fr_auto] gap-2 items-center">
-                    <Input
-                      placeholder="Texto"
-                      value={b.text}
-                      onChange={(e) => updateButton(i, "text", e.target.value)}
-                    />
-                    <div className="relative">
-                      <LinkIcon className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        className="pl-8"
-                        placeholder="https://..."
-                        value={b.url}
-                        onChange={(e) => updateButton(i, "url", e.target.value)}
-                      />
+                  <div key={i} className="space-y-2 rounded-md border p-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="inline-flex rounded-md border bg-muted/30 p-0.5 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setButtonType(i, "url")}
+                          className={`px-2 py-1 rounded ${b.type === "url" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                        >
+                          <LinkIcon className="w-3 h-3 inline mr-1" /> URL
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setButtonType(i, "reply")}
+                          className={`px-2 py-1 rounded ${b.type === "reply" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                        >
+                          <MessageSquare className="w-3 h-3 inline mr-1" /> Resposta
+                        </button>
+                      </div>
+                      <div className="flex-1" />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeButton(i)}
+                        title="Remover botão"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeButton(i)}
-                      title="Remover botão"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        placeholder="Texto do botão"
+                        value={b.text}
+                        onChange={(e) => updateButton(i, "text", e.target.value)}
+                      />
+                      {b.type === "url" ? (
+                        <div className="relative">
+                          <LinkIcon className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            className="pl-8"
+                            placeholder="https://..."
+                            value={b.url || ""}
+                            onChange={(e) => updateButton(i, "url", e.target.value)}
+                          />
+                        </div>
+                      ) : (
+                        <Input
+                          placeholder="Identificador (opcional)"
+                          value={b.payload || ""}
+                          onChange={(e) => updateButton(i, "payload", e.target.value)}
+                        />
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
