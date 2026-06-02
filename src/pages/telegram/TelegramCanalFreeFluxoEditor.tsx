@@ -198,11 +198,18 @@ function MessageNode({ id, data, selected }: any) {
 }
 
 function DelayNode({ id, data, selected }: any) {
-  const s = data?.delay?.seconds ?? 60;
+  const d: DelayData = data?.delay || { seconds: 60 };
+  const isUntil = d.mode === "until" && d.until;
+  const subtitle = isUntil
+    ? new Date(d.until!).toLocaleString()
+    : `${d.seconds ?? 60} segundos`;
+  const body = isUntil
+    ? "Aguarda até a data/hora definida"
+    : "Aguarda antes do próximo passo";
   return nodeShell(
     selected, "bg-amber-500/10", "text-amber-500",
-    <Clock className="h-4 w-4" />, "Esperar", `${s} segundos`,
-    <div>Aguarda antes do próximo passo</div>,
+    <Clock className="h-4 w-4" />, "Esperar", subtitle,
+    <div>{body}</div>,
     true, true,
     () => data?._remove?.(id),
   );
