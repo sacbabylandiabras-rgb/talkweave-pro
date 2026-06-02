@@ -53,6 +53,17 @@ Deno.serve(async (req) => {
     if (requesterUserId && flow.user_id !== requesterUserId) return json({ error: "forbidden" }, 403);
     if (!flow.is_active) return json({ error: "flow_inactive" }, 400);
 
+    if (trigger_source === "manual" && flow.trigger_type === "scheduled" && flow.next_run_at) {
+      const scheduledAt = new Date(flow.next_run_at).getTime();
+      if (Number.isFinite(scheduledAt) && scheduledAt > Date.now()) {
+        return json({
+          error: "flow_scheduled_pending",
+          scheduled_at: flow.next_run_at,
+          message: "Este fluxo está agendado e só será disparado no horário definido.",
+        }, 409);
+      }
+    }
+
     const effectiveBotId = bot_id || flow.bot_id;
     if (effectiveBotId !== flow.bot_id) return json({ error: "bot_mismatch" }, 400);
 
