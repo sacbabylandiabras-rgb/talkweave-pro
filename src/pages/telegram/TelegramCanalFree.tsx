@@ -11,12 +11,16 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   AlertCircle, RefreshCw, HelpCircle, Save, CheckCircle2,
+  MessageSquare, FileText, Workflow,
 } from "lucide-react";
 import { toast } from "sonner";
 
 type Bot = { id: string; first_name: string | null; username: string | null };
+type Template = { id: string; name: string; content: string | null };
+type Flow = { id: string; name: string };
 
 export default function TelegramCanalFree() {
   const [bots, setBots] = useState<Bot[]>([]);
@@ -24,6 +28,11 @@ export default function TelegramCanalFree() {
   const [channelTitle, setChannelTitle] = useState("");
   const [welcomeMessage, setWelcomeMessage] = useState("");
   const [delaySeconds, setDelaySeconds] = useState("");
+  const [responseType, setResponseType] = useState<"text" | "template" | "flow">("text");
+  const [templateId, setTemplateId] = useState<string>("");
+  const [flowId, setFlowId] = useState<string>("");
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [flows, setFlows] = useState<Flow[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -54,13 +63,41 @@ export default function TelegramCanalFree() {
     (async () => {
       const { data } = await supabase
         .from("telegram_free_channels" as any)
-        .select("chat_id, title, welcome_message, approval_delay_seconds")
+        .select("chat_id, title, welcome_message, approval_delay_seconds, response_type, template_id, flow_id")
         .eq("bot_id", botId)
         .maybeSingle();
       const row = data as any;
       setChannelTitle(row?.title || "");
       setWelcomeMessage(row?.welcome_message || "");
       setDelaySeconds(row?.approval_delay_seconds ? String(row.approval_delay_seconds) : "");
+      setResponseType((row?.response_type as any) || "text");
+      setTemplateId(row?.template_id || "");
+      setFlowId(row?.flow_id || "");
+    })();
+  }, [botId]);
+
+  // Carrega templates e fluxos disponíveis (fluxos filtrados pelo bot)
+  useEffect(() => {
+    (async () => {
+      const { data: tpl } = await supabase
+        .from("message_templates")
+        .select("id, name, content")
+        .eq("active", true)
+        .order("name");
+      setTemplates((tpl as Template[]) || []);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!botId) { setFlows([]); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("flow_automations")
+        .select("id, name, bot_id, active")
+        .eq("active", true)
+        .eq("bot_id", botId)
+        .order("name");
+      setFlows(((data as any[]) || []).map((f) => ({ id: f.id, name: f.name })));
     })();
   }, [botId]);
 
@@ -101,8 +138,16 @@ export default function TelegramCanalFree() {
       toast.error("Adicione o bot como admin do canal antes de salvar.");
       return;
     }
-    if (!welcomeMessage.trim()) {
+    if (responseType === "text" && !welcomeMessage.trim()) {
       toast.error("Informe a mensagem de boas-vindas.");
+      return;
+    }
+    if (responseType === "template" && !templateId) {
+      toast.error("Selecione um modelo de boas-vindas.");
+      return;
+    }
+    if (responseType === "flow" && !flowId) {
+      toast.error("Selecione um fluxo de boas-vindas.");
       return;
     }
     const secs = Number(delaySeconds);
@@ -120,6 +165,9 @@ export default function TelegramCanalFree() {
         user_id: user.id,
         welcome_message: welcomeMessage,
         approval_delay_seconds: secs,
+        response_type: responseType,
+        template_id: responseType === "template" ? templateId : null,
+        flow_id: responseType === "flow" ? flowId : null,
       }, { onConflict: "bot_id" });
     setSaving(false);
     if (error) {
@@ -128,6 +176,9 @@ export default function TelegramCanalFree() {
     }
     toast.success("Configurações salvas!");
   }
+
+  const selectedTemplate = templates.find((t) => t.id === templateId);
+  const selectedFlow = flows.find((f) => f.id === flowId);
 
   return (
     <div className="space-y-6">
@@ -214,18 +265,84 @@ export default function TelegramCanalFree() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="welcome">Mensagem de boas-vindas</Label>
-          <Textarea
-            id="welcome"
-            placeholder="Ex: Olá {nome}, seja bem-vindo! Daqui a pouco você será aceito no canal."
-            value={welcomeMessage}
-            onChange={(e) => setWelcomeMessage(e.target.value)}
-            rows={3}
-            maxLength={500}
-          />
-          <p className="text-xs text-muted-foreground text-right">
-            {welcomeMessage.length}/500 — use {"{nome}"} para o primeiro nome
-          </p>
+          <Label>Mensagem de boas-vindas</Label>
+          <Tabs value={responseType} onValueChange={(v) => setResponseType(v as any)}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="text" className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" /> Texto
+              </TabsTrigger>
+              <TabsTrigger value="template" className="flex items-center gap-2">
+                <FileText className="w-4 h-4" /> Modelo
+              </TabsTrigger>
+              <TabsTrigger value="flow" className="flex items-center gap-2">
+                <Workflow className="w-4 h-4" /> Fluxo
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="text" className="space-y-1 pt-3">
+              <Textarea
+                id="welcome"
+                placeholder="Ex: Olá {nome}, seja bem-vindo! Daqui a pouco você será aceito no canal."
+                value={welcomeMessage}
+                onChange={(e) => setWelcomeMessage(e.target.value)}
+                rows={3}
+                maxLength={500}
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {welcomeMessage.length}/500 — use {"{nome}"} para o primeiro nome
+              </p>
+            </TabsContent>
+
+            <TabsContent value="template" className="space-y-2 pt-3">
+              <Select value={templateId} onValueChange={setTemplateId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha um modelo..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.length === 0 && (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">Nenhum modelo disponível</div>
+                  )}
+                  {templates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedTemplate?.content && (
+                <div className="bg-muted/40 p-3 rounded-md text-sm whitespace-pre-wrap text-foreground">
+                  {selectedTemplate.content}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                O modelo será enviado no privado do usuário ao ser aprovado no canal.
+              </p>
+            </TabsContent>
+
+            <TabsContent value="flow" className="space-y-2 pt-3">
+              <Select value={flowId} onValueChange={setFlowId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha um fluxo..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {flows.length === 0 && (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      Nenhum fluxo ativo para este bot
+                    </div>
+                  )}
+                  {flows.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedFlow && (
+                <div className="bg-muted/40 p-3 rounded-md text-sm text-foreground">
+                  Fluxo selecionado: <strong>{selectedFlow.name}</strong>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                O fluxo é disparado no privado do usuário ao ser aprovado no canal.
+              </p>
+            </TabsContent>
+          </Tabs>
         </div>
 
         <div className="space-y-2">
