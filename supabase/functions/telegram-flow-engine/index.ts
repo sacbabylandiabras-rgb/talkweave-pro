@@ -35,15 +35,31 @@ const tgApi = async (token: string, method: string, body: any) => {
   return json;
 };
 
-// Sends a Telegram text message AND persists it into telegram_messages so the
-// in-app chat view (TelegramChat) shows the bot's outgoing messages alongside
-// inbound ones from users.
-const tgSend = async (admin: any, bot: any, body: any) => {
-  const json = await tgApi(bot.bot_token, "sendMessage", body);
+// Sends a Telegram message (any send* method) AND persists it into
+// telegram_messages so the in-app chat view (TelegramChat) shows the bot's
+// outgoing messages alongside inbound ones from users.
+const tgSend = async (
+  admin: any,
+  bot: any,
+  body: any,
+  method: string = "sendMessage",
+) => {
+  const json = await tgApi(bot.bot_token, method, body);
   try {
     if (json?.ok && json?.result) {
       const r = json.result;
       const syntheticUpdateId = -(Date.now() * 1000 + Math.floor(Math.random() * 1000));
+      const fallbackText =
+        body?.text ?? body?.caption ?? (
+          method === "sendPhoto" ? "[foto]" :
+          method === "sendVideo" ? "[vídeo]" :
+          method === "sendAudio" ? "[áudio]" :
+          method === "sendDocument" ? "[arquivo]" :
+          method === "sendVoice" ? "[voz]" :
+          method === "sendAnimation" ? "[gif]" :
+          method === "sendSticker" ? "[sticker]" :
+          null
+        );
       await admin.from("telegram_messages").insert({
         bot_id: bot.id,
         user_id: bot.user_id,
@@ -53,7 +69,7 @@ const tgSend = async (admin: any, bot: any, body: any) => {
         from_username: r.from?.username ?? null,
         from_first_name: r.from?.first_name ?? "Bot",
         message_type: "message",
-        text: r.text ?? body.text ?? null,
+        text: r.text ?? r.caption ?? fallbackText,
         raw_update: { message: { ...r, from: { ...(r.from || {}), is_bot: true } } },
       });
     }
@@ -280,33 +296,33 @@ async function runFlow({
         const mediaUrl: string | undefined = data.mediaUrl || data.fileUrl || data.url;
 
         if (contentType === "image" || contentType === "photo") {
-          await tgApi(bot.bot_token, "sendPhoto", {
+          await tgSend(admin, bot, {
             chat_id: chatId,
             photo: mediaUrl,
             caption: text || undefined,
             reply_markup,
-          });
+          }, "sendPhoto");
         } else if (contentType === "video") {
-          await tgApi(bot.bot_token, "sendVideo", {
+          await tgSend(admin, bot, {
             chat_id: chatId,
             video: mediaUrl,
             caption: text || undefined,
             reply_markup,
-          });
+          }, "sendVideo");
         } else if (contentType === "audio") {
-          await tgApi(bot.bot_token, "sendAudio", {
+          await tgSend(admin, bot, {
             chat_id: chatId,
             audio: mediaUrl,
             caption: text || undefined,
             reply_markup,
-          });
+          }, "sendAudio");
         } else if (contentType === "document" || contentType === "file") {
-          await tgApi(bot.bot_token, "sendDocument", {
+          await tgSend(admin, bot, {
             chat_id: chatId,
             document: mediaUrl,
             caption: text || undefined,
             reply_markup,
-          });
+          }, "sendDocument");
         } else {
           await tgSend(admin, bot, {
             chat_id: chatId,
@@ -527,13 +543,13 @@ async function runFlow({
             : undefined;
 
           if (qrImage && /^https?:\/\//i.test(qrImage)) {
-            await tgApi(bot.bot_token, "sendPhoto", {
+            await tgSend(admin, bot, {
               chat_id: chatId,
               photo: qrImage,
               caption,
               parse_mode: "Markdown",
               ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
-            });
+            }, "sendPhoto");
           } else {
             await tgSend(admin, bot, {
               chat_id: chatId,
