@@ -200,18 +200,22 @@ export default function TelegramChat() {
     const grouped = new Map<string, Conversation>();
     for (const row of ([...(data ?? [])] as any[]).reverse()) {
       const key = `${row.bot_id}:${row.chat_id}`;
-      const fromBot = row.raw_update?.message?.from?.is_bot === true;
+      const telegramMessage = getTelegramMessage(row.raw_update);
+      const media = extractMedia(telegramMessage);
+      const fromBot = telegramMessage?.from?.is_bot === true;
       const time = new Date(row.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
       const msg: ChatMsg = {
         id: row.id,
         from: fromBot ? "me" : "them",
-        text: row.text || "(mídia)",
+        text: row.text || telegramMessage?.caption || "",
         time,
+        media,
       };
+      const previewText = msg.text || mediaPreview(media) || "Mensagem";
       const existing = grouped.get(key);
       if (existing) {
         existing.messages.push(msg);
-        existing.last_msg = msg.text;
+        existing.last_msg = previewText;
         existing.last_time = time;
         if (!fromBot && (row.from_first_name || row.from_username)) {
           existing.name = row.from_first_name || row.from_username;
@@ -223,7 +227,7 @@ export default function TelegramChat() {
           id: key,
           name: fallbackName,
           username: !fromBot && row.from_username ? `@${row.from_username}` : `#${row.chat_id}`,
-          last_msg: msg.text,
+          last_msg: previewText,
           last_time: time,
           unread: 0,
           online: false,
@@ -279,7 +283,7 @@ export default function TelegramChat() {
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      const newMsg: ChatMsg = { id: crypto.randomUUID(), from: "me", text: draft.trim(), time: "Agora" };
+      const newMsg: ChatMsg = { id: crypto.randomUUID(), from: "me", text: draft.trim(), time: "Agora", media: [] };
       setConvs((prev) => prev.map((c) => c.id === activeId
         ? { ...c, messages: [...c.messages, newMsg], last_msg: newMsg.text, last_time: "Agora" }
         : c,
