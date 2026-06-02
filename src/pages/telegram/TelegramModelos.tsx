@@ -86,11 +86,19 @@ export default function TelegramModelos() {
       toast.error("Máximo de 10 botões.");
       return;
     }
-    setForm({ ...form, buttons: [...form.buttons, { text: "", url: "" }] });
+    setForm({ ...form, buttons: [...form.buttons, { type: "url", text: "", url: "" }] });
   }
   function updateButton(idx: number, field: keyof TgButton, val: string) {
     const next = [...form.buttons];
-    next[idx] = { ...next[idx], [field]: val };
+    next[idx] = { ...next[idx], [field]: val } as TgButton;
+    setForm({ ...form, buttons: next });
+  }
+  function setButtonType(idx: number, type: "url" | "reply") {
+    const next = [...form.buttons];
+    const cur = next[idx];
+    next[idx] = type === "url"
+      ? { type: "url", text: cur.text, url: cur.url ?? "" }
+      : { type: "reply", text: cur.text, payload: cur.payload ?? "" };
     setForm({ ...form, buttons: next });
   }
   function removeButton(idx: number) {
@@ -101,11 +109,14 @@ export default function TelegramModelos() {
     if (!form.name.trim()) { toast.error("Informe o nome do modelo."); return; }
     if (!form.content.trim()) { toast.error("Informe o conteúdo do modelo."); return; }
     for (const b of form.buttons) {
-      if (!b.text.trim() || !b.url.trim()) {
-        toast.error("Botões precisam ter texto e link.");
+      if (!b.text.trim()) {
+        toast.error("Botões precisam ter texto.");
         return;
       }
-      try { new URL(b.url); } catch { toast.error(`Link inválido: ${b.url}`); return; }
+      if (b.type === "url") {
+        if (!b.url || !b.url.trim()) { toast.error("Botões de URL precisam ter um link."); return; }
+        try { new URL(b.url); } catch { toast.error(`Link inválido: ${b.url}`); return; }
+      }
     }
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
