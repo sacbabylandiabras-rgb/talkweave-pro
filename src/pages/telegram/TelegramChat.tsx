@@ -143,7 +143,8 @@ function TelegramMediaBubble({ media, botId }: { media: ChatMedia; botId?: strin
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    if (media.url) {
+    const canLoadFromTelegram = media.fileId && botId && media.kind !== "location" && media.kind !== "venue" && media.kind !== "contact" && media.kind !== "poll";
+    if (media.url && !canLoadFromTelegram) {
       setUrl(media.url);
       setContentType(media.mimeType || "");
       setFailed(false);
@@ -152,7 +153,7 @@ function TelegramMediaBubble({ media, botId }: { media: ChatMedia; botId?: strin
     let objectUrl = "";
     let cancelled = false;
     async function loadFile() {
-      if (!media.fileId || !botId || media.kind === "location" || media.kind === "venue" || media.kind === "contact" || media.kind === "poll") return;
+      if (!canLoadFromTelegram) return;
       try {
         const { data: { session } } = await supabase.auth.getSession();
         const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/telegram-media?bot_id=${encodeURIComponent(botId)}&file_id=${encodeURIComponent(media.fileId)}`, {
@@ -167,6 +168,12 @@ function TelegramMediaBubble({ media, botId }: { media: ChatMedia; botId?: strin
         if (!cancelled) setContentType(blob.type || media.mimeType || "");
         if (!cancelled) setUrl(objectUrl);
       } catch (e) {
+        if (!cancelled && media.url) {
+          setUrl(media.url);
+          setContentType(media.mimeType || "");
+          setFailed(false);
+          return;
+        }
         if (!cancelled) setFailed(true);
       }
     }
