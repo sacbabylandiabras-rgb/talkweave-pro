@@ -263,6 +263,7 @@ export default function TelegramChat() {
       const key = `${row.bot_id}:${row.chat_id}`;
       const telegramMessage = getTelegramMessage(row.raw_update);
       const media = extractMedia(telegramMessage);
+      const buttons = extractButtons(telegramMessage);
       const fromBot = telegramMessage?.from?.is_bot === true;
       const time = new Date(row.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
       const msg: ChatMsg = {
@@ -271,8 +272,9 @@ export default function TelegramChat() {
         text: row.text || telegramMessage?.caption || "",
         time,
         media,
+        buttons,
       };
-      const previewText = msg.text || mediaPreview(media) || "Mensagem";
+      const previewText = msg.text || mediaPreview(media) || (buttons.length ? "Botões" : "Mensagem");
       const existing = grouped.get(key);
       if (existing) {
         existing.messages.push(msg);
@@ -344,7 +346,7 @@ export default function TelegramChat() {
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      const newMsg: ChatMsg = { id: crypto.randomUUID(), from: "me", text: draft.trim(), time: "Agora", media: [] };
+      const newMsg: ChatMsg = { id: crypto.randomUUID(), from: "me", text: draft.trim(), time: "Agora", media: [], buttons: [] };
       setConvs((prev) => prev.map((c) => c.id === activeId
         ? { ...c, messages: [...c.messages, newMsg], last_msg: newMsg.text, last_time: "Agora" }
         : c,
