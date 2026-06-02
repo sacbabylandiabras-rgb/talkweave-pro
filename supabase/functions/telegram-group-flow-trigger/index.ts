@@ -70,6 +70,12 @@ Deno.serve(async (req) => {
     // Resolve chat_id (Canal Free do bot) se não passado
     let chatId = chatIdInput ? Number(chatIdInput) : null;
     if (!chatId) {
+      // Preferimos o chat_id salvo no próprio fluxo (grupos/canais customizados)
+      if (flow.chat_id != null) {
+        chatId = Number(flow.chat_id);
+      }
+    }
+    if (!chatId) {
       const { data: ch } = await admin
         .from("telegram_free_channels")
         .select("chat_id")
