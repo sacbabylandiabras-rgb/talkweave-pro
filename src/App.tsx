@@ -113,6 +113,7 @@ const TelegramRedirecionamento = lazyWithRecovery(() => import("./pages/telegram
 const TelegramAdministradores = lazyWithRecovery(() => import("./pages/telegram/TelegramAdministradores"));
 const TelegramGruposCanais = lazyWithRecovery(() => import("./pages/telegram/TelegramGruposCanais"));
 const TelegramCanalFree = lazyWithRecovery(() => import("./pages/telegram/TelegramCanalFree"));
+const TelegramCanalFreeFluxoEditor = lazyWithRecovery(() => import("./pages/telegram/TelegramCanalFreeFluxoEditor"));
 const TelegramReferencia = lazyWithRecovery(() => import("./pages/telegram/TelegramReferencia"));
 const TelegramContatos = lazyWithRecovery(() => import("./pages/telegram/TelegramContatos"));
 const TelegramVendas = lazyWithRecovery(() => import("./pages/telegram/TelegramVendas"));
@@ -245,6 +246,7 @@ const App = () => (
                   <Route path="/telegram/administradores" element={<TelegramAdministradores />} />
                   <Route path="/telegram/grupos-canais" element={<TelegramGruposCanais />} />
                   <Route path="/telegram/canal-free" element={<TelegramCanalFree />} />
+                  <Route path="/telegram/canal-free/fluxos/:id" element={<TelegramCanalFreeFluxoEditor />} />
                   <Route path="/telegram/referencia" element={<TelegramReferencia />} />
                   <Route path="/telegram/contatos" element={<TelegramContatos />} />
                   <Route path="/telegram/vendas" element={<TelegramVendas />} />
