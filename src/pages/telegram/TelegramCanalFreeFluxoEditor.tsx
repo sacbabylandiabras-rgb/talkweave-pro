@@ -676,9 +676,30 @@ function MessageNodeEditor({
       {d.content_type !== "text" && (
         <div className="space-y-1">
           {d.media_url ? (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground truncate flex-1">{d.media_url}</span>
-              <Button size="sm" variant="ghost" onClick={() => setData({ media_url: null })}>
+            <div className="relative rounded-md border border-border/60 overflow-hidden bg-muted/30">
+              {d.content_type === "photo" && (
+                <img src={d.media_url} alt="" className="w-full max-h-56 object-contain bg-black/5" />
+              )}
+              {d.content_type === "video" && (
+                <video src={d.media_url} className="w-full max-h-56 bg-black" controls />
+              )}
+              {d.content_type === "document" && (
+                <a
+                  href={d.media_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted/50"
+                >
+                  <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span className="truncate flex-1">{d.media_url.split("/").pop() || "documento"}</span>
+                </a>
+              )}
+              <Button
+                size="icon"
+                variant="secondary"
+                className="absolute top-1.5 right-1.5 h-6 w-6 shadow"
+                onClick={() => setData({ media_url: null })}
+              >
                 <X className="w-3.5 h-3.5" />
               </Button>
             </div>
