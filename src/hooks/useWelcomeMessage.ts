@@ -37,7 +37,7 @@ export const useWelcomeMessage = () => {
       if (error) throw error;
 
       if (data) {
-        setConfig(data as WelcomeMessageConfig);
+        setConfig(data as unknown as WelcomeMessageConfig);
       } else {
         // Criar configuração padrão se não existir
         const { data: newConfig, error: createError } = await supabase
@@ -50,7 +50,7 @@ export const useWelcomeMessage = () => {
           .single();
 
         if (createError) throw createError;
-        setConfig(newConfig as WelcomeMessageConfig);
+        setConfig(newConfig as unknown as WelcomeMessageConfig);
       }
     } catch (error) {
       console.error('Error loading welcome message config:', error);
@@ -106,7 +106,7 @@ export const useWelcomeMessage = () => {
 
       const { error } = await supabase
         .from('welcome_message_config')
-        .update(payload)
+        .update(payload as any)
         .eq('id', config.id);
 
       if (error) throw error;
