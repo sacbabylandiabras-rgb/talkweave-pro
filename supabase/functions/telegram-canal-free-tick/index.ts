@@ -27,12 +27,65 @@ async function sendWelcomeText(botToken: string, body: any) {
   return first;
 }
 
+async function backfillJoinedMembers(admin: any) {
+  const since = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+  const { data: rows } = await admin
+    .from("telegram_messages")
+    .select("bot_id,user_id,chat_id,from_user_id,from_username,from_first_name,created_at,raw_update")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(300);
+
+  for (const row of rows ?? []) {
+    const msg = row?.raw_update?.message ?? row?.raw_update?.edited_message;
+    const members = Array.isArray(msg?.new_chat_members) ? msg.new_chat_members : [];
+    if (!msg?.chat?.id || members.length === 0) continue;
+
+    const { data: cfg } = await admin
+      .from("telegram_free_channels")
+      .select("chat_id,user_id")
+      .eq("bot_id", row.bot_id)
+      .maybeSingle();
+    if (!cfg || String(cfg.chat_id) !== String(msg.chat.id)) continue;
+
+    for (const member of members) {
+      if (!member?.id || member?.is_bot) continue;
+      const { data: existing } = await admin
+        .from("telegram_free_join_requests")
+        .select("id")
+        .eq("bot_id", row.bot_id)
+        .eq("chat_id", row.chat_id)
+        .eq("from_user_id", member.id)
+        .gte("requested_at", since)
+        .limit(1)
+        .maybeSingle();
+      if (existing?.id) continue;
+
+      await admin.from("telegram_free_join_requests").insert({
+        bot_id: row.bot_id,
+        user_id: cfg.user_id || row.user_id,
+        chat_id: row.chat_id,
+        from_user_id: member.id,
+        from_username: member?.username ?? row.from_username ?? null,
+        from_first_name: member?.first_name ?? row.from_first_name ?? null,
+        requested_at: row.created_at || new Date().toISOString(),
+        approve_at: new Date().toISOString(),
+        status: "pending",
+      });
+    }
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  await backfillJoinedMembers(admin).catch((e) =>
+    console.warn("joined members backfill failed", (e as Error).message)
   );
 
   const { data: ready, error } = await admin
