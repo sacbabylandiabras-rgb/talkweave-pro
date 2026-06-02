@@ -225,6 +225,12 @@ function EditorInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { screenToFlowPosition } = useReactFlow();
+  const connectFromRef = useRef<string | null>(null);
+  const flowWrapperRef = useRef<HTMLDivElement | null>(null);
+  const [connectMenu, setConnectMenu] = useState<
+    { screenX: number; screenY: number; flowX: number; flowY: number; sourceId: string } | null
+  >(null);
 
   const flowId = useRef<string>("");
 
