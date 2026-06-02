@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.translate-batch]
 verify_jwt = false
+
+[functions.telegram-downsell-tick]
+verify_jwt = false
