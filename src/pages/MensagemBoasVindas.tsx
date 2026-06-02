@@ -4,16 +4,25 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { MessageSquareHeart, Save, Eye, Send } from "lucide-react";
+import { MessageSquareHeart, Save, Eye, Send, MessageSquare, FileText, Workflow } from "lucide-react";
 import { useWelcomeMessage } from "@/hooks/useWelcomeMessage";
+import { useMessageTemplates } from "@/hooks/useMessageTemplates";
+import { supabase } from "@/integrations/supabase/client";
 import InstanceSelector from "@/components/envio/InstanceSelector";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const MensagemBoasVindas = () => {
   const { config, stats, loading, saveConfig, sendWelcomeMessage } = useWelcomeMessage();
+  const { templates } = useMessageTemplates();
   const [ativo, setAtivo] = useState(false);
   const [mensagem, setMensagem] = useState("Olá! 👋 Bem-vindo à nossa empresa! Como podemos ajudá-lo hoje?");
+  const [responseType, setResponseType] = useState<'text' | 'template' | 'flow'>('text');
+  const [templateId, setTemplateId] = useState<string>("");
+  const [flowId, setFlowId] = useState<string>("");
+  const [flows, setFlows] = useState<Array<{ id: string; name: string }>>([]);
   const [testPhone, setTestPhone] = useState("");
   const [testName, setTestName] = useState("");
 
@@ -21,11 +30,29 @@ const MensagemBoasVindas = () => {
     if (config) {
       setAtivo(config.active);
       setMensagem(config.message);
+      setResponseType(config.response_type || 'text');
+      setTemplateId(config.template_id || "");
+      setFlowId(config.flow_id || "");
     }
   }, [config]);
 
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from('flow_automations')
+        .select('id, name')
+        .eq('active', true)
+        .order('name');
+      setFlows((data as Array<{ id: string; name: string }>) || []);
+    })();
+  }, []);
+
   const handleSave = async () => {
-    await saveConfig(ativo, mensagem);
+    await saveConfig(ativo, mensagem, {
+      response_type: responseType,
+      template_id: responseType === 'template' ? (templateId || null) : null,
+      flow_id: responseType === 'flow' ? (flowId || null) : null,
+    });
   };
 
   const handleTest = async () => {
@@ -44,6 +71,9 @@ const MensagemBoasVindas = () => {
     preview = preview.replace(/{hora}/g, new Date().toLocaleTimeString('pt-BR'));
     return preview;
   };
+
+  const selectedTemplate = templates.find(t => t.id === templateId);
+  const selectedFlow = flows.find(f => f.id === flowId);
 
   return (
     <div className="space-y-6">
@@ -76,28 +106,100 @@ const MensagemBoasVindas = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <InstanceSelector />
-          <div>
-            <Label htmlFor="mensagem-boas-vindas">Mensagem de Boas-vindas</Label>
-            <Textarea 
-              id="mensagem-boas-vindas"
-              placeholder="Digite sua mensagem de boas-vindas..."
-              className="mt-1 min-h-[120px]"
-              value={mensagem}
-              onChange={(e) => setMensagem(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Você pode usar variáveis como {"{nome}"} para personalizar a mensagem
-            </p>
-          </div>
 
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <h3 className="font-medium mb-2">Variáveis Disponíveis:</h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div><code className="bg-background px-2 py-1 rounded">{"{nome}"}</code> - Nome do contato</div>
-              <div><code className="bg-background px-2 py-1 rounded">{"{empresa}"}</code> - Nome da empresa</div>
-              <div><code className="bg-background px-2 py-1 rounded">{"{data}"}</code> - Data atual</div>
-              <div><code className="bg-background px-2 py-1 rounded">{"{hora}"}</code> - Hora atual</div>
-            </div>
+          <div>
+            <Label className="mb-2 block">Tipo de Boas-vindas</Label>
+            <Tabs value={responseType} onValueChange={(v) => setResponseType(v as 'text' | 'template' | 'flow')}>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="text" className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4" />
+                  Texto
+                </TabsTrigger>
+                <TabsTrigger value="template" className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Modelo
+                </TabsTrigger>
+                <TabsTrigger value="flow" className="flex items-center gap-2">
+                  <Workflow className="w-4 h-4" />
+                  Fluxo
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="text" className="space-y-4 pt-4">
+                <div>
+                  <Label htmlFor="mensagem-boas-vindas">Mensagem de Boas-vindas</Label>
+                  <Textarea
+                    id="mensagem-boas-vindas"
+                    placeholder="Digite sua mensagem de boas-vindas..."
+                    className="mt-1 min-h-[120px]"
+                    value={mensagem}
+                    onChange={(e) => setMensagem(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Você pode usar variáveis como {"{nome}"} para personalizar a mensagem
+                  </p>
+                </div>
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <h3 className="font-medium mb-2">Variáveis Disponíveis:</h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div><code className="bg-background px-2 py-1 rounded">{"{nome}"}</code> - Nome do contato</div>
+                    <div><code className="bg-background px-2 py-1 rounded">{"{empresa}"}</code> - Nome da empresa</div>
+                    <div><code className="bg-background px-2 py-1 rounded">{"{data}"}</code> - Data atual</div>
+                    <div><code className="bg-background px-2 py-1 rounded">{"{hora}"}</code> - Hora atual</div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="template" className="space-y-3 pt-4">
+                <Label>Selecione um modelo</Label>
+                <Select value={templateId} onValueChange={setTemplateId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Escolha um modelo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.length === 0 && (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">Nenhum modelo disponível</div>
+                    )}
+                    {templates.map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedTemplate && (
+                  <div className="bg-muted/50 p-3 rounded-lg text-sm whitespace-pre-wrap">
+                    {selectedTemplate.content}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  O modelo selecionado será enviado como mensagem de boas-vindas para novos contatos.
+                </p>
+              </TabsContent>
+
+              <TabsContent value="flow" className="space-y-3 pt-4">
+                <Label>Selecione um fluxo</Label>
+                <Select value={flowId} onValueChange={setFlowId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Escolha um fluxo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {flows.length === 0 && (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">Nenhum fluxo ativo</div>
+                    )}
+                    {flows.map(f => (
+                      <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedFlow && (
+                  <div className="bg-muted/50 p-3 rounded-lg text-sm">
+                    Fluxo selecionado: <strong>{selectedFlow.name}</strong>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  O fluxo será disparado automaticamente para o contato assim que ele iniciar a conversa.
+                </p>
+              </TabsContent>
+            </Tabs>
           </div>
 
           <div className="flex gap-2">
@@ -116,7 +218,15 @@ const MensagemBoasVindas = () => {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="bg-muted p-4 rounded-lg">
-                  <p className="whitespace-pre-wrap">{renderPreview()}</p>
+                  {responseType === 'text' && <p className="whitespace-pre-wrap">{renderPreview()}</p>}
+                  {responseType === 'template' && (
+                    <p className="whitespace-pre-wrap">
+                      {selectedTemplate?.content || 'Nenhum modelo selecionado'}
+                    </p>
+                  )}
+                  {responseType === 'flow' && (
+                    <p>Disparará o fluxo: <strong>{selectedFlow?.name || 'Nenhum fluxo selecionado'}</strong></p>
+                  )}
                 </div>
               </DialogContent>
             </Dialog>
