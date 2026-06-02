@@ -953,7 +953,7 @@ async function runFlow({
               name: "gerar_pagamento",
               description: String(
                 toolsCfg.pagamentoDescription ||
-                  "Acione SEMPRE que o usuário pedir para pagar, gerar PIX, cobrança, link de pagamento, ou mencionar um valor que deseja pagar/comprar (ex.: 'quero pagar 50', 'gera um pix de 19,90', 'me manda 100 reais'). Você DEVE extrair o valor mencionado pelo usuário no parâmetro 'amount' (em reais, ex.: 49.90). Se o usuário não mencionou um valor explícito mas pediu para pagar, use o valor padrão do contexto. NÃO responda em texto antes de acionar — apenas chame a ferramenta. Ela gera automaticamente o PIX copia-e-cola, o QR Code e o botão para pagar com cartão.",
+                  "Acione SEMPRE que o usuário pedir PIX, QR Code, pagar, pagamento, cobrança, link de pagamento, finalizar a compra ou confirmar que escolheu um produto. Use o histórico para identificar o último produto/valor escolhido (ex.: 'Pack de fotos - R$ 30'). Você DEVE preencher amount em reais. NÃO responda em texto antes de acionar — apenas chame a ferramenta. Ela gera automaticamente o PIX copia-e-cola, o QR Code e o botão para pagar com cartão.",
               ),
               input_schema: {
                 type: "object",
@@ -977,7 +977,7 @@ async function runFlow({
               ? `${systemPrompt}\n\nBase de conhecimento (use como referência ao responder):\n${knowledge}`
               : systemPrompt) +
             (claudeTools.length
-              ? `\n\nVocê tem ferramentas disponíveis. Use uma ferramenta APENAS se ela for claramente apropriada para a mensagem do usuário. Caso contrário, apenas responda em texto normalmente.`
+              ? `\n\nVocê tem ferramentas disponíveis. Se existir a ferramenta gerar_pagamento e o usuário pedir PIX, QR Code, pagar, pagamento, link, finalizar ou confirmar um produto já escolhido, chame gerar_pagamento imediatamente. Quando o valor não estiver na última mensagem, use o histórico/base de conhecimento para inferir o valor do produto escolhido. Não diga que já enviou chave Pix manualmente. Para outros casos, use uma ferramenta apenas se ela for apropriada; caso contrário responda em texto.`
               : "");
 
           // Typing indicator while a IA pensa
@@ -996,7 +996,9 @@ async function runFlow({
               model,
               max_tokens: 1024,
               system: systemContent,
-              messages: [{ role: "user", content: userInput || "(mensagem vazia)" }],
+              messages: recentMessages.length
+                ? recentMessages
+                : [{ role: "user", content: userInput || "(mensagem vazia)" }],
               ...(claudeTools.length ? { tools: claudeTools } : {}),
             }),
           });
