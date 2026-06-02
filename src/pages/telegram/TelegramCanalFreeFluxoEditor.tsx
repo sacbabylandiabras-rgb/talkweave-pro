@@ -85,8 +85,13 @@ function nodeShell(
           </div>
         </div>
         {onRemove && (
-          <button type="button" onMouseDown={(e) => { e.stopPropagation(); onRemove(); }}
-            className="p-1 rounded hover:bg-muted/60 text-muted-foreground hover:text-destructive transition">
+          <button
+            type="button"
+            className="nodrag nopan p-1 rounded hover:bg-muted/60 text-muted-foreground hover:text-destructive transition"
+            onPointerDown={(e) => { e.stopPropagation(); }}
+            onMouseDown={(e) => { e.stopPropagation(); }}
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRemove(); }}
+          >
             <X className="h-3.5 w-3.5" />
           </button>
         )}
