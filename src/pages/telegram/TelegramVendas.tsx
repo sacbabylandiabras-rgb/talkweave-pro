@@ -219,6 +219,9 @@ export default function TelegramVendas() {
                     <SelectTrigger className="flex-1"><SelectValue placeholder="Todos os adquirentes" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os adquirentes</SelectItem>
+                       {acquirers.map((name) => (
+                         <SelectItem key={name} value={name}>{name}</SelectItem>
+                       ))}
                     </SelectContent>
                   </Select>
                   <Button variant="outline" size="icon"><Search className="w-4 h-4" /></Button>
@@ -260,7 +263,13 @@ export default function TelegramVendas() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.length === 0 ? (
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="py-16 text-center text-sm text-muted-foreground">
+                        Carregando vendas reais do Telegram...
+                      </TableCell>
+                    </TableRow>
+                  ) : filtered.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="py-16">
                         <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
@@ -270,17 +279,28 @@ export default function TelegramVendas() {
                       </TableCell>
                     </TableRow>
                    ) : filtered.map((s) => {
+                     const meta = getMetadata(s);
                      const paymentMethod = s.payment_method || "PIX";
-                     const date = new Date(s.created_at).toLocaleString("pt-BR");
+                     const date = s.created_at ? new Date(s.created_at).toLocaleString("pt-BR") : "—";
+                     const status = getStatusLabel(s.status);
                      return (
                        <TableRow key={s.id}>
-                         <TableCell>ZapLynx Bot</TableCell>
-                         <TableCell>{s.customer_name || "Cliente"}</TableCell>
-                         <TableCell className="uppercase">{paymentMethod}</TableCell>
+                         <TableCell className="font-medium">{s.bot_name || "Bot Telegram"}</TableCell>
+                         <TableCell>
+                           <div className="font-medium">{s.customer_name || "Cliente Telegram"}</div>
+                           {s.chat_id && <div className="text-xs text-muted-foreground">Chat: {String(s.chat_id)}</div>}
+                         </TableCell>
+                         <TableCell>
+                           <div className="uppercase">{paymentMethod}</div>
+                           <div className="text-xs text-muted-foreground">{meta.provider || "gateway"}</div>
+                         </TableCell>
                          <TableCell className="text-xs">{date}</TableCell>
-                         <TableCell className="font-medium">{fmt(s.amount)}</TableCell>
+                         <TableCell>
+                           <div className="font-medium">{fmt(s.amount)}</div>
+                           <Badge variant="outline" className="mt-1">{status}</Badge>
+                         </TableCell>
                          <TableCell className="text-right">
-                           <Button variant="ghost" size="sm">Ver</Button>
+                           <Button variant="ghost" size="sm" title={String(s.external_id || s.id)}>Ver</Button>
                          </TableCell>
                        </TableRow>
                      );
