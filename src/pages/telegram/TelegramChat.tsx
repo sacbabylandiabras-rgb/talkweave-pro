@@ -489,7 +489,7 @@ export default function TelegramChat() {
                 )}
               >
                 <div className="relative">
-                  <Avatar className="w-10 h-10"><AvatarFallback>{c.name.charAt(0)}</AvatarFallback></Avatar>
+                  <TelegramAvatar botId={c.bot_id} tgUserId={c.from_user_id} name={c.name} className="w-10 h-10" />
                   {c.online && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-background" />}
                 </div>
                 <div className="flex-1 min-w-0">
