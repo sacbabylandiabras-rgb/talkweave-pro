@@ -248,6 +248,42 @@ function TelegramButtons({ rows }: { rows: ChatButton[][] }) {
   );
 }
 
+function TelegramAvatar({ botId, tgUserId, name, className }: { botId?: string; tgUserId?: number; name: string; className?: string }) {
+  const [src, setSrc] = useState<string>("");
+  useEffect(() => {
+    if (!botId || !tgUserId) return;
+    let objectUrl = "";
+    let cancelled = false;
+    (async () => {
+      try {
+        const cacheKey = `tg-avatar:${botId}:${tgUserId}`;
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached === "none") return;
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/telegram-user-avatar?bot_id=${encodeURIComponent(botId)}&tg_user_id=${encodeURIComponent(tgUserId)}`, {
+          headers: {
+            ...(SUPABASE_ANON_KEY ? { apikey: SUPABASE_ANON_KEY } : {}),
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          },
+        });
+        if (!res.ok) { sessionStorage.setItem(cacheKey, "none"); return; }
+        const blob = await res.blob();
+        objectUrl = URL.createObjectURL(blob);
+        if (!cancelled) setSrc(objectUrl);
+      } catch {
+        /* silent */
+      }
+    })();
+    return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [botId, tgUserId]);
+  return (
+    <Avatar className={className}>
+      {src ? <AvatarImage src={src} alt={name} /> : null}
+      <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
+    </Avatar>
+  );
+}
+
 export default function TelegramChat() {
   const [convs, setConvs] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string>("");
