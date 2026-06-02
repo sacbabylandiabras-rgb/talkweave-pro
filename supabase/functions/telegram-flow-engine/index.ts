@@ -146,6 +146,81 @@ const normalize = (s: string) =>
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
 
+function moneyToCents(value: string | number | null | undefined): number {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.round(value * 100);
+  const raw = String(value ?? "").trim();
+  if (!raw) return 0;
+  const cleaned = raw.replace(/[^\d,.]/g, "");
+  if (!cleaned) return 0;
+  const normalized = cleaned.includes(",")
+    ? cleaned.replace(/\./g, "").replace(",", ".")
+    : cleaned;
+  const amount = Number.parseFloat(normalized);
+  return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
+}
+
+function isPaymentIntent(text: string): boolean {
+  return /\b(pix|qr\s*code|qrcode|pagar|pagamento|cobran[çc]a|link\s+de\s+pagamento|finalizar|comprar|fechar|vou\s+querer)\b/i.test(text || "");
+}
+
+function inferAmountFromText(text: string): number {
+  const s = String(text || "");
+  const patterns = [
+    /r\$\s*(\d{1,7}(?:[.,]\d{1,2})?)/i,
+    /(\d{1,7}(?:[.,]\d{1,2})?)\s*(?:reais|real|brl)\b/i,
+    /(?:pagar|pix|cobran[çc]a|qr\s*code|qrcode|valor|link\s+de\s+pagamento)[^\d]{0,30}(\d{1,7}(?:[.,]\d{1,2})?)/i,
+  ];
+  for (const pattern of patterns) {
+    const match = s.match(pattern);
+    const cents = moneyToCents(match?.[1]);
+    if (cents > 0) return cents;
+  }
+  return 0;
+}
+
+function inferPaymentFromContext(userInput: string, recentMessages: any[] = [], fallbackText = "") {
+  const newestFirst = [...recentMessages].reverse();
+  const candidates = [userInput, ...newestFirst.map((m) => String(m?.text || m?.content || "")), fallbackText].filter(Boolean);
+  for (const text of candidates) {
+    const amountCents = inferAmountFromText(text);
+    if (amountCents > 0) {
+      const line = String(text).split(/\n/).find((l) => inferAmountFromText(l) > 0) || String(text);
+      const description = line
+        .replace(/r\$\s*\d{1,7}(?:[.,]\d{1,2})?/i, "")
+        .replace(/\d{1,7}(?:[.,]\d{1,2})?\s*(?:reais|real|brl)\b/i, "")
+        .replace(/[\-–—:•]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 80);
+      return { amountCents, description: description || "Pagamento via Telegram" };
+    }
+  }
+  return { amountCents: 0, description: "Pagamento via Telegram" };
+}
+
+async function resolveQrImageUrl(admin: any, userId: string, qrImage: string, externalId?: string | null) {
+  const raw = String(qrImage || "").trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const b64 = raw.startsWith("data:image/") ? raw.split(",").pop() || "" : raw;
+  if (!/^[A-Za-z0-9+/=\s_-]{200,}$/.test(b64)) return "";
+  try {
+    const normalized = b64.replace(/-/g, "+").replace(/_/g, "/").replace(/\s/g, "");
+    const bytes = Uint8Array.from(atob(normalized), (c) => c.charCodeAt(0));
+    const path = `${userId}/pix-${externalId || Date.now()}.png`;
+    const { error } = await admin.storage.from("flow-media").upload(path, bytes, {
+      contentType: "image/png",
+      upsert: true,
+    });
+    if (error) throw error;
+    const { data } = admin.storage.from("flow-media").getPublicUrl(path);
+    return data?.publicUrl || "";
+  } catch (e) {
+    console.warn("[engine] qr image upload failed", (e as Error).message);
+    return "";
+  }
+}
+
 // Returns the trigger node in a flow: either legacy blocoInicial/blocoGatilho,
 // or new-format step node with data.kind === 'gatilho'.
 function findTriggerNode(nodes: FlowNode[]): FlowNode | null {
@@ -288,8 +363,12 @@ async function executePixPayment({
       },
     );
     const charge = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      console.error("[engine] gateway-flow-charge failed", resp.status, charge?.error || charge);
+      throw new Error(charge?.error || "gateway-flow-charge failed");
+    }
     const brCode: string = charge?.brCode || "";
-    const qrImage: string = charge?.qrCodeImage || "";
+    const qrImage: string = await resolveQrImageUrl(admin, bot.user_id, charge?.qrCodeImage || "", charge?.externalId || null);
 
     const amountLabel = (amountCents / 100).toFixed(2).replace(".", ",");
     const caption =
@@ -652,8 +731,12 @@ async function runFlow({
           );
           const charge = await resp.json().catch(() => ({}));
           console.log("[engine] gateway-flow-charge resp", resp.status, charge?.externalId, !!charge?.brCode);
+          if (!resp.ok) {
+            console.error("[engine] gateway-flow-charge failed", resp.status, charge?.error || charge);
+            throw new Error(charge?.error || "gateway-flow-charge failed");
+          }
           const brCode: string = charge?.brCode || "";
-          const qrImage: string = charge?.qrCodeImage || "";
+          const qrImage: string = await resolveQrImageUrl(admin, bot.user_id, charge?.qrCodeImage || "", charge?.externalId || null);
 
           const amountLabel = (amountCents / 100).toFixed(2).replace(".", ",");
           const caption =
@@ -820,6 +903,21 @@ async function runFlow({
             String(data.userInput || "{{last_message}}"),
             variables,
           ).trim();
+          const { data: recentRows } = await admin
+            .from("telegram_messages")
+            .select("text, raw_update, created_at")
+            .eq("bot_id", bot.id)
+            .eq("chat_id", chatId)
+            .order("created_at", { ascending: false })
+            .limit(12);
+          const recentMessages = (recentRows || []).reverse().map((m: any) => {
+            const message = m?.raw_update?.message || {};
+            const isBot = message?.from?.is_bot === true;
+            return {
+              role: isBot ? "assistant" : "user",
+              content: String(message?.text || m?.text || "").slice(0, 1500),
+            };
+          }).filter((m: any) => m.content);
           const saveAs = String(data.saveAs || "ai_response");
           const sendReply = data.sendReply !== false;
 
@@ -829,6 +927,9 @@ async function runFlow({
 
           // Build tools the agent can call
           const toolsCfg = (data as any).tools || {};
+          const paymentToolAvailable = Boolean(
+            toolsCfg.pagamento || /\b(pix|cart[aã]o|pagamento|pagar|cobran[çc]a|r\$)\b/i.test(`${systemPrompt}\n${knowledge}`),
+          );
           const claudeTools: any[] = [];
           if (toolsCfg.previa) {
             claudeTools.push({
@@ -850,12 +951,12 @@ async function runFlow({
               input_schema: { type: "object", properties: {}, required: [] },
             });
           }
-          if (toolsCfg.pagamento) {
+          if (paymentToolAvailable) {
             claudeTools.push({
               name: "gerar_pagamento",
               description: String(
                 toolsCfg.pagamentoDescription ||
-                  "Acione SEMPRE que o usuário pedir para pagar, gerar PIX, cobrança, link de pagamento, ou mencionar um valor que deseja pagar/comprar (ex.: 'quero pagar 50', 'gera um pix de 19,90', 'me manda 100 reais'). Você DEVE extrair o valor mencionado pelo usuário no parâmetro 'amount' (em reais, ex.: 49.90). Se o usuário não mencionou um valor explícito mas pediu para pagar, use o valor padrão do contexto. NÃO responda em texto antes de acionar — apenas chame a ferramenta. Ela gera automaticamente o PIX copia-e-cola, o QR Code e o botão para pagar com cartão.",
+                  "Acione SEMPRE que o usuário pedir PIX, QR Code, pagar, pagamento, cobrança, link de pagamento, finalizar a compra ou confirmar que escolheu um produto. Use o histórico para identificar o último produto/valor escolhido (ex.: 'Pack de fotos - R$ 30'). Você DEVE preencher amount em reais. NÃO responda em texto antes de acionar — apenas chame a ferramenta. Ela gera automaticamente o PIX copia-e-cola, o QR Code e o botão para pagar com cartão.",
               ),
               input_schema: {
                 type: "object",
@@ -879,7 +980,7 @@ async function runFlow({
               ? `${systemPrompt}\n\nBase de conhecimento (use como referência ao responder):\n${knowledge}`
               : systemPrompt) +
             (claudeTools.length
-              ? `\n\nVocê tem ferramentas disponíveis. Use uma ferramenta APENAS se ela for claramente apropriada para a mensagem do usuário. Caso contrário, apenas responda em texto normalmente.`
+              ? `\n\nVocê tem ferramentas disponíveis. Se existir a ferramenta gerar_pagamento e o usuário pedir PIX, QR Code, pagar, pagamento, link, finalizar ou confirmar um produto já escolhido, chame gerar_pagamento imediatamente. Quando o valor não estiver na última mensagem, use o histórico/base de conhecimento para inferir o valor do produto escolhido. Não diga que já enviou chave Pix manualmente. Para outros casos, use uma ferramenta apenas se ela for apropriada; caso contrário responda em texto.`
               : "");
 
           // Typing indicator while a IA pensa
@@ -898,7 +999,9 @@ async function runFlow({
               model,
               max_tokens: 1024,
               system: systemContent,
-              messages: [{ role: "user", content: userInput || "(mensagem vazia)" }],
+              messages: recentMessages.length
+                ? recentMessages
+                : [{ role: "user", content: userInput || "(mensagem vazia)" }],
               ...(claudeTools.length ? { tools: claudeTools } : {}),
             }),
           });
@@ -929,6 +1032,9 @@ async function runFlow({
             if (toolUse?.name === "enviar_previa") iaNextHandle = "previa";
             else if (toolUse?.name === "enviar_prova_social") iaNextHandle = "prova_social";
             else if (toolUse?.name === "gerar_pagamento") iaNextHandle = "pagamento";
+            if (!iaNextHandle && paymentToolAvailable && isPaymentIntent(userInput)) {
+              iaNextHandle = "pagamento";
+            }
             variables[saveAs] = reply;
             // Quando a IA aciona uma ferramenta, NÃO enviamos o texto: o próximo bloco assume.
             if (sendReply && reply && !iaNextHandle) {
@@ -941,15 +1047,9 @@ async function runFlow({
             // Tool de pagamento: gera o PIX agora e pausa a sessão até confirmar.
             if (iaNextHandle === "pagamento") {
               const input = (toolUse?.input || {}) as any;
-              const rawAmount = input?.amount ?? toolsCfg.pagamentoAmount ?? 0;
-              let amountCents = 0;
-              if (typeof rawAmount === "number") {
-                amountCents = Math.round(rawAmount * 100);
-              } else if (typeof rawAmount === "string") {
-                const s = rawAmount.replace(/\./g, "").replace(",", ".");
-                amountCents = Math.round(parseFloat(s || "0") * 100);
-              }
-              const desc = String(input?.description || toolsCfg.pagamentoDescricao || data.label || "Pagamento");
+              const inferred = inferPaymentFromContext(userInput, recentMessages, `${systemPrompt}\n${knowledge}`);
+              const amountCents = moneyToCents(input?.amount) || inferred.amountCents || moneyToCents(toolsCfg.pagamentoAmount);
+              const desc = String(input?.description || toolsCfg.pagamentoDescricao || inferred.description || data.label || "Pagamento");
               if (!amountCents || amountCents <= 0) {
                 await tgSend(admin, bot, {
                   chat_id: chatId,
