@@ -520,7 +520,8 @@ export default function TelegramChat() {
                       {m.media.map((media, index) => (
                         <TelegramMediaBubble key={`${m.id}-${index}`} media={media} botId={active.bot_id} />
                       ))}
-                      {!m.text && m.media.length === 0 && <p>Mensagem</p>}
+                      <TelegramButtons rows={m.buttons} />
+                      {!m.text && m.media.length === 0 && m.buttons.length === 0 && <p>Mensagem</p>}
                       <p className={cn("text-[10px] mt-1", m.from === "me" ? "text-primary-foreground/70" : "text-muted-foreground")}>{m.time}</p>
                     </div>
                   </div>
