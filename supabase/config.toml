@@ -69,6 +69,9 @@ verify_jwt = false
 [functions.telegram-canal-free-tick]
 verify_jwt = false
 
+[functions.telegram-canal-free-refresh]
+verify_jwt = true
+
 [functions.telegram-redirect]
 verify_jwt = false
 
