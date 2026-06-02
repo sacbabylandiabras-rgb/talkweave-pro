@@ -228,7 +228,7 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
       const deduped = normalizeInstances(allInstances, options?.includeWarmup, options?.provider);
       const finalList = allowedInstanceIds ? deduped.filter(i => allowedInstanceIds!.includes(i.id)) : deduped;
       setInstances(finalList);
-      setActiveInstance((current) => deduped.find(i => i.id === current?.id) || deduped.find(i => i.is_default) || deduped[0] || null);
+      setActiveInstance((current) => finalList.find(i => i.id === current?.id) || finalList.find(i => i.is_default) || finalList[0] || null);
       writeCachedInstances(user.id, deduped, options?.includeMeta);
     } catch (error: any) {
       console.error('Erro ao buscar instâncias:', error);
