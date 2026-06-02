@@ -123,59 +123,67 @@ function TriggerNode({ data, selected }: any) {
   );
 }
 
-function MessageNode({ id, data, selected }: any) {
-  const d: MessageData = data?.message || { content_type: "text", buttons: [] };
-  const ct = d.content_type;
+function MessageContentPreview({ message, compact = false }: { message: MessageData; compact?: boolean }) {
+  const d = message || { content_type: "text", buttons: [] };
   const buttons = d.buttons || [];
-  const subtitle = ct === "text" ? "Texto"
-    : ct === "photo" ? "Foto"
-    : ct === "video" ? "Vídeo" : "Documento";
+  const mediaHeight = compact ? "h-28" : "max-h-64";
 
-  const body = (
+  return (
     <div className="space-y-2">
-      {ct === "photo" && d.media_url && (
-        <img src={d.media_url} alt="" className="w-full h-28 object-cover rounded-md border border-border/60" />
+      {d.content_type === "photo" && d.media_url && (
+        <img src={d.media_url} alt="Prévia da foto" className={`w-full ${mediaHeight} object-contain rounded-md border border-border/60 bg-muted/30`} />
       )}
-      {ct === "video" && d.media_url && (
-        <video src={d.media_url} className="w-full h-28 object-cover rounded-md border border-border/60" muted />
+      {d.content_type === "video" && d.media_url && (
+        <video src={d.media_url} className={`w-full ${mediaHeight} rounded-md border border-border/60 bg-muted`} controls={!compact} muted={compact} />
       )}
-      {ct === "document" && d.media_url && (
-        <div className="flex items-center gap-2 rounded-md border border-border/60 bg-muted/40 px-2 py-1.5">
+      {d.content_type === "document" && d.media_url && (
+        <a
+          href={d.media_url}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-2 rounded-md border border-border/60 bg-muted/40 px-2 py-1.5 text-foreground hover:bg-muted/60"
+        >
           <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-          <span className="text-[11px] text-foreground truncate">
-            {d.media_url.split("/").pop() || "documento"}
-          </span>
-        </div>
+          <span className="text-[11px] truncate">{d.media_url.split("/").pop() || "documento"}</span>
+        </a>
       )}
-      {ct !== "text" && !d.media_url && (
+      {d.content_type !== "text" && !d.media_url && (
         <div className="flex items-center justify-center h-20 rounded-md border border-dashed border-border/60 text-[11px] text-muted-foreground">
           Sem mídia
         </div>
       )}
       {d.text ? (
-        <div className="text-[12px] text-foreground whitespace-pre-wrap line-clamp-4">{d.text}</div>
-      ) : ct === "text" ? (
-        <div className="text-[12px] italic text-muted-foreground">(vazio)</div>
+        <div className={`text-[12px] text-foreground whitespace-pre-wrap ${compact ? "line-clamp-4" : ""}`}>{d.text}</div>
+      ) : d.content_type === "text" ? (
+        <div className="text-[12px] italic text-muted-foreground">(conteúdo vazio)</div>
       ) : null}
       {buttons.length > 0 && (
         <div className="space-y-1 pt-1">
-          {buttons.slice(0, 3).map((b, i) => (
-            <div key={i} className="text-[11px] text-center rounded border border-border/60 bg-background px-2 py-1 truncate">
+          {buttons.slice(0, compact ? 3 : buttons.length).map((b, i) => (
+            <div key={i} className="text-[11px] text-center rounded border border-border/60 bg-background px-2 py-1 text-foreground truncate">
               {b.text || "(botão sem texto)"}
             </div>
           ))}
-          {buttons.length > 3 && (
+          {compact && buttons.length > 3 && (
             <div className="text-[10px] text-center text-muted-foreground">+{buttons.length - 3} botão(ões)</div>
           )}
         </div>
       )}
     </div>
   );
+}
+
+function MessageNode({ id, data, selected }: any) {
+  const d: MessageData = data?.message || { content_type: "text", buttons: [] };
+  const ct = d.content_type;
+  const subtitle = ct === "text" ? "Texto"
+    : ct === "photo" ? "Foto"
+    : ct === "video" ? "Vídeo" : "Documento";
 
   return nodeShell(
     selected, "bg-blue-500/10", "text-blue-500",
     <MessageSquare className="h-4 w-4" />, "Mensagem",
-    subtitle, body, true, true,
+    subtitle, <MessageContentPreview message={d} compact />, true, true,
     () => data?._remove?.(id),
   );
 }
