@@ -35,6 +35,34 @@ const tgApi = async (token: string, method: string, body: any) => {
   return json;
 };
 
+// Sends a Telegram text message AND persists it into telegram_messages so the
+// in-app chat view (TelegramChat) shows the bot's outgoing messages alongside
+// inbound ones from users.
+const tgSend = async (admin: any, bot: any, body: any) => {
+  const json = await tgApi(bot.bot_token, "sendMessage", body);
+  try {
+    if (json?.ok && json?.result) {
+      const r = json.result;
+      const syntheticUpdateId = -(Date.now() * 1000 + Math.floor(Math.random() * 1000));
+      await admin.from("telegram_messages").insert({
+        bot_id: bot.id,
+        user_id: bot.user_id,
+        update_id: syntheticUpdateId,
+        chat_id: r.chat?.id ?? body.chat_id,
+        from_user_id: r.from?.id ?? null,
+        from_username: r.from?.username ?? null,
+        from_first_name: r.from?.first_name ?? "Bot",
+        message_type: "message",
+        text: r.text ?? body.text ?? null,
+        raw_update: { message: { ...r, from: { ...(r.from || {}), is_bot: true } } },
+      });
+    }
+  } catch (e) {
+    console.warn("[tgSend] persist outgoing failed:", (e as Error).message);
+  }
+  return json;
+};
+
 const sendTelegramMedia = async (
   token: string,
   chatId: number | string,
@@ -280,7 +308,7 @@ async function runFlow({
             reply_markup,
           });
         } else {
-          await tgApi(bot.bot_token, "sendMessage", {
+          await tgSend(admin, bot, {
             chat_id: chatId,
             text: text || "(mensagem vazia)",
             parse_mode: data.parseMode || undefined,
@@ -391,7 +419,7 @@ async function runFlow({
           // Pré-mensagem (configurável no node)
           const pixPreMessage = String(data.pixPreMessage || "").trim();
           if (pixPreMessage) {
-            await tgApi(bot.bot_token, "sendMessage", {
+            await tgSend(admin, bot, {
               chat_id: chatId,
               text: pixPreMessage,
             });
@@ -507,7 +535,7 @@ async function runFlow({
               ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
             });
           } else {
-            await tgApi(bot.bot_token, "sendMessage", {
+            await tgSend(admin, bot, {
               chat_id: chatId,
               text: caption,
               parse_mode: "Markdown",
@@ -518,7 +546,7 @@ async function runFlow({
           // Mensagem de instrução
           const pixInstructionMessage = String(data.pixInstructionMessage || "").trim();
           if (pixInstructionMessage && brCode) {
-            await tgApi(bot.bot_token, "sendMessage", {
+            await tgSend(admin, bot, {
               chat_id: chatId,
               text: pixInstructionMessage,
             });
@@ -531,7 +559,7 @@ async function runFlow({
               "Após efetuar o pagamento, clique no botão abaixo 👇";
             const pixButtonText =
               String(data.pixButtonText || "").trim() || "EFETUEI O PAGAMENTO";
-            await tgApi(bot.bot_token, "sendMessage", {
+            await tgSend(admin, bot, {
               chat_id: chatId,
               text: pixStatusMessage,
               reply_markup: {
@@ -561,7 +589,7 @@ async function runFlow({
           return;
         } catch (e) {
           console.error("[engine] payment generation failed", (e as Error).message);
-          await tgApi(bot.bot_token, "sendMessage", {
+          await tgSend(admin, bot, {
             chat_id: chatId,
             text: "Não conseguimos gerar a cobrança no momento. Tente novamente.",
           });
@@ -647,12 +675,12 @@ async function runFlow({
             const errText = await aiRes.text().catch(() => "");
             console.error("[engine] Claude API error", aiRes.status, errText);
             if (aiRes.status === 429 || aiRes.status === 529) {
-              await tgApi(bot.bot_token, "sendMessage", {
+              await tgSend(admin, bot, {
                 chat_id: chatId,
                 text: "Muitas requisições no momento. Tente novamente em instantes.",
               });
             } else if (aiRes.status === 401 || aiRes.status === 402) {
-              await tgApi(bot.bot_token, "sendMessage", {
+              await tgSend(admin, bot, {
                 chat_id: chatId,
                 text: "O agente está temporariamente indisponível.",
               });
@@ -671,7 +699,7 @@ async function runFlow({
             variables[saveAs] = reply;
             // Quando a IA aciona uma ferramenta, NÃO enviamos o texto: o próximo bloco assume.
             if (sendReply && reply && !iaNextHandle) {
-              await tgApi(bot.bot_token, "sendMessage", {
+              await tgSend(admin, bot, {
                 chat_id: chatId,
                 text: reply,
               });
@@ -854,7 +882,7 @@ Deno.serve(async (req) => {
       approved = tx?.status === "approved" || tx?.status === "paid";
     }
     if (!approved) {
-      await tgApi(bot.bot_token, "sendMessage", {
+      await tgSend(admin, bot, {
         chat_id: chatId,
         text: "Ainda não identificamos o seu pagamento. Tente novamente em instantes.",
       });
