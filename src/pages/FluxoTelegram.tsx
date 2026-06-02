@@ -1404,6 +1404,175 @@ function summaryFor(data: any): string {
 
 /* ============================ Main page ============================ */
 
+function TelegramFlowDesempenho({ flowId }: { flowId: string | null }) {
+  const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState({ total: 0, active: 0, finished: 0, paused: 0, today: 0 });
+  const [recent, setRecent] = useState<any[]>([]);
+  const [nodeCounts, setNodeCounts] = useState<Record<string, number>>({});
+
+  const load = useCallback(async () => {
+    if (!flowId) return;
+    setLoading(true);
+    try {
+      const { data: sessions } = await (supabase as any)
+        .from("telegram_flow_sessions")
+        .select("id,chat_id,status,current_node_id,updated_at,created_at,variables,last_error")
+        .eq("flow_id", flowId)
+        .order("updated_at", { ascending: false })
+        .limit(500);
+      const rows = (sessions as any[]) || [];
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const s = { total: rows.length, active: 0, finished: 0, paused: 0, today: 0 };
+      const nc: Record<string, number> = {};
+      for (const r of rows) {
+        if (r.status === "active") s.active++;
+        else if (r.status === "finished") s.finished++;
+        else if (r.status === "paused") s.paused++;
+        if (r.created_at && new Date(r.created_at) >= todayStart) s.today++;
+        if (r.current_node_id) nc[r.current_node_id] = (nc[r.current_node_id] || 0) + 1;
+      }
+      setStats(s);
+      setNodeCounts(nc);
+      setRecent(rows.slice(0, 25));
+    } finally {
+      setLoading(false);
+    }
+  }, [flowId]);
+
+  useEffect(() => {
+    load();
+    if (!flowId) return;
+    const ch = supabase
+      .channel(`tg_flow_perf_${flowId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "telegram_flow_sessions", filter: `flow_id=eq.${flowId}` },
+        () => load(),
+      )
+      .subscribe();
+    const iv = setInterval(load, 20000);
+    return () => {
+      clearInterval(iv);
+      supabase.removeChannel(ch);
+    };
+  }, [flowId, load]);
+
+  if (!flowId) {
+    return (
+      <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+        Salve o fluxo para ver o desempenho.
+      </div>
+    );
+  }
+
+  const conversion = stats.total > 0 ? Math.round((stats.finished / stats.total) * 100) : 0;
+  const cards = [
+    { label: "Total de sessões", value: stats.total, color: "text-foreground" },
+    { label: "Em andamento", value: stats.active, color: "text-blue-600" },
+    { label: "Concluídas", value: stats.finished, color: "text-green-600" },
+    { label: "Pausadas", value: stats.paused, color: "text-amber-600" },
+    { label: "Hoje", value: stats.today, color: "text-primary" },
+    { label: "Conversão", value: `${conversion}%`, color: "text-purple-600" },
+  ];
+  const topNodes = Object.entries(nodeCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+  return (
+    <div className="h-full overflow-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold">Desempenho do fluxo</h3>
+          <p className="text-xs text-muted-foreground">
+            Métricas em tempo real das sessões dos contatos neste fluxo.
+          </p>
+        </div>
+        <Button size="sm" variant="outline" onClick={load} disabled={loading}>
+          {loading ? "Atualizando..." : "Atualizar"}
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {cards.map((c) => (
+          <div key={c.label} className="rounded-xl border bg-card p-4">
+            <div className="text-xs text-muted-foreground">{c.label}</div>
+            <div className={`mt-1 text-2xl font-semibold ${c.color}`}>{c.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="rounded-xl border bg-card p-4">
+          <h4 className="text-xs font-semibold mb-3">Onde os contatos estão parados</h4>
+          {topNodes.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Nenhum contato em andamento.</p>
+          ) : (
+            <ul className="space-y-2">
+              {topNodes.map(([nodeId, count]) => {
+                const max = topNodes[0][1] || 1;
+                const pct = Math.round((count / max) * 100);
+                return (
+                  <li key={nodeId} className="text-xs">
+                    <div className="flex justify-between mb-1">
+                      <span className="font-mono truncate max-w-[70%]">{nodeId}</span>
+                      <span className="text-muted-foreground">{count}</span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-xl border bg-card p-4">
+          <h4 className="text-xs font-semibold mb-3">Sessões recentes</h4>
+          {recent.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Nenhuma sessão ainda.</p>
+          ) : (
+            <ul className="divide-y">
+              {recent.map((r) => (
+                <li key={r.id} className="py-2 flex items-center justify-between text-xs">
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">
+                      {(r.variables?.first_name as string) ||
+                        (r.variables?.username as string) ||
+                        `Chat ${r.chat_id}`}
+                    </div>
+                    <div className="text-muted-foreground truncate">
+                      {r.current_node_id || "—"}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Badge
+                      variant="outline"
+                      className={
+                        r.status === "finished"
+                          ? "border-green-500/30 text-green-600"
+                          : r.status === "paused"
+                            ? "border-amber-500/30 text-amber-600"
+                            : r.status === "error"
+                              ? "border-red-500/30 text-red-600"
+                              : "border-blue-500/30 text-blue-600"
+                      }
+                    >
+                      {r.status}
+                    </Badge>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      {new Date(r.updated_at).toLocaleString("pt-BR")}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function FluxoTelegram() {
   const [list, setList] = useState<FluxoTelegramItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1981,12 +2150,7 @@ export default function FluxoTelegram() {
           </ReactFlow>
           </div>
         ) : (
-          <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-            <div className="text-center">
-              <Activity className="h-10 w-10 mx-auto mb-2 opacity-30" />
-              <p>Desempenho do flow estará disponível em breve.</p>
-            </div>
-          </div>
+          <TelegramFlowDesempenho flowId={currentId} />
         )}
 
         {/* Floating block picker (drop on pane) */}
