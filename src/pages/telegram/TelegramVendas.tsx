@@ -132,9 +132,14 @@ export default function TelegramVendas() {
 
   const fmt = (v: number) => (Number(v || 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  const acquirers = useMemo(() => Array.from(new Set(
-    sales.map((s) => String(getMetadata(s).provider || "").trim()).filter(Boolean),
-  )), [sales]);
+  const ACQUIRER_OPTIONS = useMemo(() => ([
+    { value: "openpix", label: "Adquirente 1" },
+    { value: "hubpague", label: "Adquirente 2" },
+    { value: "cartwave", label: "Adquirente 3" },
+    { value: "pix", label: "Pix Padrão" },
+    { value: "credit_card", label: "Cartão de Crédito" },
+    { value: "boleto", label: "Boleto" },
+  ]), []);
 
   const stats = useMemo(() => {
     const sumBy = (label: string) => sales
@@ -220,8 +225,8 @@ export default function TelegramVendas() {
                     <SelectTrigger className="flex-1"><SelectValue placeholder="Todos os adquirentes" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os adquirentes</SelectItem>
-                       {acquirers.map((name) => (
-                         <SelectItem key={name} value={name}>{name}</SelectItem>
+                       {ACQUIRER_OPTIONS.map((opt) => (
+                         <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                        ))}
                     </SelectContent>
                   </Select>
