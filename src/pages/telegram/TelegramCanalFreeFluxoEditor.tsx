@@ -735,6 +735,13 @@ function MessageNodeEditor({
       />
 
       <div className="space-y-1.5">
+        <Label className="text-xs">Prévia do conteúdo</Label>
+        <Card className="p-3 bg-card/60">
+          <MessageContentPreview message={d} />
+        </Card>
+      </div>
+
+      <div className="space-y-1.5">
         <div className="flex items-center justify-between">
           <Label className="text-xs">Botões (URL)</Label>
           <Button size="sm" variant="ghost" onClick={() => setData({ buttons: [...(d.buttons || []), { text: "", url: "" }] })}>
