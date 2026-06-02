@@ -1330,8 +1330,39 @@ serve(async (req) => {
     const delayMs = (campaign.delay_seconds || 2) * 1000;
     const batchSize = getBatchSizeForDelay(delayMs);
 
-    const currentBatch = executionContacts.slice(0, batchSize);
+    let currentBatch = executionContacts.slice(0, batchSize);
     const remainingContacts = executionContacts.slice(batchSize);
+
+    // DEDUP: remove contacts that already have a non-failed send for this campaign,
+    // and collapse phones repeated within the same batch. Prevents the same number
+    // from being sent multiple times when re-invocations or concurrent batches overlap.
+    if (!(reqPayload as SendCampaignRequest).forceSend && currentBatch.length > 0 && campaignId) {
+      const batchPhones = Array.from(new Set(currentBatch.map((c: any) => c?.phone).filter(Boolean)));
+      const { data: existingForBatch } = await supabase
+        .from("campaign_sends")
+        .select("phone, status")
+        .eq("campaign_id", campaignId)
+        .in("phone", batchPhones)
+        .in("status", ["pending", "sent", "delivered", "read"]);
+      const alreadyHandled = new Set<string>((existingForBatch || []).map((r: any) => r.phone));
+      const seenInBatch = new Set<string>();
+      const filtered: typeof currentBatch = [];
+      for (const c of currentBatch) {
+        const ph = (c as any)?.phone;
+        if (!ph) continue;
+        if (alreadyHandled.has(ph)) {
+          console.log(`⏭️ [BatchDedup] Skipping ${ph} - already has non-failed send.`);
+          continue;
+        }
+        if (seenInBatch.has(ph)) {
+          console.log(`⏭️ [BatchDedup] Dropping duplicate ${ph} within same batch.`);
+          continue;
+        }
+        seenInBatch.add(ph);
+        filtered.push(c);
+      }
+      currentBatch = filtered;
+    }
 
     console.log(
       `📦 Processing batch of ${currentBatch.length} contacts (batchSize=${batchSize}, delay=${delayMs}ms). Remaining: ${remainingContacts.length}`,
