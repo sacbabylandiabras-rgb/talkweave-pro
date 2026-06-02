@@ -17,13 +17,32 @@ async function tg(botToken: string, method: string, body: any) {
   return { ok: res.ok && json?.ok, json };
 }
 
-async function sendWelcomeText(botToken: string, body: any) {
-  const first = await tg(botToken, "sendMessage", body);
+async function persistOutgoing(admin: any, bot: any, body: any, json: any) {
+  if (!json?.ok || !json?.result) return;
+  const r = json.result;
+  await admin.from("telegram_messages").insert({
+    bot_id: bot.id,
+    user_id: bot.user_id,
+    update_id: -(Date.now() * 1000 + Math.floor(Math.random() * 1000)),
+    chat_id: r.chat?.id ?? body.chat_id,
+    from_user_id: r.from?.id ?? bot.bot_id ?? null,
+    from_username: r.from?.username ?? null,
+    from_first_name: r.from?.first_name ?? "Bot",
+    text: r.text ?? body.text ?? null,
+    raw_update: { message: { ...r, reply_markup: r.reply_markup ?? body.reply_markup, from: { ...(r.from || {}), is_bot: true } } },
+  });
+}
+
+async function sendWelcomeText(admin: any, bot: any, body: any) {
+  const first = await tg(bot.bot_token, "sendMessage", body);
   const description = String(first.json?.description || "").toLowerCase();
   if (!first.ok && body?.parse_mode && description.includes("can't parse")) {
     const { parse_mode: _parseMode, ...plainBody } = body;
-    return await tg(botToken, "sendMessage", plainBody);
+    const fallback = await tg(bot.bot_token, "sendMessage", plainBody);
+    await persistOutgoing(admin, bot, plainBody, fallback.json).catch(() => null);
+    return fallback;
   }
+  await persistOutgoing(admin, bot, body, first.json).catch(() => null);
   return first;
 }
 
