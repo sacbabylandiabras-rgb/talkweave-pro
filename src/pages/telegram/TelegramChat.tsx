@@ -205,6 +205,33 @@ function TelegramMediaBubble({ media, botId }: { media: ChatMedia; botId?: strin
   );
 }
 
+function TelegramButtons({ rows }: { rows: ChatButton[][] }) {
+  if (!rows.length) return null;
+  return (
+    <div className="mt-2 space-y-1.5">
+      {rows.map((row, rowIndex) => (
+        <div key={rowIndex} className="flex flex-wrap gap-1.5">
+          {row.map((button, buttonIndex) => {
+            const className = "rounded-lg border bg-background/80 px-3 py-1.5 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-muted";
+            if (button.url) {
+              return (
+                <a key={buttonIndex} href={button.url} target="_blank" rel="noreferrer" className={className}>
+                  {button.text}
+                </a>
+              );
+            }
+            return (
+              <span key={buttonIndex} className={className} title={button.callbackData || button.text}>
+                {button.text}
+              </span>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function TelegramChat() {
   const [convs, setConvs] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string>("");
