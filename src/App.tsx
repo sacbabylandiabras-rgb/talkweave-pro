@@ -257,6 +257,7 @@ const App = () => (
                   <Route path="/telegram/links-utm" element={<TelegramLinksUtm />} />
                   <Route path="/telegram/redirecionadores" element={<TelegramRedirecionadores />} />
                   <Route path="/telegram/fluxo" element={<FluxoTelegram />} />
+                  <Route path="/telegram/modelos" element={<TelegramModelos />} />
                   {/* Email routes */}
                   <Route path="/email/configuracao" element={<EmailConfiguracao />} />
                   <Route path="/email/caixa-entrada" element={<EmailCaixaEntrada />} />
