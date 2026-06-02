@@ -233,6 +233,182 @@ function nextEdgeFor(
   );
 }
 
+// Gera uma cobrança PIX e envia ao usuário no Telegram (com QR/copia-cola
+// e botão de cartão). Atualiza a sessão para waiting_for="payment" para que
+// o callback "__chkpay__" verifique o status depois.
+async function executePixPayment({
+  admin,
+  bot,
+  chatId,
+  variables,
+  sessionId,
+  nodeId,
+  amountCents,
+  description,
+  acceptCard = true,
+  pixPreMessage = "",
+  pixInstructionMessage = "",
+  pixStatusMessage = "",
+  pixButtonText = "",
+}: {
+  admin: any;
+  bot: { id: string; user_id: string; bot_token: string };
+  chatId: number | string;
+  variables: Record<string, any>;
+  sessionId: string;
+  nodeId: string;
+  amountCents: number;
+  description: string;
+  acceptCard?: boolean;
+  pixPreMessage?: string;
+  pixInstructionMessage?: string;
+  pixStatusMessage?: string;
+  pixButtonText?: string;
+}): Promise<boolean> {
+  if (!amountCents || amountCents <= 0) return false;
+  try {
+    if (pixPreMessage && pixPreMessage.trim()) {
+      await tgSend(admin, bot, { chat_id: chatId, text: pixPreMessage.trim() });
+    }
+
+    const resp = await fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/gateway-flow-charge`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          userId: bot.user_id,
+          amount: amountCents,
+          description: description || "Pagamento via Telegram",
+          customerName: variables?.user?.first_name || "Cliente Telegram",
+        }),
+      },
+    );
+    const charge = await resp.json().catch(() => ({}));
+    const brCode: string = charge?.brCode || "";
+    const qrImage: string = charge?.qrCodeImage || "";
+
+    const amountLabel = (amountCents / 100).toFixed(2).replace(".", ",");
+    const caption =
+      `💳 *Pagamento de R$ ${amountLabel}*\n\n` +
+      (brCode
+        ? `Copie o código Pix abaixo e pague no seu app do banco:\n\n\`${brCode}\``
+        : "Não foi possível gerar a cobrança no momento. Tente novamente em instantes.");
+
+    let cardCheckoutUrl = "";
+    if (acceptCard) {
+      try {
+        const productName = String(description || "Pagamento").slice(0, 80);
+        const priceCents = amountCents;
+        const shortUser = String(bot.user_id).replace(/-/g, "").slice(0, 8);
+        const shortNode = String(nodeId).replace(/[^a-z0-9]/gi, "").slice(0, 10).toLowerCase();
+        const slug = `tg-${shortUser}-${shortNode}`;
+        const { data: existing } = await admin
+          .from("gateway_checkouts")
+          .select("id, config")
+          .eq("slug", slug)
+          .maybeSingle();
+        const nextConfig = {
+          ...((existing?.config as Record<string, any>) || {}),
+          productName,
+          price: priceCents,
+          creditCard: true,
+          pix: true,
+        };
+        if (existing?.id) {
+          await admin.from("gateway_checkouts")
+            .update({ name: productName, config: nextConfig, status: true })
+            .eq("id", existing.id);
+        } else {
+          await admin.from("gateway_checkouts").insert({
+            user_id: bot.user_id,
+            name: productName,
+            slug,
+            status: true,
+            config: nextConfig,
+          });
+        }
+        let appBase = "https://zaplynx.com";
+        try {
+          const { data: prof } = await admin
+            .from("profiles")
+            .select("custom_domain")
+            .eq("id", bot.user_id)
+            .maybeSingle();
+          const cd = String(prof?.custom_domain || "").trim();
+          if (cd) appBase = /^https?:\/\//i.test(cd) ? cd : `https://${cd}`;
+        } catch (_) {}
+        cardCheckoutUrl = `${appBase.replace(/\/$/, "")}/pay/${slug}`;
+      } catch (e) {
+        console.error("[engine] flow checkout upsert failed", (e as Error).message);
+      }
+    }
+
+    const replyMarkup = cardCheckoutUrl
+      ? { inline_keyboard: [[{ text: "💳 Pagar com cartão", url: cardCheckoutUrl }]] }
+      : undefined;
+
+    if (qrImage && /^https?:\/\//i.test(qrImage)) {
+      await tgSend(admin, bot, {
+        chat_id: chatId,
+        photo: qrImage,
+        caption,
+        parse_mode: "Markdown",
+        ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+      }, "sendPhoto");
+    } else {
+      await tgSend(admin, bot, {
+        chat_id: chatId,
+        text: caption,
+        parse_mode: "Markdown",
+        ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+      });
+    }
+
+    if (pixInstructionMessage && pixInstructionMessage.trim() && brCode) {
+      await tgSend(admin, bot, { chat_id: chatId, text: pixInstructionMessage.trim() });
+    }
+
+    if (brCode) {
+      const statusText = (pixStatusMessage && pixStatusMessage.trim())
+        || "Após efetuar o pagamento, clique no botão abaixo 👇";
+      const btnText = (pixButtonText && pixButtonText.trim()) || "EFETUEI O PAGAMENTO";
+      await tgSend(admin, bot, {
+        chat_id: chatId,
+        text: statusText,
+        reply_markup: { inline_keyboard: [[{ text: btnText, callback_data: "__chkpay__" }]] },
+      });
+    }
+
+    variables.payment = {
+      amount: amountCents,
+      brCode,
+      externalId: charge?.externalId || null,
+      status: "pending",
+    };
+    await admin
+      .from("telegram_flow_sessions")
+      .update({
+        current_node_id: nodeId,
+        variables,
+        waiting_for: "payment",
+        waiting_var: "payment",
+      })
+      .eq("id", sessionId);
+    return true;
+  } catch (e) {
+    console.error("[engine] executePixPayment failed", (e as Error).message);
+    await tgSend(admin, bot, {
+      chat_id: chatId,
+      text: "Não conseguimos gerar a cobrança no momento. Tente novamente.",
+    });
+    return false;
+  }
+}
+
 async function runFlow({
   admin,
   bot,
