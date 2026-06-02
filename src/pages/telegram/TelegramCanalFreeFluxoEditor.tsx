@@ -85,8 +85,13 @@ function nodeShell(
           </div>
         </div>
         {onRemove && (
-          <button type="button" onMouseDown={(e) => { e.stopPropagation(); onRemove(); }}
-            className="p-1 rounded hover:bg-muted/60 text-muted-foreground hover:text-destructive transition">
+          <button
+            type="button"
+            className="nodrag nopan p-1 rounded hover:bg-muted/60 text-muted-foreground hover:text-destructive transition"
+            onPointerDown={(e) => { e.stopPropagation(); }}
+            onMouseDown={(e) => { e.stopPropagation(); }}
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRemove(); }}
+          >
             <X className="h-3.5 w-3.5" />
           </button>
         )}
@@ -532,6 +537,10 @@ function EditorInner() {
           onPaneClick={() => { setSelectedId(null); setConnectMenu(null); }}
           nodeTypes={nodeTypes}
           fitView
+          deleteKeyCode={["Delete", "Backspace"]}
+          onNodesDelete={(deleted) => {
+            deleted.forEach((n) => { if (n.id !== TRIGGER_ID) removeNode(n.id); });
+          }}
           defaultEdgeOptions={{ animated: true, markerEnd: { type: MarkerType.ArrowClosed } }}
         >
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
