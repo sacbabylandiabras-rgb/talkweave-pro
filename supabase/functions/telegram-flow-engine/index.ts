@@ -160,7 +160,7 @@ function moneyToCents(value: string | number | null | undefined): number {
 }
 
 function isPaymentIntent(text: string): boolean {
-  return /\b(pix|qr\s*code|qrcode|pagar|pagamento|cobran[çc]a|cart[aã]o|link\s+de\s+pagamento|finalizar|comprar|fechar|vou\s+querer)\b/i.test(text || "");
+  return /\b(pix|qr\s*code|qrcode|pagar|pagamento|cobran[çc]a|link\s+de\s+pagamento|finalizar|comprar|fechar|vou\s+querer)\b/i.test(text || "");
 }
 
 function inferAmountFromText(text: string): number {
