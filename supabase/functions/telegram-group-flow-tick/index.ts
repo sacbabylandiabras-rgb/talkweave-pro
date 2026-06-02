@@ -175,12 +175,28 @@ async function processRun(admin: any, run: any) {
 
     if (node.type === "delay") {
       const d = node.data || {};
-      const seconds = Math.max(1, Number(d.seconds) || (Number(d.minutes) || 0) * 60 || 60);
+      let resumeAtIso: string;
+      if (d.mode === "until" && d.until) {
+        const untilMs = new Date(d.until).getTime();
+        if (!Number.isFinite(untilMs)) {
+          resumeAtIso = new Date(Date.now() + 60 * 1000).toISOString();
+        } else if (untilMs <= Date.now()) {
+          // Já passou — segue imediatamente
+          const next = findNextNode(nodes, edges, currentId);
+          currentId = next?.id || null;
+          continue;
+        } else {
+          resumeAtIso = new Date(untilMs).toISOString();
+        }
+      } else {
+        const seconds = Math.max(1, Number(d.seconds) || (Number(d.minutes) || 0) * 60 || 60);
+        resumeAtIso = new Date(Date.now() + seconds * 1000).toISOString();
+      }
       const next = findNextNode(nodes, edges, currentId);
       const nextId = next?.id || null;
       await admin.from("telegram_group_flow_runs").update({
         current_node_id: nextId,
-        next_run_at: new Date(Date.now() + seconds * 1000).toISOString(),
+        next_run_at: resumeAtIso,
         step_count: stepCount,
         context: ctx,
       }).eq("id", run.id);
