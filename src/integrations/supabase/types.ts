@@ -2685,6 +2685,130 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_group_flow_runs: {
+        Row: {
+          bot_id: string
+          chat_id: number
+          context: Json
+          created_at: string
+          current_node_id: string | null
+          flow_id: string
+          id: string
+          last_error: string | null
+          next_run_at: string | null
+          status: string
+          step_count: number
+          trigger_source: string | null
+          triggered_by_user_id: number | null
+          triggered_by_username: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bot_id: string
+          chat_id: number
+          context?: Json
+          created_at?: string
+          current_node_id?: string | null
+          flow_id: string
+          id?: string
+          last_error?: string | null
+          next_run_at?: string | null
+          status?: string
+          step_count?: number
+          trigger_source?: string | null
+          triggered_by_user_id?: number | null
+          triggered_by_username?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bot_id?: string
+          chat_id?: number
+          context?: Json
+          created_at?: string
+          current_node_id?: string | null
+          flow_id?: string
+          id?: string
+          last_error?: string | null
+          next_run_at?: string | null
+          status?: string
+          step_count?: number
+          trigger_source?: string | null
+          triggered_by_user_id?: number | null
+          triggered_by_username?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_group_flow_runs_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "telegram_group_flows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_group_flows: {
+        Row: {
+          bot_id: string
+          created_at: string
+          edges: Json
+          id: string
+          is_active: boolean
+          last_run_at: string | null
+          name: string
+          next_run_at: string | null
+          nodes: Json
+          start_node_id: string | null
+          trigger_config: Json
+          trigger_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bot_id: string
+          created_at?: string
+          edges?: Json
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          name?: string
+          next_run_at?: string | null
+          nodes?: Json
+          start_node_id?: string | null
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bot_id?: string
+          created_at?: string
+          edges?: Json
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          name?: string
+          next_run_at?: string | null
+          nodes?: Json
+          start_node_id?: string | null
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_group_flows_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "telegram_bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       telegram_message_templates: {
         Row: {
           active: boolean
