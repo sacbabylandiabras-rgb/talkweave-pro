@@ -95,21 +95,29 @@ const sendTelegramMedia = async (
   mediaType: string,
   caption?: string,
 ) => {
-  if (mediaType === "photo") {
+  const normalizedType = String(mediaType || "document").toLowerCase();
+  if (normalizedType === "photo" || normalizedType === "image" || normalizedType === "imagem") {
     return tgSend(admin, bot, {
       chat_id: chatId,
       photo: mediaUrl,
       ...(caption ? { caption } : {}),
     }, "sendPhoto");
   }
-  if (mediaType === "video") {
+  if (normalizedType === "video") {
     return tgSend(admin, bot, {
       chat_id: chatId,
       video: mediaUrl,
       ...(caption ? { caption } : {}),
     }, "sendVideo");
   }
-  if (mediaType === "audio") {
+  if (normalizedType === "gif" || normalizedType === "animation") {
+    return tgSend(admin, bot, {
+      chat_id: chatId,
+      animation: mediaUrl,
+      ...(caption ? { caption } : {}),
+    }, "sendAnimation");
+  }
+  if (normalizedType === "audio") {
     return tgSend(admin, bot, {
       chat_id: chatId,
       audio: mediaUrl,
