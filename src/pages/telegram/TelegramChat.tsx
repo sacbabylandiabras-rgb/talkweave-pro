@@ -11,12 +11,24 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Search, Send, Paperclip, Smile, MessageSquare, Settings, ChevronDown, Phone, MoreVertical,
+  FileText, Download, MapPin, User, BarChart3, Image as ImageIcon, Video, Music, Mic, Sticker,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
-interface ChatMsg { id: string; from: "me" | "them"; text: string; time: string; }
+type TelegramMediaKind = "photo" | "video" | "animation" | "document" | "audio" | "voice" | "video_note" | "sticker" | "location" | "venue" | "contact" | "poll" | "unknown";
+
+interface ChatMedia {
+  kind: TelegramMediaKind;
+  label: string;
+  fileName?: string;
+  mimeType?: string;
+  downloadable?: boolean;
+  extra?: Record<string, any>;
+}
+
+interface ChatMsg { id: string; from: "me" | "them"; text: string; time: string; media: ChatMedia[]; }
 interface Conversation {
   id: string;
   name: string;
@@ -29,6 +41,52 @@ interface Conversation {
   messages: ChatMsg[];
   bot_id?: string;
   chat_id?: number;
+}
+
+const SUPABASE_FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL || "https://yodgjxdekuraxquxkxhx.supabase.co"}/functions/v1`;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+
+function getTelegramMessage(rawUpdate: any) {
+  return rawUpdate?.message ?? rawUpdate?.edited_message ?? rawUpdate?.callback_query?.message ?? null;
+}
+
+function extractMedia(message: any): ChatMedia[] {
+  if (!message) return [];
+  const caption = message.caption ? String(message.caption) : "";
+  if (message.photo?.length) return [{ kind: "photo", label: caption || "Foto", downloadable: true }];
+  if (message.video) return [{ kind: "video", label: caption || "Vídeo", fileName: message.video.file_name, mimeType: message.video.mime_type, downloadable: true }];
+  if (message.animation) return [{ kind: "animation", label: caption || "GIF/animação", fileName: message.animation.file_name, mimeType: message.animation.mime_type, downloadable: true }];
+  if (message.document) return [{ kind: "document", label: caption || message.document.file_name || "Documento", fileName: message.document.file_name, mimeType: message.document.mime_type, downloadable: true }];
+  if (message.audio) return [{ kind: "audio", label: caption || message.audio.title || message.audio.file_name || "Áudio", fileName: message.audio.file_name, mimeType: message.audio.mime_type, downloadable: true }];
+  if (message.voice) return [{ kind: "voice", label: caption || "Mensagem de voz", mimeType: message.voice.mime_type, downloadable: true }];
+  if (message.video_note) return [{ kind: "video_note", label: caption || "Vídeo circular", downloadable: true }];
+  if (message.sticker) return [{ kind: "sticker", label: message.sticker.emoji ? `Figurinha ${message.sticker.emoji}` : "Figurinha", fileName: message.sticker.file_name, mimeType: message.sticker.mime_type, downloadable: true }];
+  if (message.location) return [{ kind: "location", label: "Localização", extra: message.location }];
+  if (message.venue) return [{ kind: "venue", label: message.venue.title || "Local", extra: message.venue }];
+  if (message.contact) return [{ kind: "contact", label: message.contact.first_name || "Contato", extra: message.contact }];
+  if (message.poll) return [{ kind: "poll", label: message.poll.question || "Enquete", extra: message.poll }];
+  return [];
+}
+
+function mediaPreview(media: ChatMedia[]) {
+  const item = media[0];
+  if (!item) return "";
+  const labels: Record<TelegramMediaKind, string> = {
+    photo: "📷 Foto",
+    video: "🎬 Vídeo",
+    animation: "🎞️ GIF",
+    document: "📎 Documento",
+    audio: "🎵 Áudio",
+    voice: "🎙️ Voz",
+    video_note: "🎥 Vídeo circular",
+    sticker: "💟 Figurinha",
+    location: "📍 Localização",
+    venue: "📍 Local",
+    contact: "👤 Contato",
+    poll: "📊 Enquete",
+    unknown: "📎 Mídia",
+  };
+  return labels[item.kind] || "📎 Mídia";
 }
 
 export default function TelegramChat() {
