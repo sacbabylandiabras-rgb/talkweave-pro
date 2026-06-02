@@ -903,6 +903,21 @@ async function runFlow({
             String(data.userInput || "{{last_message}}"),
             variables,
           ).trim();
+          const { data: recentRows } = await admin
+            .from("telegram_messages")
+            .select("text, raw_update, created_at")
+            .eq("bot_id", bot.id)
+            .eq("chat_id", chatId)
+            .order("created_at", { ascending: false })
+            .limit(12);
+          const recentMessages = (recentRows || []).reverse().map((m: any) => {
+            const message = m?.raw_update?.message || {};
+            const isBot = message?.from?.is_bot === true;
+            return {
+              role: isBot ? "assistant" : "user",
+              content: String(message?.text || m?.text || "").slice(0, 1500),
+            };
+          }).filter((m: any) => m.content);
           const saveAs = String(data.saveAs || "ai_response");
           const sendReply = data.sendReply !== false;
 
