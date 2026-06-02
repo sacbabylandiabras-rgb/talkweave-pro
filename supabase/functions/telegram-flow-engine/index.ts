@@ -280,7 +280,7 @@ async function runFlow({
             reply_markup,
           });
         } else {
-          await tgApi(bot.bot_token, "sendMessage", {
+          await tgSend(admin, bot, {
             chat_id: chatId,
             text: text || "(mensagem vazia)",
             parse_mode: data.parseMode || undefined,
@@ -391,7 +391,7 @@ async function runFlow({
           // Pré-mensagem (configurável no node)
           const pixPreMessage = String(data.pixPreMessage || "").trim();
           if (pixPreMessage) {
-            await tgApi(bot.bot_token, "sendMessage", {
+            await tgSend(admin, bot, {
               chat_id: chatId,
               text: pixPreMessage,
             });
@@ -507,7 +507,7 @@ async function runFlow({
               ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
             });
           } else {
-            await tgApi(bot.bot_token, "sendMessage", {
+            await tgSend(admin, bot, {
               chat_id: chatId,
               text: caption,
               parse_mode: "Markdown",
@@ -518,7 +518,7 @@ async function runFlow({
           // Mensagem de instrução
           const pixInstructionMessage = String(data.pixInstructionMessage || "").trim();
           if (pixInstructionMessage && brCode) {
-            await tgApi(bot.bot_token, "sendMessage", {
+            await tgSend(admin, bot, {
               chat_id: chatId,
               text: pixInstructionMessage,
             });
@@ -531,7 +531,7 @@ async function runFlow({
               "Após efetuar o pagamento, clique no botão abaixo 👇";
             const pixButtonText =
               String(data.pixButtonText || "").trim() || "EFETUEI O PAGAMENTO";
-            await tgApi(bot.bot_token, "sendMessage", {
+            await tgSend(admin, bot, {
               chat_id: chatId,
               text: pixStatusMessage,
               reply_markup: {
@@ -561,7 +561,7 @@ async function runFlow({
           return;
         } catch (e) {
           console.error("[engine] payment generation failed", (e as Error).message);
-          await tgApi(bot.bot_token, "sendMessage", {
+          await tgSend(admin, bot, {
             chat_id: chatId,
             text: "Não conseguimos gerar a cobrança no momento. Tente novamente.",
           });
@@ -647,12 +647,12 @@ async function runFlow({
             const errText = await aiRes.text().catch(() => "");
             console.error("[engine] Claude API error", aiRes.status, errText);
             if (aiRes.status === 429 || aiRes.status === 529) {
-              await tgApi(bot.bot_token, "sendMessage", {
+              await tgSend(admin, bot, {
                 chat_id: chatId,
                 text: "Muitas requisições no momento. Tente novamente em instantes.",
               });
             } else if (aiRes.status === 401 || aiRes.status === 402) {
-              await tgApi(bot.bot_token, "sendMessage", {
+              await tgSend(admin, bot, {
                 chat_id: chatId,
                 text: "O agente está temporariamente indisponível.",
               });
@@ -671,7 +671,7 @@ async function runFlow({
             variables[saveAs] = reply;
             // Quando a IA aciona uma ferramenta, NÃO enviamos o texto: o próximo bloco assume.
             if (sendReply && reply && !iaNextHandle) {
-              await tgApi(bot.bot_token, "sendMessage", {
+              await tgSend(admin, bot, {
                 chat_id: chatId,
                 text: reply,
               });
@@ -854,7 +854,7 @@ Deno.serve(async (req) => {
       approved = tx?.status === "approved" || tx?.status === "paid";
     }
     if (!approved) {
-      await tgApi(bot.bot_token, "sendMessage", {
+      await tgSend(admin, bot, {
         chat_id: chatId,
         text: "Ainda não identificamos o seu pagamento. Tente novamente em instantes.",
       });
