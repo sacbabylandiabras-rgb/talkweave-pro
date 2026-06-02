@@ -2524,6 +2524,42 @@ export type Database = {
           },
         ]
       }
+      telegram_message_templates: {
+        Row: {
+          active: boolean
+          buttons: Json
+          content: string
+          created_at: string
+          id: string
+          name: string
+          parse_mode: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          buttons?: Json
+          content?: string
+          created_at?: string
+          id?: string
+          name: string
+          parse_mode?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          buttons?: Json
+          content?: string
+          created_at?: string
+          id?: string
+          name?: string
+          parse_mode?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       telegram_messages: {
         Row: {
           bot_id: string
