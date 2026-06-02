@@ -60,6 +60,7 @@ const tgSend = async (
           method === "sendSticker" ? "[sticker]" :
           null
         );
+      const sourceMediaUrl = body?.photo ?? body?.video ?? body?.animation ?? body?.audio ?? body?.voice ?? body?.document ?? body?.sticker ?? null;
       await admin.from("telegram_messages").insert({
         bot_id: bot.id,
         user_id: bot.user_id,
@@ -73,6 +74,7 @@ const tgSend = async (
         raw_update: {
           message: {
             ...r,
+            ...(sourceMediaUrl ? { source_media_url: sourceMediaUrl } : {}),
             reply_markup: r.reply_markup ?? body?.reply_markup,
             from: { ...(r.from || {}), is_bot: true },
           },
