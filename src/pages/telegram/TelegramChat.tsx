@@ -286,6 +286,7 @@ function TelegramAvatar({ botId, tgUserId, name, className }: { botId?: string; 
 }
 
 export default function TelegramChat() {
+  const navigate = useNavigate();
   const [convs, setConvs] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string>("");
   const [search, setSearch] = useState("");
@@ -424,7 +425,7 @@ export default function TelegramChat() {
           {/* Header */}
           <div className="p-4 flex items-center justify-between">
             <h1 className="text-2xl font-bold">LynxChat</h1>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/telegram/atualizar-bot")} title="Configurações do bot">
               <Settings className="w-5 h-5 text-muted-foreground" />
             </Button>
           </div>
