@@ -324,6 +324,7 @@ function EditorInner() {
 
   const onConnect = useCallback((c: Connection) => {
     if (!c.source || !c.target || c.source === c.target) return;
+    connectFromRef.current = null;
     setEdges((eds) => addEdge({
       ...c, animated: true, markerEnd: { type: MarkerType.ArrowClosed },
     }, eds));
@@ -338,8 +339,8 @@ function EditorInner() {
     connectFromRef.current = null;
     if (!sourceId) return;
     const target = (event as any).target as HTMLElement | null;
-    const droppedOnPane = !!target?.classList?.contains("react-flow__pane");
-    if (!droppedOnPane) return;
+    // If dropped on a handle/node, let onConnect handle it
+    if (target?.closest?.(".react-flow__handle") || target?.closest?.(".react-flow__node")) return;
     const clientX = "clientX" in event ? (event as MouseEvent).clientX : (event as TouchEvent).changedTouches[0].clientX;
     const clientY = "clientY" in event ? (event as MouseEvent).clientY : (event as TouchEvent).changedTouches[0].clientY;
     const flowPos = screenToFlowPosition({ x: clientX, y: clientY });
