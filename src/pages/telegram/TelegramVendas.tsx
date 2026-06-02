@@ -53,7 +53,7 @@ export default function TelegramVendas() {
     const botNameById = new Map((bots ?? []).map((b: any) => [b.id, b.first_name || b.username || "Bot Telegram"]));
 
     const { data: sessions } = await supabase
-      .from("telegram_flow_sessions")
+      .from("telegram_flow_sessions" as any)
       .select("bot_id, chat_id, variables, updated_at")
       .eq("user_id", user.id)
       .not("variables->payment->>externalId", "is", null);
