@@ -850,6 +850,29 @@ async function runFlow({
               input_schema: { type: "object", properties: {}, required: [] },
             });
           }
+          if (toolsCfg.pagamento) {
+            claudeTools.push({
+              name: "gerar_pagamento",
+              description: String(
+                toolsCfg.pagamentoDescription ||
+                  "Acione quando o usuário pedir para pagar, gerar PIX, link de pagamento, cobrança ou demonstrar intenção clara de comprar. Gera um PIX (copia-e-cola + QR Code) e envia ao usuário.",
+              ),
+              input_schema: {
+                type: "object",
+                properties: {
+                  amount: {
+                    type: "number",
+                    description: "Valor em reais (opcional, padrão usa o valor configurado). Ex: 49.90",
+                  },
+                  description: {
+                    type: "string",
+                    description: "Descrição/nome do produto a cobrar (opcional).",
+                  },
+                },
+                required: [],
+              },
+            });
+          }
 
           const systemContent =
             (knowledge
@@ -905,6 +928,7 @@ async function runFlow({
             const toolUse = blocks.find((b: any) => b?.type === "tool_use");
             if (toolUse?.name === "enviar_previa") iaNextHandle = "previa";
             else if (toolUse?.name === "enviar_prova_social") iaNextHandle = "prova_social";
+            else if (toolUse?.name === "gerar_pagamento") iaNextHandle = "pagamento";
             variables[saveAs] = reply;
             // Quando a IA aciona uma ferramenta, NÃO enviamos o texto: o próximo bloco assume.
             if (sendReply && reply && !iaNextHandle) {
@@ -912,6 +936,39 @@ async function runFlow({
                 chat_id: chatId,
                 text: reply,
               });
+            }
+
+            // Tool de pagamento: gera o PIX agora e pausa a sessão até confirmar.
+            if (iaNextHandle === "pagamento") {
+              const input = (toolUse?.input || {}) as any;
+              const rawAmount = input?.amount ?? toolsCfg.pagamentoAmount ?? 0;
+              let amountCents = 0;
+              if (typeof rawAmount === "number") {
+                amountCents = Math.round(rawAmount * 100);
+              } else if (typeof rawAmount === "string") {
+                const s = rawAmount.replace(/\./g, "").replace(",", ".");
+                amountCents = Math.round(parseFloat(s || "0") * 100);
+              }
+              const desc = String(input?.description || toolsCfg.pagamentoDescricao || data.label || "Pagamento");
+              if (!amountCents || amountCents <= 0) {
+                await tgSend(admin, bot, {
+                  chat_id: chatId,
+                  text: "Não consegui identificar o valor. Pode confirmar o valor do pagamento?",
+                });
+              } else {
+                const ok = await executePixPayment({
+                  admin,
+                  bot,
+                  chatId,
+                  variables,
+                  sessionId,
+                  nodeId: node.id,
+                  amountCents,
+                  description: desc,
+                  acceptCard: toolsCfg.pagamentoAceitaCartao !== false,
+                });
+                if (ok) return; // sessão pausada aguardando pagamento
+              }
             }
 
             // Se a IA acionou uma ferramenta com mídia anexada, envie a mídia agora.
