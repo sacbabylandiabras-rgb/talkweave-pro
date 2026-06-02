@@ -453,7 +453,11 @@ export default function TelegramChat() {
                       "max-w-[70%] rounded-2xl px-3 py-2 text-sm shadow-sm",
                       m.from === "me" ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-background border rounded-bl-sm",
                     )}>
-                      <p>{m.text}</p>
+                      {m.text && <p className="whitespace-pre-wrap break-words">{m.text}</p>}
+                      {m.media.map((media, index) => (
+                        <TelegramMediaBubble key={`${m.id}-${index}`} media={media} botId={active.bot_id} />
+                      ))}
+                      {!m.text && m.media.length === 0 && <p>Mensagem</p>}
                       <p className={cn("text-[10px] mt-1", m.from === "me" ? "text-primary-foreground/70" : "text-muted-foreground")}>{m.time}</p>
                     </div>
                   </div>
