@@ -135,6 +135,40 @@ Deno.serve(async (req) => {
       console.warn("ML profile fetch failed:", err);
     }
 
+    // Tenta descobrir o source_id (tag de afiliado) do usuário
+    let affiliateSourceId: string | null = null;
+    const affiliateEndpoints = [
+      "https://api.mercadolibre.com/affiliate-program/v1/advertisers/me",
+      "https://api.mercadolibre.com/affiliate-program/v1/users/me",
+      "https://api.mercadolibre.com/affiliate-program/v1/sources",
+    ];
+    for (const endpoint of affiliateEndpoints) {
+      try {
+        const r = await fetch(endpoint, {
+          headers: { Authorization: `Bearer ${tokenData.access_token}`, Accept: "application/json" },
+        });
+        if (!r.ok) {
+          console.warn(`ML affiliate ${endpoint} -> ${r.status}`);
+          continue;
+        }
+        const j: any = await r.json().catch(() => ({}));
+        const candidate =
+          j?.source_id ??
+          j?.tag ??
+          j?.default_source_id ??
+          j?.sources?.[0]?.source_id ??
+          j?.sources?.[0]?.tag ??
+          (Array.isArray(j) ? (j[0]?.source_id ?? j[0]?.tag) : null);
+        if (candidate) {
+          affiliateSourceId = String(candidate);
+          break;
+        }
+        console.log("ML affiliate response sample:", JSON.stringify(j).slice(0, 500));
+      } catch (err) {
+        console.warn(`ML affiliate ${endpoint} failed:`, err);
+      }
+    }
+
     const expiresAt = tokenData.expires_in
       ? new Date(Date.now() + Number(tokenData.expires_in) * 1000).toISOString()
       : null;
@@ -146,6 +180,7 @@ Deno.serve(async (req) => {
       provider: PROVIDER,
       account_id: accountId,
       account_nickname: nickname,
+      affiliate_source_id: affiliateSourceId,
       access_token: tokenData.access_token,
       refresh_token: tokenData.refresh_token ?? null,
       scope: tokenData.scope ?? null,
