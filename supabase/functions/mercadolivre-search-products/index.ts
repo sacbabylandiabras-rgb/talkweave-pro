@@ -341,6 +341,11 @@ Deno.serve(async (req) => {
       .filter(Boolean)
       .slice(0, limit);
 
+    if (products.length === 0) {
+      const publicOffers = await fetchPublicOffers(q, category, accountId, limit);
+      return json({ products: publicOffers, total: publicOffers.length, fallback: true });
+    }
+
     return json({ products, total: data?.paging?.total ?? products.length });
   } catch (err) {
     console.error("ml-search error:", err);
