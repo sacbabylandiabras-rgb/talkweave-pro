@@ -92,13 +92,15 @@ export default function Afiliados() {
   }, []);
 
   const loadDeals = async (categoryId?: string | null) => {
+    const nextCategory = categoryId !== undefined ? categoryId : selectedNiche;
     setLoadingProducts(true);
     if (categoryId !== undefined) setSelectedNiche(categoryId);
     try {
       const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
-        body: { mode: "deals", limit: 24, category: categoryId ?? selectedNiche ?? undefined },
+        body: { mode: "deals", limit: 24, category: nextCategory || undefined },
       });
       if (error) throw new Error(error.message);
+      if ((data as any)?.error && !(data as any)?.products) toast.error((data as any).error);
       const list = ((data as any)?.products || []) as AffiliateProduct[];
       setProducts(list);
       setSelectedIds(new Set());

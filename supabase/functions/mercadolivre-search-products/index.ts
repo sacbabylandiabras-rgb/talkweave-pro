@@ -9,6 +9,23 @@ const corsHeaders = {
 const BUCKET = "affiliate-connections";
 const PROVIDER = "mercadolivre";
 
+const CATEGORY_KEYWORDS: Record<string, string> = {
+  MLB1459: "imoveis apartamento casa terreno",
+  MLB1499: "material construcao ferramentas",
+  MLB1430: "roupas moda tenis camiseta",
+  MLB1132: "brinquedos infantis promocao",
+  MLB1051: "celular smartphone oferta",
+  MLB1648: "notebook computador informatica",
+  MLB1574: "casa decoracao cozinha",
+  MLB5726: "eletrodomesticos cozinha oferta",
+  MLB1276: "esportes fitness bicicleta",
+  MLB1246: "beleza perfume maquiagem",
+  MLB1196: "livros promocao",
+  MLB1743: "acessorios automotivos carro moto",
+  MLB1071: "pet cachorro gato racao",
+  MLB1953: "ofertas promocao desconto",
+};
+
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -39,6 +56,16 @@ function extractWinnerItemId(product: any): string | null {
   const candidates = [winner?.item_id, winner?.item?.id, winner?.id, product?.item_id];
   const itemId = candidates.find((value) => typeof value === "string" && /^ML[A-Z]\d+$/i.test(value));
   return itemId ? String(itemId).toUpperCase() : null;
+}
+
+function safeText(value: unknown, maxLength = 80) {
+  return String(value ?? "").trim().replace(/\s+/g, " ").slice(0, maxLength);
+}
+
+function keywordForRequest(mode: string, query: string, category: string | null) {
+  if (query) return query;
+  if (category && CATEGORY_KEYWORDS[category]) return CATEGORY_KEYWORDS[category];
+  return mode === "deals" ? "promocao oferta desconto" : "";
 }
 
 function isUnavailableItem(item: any) {
@@ -105,10 +132,10 @@ Deno.serve(async (req) => {
     if (userErr || !userData.user) return json({ error: "Não autenticado." }, 401);
 
     const body = await req.json().catch(() => ({}));
-    const query = String(body?.query ?? "").trim();
+    const query = safeText(body?.query, 100);
     const mode = String(body?.mode ?? "search"); // "search" | "deals"
-    const site = String(body?.site ?? "MLB").toUpperCase();
-    const category = typeof body?.category === "string" && body.category.trim() ? body.category.trim() : null;
+    const site = /^[A-Z]{3}$/.test(String(body?.site ?? "MLB").toUpperCase()) ? String(body?.site ?? "MLB").toUpperCase() : "MLB";
+    const category = typeof body?.category === "string" && /^ML[A-Z]\d+$/i.test(body.category.trim()) ? body.category.trim().toUpperCase() : null;
     const limit = Math.min(Math.max(Number(body?.limit ?? 24), 1), 50);
     if (mode === "search" && !query && !category) return json({ error: "Informe um termo de busca." }, 400);
 
@@ -166,10 +193,8 @@ Deno.serve(async (req) => {
     const url = new URL("https://api.mercadolibre.com/products/search");
     url.searchParams.set("site_id", site);
     url.searchParams.set("status", "active");
-    const q = mode === "deals"
-      ? (query || (category ? "" : "promocao"))
-      : query;
-    if (q) url.searchParams.set("q", q);
+    const q = keywordForRequest(mode, query, category);
+    if (q) url.searchParams.set("keywords", q);
     if (category) url.searchParams.set("category", category);
     url.searchParams.set("limit", String(Math.min(limit * 3, 50)));
 
