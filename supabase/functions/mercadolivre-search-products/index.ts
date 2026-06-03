@@ -164,8 +164,8 @@ async function fetchPublicOffers(query: string, category: string | null, account
     
     // Improved poly-card parsing for Mercado Livre
     const cards = html.match(/<div\s+class="[^"]*poly-card[^"]*"[\s\S]*?(?=<div\s+class="[^"]*poly-card[^"]*"|<\/main>|<\/section>|$)/g) || 
-                  html.match(/<div\s+class="[^"]*ui-search-result__wrapper[^"]*"[\s\S]*?(?=<div\s+class="[^"]*ui-search-result__wrapper[^"]*"|<\/ol>|$)/g) ||
                   html.match(/<li\s+class="[^"]*ui-search-layout__item[^"]*"[\s\S]*?(?=<li\s+class="[^"]*ui-search-layout__item[^"]*"|<\/ol>|$)/g) ||
+                  html.match(/<div\s+class="[^"]*ui-search-result__wrapper[^"]*"[\s\S]*?(?=<div\s+class="[^"]*ui-search-result__wrapper[^"]*"|<\/ol>|$)/g) ||
                   html.match(/<div\s+class="[^"]*promotion-item[^"]*"[\s\S]*?(?=<div\s+class="[^"]*promotion-item[^"]*"|<\/section>|$)/g) || [];
     
     console.log(`Found ${cards.length} cards via scraping`);
@@ -192,7 +192,8 @@ async function fetchPublicOffers(query: string, category: string | null, account
       // Look specifically for images in data-src, data-actualsrc, or src
       const imageMatch = card.match(/data-src="([^"]+)"/i) || 
                          card.match(/data-actualsrc="([^"]+)"/i) || 
-                         card.match(/src="([^"]+)"/i);
+                         card.match(/src="([^"]+)"/i) ||
+                         card.match(/data-thumbnail="([^"]+)"/i);
                          
       if (imageMatch) {
         thumbnail = imageMatch[1];
@@ -211,7 +212,7 @@ async function fetchPublicOffers(query: string, category: string | null, account
         
         // Upgrade resolution: switch common patterns to high res (e.g., -V to -O)
         thumbnail = thumbnail.replace(/\/D_NQ_NP_(\d+-\w+)-([A-Z])\.(\w+)$/, "/D_NQ_NP_$1-O.$3");
-        thumbnail = thumbnail.replace(/-[IMWV]\.(jpg|jpeg|png|webp)/i, "-O.$1");
+        thumbnail = thumbnail.replace(/-[IMWVG]\.(jpg|jpeg|png|webp)/i, "-O.$1");
         
         // Ensure common suffixes for Mercado Livre images
         if (!thumbnail.includes("-O.") && thumbnail.includes("mlstatic.com")) {
