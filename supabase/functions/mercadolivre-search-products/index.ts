@@ -201,13 +201,14 @@ Deno.serve(async (req) => {
       return json({ error: "Reconecte sua conta para buscar produtos.", fallback: true }, 200);
     }
 
-    // Novo endpoint de catálogo (o /sites/MLB/search público retorna 403 desde 2024)
-    const url = new URL("https://api.mercadolibre.com/products/search");
-    url.searchParams.set("site_id", site);
-    url.searchParams.set("status", "active");
     const q = keywordForRequest(mode, query, category);
-    if (q) url.searchParams.set("keywords", q);
+    const url = new URL(`https://api.mercadolibre.com/sites/${site}/search`);
+    const q = keywordForRequest(mode, query, category);
+    if (q) url.searchParams.set("q", q);
     if (category) url.searchParams.set("category", category);
+    url.searchParams.set("condition", "new");
+    url.searchParams.set("buying_mode", "buy_it_now");
+    url.searchParams.set("sort", "relevance");
     url.searchParams.set("limit", String(Math.min(limit * 3, 50)));
 
     const headers: Record<string, string> = {
@@ -215,15 +216,29 @@ Deno.serve(async (req) => {
       Authorization: `Bearer ${accessToken}`,
     };
 
-    const res = await fetch(url.toString(), { headers });
-    const data = await res.json().catch(() => ({}));
+    let { res, data } = await getJson(url.toString(), headers);
     if (!res.ok) {
-      console.error("ML search error:", res.status, data);
-      return json({ error: "Não foi possível buscar produtos agora.", fallback: true, debug: { status: res.status } }, 200);
+      console.warn("ML public search failed, trying catalog:", res.status, data);
+      const catalogUrl = new URL("https://api.mercadolibre.com/products/search");
+      catalogUrl.searchParams.set("site_id", site);
+      catalogUrl.searchParams.set("status", "active");
+      catalogUrl.searchParams.set("q", q || "promocao oferta desconto");
+      catalogUrl.searchParams.set("limit", String(Math.min(limit * 3, 50)));
+      ({ res, data } = await getJson(catalogUrl.toString(), headers));
+      if (!res.ok) {
+        console.error("ML search error:", res.status, data);
+        return json({ products: [], total: 0, error: "Não foi possível buscar produtos agora.", fallback: true, debug: { status: res.status } }, 200);
+      }
     }
 
     const accountId = record?.account_id ?? null;
     const results = Array.isArray(data?.results) ? data.results : [];
+    const directProducts = results
+      .map((p: any) => mapAvailableItem(p, p, accountId))
+      .filter(Boolean)
+      .slice(0, limit);
+    if (directProducts.length > 0) return json({ products: directProducts, total: data?.paging?.total ?? directProducts.length });
+
     const itemIds = Array.from(new Set(results.map(extractWinnerItemId).filter(Boolean))).slice(0, limit) as string[];
 
     const itemsById = new Map<string, any>();
