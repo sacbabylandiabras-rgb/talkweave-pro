@@ -253,9 +253,10 @@ async function getDetails(ids: string[], accessToken: string) {
   for (let i = 0; i < ids.length; i += 20) {
     const batch = ids.slice(i, i + 20);
     try {
-      const res = await fetch(`https://api.mercadolibre.com/items?ids=${batch.join(",")}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const headers: Record<string, string> = {};
+      if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
+      
+      const res = await fetch(`https://api.mercadolibre.com/items?ids=${batch.join(",")}`, { headers });
       if (res.ok) {
         const data = await res.json();
         data.forEach((item: any) => {
