@@ -190,53 +190,41 @@ async function fetchPublicOffers(query: string, category: string | null, account
       // CRITICAL: Improved thumbnail detection with aggressive fallback
       let thumbnail = null;
       
-      // 1. Find all image-like URLs in the card
-      const allUrls = card.match(/https?:\/\/[^"'\s<>]+?\.(?:jpg|jpeg|png|webp|gif)/gi) || [];
-      
-      // Filter for ML static images which are typically the product photos
-      const mlImages = allUrls.filter(url => 
-        (url.includes("mlstatic.com") || url.includes("mercadolibre.com")) && 
-        !url.includes("pixel") && 
-        !url.includes("blank") && 
-        !url.includes("placeholder") &&
-        !url.includes("dot.gif")
-      );
-
-      // Try to find the image in data attributes (Mercado Livre often uses lazy loading)
-      // Check for specific ML lazy load patterns first
+      // 1. Check for specific ML lazy load patterns and data attributes first
       const dataSrcMatch = card.match(/data-src="([^"]+)"/i) ||
                            card.match(/data-actualsrc="([^"]+)"/i) ||
                            card.match(/srcset="([^",\s]+)/i) ||
                            card.match(/src="([^"]+)"/i);
                            
       if (dataSrcMatch) {
-        thumbnail = dataSrcMatch[1].split(" ")[0]; 
-      }
-      
-      // Fallback to mlImages if thumbnail is a placeholder or missing
-      if (!thumbnail || thumbnail.includes("pixel") || thumbnail.includes("blank")) {
-        thumbnail = mlImages.find(img => img.includes("D_NQ_NP")) || mlImages[0];
-      }
-
-      // 2. Final verification and resolution upgrade
-      if (thumbnail) {
-        thumbnail = thumbnail.replace(/^http:/, "https:");
-        // Improve resolution: try to get the largest version
-        // ML patterns: -I.jpg -> -O.jpg or -F.jpg or -V.jpg
-        thumbnail = thumbnail.replace(/-[IMW]\.(jpg|jpeg|png|webp)/i, "-O.$1");
-        
-        // Ensure it's a valid ML static URL
-        if (!thumbnail.includes("mlstatic.com") && !thumbnail.includes("mercadolibre.com")) {
-          // If it's not ML, but we found an image, we still try to use it as last resort
-          if (!thumbnail.match(/\.(jpg|jpeg|png|webp)/i)) thumbnail = null;
+        const potentialUrl = dataSrcMatch[1].split(" ")[0]; 
+        if (potentialUrl.includes("mlstatic.com") && !potentialUrl.includes("pixel") && !potentialUrl.includes("blank")) {
+           thumbnail = potentialUrl;
         }
       }
 
-      // If still no thumbnail, try one last regex for common patterns in the whole card
-      if (!thumbnail) {
-        const patternMatch = card.match(/https:\/\/http2\.mlstatic\.com\/D_NQ_NP_[\w-]+\.[a-z]{3,4}/i) ||
-                             card.match(/https:\/\/http2\.mlstatic\.com\/D_[\w-]+\.[a-z]{3,4}/i);
-        if (patternMatch) thumbnail = patternMatch[0];
+      // 2. Find all image-like URLs in the card as fallback
+      if (!thumbnail || thumbnail.includes("pixel") || thumbnail.includes("blank")) {
+        const allUrls = card.match(/https?:\/\/http2\.mlstatic\.com\/D_NQ_NP_[\w-]+\.[a-z]{3,4}/gi) ||
+                        card.match(/https?:\/\/[^"'\s<>]+?\.(?:jpg|jpeg|png|webp|gif)/gi) || [];
+        
+        // Filter for ML static images which are typically the product photos
+        const mlImages = allUrls.filter(url => 
+          (url.includes("mlstatic.com") || url.includes("mercadolibre.com")) && 
+          !url.includes("pixel") && 
+          !url.includes("blank") && 
+          !url.includes("placeholder") &&
+          !url.includes("dot.gif")
+        );
+        
+        thumbnail = mlImages[0] || null;
+      }
+      
+      // 3. Final verification and resolution upgrade
+      if (thumbnail) {
+        thumbnail = thumbnail.replace(/^http:/, "https:");
+        // Improve resolution: ML patterns: -I.jpg -> -O.jpg or -F.jpg or -V.jpg
+        thumbnail = thumbnail.replace(/-[IMW]\.(jpg|jpeg|png|webp)/i, "-O.$1");
       }
 
       // Look for price
