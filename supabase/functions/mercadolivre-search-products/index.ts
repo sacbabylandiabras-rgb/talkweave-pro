@@ -324,8 +324,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Tenta API pública de busca primeiro (sem precisar de token autenticado)
-    const q = query || (category && CATEGORY_KEYWORDS[category]) || "promocao";
+    // Tenta API pública de busca (sem autenticação) como primeira opção para busca e detalhes
+    // pois o token pode ter restrições de permissão para busca pública
+    const q = query || (category && CATEGORY_KEYWORDS[category]) || "ofertas";
+    console.log(`[Search] query="${q}" category=${category} offset=${offset}`);
+
     const searchUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search`);
     searchUrl.searchParams.set("q", q);
     if (category) searchUrl.searchParams.set("category", category);
@@ -333,44 +336,48 @@ Deno.serve(async (req) => {
     searchUrl.searchParams.set("offset", String(offset));
 
     let searchRes;
+    let searchData: any = null;
+
+    // Tentativa 1: Busca Pública (Sem Token) - Geralmente mais estável para busca de catálogo
     try {
-      searchRes = await fetch(searchUrl.toString(), {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!searchRes.ok) throw new Error(`Status ${searchRes.status}`);
-    } catch (err) {
-      console.log(`Auth search failed, trying public API: ${err.message}`);
-      searchRes = await fetch(searchUrl.toString()); // sem autenticação
-    }
-
-    let results = [];
-    let total = 0;
-
-    if (searchRes.ok) {
-      const searchData = await searchRes.json();
-      results = searchData.results || [];
-      total = searchData.paging?.total || 0;
-      console.log(`Search for "${q}" returned ${results.length} results`);
-    }
-
-    // Se não houver resultados na API de busca, tenta o scraping
-    if (results.length === 0) {
-      console.log("No results from search API, falling back to scraping...");
-      const publicProducts = await fetchPublicOffers(query, category, record?.account_id, limit, offset);
-      // Se o scraping retornou algo, usa ele
-      if (publicProducts && publicProducts.length > 0) {
-        return json({ products: publicProducts, total: 1000, fallback: true });
+      console.log(`[Public] Searching: ${searchUrl.toString()}`);
+      searchRes = await fetch(searchUrl.toString());
+      if (searchRes.ok) {
+        searchData = await searchRes.json();
+      } else {
+        console.warn(`[Public] Search failed: ${searchRes.status}`);
       }
-      // Se nem o scraping funcionou, tenta uma busca genérica como última tentativa
-      if (!query && !category) {
-        console.log("Generic search as last resort...");
-        const lastResortUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search?q=ofertas&limit=${limit}`);
-        const lastResortRes = await fetch(lastResortUrl.toString());
-        if (lastResortRes.ok) {
-          const lastResortData = await lastResortRes.json();
-          results = lastResortData.results || [];
-          total = lastResortData.paging?.total || 0;
+    } catch (err) {
+      console.error(`[Public] Search error:`, err);
+    }
+
+    // Tentativa 2: Busca Autenticada (Com Token) - Caso a pública falhe (ex: rate limit)
+    if (!searchData || !searchData.results || searchData.results.length === 0) {
+      try {
+        console.log(`[Auth] Searching: ${searchUrl.toString()}`);
+        searchRes = await fetch(searchUrl.toString(), {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (searchRes.ok) {
+          searchData = await searchRes.json();
+        } else {
+          console.warn(`[Auth] Search failed: ${searchRes.status}`);
         }
+      } catch (err) {
+        console.error(`[Auth] Search error:`, err);
+      }
+    }
+
+    let results = searchData?.results || [];
+    let total = searchData?.paging?.total || 0;
+
+    // Tentativa 3: Scraping (Último Recurso)
+    if (results.length === 0) {
+      console.log("[Fallback] No results from API, trying scraping...");
+      const publicProducts = await fetchPublicOffers(query, category, record?.account_id, limit, offset);
+      if (publicProducts && publicProducts.length > 0) {
+        console.log(`[Done] Returning ${publicProducts.length} scraped products`);
+        return json({ products: publicProducts, total: 1000, fallback: true });
       }
     }
 
