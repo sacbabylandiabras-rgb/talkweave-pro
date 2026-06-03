@@ -355,26 +355,48 @@ Deno.serve(async (req) => {
       const item = detailsMap.get(r.id) || r;
       const price = item.price || r.price;
       const originalPrice = item.original_price || r.original_price;
-      
-      // Ensure we get a high-quality thumbnail if pictures are available
-      let thumbnail = item.pictures?.[0]?.secure_url || item.thumbnail || r.thumbnail;
-      if (thumbnail) {
-        thumbnail = thumbnail.replace(/^http:/, "https:");
-        // Convert typical thumbnail sizes to higher resolution if it matches the pattern
-        thumbnail = thumbnail.replace(/-I\.(jpg|jpeg|png|webp)/, "-O.$1");
+
+      // Pega a melhor thumbnail disponível, em ordem de preferência
+      let thumbnail: string | null = null;
+
+      // 1. Primeira foto de alta res das pictures do item detalhado
+      if (item.pictures && item.pictures.length > 0) {
+        thumbnail = item.pictures[0].secure_url || item.pictures[0].url || null;
       }
-      
+
+      // 2. Thumbnail do item detalhado
+      if (!thumbnail) {
+        thumbnail = item.secure_thumbnail || item.thumbnail || null;
+      }
+
+      // 3. Thumbnail do resultado bruto da busca
+      if (!thumbnail) {
+        thumbnail = r.thumbnail || r.secure_thumbnail || null;
+      }
+
+      // 4. Limpa e faz upgrade de resolução
+      if (thumbnail) {
+        thumbnail = thumbnail
+          .replace(/^http:/, "https:")
+          // ML usa sufixos de tamanho: W, I, G, O, F, V, etc.
+          // O = grande (480px), V = grande, F = full
+          .replace(/\/D_NQ_NP_(\d+-\w+)-([A-Z])\.(\w+)$/, "/D_NQ_NP_$1-O.$3")
+          .replace(/-[WIGM]\.(jpg|jpeg|png|webp)$/i, "-O.$1");
+      }
+
       return {
-        id: item.id,
-        name: item.title,
+        id: item.id || r.id,
+        name: item.title || r.title,
         price: formatMoney(price),
         priceValue: price,
         originalPrice: originalPrice && originalPrice > price ? formatMoney(originalPrice) : null,
-        discount: originalPrice && originalPrice > price ? Math.round(((originalPrice - price) / originalPrice) * 100) : null,
-        thumbnail: thumbnail,
+        discount: originalPrice && originalPrice > price
+          ? Math.round(((originalPrice - price) / originalPrice) * 100)
+          : null,
+        thumbnail,
         link: item.permalink || r.permalink,
         source: "ml",
-        available: item.status === "active",
+        available: item.status === "active" || !item.status,
       };
     }).filter((p: any) => p.link);
 
