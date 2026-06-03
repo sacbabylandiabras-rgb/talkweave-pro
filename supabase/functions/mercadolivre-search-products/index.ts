@@ -238,7 +238,21 @@ Deno.serve(async (req) => {
       .slice(0, limit);
     if (directProducts.length > 0) return json({ products: directProducts, total: data?.paging?.total ?? directProducts.length });
 
-    const itemIds = Array.from(new Set(results.map(extractWinnerItemId).filter(Boolean))).slice(0, limit) as string[];
+    let enrichedResults = results;
+    let itemIds = Array.from(new Set(enrichedResults.map(extractWinnerItemId).filter(Boolean))).slice(0, limit) as string[];
+    if (itemIds.length === 0) {
+      const productIds = Array.from(new Set(results.map(extractCatalogProductId).filter(Boolean))).slice(0, limit) as string[];
+      const productDetails: any[] = [];
+      for (let i = 0; i < productIds.length; i += 6) {
+        const details = await Promise.all(productIds.slice(i, i + 6).map(async (productId) => {
+          const detail = await getJson(`https://api.mercadolibre.com/products/${productId}`, headers);
+          return detail.res.ok ? detail.data : null;
+        }));
+        productDetails.push(...details.filter(Boolean));
+      }
+      enrichedResults = productDetails.length > 0 ? productDetails : results;
+      itemIds = Array.from(new Set(enrichedResults.map(extractWinnerItemId).filter(Boolean))).slice(0, limit) as string[];
+    }
 
     const itemsById = new Map<string, any>();
     for (let i = 0; i < itemIds.length; i += 20) {
@@ -256,7 +270,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const products = results
+    const products = enrichedResults
       .map((p: any) => {
         const itemId = extractWinnerItemId(p);
         if (!itemId) return null;
