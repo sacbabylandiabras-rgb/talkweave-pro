@@ -138,6 +138,7 @@ const EnviarInstagram = lazyWithRecovery(() => import("./pages/instagram/EnviarI
 const DisparoOculto = lazyWithRecovery(() => import("./pages/DisparoOculto"));
 const AdminDisparoOculto = lazyWithRecovery(() => import("./pages/AdminDisparoOculto"));
 const Comunidades = lazyWithRecovery(() => import("./pages/Comunidades"));
+const CriarGrupos = lazyWithRecovery(() => import("./pages/CriarGrupos"));
 const Prospeccao = lazyWithRecovery(() => import("./pages/Prospeccao"));
 const Equipe = lazyWithRecovery(() => import("./pages/Equipe"));
 const AceitarConvite = lazyWithRecovery(() => import("./pages/AceitarConvite"));
@@ -217,6 +218,7 @@ const App = () => (
                   
                   <Route path="/extrair-membros" element={<PaidRouteGuard><ExtractMembers /></PaidRouteGuard>} />
                   <Route path="/comunidades" element={<PaidRouteGuard><Comunidades /></PaidRouteGuard>} />
+                  <Route path="/criar-grupos" element={<PaidRouteGuard><CriarGrupos /></PaidRouteGuard>} />
                    <Route path="/canais" element={<PaidRouteGuard><Canais /></PaidRouteGuard>} />
                    <Route path="/prospeccao" element={<Prospeccao />} />
                    <Route path="/equipe" element={<Equipe />} />
