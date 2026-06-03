@@ -232,7 +232,7 @@ async function fetchPublicOffers(query: string, category: string | null, account
     headers: {
       Accept: "text/html,application/xhtml+xml",
       "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
     },
   });
   if (!res.ok) {
@@ -243,6 +243,7 @@ async function fetchPublicOffers(query: string, category: string | null, account
   const cards = html.match(/<div\s+class="[^"]*andes-card\s+poly-card[^"]*"[\s\S]*?(?=<div\s+class="[^"]*andes-card\s+poly-card[^"]*"|<\/main>|$)/g) 
              || html.match(/<li\s+class="[^"]*ui-search-layout__item[^"]*"[\s\S]*?(?=<li\s+class="[^"]*ui-search-layout__item[^"]*"|<\/ol>|$)/g)
              || html.match(/<div\s+class="[^"]*ui-search-result[^"]*"[\s\S]*?(?=<div\s+class="[^"]*ui-search-result[^"]*"|<\/main>|$)/g)
+             || html.match(/<div\s+class="[^"]*poly-card[^"]*"[\s\S]*?(?=<div\s+class="[^"]*poly-card[^"]*"|<\/main>|$)/g)
              || [];
              
   console.log(`FetchPublicOffers: HTML length: ${html.length}, Cards found: ${cards.length}`);
@@ -255,7 +256,8 @@ async function fetchPublicOffers(query: string, category: string | null, account
                     || card.match(/<h[23] class="ui-search-item__title"[^>]*>([\s\S]*?)<\/h[23]>/)
                     || card.match(/aria-label="([^"]+)"/);
     const imageMatch = card.match(/(?:src|data-src)="(https:\/\/http2\.mlstatic\.com\/[^"]+)"/)
-                    || card.match(/src="([^"]+)"/);
+                    || card.match(/src="([^"]+)"/)
+                    || card.match(/data-src="([^"]+)"/);
     const currentLabel = card.match(/poly-price__current[\s\S]*?aria-label="([^"]+)"/)?.[1]
                      || card.match(/ui-search-price__second-line[\s\S]*?aria-label="([^"]+)"/)?.[1]
                      || card.match(/andes-money-amount[\s\S]*?aria-label="([^"]+)"/)?.[1];
