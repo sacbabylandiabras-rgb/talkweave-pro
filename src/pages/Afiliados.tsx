@@ -488,10 +488,10 @@ export default function Afiliados() {
               placeholder="Buscar por palavra-chave..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") fetchProducts(); }}
+              onKeyDown={(e) => { if (e.key === "Enter") fetchProducts(false); }}
               className="md:w-72"
             />
-            <Button onClick={fetchProducts} disabled={loadingProducts}>
+            <Button onClick={() => fetchProducts(false)} disabled={loadingProducts}>
               {loadingProducts ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               Buscar
             </Button>
