@@ -88,6 +88,7 @@ const zapiMenuItems = [
   { id: "prospeccao", label: "Prospecção", icon: SearchIcon, path: "/prospeccao" },
 
   { id: "extrair-membros", label: "Extrair Membros", icon: UserPlus, path: "/extrair-membros" },
+  { id: "criar-grupos", label: "Links de redirecionamento", icon: Link2, path: "/criar-grupos" },
   { id: "comunidades", label: "Comunidades", icon: Building2, path: "/comunidades" },
   { id: "canais", label: "Canais", icon: Hash, path: "/canais" },
   { id: "campanhas-grupo", label: "Campanhas em Grupo", icon: Megaphone, path: "/campanhas-grupo" },
