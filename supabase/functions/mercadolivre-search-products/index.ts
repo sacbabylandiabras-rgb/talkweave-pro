@@ -371,7 +371,7 @@ Deno.serve(async (req) => {
     const limit = Math.min(Math.max(Number(body?.limit ?? 50), 1), 100);
     const offset = Math.max(Number(body?.offset ?? 0), 0);
 
-    console.log(`[Search] Mode: ${mode}, Query: "${query}", Category: ${category}, Offset: ${offset}`);
+    console.log(`[Search] Mode: ${mode}, Query: "${query}", Category: ${category}, Offset: ${offset}, UserID: ${userData.user.id}`);
 
     if (mode === "search" && !query && !category) return json({ error: "Informe um termo de busca." }, 400);
 
