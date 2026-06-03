@@ -399,6 +399,8 @@ Deno.serve(async (req) => {
       // Se mode for "search", usamos search_type=scan para ser mais abrangente e exato nos termos
       if (mode === "search") {
         url.searchParams.set("search_type", "scan");
+        // Forçar ordenação por relevância na API quando for busca por palavra-chave
+        url.searchParams.set("sort", "relevance");
       }
     }
     
@@ -490,16 +492,18 @@ Deno.serve(async (req) => {
       return items;
     };
 
+    console.log(`ML Request URL: ${url.toString()}`);
     let { res, data } = await getJson(url.toString(), headers);
     
     // Se a busca principal falhar (403 ou outros), ou não retornar resultados, tenta abordagens alternativas
     if (!res.ok || (Array.isArray(data?.results) && data.results.length === 0)) {
-      console.warn(`ML search ${res.status} ou sem resultados. Tentando catalog search...`);
+      console.warn(`ML search ${res.status} ou sem resultados (${data?.results?.length || 0}). Tentando catalog search...`);
       const catalogUrl = new URL("https://api.mercadolibre.com/products/search");
       catalogUrl.searchParams.set("site_id", site);
       if (q) catalogUrl.searchParams.set("q", q);
       catalogUrl.searchParams.set("limit", "50");
       
+      console.log(`ML Catalog Request URL: ${catalogUrl.toString()}`);
       const catalogSearch = await getJson(catalogUrl.toString(), headers);
       if (catalogSearch.res.ok && Array.isArray(catalogSearch.data?.results) && catalogSearch.data.results.length > 0) {
         res = catalogSearch.res;
