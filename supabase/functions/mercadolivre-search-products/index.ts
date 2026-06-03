@@ -328,6 +328,7 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Tenta API pública de busca primeiro (sem precisar de token autenticado)
     const searchUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search`);
     const q = query || (category && CATEGORY_KEYWORDS[category]) || "promocao";
     searchUrl.searchParams.set("q", q);
@@ -335,9 +336,15 @@ Deno.serve(async (req) => {
     searchUrl.searchParams.set("limit", String(limit));
     searchUrl.searchParams.set("offset", String(offset));
 
-    const searchRes = await fetch(searchUrl.toString(), {
+    // Tenta com token primeiro, se der 403 tenta sem token (API pública)
+    let searchRes = await fetch(searchUrl.toString(), {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
+
+    if (!searchRes.ok) {
+      console.log(`Auth search failed (${searchRes.status}), trying public API...`);
+      searchRes = await fetch(searchUrl.toString()); // sem autenticação
+    }
 
     let results = [];
     let total = 0;
@@ -346,15 +353,22 @@ Deno.serve(async (req) => {
       const searchData = await searchRes.json();
       results = searchData.results || [];
       total = searchData.paging?.total || 0;
+      console.log(`Search returned ${results.length} results`);
     }
 
     if (results.length === 0) {
-      const publicProducts = await fetchPublicOffers(query, category, record.account_id, limit, offset);
+      const publicProducts = await fetchPublicOffers(query, category, record?.account_id, limit, offset);
       return json({ products: publicProducts, total: 1000, fallback: true });
     }
 
+    // Busca detalhes via API pública (sem autenticação, não precisa de token)
     const itemIds = results.map((r: any) => r.id).filter(Boolean);
-    const detailsMap = await getDetails(itemIds, accessToken);
+    
+    // Tenta com token, senão sem token
+    let detailsMap = await getDetails(itemIds, accessToken);
+    if (detailsMap.size === 0) {
+      detailsMap = await getDetails(itemIds, ""); // sem token
+    }
 
     let products = results.map((r: any) => {
       const item = detailsMap.get(r.id) || r;
