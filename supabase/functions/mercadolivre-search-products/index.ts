@@ -559,13 +559,7 @@ Deno.serve(async (req) => {
 
     const directProducts = processAndSortProducts(results);
     
-    // Se temos produtos diretos e a busca foi por termo específico, vamos retornar logo
-    if (directProducts.length > 0 && query && query.length > 1) {
-      // Se o melhor resultado tem um score muito alto, prioriza ele no topo
-      applyTracker(directProducts);
-      return json({ products: directProducts, total: data?.paging?.total ?? 1000 });
-    }
-    
+    // Só retorna direto se tiver 50+ produtos com dados completos (preço e link válidos)
     if (directProducts.length >= 50) {
       applyTracker(directProducts);
       return json({ products: directProducts, total: data?.paging?.total ?? 1000 });
