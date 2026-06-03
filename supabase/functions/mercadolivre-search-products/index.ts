@@ -98,7 +98,7 @@ function parseAriaMoney(label?: string | null) {
 
 async function fetchPublicOffers(query: string, category: string | null, accountId: string | number | null, limit: number) {
   const url = new URL("https://www.mercadolivre.com.br/ofertas");
-  if (category) url.searchParams.set("category_id", category);
+  if (category) url.searchParams.set("category", category);
   if (query) url.searchParams.set("q", query);
   const res = await fetch(url.toString(), {
     headers: {
