@@ -332,14 +332,21 @@ export default function Afiliados() {
   const previewMessage = useMemo(() => {
     if (selectedProducts.length === 0) return "Selecione ao menos um produto para gerar a mensagem.";
     
-    // Se tiver entre 1 e 3 produtos, os links irão nos botões (se for apenas um, já é tratado separadamente no handleSend)
+    // Para 1 produto
+    if (selectedProducts.length === 1) {
+      const p = selectedProducts[0];
+      return `🛍️ *${p.name}*\n💰 ${p.price}\n\n[Botão: Ver Oferta 🚀]\n\n_Enviado via ZapLynx_`;
+    }
+
+    // Para 2 a 3 produtos
     if (selectedProducts.length > 1 && selectedProducts.length <= 3) {
       const items = selectedProducts
-        .map((p) => `🛍️ *${p.name}*\n💰 ${p.price}`)
+        .map((p, idx) => `🛍️ *${p.name}*\n💰 ${p.price}\n[Botão: Comprar Item ${idx + 1} 🛒]`)
         .join("\n\n");
       return `✨ *Ofertas selecionadas para você!*\n\n${items}\n\n_Enviado via ZapLynx_`;
     }
 
+    // Para mais de 3 produtos (limite de botões do WhatsApp)
     const items = selectedProducts
       .map((p) => `🛍️ *${p.name}*\n💰 ${p.price}\n🔗 ${p.link}`)
       .join("\n\n");
