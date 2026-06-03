@@ -84,7 +84,7 @@ function isUnavailableItem(item: any) {
   const status = String(item?.status ?? "").toLowerCase();
   const qty = Number(item?.available_quantity ?? 0);
   const buyingMode = String(item?.buying_mode ?? "").toLowerCase();
-  return status !== "active" || qty <= 0 || (buyingMode && buyingMode !== "buy_it_now");
+  return (status && status !== "active") || qty <= 0 || (buyingMode && buyingMode !== "buy_it_now");
 }
 
 function mapAvailableItem(item: any, fallback: any, accountId: string | number | null) {
@@ -201,7 +201,6 @@ Deno.serve(async (req) => {
       return json({ error: "Reconecte sua conta para buscar produtos.", fallback: true }, 200);
     }
 
-    const q = keywordForRequest(mode, query, category);
     const url = new URL(`https://api.mercadolibre.com/sites/${site}/search`);
     const q = keywordForRequest(mode, query, category);
     if (q) url.searchParams.set("q", q);
