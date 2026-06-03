@@ -108,7 +108,11 @@ export default function Afiliados() {
       const list = ((data as any)?.products || []) as AffiliateProduct[];
       
       if (isLoadMore) {
-        setProducts(prev => [...prev, ...list]);
+        setProducts(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const filteredNew = list.filter(p => !existingIds.has(p.id));
+          return [...prev, ...filteredNew];
+        });
         setOffset(nextOffset);
       } else {
         setProducts(list);
@@ -261,7 +265,11 @@ export default function Afiliados() {
       }
       
       if (isLoadMore) {
-        setProducts(prev => [...prev, ...all]);
+        setProducts(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const filteredNew = all.filter(p => !existingIds.has(p.id));
+          return [...prev, ...filteredNew];
+        });
         setOffset(nextOffset);
       } else {
         setProducts(all);
