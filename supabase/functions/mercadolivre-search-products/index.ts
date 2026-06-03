@@ -244,6 +244,8 @@ async function fetchPublicOffers(query: string, category: string | null, account
              || html.match(/<li\s+class="[^"]*ui-search-layout__item[^"]*"[\s\S]*?(?=<li\s+class="[^"]*ui-search-layout__item[^"]*"|<\/ol>|$)/g)
              || html.match(/<div\s+class="[^"]*ui-search-result[^"]*"[\s\S]*?(?=<div\s+class="[^"]*ui-search-result[^"]*"|<\/main>|$)/g)
              || html.match(/<div\s+class="[^"]*poly-card[^"]*"[\s\S]*?(?=<div\s+class="[^"]*poly-card[^"]*"|<\/main>|$)/g)
+             || html.match(/<div\s+class="poly-card__content"[\s\S]*?(?=<div\s+class="poly-card__content"|<\/main>|$)/g)
+             || html.match(/<div\s+class="ui-search-result__wrapper"[\s\S]*?(?=<div\s+class="ui-search-result__wrapper"|<\/main>|$)/g)
              || [];
              
   console.log(`FetchPublicOffers: HTML length: ${html.length}, Cards found: ${cards.length}`);
@@ -251,16 +253,19 @@ async function fetchPublicOffers(query: string, category: string | null, account
   const products: any[] = [];
   for (const card of cards) {
     const linkMatch = card.match(/href="(https:\/\/(?:produto\.mercadolivre\.com\.br|www\.mercadolivre\.com\.br)\/[^"]+MLB[^"]+)"/)
-                    || card.match(/href="([^"]*articulo\.mercadolibre\.com\.br[^"]*)"/);
+                    || card.match(/href="([^"]*articulo\.mercadolibre\.com\.br[^"]*)"/)
+                    || card.match(/href="([^"]+)"/);
     const titleMatch = card.match(/class="(?:poly-component__title|ui-search-item__title|ui-search-item__group__element\s+ui-search-link)"[^>]*>([\s\S]*?)<\/a>/)
-                    || card.match(/<h[23] class="ui-search-item__title"[^>]*>([\s\S]*?)<\/h[23]>/)
-                    || card.match(/aria-label="([^"]+)"/);
+                    || card.match(/<h[23][^>]*class="[^"]*ui-search-item__title[^"]*"[^>]*>([\s\S]*?)<\/h[23]>/)
+                    || card.match(/aria-label="([^"]+)"/)
+                    || card.match(/title="([^"]+)"/);
     const imageMatch = card.match(/(?:src|data-src)="(https:\/\/http2\.mlstatic\.com\/[^"]+)"/)
                     || card.match(/src="([^"]+)"/)
                     || card.match(/data-src="([^"]+)"/);
     const currentLabel = card.match(/poly-price__current[\s\S]*?aria-label="([^"]+)"/)?.[1]
                      || card.match(/ui-search-price__second-line[\s\S]*?aria-label="([^"]+)"/)?.[1]
-                     || card.match(/andes-money-amount[\s\S]*?aria-label="([^"]+)"/)?.[1];
+                     || card.match(/andes-money-amount[\s\S]*?aria-label="([^"]+)"/)?.[1]
+                     || card.match(/aria-label="([^"]*reais[^"]*)"/)?.[1];
     const previousLabel = card.match(/andes-money-amount--previous[\s\S]*?aria-label="([^"]+)"/)?.[1]
                        || card.match(/ui-search-price__part--old[\s\S]*?aria-label="([^"]+)"/)?.[1];
     
