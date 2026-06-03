@@ -161,36 +161,66 @@ async function fetchPublicOffers(query: string, category: string | null, account
     });
     if (!res.ok) return [];
     const html = await res.text();
-    const cards = html.match(/<div\s+class="[^"]*poly-card[^"]*"[\s\S]*?(?=<div\s+class="[^"]*poly-card[^"]*"|<\/main>|$)/g) || [];
+    
+    // Poly-card parsing improvement
+    const cards = html.match(/<div\s+class="[^"]*poly-card[^"]*"[\s\S]*?(?=<div\s+class="[^"]*poly-card[^"]*"|<\/main>|$)/g) || 
+                  html.match(/<li\s+class="[^"]*ui-search-layout__item[^"]*"[\s\S]*?(?=<li\s+class="[^"]*ui-search-layout__item[^"]*"|<\/ol>|$)/g) || [];
     
     const products: any[] = [];
     for (const card of cards) {
+      // Look for the product link
       const linkMatch = card.match(/href="(https:\/\/[^"]+MLB[^"]+)"/);
-      const titleMatch = card.match(/class="poly-component__title"[^>]*>([\s\S]*?)<\/a>/) || card.match(/aria-label="([^"]+)"/);
+      if (!linkMatch) continue;
       
-      // Capturando imagens de várias formas possíveis (lazy load, srcset, src)
+      const rawLink = linkMatch[1];
+
+      // Look for the title
+      const titleMatch = card.match(/class="[^"]*title[^"]*"[^>]*>([\s\S]*?)<\/(?:a|h2)>/i) || 
+                         card.match(/aria-label="([^"]+)"/i) ||
+                         card.match(/alt="([^"]+)"/i);
+      
+      const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, "").trim() : "Produto Mercado Livre";
+
+      // Look for the thumbnail - trying multiple sources (data-src, src, srcset, data-srcset)
       let thumbnail = null;
-      const imgTags = card.match(/<img[^>]+>/g) || [];
-      for (const img of imgTags) {
-        const src = img.match(/(?:data-src|src)="([^"]+\.(?:jpg|jpeg|png|webp|gif)[^"]*)"/i);
-        if (src && !src[1].includes("pixel") && !src[1].includes("blank")) {
-          thumbnail = src[1].replace(/^http:/, "https:");
-          break;
+      
+      // 1. Try srcset for higher quality
+      const srcsetMatch = card.match(/(?:data-)?srcset="([^"]+)"/i);
+      if (srcsetMatch) {
+        const parts = srcsetMatch[1].split(",");
+        const lastPart = parts[parts.length - 1].trim(); // Usually the highest resolution
+        const url = lastPart.split(" ")[0];
+        if (url && url.startsWith("http")) thumbnail = url;
+      }
+
+      // 2. Try various src attributes if srcset didn't work or was invalid
+      if (!thumbnail) {
+        const imgMatches = card.match(/(?:data-src|src|data-lazy|data-actualsrc)="([^"]+\.(?:jpg|jpeg|png|webp|gif)[^"]*)"/gi) || [];
+        for (const m of imgMatches) {
+          const url = m.match(/"([^"]+)"/)?.[1];
+          if (url && !url.includes("pixel") && !url.includes("blank") && !url.includes("data:image")) {
+            thumbnail = url;
+            break;
+          }
         }
       }
 
-      // Se não encontrou nas tags img, tenta regex genérico no card
+      // 3. Last resort: generic URL search in card for images
       if (!thumbnail) {
-        const genericSrc = card.match(/(?:data-src|src)="([^"]+\.(?:jpg|jpeg|png|webp|gif)[^"]*)"/i);
-        thumbnail = genericSrc?.[1]?.replace(/^http:/, "https:");
+        const genericUrl = card.match(/https:\/\/[^"]+\.(?:jpg|jpeg|png|webp)/i);
+        if (genericUrl) thumbnail = genericUrl[0];
       }
 
-      const priceMatch = card.match(/poly-price__current[\s\S]*?aria-label="([^"]+)"/) || card.match(/class="[^"]*price[^"]*"[^>]*>([\s\S]*?)<\/span>/);
+      if (thumbnail) {
+        thumbnail = thumbnail.replace(/^http:/, "https:");
+        // Improve resolution from -I.jpg to -O.jpg if applicable
+        thumbnail = thumbnail.replace(/-I\.(jpg|jpeg|png|webp)/, "-O.$1");
+      }
+
+      // Look for price
+      const priceMatch = card.match(/aria-label="([^"]*reais[^"]*)"/i) || 
+                         card.match(/class="[^"]*price[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
       
-      if (!linkMatch || !titleMatch) continue;
-      
-      const rawLink = linkMatch[1];
-      const title = titleMatch[1].replace(/<[^>]*>/g, "").trim();
       const price = priceMatch ? priceMatch[1].replace(/<[^>]*>/g, "").trim() : "Consulte o preço";
       
       products.push({
