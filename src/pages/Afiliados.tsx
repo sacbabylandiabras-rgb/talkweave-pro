@@ -503,12 +503,12 @@ export default function Afiliados() {
               {loadingProducts ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               Buscar
             </Button>
-            <Button variant="outline" onClick={() => loadDeals(null)} disabled={loadingProducts || !connected.ml}>
+            <Button variant="outline" onClick={() => loadDeals(null, false)} disabled={loadingProducts || !connected.ml}>
               🔥 Promoções
             </Button>
             <Button
               variant="outline"
-              onClick={() => searchQuery.trim() ? fetchProducts(false) : loadDeals(selectedNiche)}
+              onClick={() => searchQuery.trim() ? fetchProducts(false) : loadDeals(selectedNiche, false)}
               disabled={loadingProducts || !connected.ml}
               title={selectedNiche ? "Atualizar produtos do nicho" : "Atualizar promoções"}
             >
@@ -543,7 +543,7 @@ export default function Afiliados() {
               <button
                 key={n.label}
                 type="button"
-                onClick={() => loadDeals(n.id)}
+                onClick={() => loadDeals(n.id, false)}
                 disabled={loadingProducts || !connected.ml}
                 className={cn(
                   "px-3 py-1.5 text-xs font-medium rounded-full border transition-all",
