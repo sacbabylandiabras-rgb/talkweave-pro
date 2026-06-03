@@ -186,38 +186,37 @@ async function fetchPublicOffers(query: string, category: string | null, account
       
       const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, "").trim() : "Produto Mercado Livre";
 
-      // 3. BROADEST IMAGE DETECTION (Enhanced for dynamic content)
+      // 3. BROADEST IMAGE DETECTION
       let thumbnail = null;
       
-      // Look specifically for images in data-src, data-actualsrc, or src
-      const imageMatch = card.match(/data-src="([^"]+)"/i) || 
-                         card.match(/data-actualsrc="([^"]+)"/i) || 
-                         card.match(/src="([^"]+)"/i) ||
-                         card.match(/data-thumbnail="([^"]+)"/i);
-                         
-      if (imageMatch) {
-        thumbnail = imageMatch[1];
-      } else {
-        // Fallback: search for any mlstatic URL in the card
-        const urlMatch = card.match(/https?:\/\/http2\.mlstatic\.com\/D_NQ_NP_[^"'\s<>]+/gi);
-        if (urlMatch && urlMatch.length > 0) {
+      // Look for the main image with more comprehensive patterns
+      const mainImgMatch = card.match(/<img[^>]+src="([^"]+)"/i) || 
+                          card.match(/data-src="([^"]+)"/i) ||
+                          card.match(/data-actualsrc="([^"]+)"/i) ||
+                          card.match(/data-thumbnail="([^"]+)"/i);
+
+      if (mainImgMatch) {
+        thumbnail = mainImgMatch[1];
+      }
+
+      // If the above didn't work or returned a placeholder/tracking pixel, look for mlstatic URLs
+      if (!thumbnail || thumbnail.includes("pixel.gif") || thumbnail.includes("loading.gif") || thumbnail.includes("placeholder")) {
+        const urlMatch = card.match(/https?:\/\/http2\.mlstatic\.com\/D_NQ_NP_(\d+-\w+)-[A-Z]\.(?:jpg|jpeg|png|webp)/i);
+        if (urlMatch) {
           thumbnail = urlMatch[0];
         }
       }
       
-      // Fix relative URLs and upgrade resolution
+      // Fix and upgrade resolution
       if (thumbnail) {
         if (thumbnail.startsWith("//")) thumbnail = "https:" + thumbnail;
         thumbnail = thumbnail.replace(/^http:/, "https:");
         
-        // Upgrade resolution: switch common patterns to high res (e.g., -V to -O)
-        thumbnail = thumbnail.replace(/\/D_NQ_NP_(\d+-\w+)-([A-Z])\.(\w+)$/, "/D_NQ_NP_$1-O.$3");
-        thumbnail = thumbnail.replace(/-[IMWVG]\.(jpg|jpeg|png|webp)/i, "-O.$1");
-        
-        // Ensure common suffixes for Mercado Livre images
-        if (!thumbnail.includes("-O.") && thumbnail.includes("mlstatic.com")) {
-          thumbnail = thumbnail.replace(/\.(jpg|jpeg|png|webp)$/i, "-O.$1");
-        }
+        // ML image sizes: W=160, I=284, G=400, O=500, F=1200
+        // We want O or better for good resolution
+        thumbnail = thumbnail
+          .replace(/\/D_NQ_NP_(\d+-\w+)-([A-Z])\.(\w+)$/, "/D_NQ_NP_$1-O.$3")
+          .replace(/-[WIGM]\.(jpg|jpeg|png|webp)$/i, "-O.$1");
       }
 
       // Look for price
