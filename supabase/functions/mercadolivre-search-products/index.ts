@@ -163,9 +163,12 @@ async function fetchPublicOffers(query: string, category: string | null, account
     const html = await res.text();
     
     // Poly-card parsing improvement
+    // We try to find products using multiple selector patterns
     const cards = html.match(/<div\s+class="[^"]*poly-card[^"]*"[\s\S]*?(?=<div\s+class="[^"]*poly-card[^"]*"|<\/main>|$)/g) || 
                   html.match(/<li\s+class="[^"]*ui-search-layout__item[^"]*"[\s\S]*?(?=<li\s+class="[^"]*ui-search-layout__item[^"]*"|<\/ol>|$)/g) || [];
     
+    console.log(`Found ${cards.length} cards via scraping`);
+
     const products: any[] = [];
     for (const card of cards) {
       // Look for the product link
@@ -181,45 +184,53 @@ async function fetchPublicOffers(query: string, category: string | null, account
       
       const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, "").trim() : "Produto Mercado Livre";
 
-      // Look for the thumbnail - trying multiple sources (data-src, src, srcset, data-srcset)
+      // Improved thumbnail detection
       let thumbnail = null;
       
-      // 1. Try srcset for higher quality
-      const srcsetMatch = card.match(/(?:data-)?srcset="([^"]+)"/i);
-      if (srcsetMatch) {
-        const parts = srcsetMatch[1].split(",");
-        const lastPart = parts[parts.length - 1].trim(); // Usually the highest resolution
-        const url = lastPart.split(" ")[0];
-        if (url && url.startsWith("http")) thumbnail = url;
-      }
-
-      // 2. Try various src attributes if srcset didn't work or was invalid
-      if (!thumbnail) {
-        const imgMatches = card.match(/(?:data-src|src|data-lazy|data-actualsrc)="([^"]+\.(?:jpg|jpeg|png|webp|gif)[^"]*)"/gi) || [];
-        for (const m of imgMatches) {
-          const url = m.match(/"([^"]+)"/)?.[1];
-          if (url && !url.includes("pixel") && !url.includes("blank") && !url.includes("data:image")) {
+      // 1. Check for images specifically in the poly-card__portada or similar wrappers
+      // We look for any img tag and try to extract its source
+      const imgTags = card.match(/<img[\s\S]*?>/gi) || [];
+      for (const tag of imgTags) {
+        // Try various source attributes
+        const srcMatch = tag.match(/(?:data-src|src|data-lazy|data-actualsrc|srcset)="([^"]+)"/i);
+        if (srcMatch) {
+          let url = srcMatch[1];
+          // If it's a srcset, take the last one
+          if (url.includes(",")) {
+            const parts = url.split(",");
+            url = parts[parts.length - 1].trim().split(" ")[0];
+          }
+          
+          if (url && url.startsWith("http") && !url.includes("pixel") && !url.includes("blank") && !url.includes("data:image")) {
             thumbnail = url;
             break;
           }
         }
       }
 
-      // 3. Last resort: generic URL search in card for images
+      // 2. Try generic URL search in card if no img tag found
       if (!thumbnail) {
-        const genericUrl = card.match(/https:\/\/[^"]+\.(?:jpg|jpeg|png|webp)/i);
-        if (genericUrl) thumbnail = genericUrl[0];
+        const genericUrls = card.match(/https:\/\/[^"]+\.(?:jpg|jpeg|png|webp)/gi) || [];
+        for (const url of genericUrls) {
+          if (!url.includes("pixel") && !url.includes("blank")) {
+            thumbnail = url;
+            break;
+          }
+        }
       }
 
       if (thumbnail) {
         thumbnail = thumbnail.replace(/^http:/, "https:");
-        // Improve resolution from -I.jpg to -O.jpg if applicable
+        // Improve resolution from -I.jpg to -O.jpg or -V.jpg
         thumbnail = thumbnail.replace(/-I\.(jpg|jpeg|png|webp)/, "-O.$1");
+        // Also handle the case where ML uses different size suffixes
+        thumbnail = thumbnail.replace(/-M\.(jpg|jpeg|png|webp)/, "-O.$1");
       }
 
       // Look for price
       const priceMatch = card.match(/aria-label="([^"]*reais[^"]*)"/i) || 
-                         card.match(/class="[^"]*price[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
+                         card.match(/class="[^"]*price[^"]*"[^>]*>([\s\S]*?)<\/span>/i) ||
+                         card.match(/class="[^"]*poly-price__current[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
       
       const price = priceMatch ? priceMatch[1].replace(/<[^>]*>/g, "").trim() : "Consulte o preço";
       
