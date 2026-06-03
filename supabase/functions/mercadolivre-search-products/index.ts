@@ -386,7 +386,8 @@ Deno.serve(async (req) => {
     if (q) url.searchParams.set("q", q);
     if (category) url.searchParams.set("category", category);
     url.searchParams.set("condition", "new");
-    url.searchParams.set("buying_mode", "buy_it_now");
+    // Removido buying_mode para permitir mais tipos de listagem, incluindo Buy It Now e Leilão (que o ML as vezes usa para promoções)
+    // url.searchParams.set("buying_mode", "buy_it_now");
     
     // Aumentamos o limite para 50 para garantir mais resultados
     url.searchParams.set("limit", "50");
