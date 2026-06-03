@@ -243,7 +243,21 @@ export default function Afiliados() {
             </TabsList>
 
             <TabsContent value="ml" className="space-y-4 pt-4">
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <AuthModeSwitch source="ml" />
+              </div>
+              {connected.ml && <ConnectedBanner source="ml" />}
+              {!connected.ml && authMode.ml === "oauth" && (
+                <div className="rounded-xl border border-dashed p-6 text-center space-y-3 bg-muted/30">
+                  <p className="text-sm text-muted-foreground">
+                    Conecte sua conta do Mercado Livre via login seguro — sem precisar copiar chaves.
+                  </p>
+                  <OAuthButton source="ml" label="Entrar com Mercado Livre" />
+                </div>
+              )}
+              {!connected.ml && authMode.ml === "manual" && (
+                <>
+                <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Client ID</Label>
                   <Input value={mlCreds.clientId} onChange={(e) => setMlCreds({ ...mlCreds, clientId: e.target.value })} placeholder="Seu Client ID" />
@@ -252,15 +266,31 @@ export default function Afiliados() {
                   <Label>Client Secret</Label>
                   <Input type="password" value={mlCreds.clientSecret} onChange={(e) => setMlCreds({ ...mlCreds, clientSecret: e.target.value })} placeholder="Seu Client Secret" />
                 </div>
-              </div>
-              <Button onClick={() => handleConnect("ml")} disabled={connecting === "ml"}>
-                {connecting === "ml" ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
-                {connected.ml ? "Reconectar" : "Conectar"}
-              </Button>
+                </div>
+                <Button onClick={() => handleConnect("ml")} disabled={connecting === "ml"}>
+                  {connecting === "ml" ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
+                  Conectar
+                </Button>
+                </>
+              )}
             </TabsContent>
 
             <TabsContent value="shopee" className="space-y-4 pt-4">
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <AuthModeSwitch source="shopee" />
+              </div>
+              {connected.shopee && <ConnectedBanner source="shopee" />}
+              {!connected.shopee && authMode.shopee === "oauth" && (
+                <div className="rounded-xl border border-dashed p-6 text-center space-y-3 bg-muted/30">
+                  <p className="text-sm text-muted-foreground">
+                    Conecte sua conta Shopee Afiliados via login seguro.
+                  </p>
+                  <OAuthButton source="shopee" label="Entrar com Shopee" />
+                </div>
+              )}
+              {!connected.shopee && authMode.shopee === "manual" && (
+                <>
+                <div className="grid md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>App ID</Label>
                   <Input value={shopeeCreds.appId} onChange={(e) => setShopeeCreds({ ...shopeeCreds, appId: e.target.value })} />
@@ -273,15 +303,31 @@ export default function Afiliados() {
                   <Label>Affiliate ID</Label>
                   <Input value={shopeeCreds.affiliateId} onChange={(e) => setShopeeCreds({ ...shopeeCreds, affiliateId: e.target.value })} />
                 </div>
-              </div>
-              <Button onClick={() => handleConnect("shopee")} disabled={connecting === "shopee"}>
-                {connecting === "shopee" ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
-                {connected.shopee ? "Reconectar" : "Conectar"}
-              </Button>
+                </div>
+                <Button onClick={() => handleConnect("shopee")} disabled={connecting === "shopee"}>
+                  {connecting === "shopee" ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
+                  Conectar
+                </Button>
+                </>
+              )}
             </TabsContent>
 
             <TabsContent value="amazon" className="space-y-4 pt-4">
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <AuthModeSwitch source="amazon" />
+              </div>
+              {connected.amazon && <ConnectedBanner source="amazon" />}
+              {!connected.amazon && authMode.amazon === "oauth" && (
+                <div className="rounded-xl border border-dashed p-6 text-center space-y-3 bg-muted/30">
+                  <p className="text-sm text-muted-foreground">
+                    Conecte sua conta Amazon Associates via login seguro.
+                  </p>
+                  <OAuthButton source="amazon" label="Entrar com Amazon" />
+                </div>
+              )}
+              {!connected.amazon && authMode.amazon === "manual" && (
+                <>
+                <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Access Key</Label>
                   <Input value={amazonCreds.accessKey} onChange={(e) => setAmazonCreds({ ...amazonCreds, accessKey: e.target.value })} />
@@ -298,11 +344,13 @@ export default function Afiliados() {
                   <Label>Locale</Label>
                   <Input value={amazonCreds.locale} onChange={(e) => setAmazonCreds({ ...amazonCreds, locale: e.target.value })} />
                 </div>
-              </div>
-              <Button onClick={() => handleConnect("amazon")} disabled={connecting === "amazon"}>
-                {connecting === "amazon" ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
-                {connected.amazon ? "Reconectar" : "Conectar"}
-              </Button>
+                </div>
+                <Button onClick={() => handleConnect("amazon")} disabled={connecting === "amazon"}>
+                  {connecting === "amazon" ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
+                  Conectar
+                </Button>
+                </>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
