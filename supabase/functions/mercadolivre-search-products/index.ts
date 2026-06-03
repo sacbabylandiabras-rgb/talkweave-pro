@@ -187,7 +187,8 @@ function safeText(value: unknown, maxLength = 80) {
 
 function keywordForRequest(mode: string, query: string, category: string | null) {
   if (query) return query;
-  if (category && CATEGORY_KEYWORDS[category]) return CATEGORY_KEYWORDS[category];
+  // Se for busca manual por termo, não queremos injetar palavras de categoria genéricas
+  if (category && !query && CATEGORY_KEYWORDS[category]) return CATEGORY_KEYWORDS[category];
   return mode === "deals" ? "ofertas" : "";
 }
 
@@ -388,16 +389,16 @@ Deno.serve(async (req) => {
     // Detectar se a busca contém atributos como voltagem
     const hasVoltage = /\b(110v|220v|127v|bivolt)\b/i.test(q);
     
-    // Tenta uma busca mais precisa se o query for grande (provavelmente um nome completo)
     const url = new URL(`https://api.mercadolibre.com/sites/${site}/search`);
     if (q) {
-      // Normalização básica para busca: remove excesso de espaços
+      // Normalização: remove excesso de espaços e limpa para a API
       const normalizedQuery = q.trim().replace(/\s+/g, " ");
       url.searchParams.set("q", normalizedQuery);
       
-      // Se não houver voltagem explícita no termo, priorizar relevância
-      if (!hasVoltage && normalizedQuery.split(" ").length > 3) {
-        url.searchParams.set("sort", "relevance");
+      // CRITICAL: Se o usuário enviou uma palavra-chave específica, NÃO queremos os filtros padrão de "Melhores promoções" ou "Ofertas"
+      // Se mode for "search", usamos search_type=scan para ser mais abrangente e exato nos termos
+      if (mode === "search") {
+        url.searchParams.set("search_type", "scan");
       }
     }
     
