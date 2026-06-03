@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ShoppingBag, Link as LinkIcon, Loader2, Check, Send, Search, Package, LogIn, KeyRound } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 type Source = "ml" | "shopee" | "amazon";
 
@@ -64,6 +65,27 @@ export default function Afiliados() {
   const [destination, setDestination] = useState("");
   const [sending, setSending] = useState(false);
 
+  // Carrega conexão real do Mercado Livre ao montar
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      const { data } = await supabase
+        .from("affiliate_connections" as any)
+        .select("account_nickname, account_id")
+        .eq("user_id", session.user.id)
+        .eq("provider", "mercadolivre")
+        .maybeSingle();
+      if (data) {
+        setConnected((prev) => ({ ...prev, ml: true }));
+        setConnectedAccount((prev) => ({
+          ...prev,
+          ml: (data as any).account_nickname || (data as any).account_id || "Conta conectada",
+        }));
+      }
+    })();
+  }, []);
+
   const handleConnect = async (source: Source) => {
     const valid =
       source === "ml" ? mlCreds.clientId && mlCreds.clientSecret :
@@ -84,8 +106,27 @@ export default function Afiliados() {
 
   const handleOAuthConnect = async (source: Source) => {
     setConnecting(source);
-    // Simulação de fluxo OAuth — em produção, abrir popup para o provedor:
-    // window.open(`https://auth.<provider>/authorize?...`, "_blank", "width=520,height=640")
+
+    // Mercado Livre: OAuth real via edge function
+    if (source === "ml") {
+      try {
+        const { data, error } = await supabase.functions.invoke("mercadolivre-oauth-start", {
+          body: {},
+        });
+        if (error || (data as any)?.error || !(data as any)?.authUrl) {
+          throw new Error((data as any)?.error || error?.message || "Falha ao iniciar conexão");
+        }
+        // Redireciona para o login do Mercado Livre
+        window.location.href = (data as any).authUrl;
+        return;
+      } catch (e) {
+        setConnecting(null);
+        toast.error(e instanceof Error ? e.message : "Erro ao conectar.");
+        return;
+      }
+    }
+
+    // Demais marketplaces: ainda em mock (simulação)
     await new Promise((r) => setTimeout(r, 1800));
     const fakeAccounts: Record<Source, string> = {
       ml: "minha-conta@mercadolivre",
@@ -98,7 +139,17 @@ export default function Afiliados() {
     toast.success(`Conta conectada com sucesso!`);
   };
 
-  const handleDisconnect = (source: Source) => {
+  const handleDisconnect = async (source: Source) => {
+    if (source === "ml") {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await supabase
+          .from("affiliate_connections" as any)
+          .delete()
+          .eq("user_id", session.user.id)
+          .eq("provider", "mercadolivre");
+      }
+    }
     setConnected((prev) => ({ ...prev, [source]: false }));
     setConnectedAccount((prev) => ({ ...prev, [source]: null }));
     toast.success("Conta desconectada.");
