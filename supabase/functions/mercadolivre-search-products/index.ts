@@ -514,7 +514,16 @@ Deno.serve(async (req) => {
     console.log(`ML Request URL: ${url.toString()}`);
     let { res, data } = await getJson(url.toString(), headers);
     
+    // ADICIONE AQUI - log para diagnóstico
+    console.log(`ML Response status: ${res.status}`);
+    console.log(`ML Response data: ${JSON.stringify(data).slice(0, 500)}`);
+    console.log(`ML Results count: ${data?.results?.length ?? 'N/A'}`);
+    if (data?.results?.[0]) {
+      console.log(`ML First result sample: ${JSON.stringify(data.results[0]).slice(0, 300)}`);
+    }
+
     // Se a busca principal falhar (403 ou outros), ou não retornar resultados, tenta abordagens alternativas
+
     if (!res.ok || (Array.isArray(data?.results) && data.results.length === 0)) {
       console.warn(`ML search ${res.status} ou sem resultados (${data?.results?.length || 0}). Tentando catalog search...`);
       const catalogUrl = new URL("https://api.mercadolibre.com/products/search");
