@@ -324,7 +324,7 @@ Deno.serve(async (req) => {
     if (userErr || !userData.user) return json({ error: "Não autenticado." }, 401);
 
     const body = await req.json().catch(() => ({}));
-    const query = safeText(body?.q || body?.query, 100);
+    const query = safeText(body?.query ?? body?.q, 100);
     const mode = String(body?.mode ?? "search"); // "search" | "deals"
     const site = /^[A-Z]{3}$/.test(String(body?.site ?? "MLB").toUpperCase()) ? String(body?.site ?? "MLB").toUpperCase() : "MLB";
     const category = typeof body?.category === "string" && /^ML[A-Z]\d+$/i.test(body.category.trim()) ? body.category.trim().toUpperCase() : null;
@@ -408,7 +408,8 @@ Deno.serve(async (req) => {
     }
     
     if (category) url.searchParams.set("category", category);
-    url.searchParams.set("limit", "50");
+    url.searchParams.set("limit", String(limit));
+    url.searchParams.set("offset", String(offset));
     
     const headers: Record<string, string> = {
       Accept: "application/json",
@@ -513,7 +514,8 @@ Deno.serve(async (req) => {
       const catalogUrl = new URL("https://api.mercadolibre.com/products/search");
       catalogUrl.searchParams.set("site_id", site);
       if (q) catalogUrl.searchParams.set("q", q);
-      catalogUrl.searchParams.set("limit", "50");
+      catalogUrl.searchParams.set("limit", String(limit));
+      catalogUrl.searchParams.set("offset", String(offset));
       
       console.log(`ML Catalog Request URL: ${catalogUrl.toString()}`);
       const catalogSearch = await getJson(catalogUrl.toString(), headers);
@@ -545,7 +547,7 @@ Deno.serve(async (req) => {
         .map((p: any) => mapAvailableItem(p, p, accountId))
         .filter(Boolean);
       
-      if (q && q.length > 5) {
+      if (q && q.length > 1) {
         mapped.sort((a, b) => {
           const scoreA = calculateMatchScore(a.name, q);
           const scoreB = calculateMatchScore(b.name, q);
@@ -558,7 +560,7 @@ Deno.serve(async (req) => {
     const directProducts = processAndSortProducts(results);
     
     // Se temos produtos diretos e a busca foi por termo específico, vamos retornar logo
-    if (directProducts.length > 0 && query && query.length > 5) {
+    if (directProducts.length > 0 && query && query.length > 1) {
       // Se o melhor resultado tem um score muito alto, prioriza ele no topo
       applyTracker(directProducts);
       return json({ products: directProducts, total: data?.paging?.total ?? 1000 });
@@ -612,7 +614,7 @@ Deno.serve(async (req) => {
     if (products.length === 0) {
       const publicOffers = await fetchPublicOffers(q, category, accountId, limit, offset);
       // Reordena ofertas públicas também
-      if (q && q.length > 5) {
+      if (q && q.length > 1) {
         publicOffers.sort((a: any, b: any) => calculateMatchScore(b.name, q) - calculateMatchScore(a.name, q));
       }
       applyTracker(publicOffers);
@@ -620,7 +622,7 @@ Deno.serve(async (req) => {
     }
 
     // Ordenação final para resultados enriquecidos
-    if (q && q.length > 5) {
+    if (q && q.length > 1) {
       products.sort((a, b) => calculateMatchScore(b.name, q) - calculateMatchScore(a.name, q));
     }
 
