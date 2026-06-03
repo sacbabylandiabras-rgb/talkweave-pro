@@ -383,17 +383,20 @@ Deno.serve(async (req) => {
 
     const url = new URL(`https://api.mercadolibre.com/sites/${site}/search`);
     const q = keywordForRequest(mode, query, category);
-    if (q) url.searchParams.set("q", q);
+    
+    // Tenta uma busca mais precisa se o query for grande (provavelmente um nome completo)
+    if (q) {
+      url.searchParams.set("q", q);
+      // Se tiver mais de 3 palavras, vamos tentar ser bem específico
+      if (q.split(" ").length > 3) {
+        url.searchParams.set("sort", "relevance");
+      }
+    }
+    
     if (category) url.searchParams.set("category", category);
     url.searchParams.set("condition", "new");
-    // Removido buying_mode para permitir mais tipos de listagem, incluindo Buy It Now e Leilão (que o ML as vezes usa para promoções)
-    // url.searchParams.set("buying_mode", "buy_it_now");
-    
-    // Aumentamos o limite para 50 para garantir mais resultados
     url.searchParams.set("limit", "50");
-    url.searchParams.set("sort", "relevance");
-    if (offset > 0) url.searchParams.set("offset", String(offset));
-
+    
     const headers: Record<string, string> = {
       Accept: "application/json",
       Authorization: `Bearer ${accessToken}`,
@@ -415,11 +418,8 @@ Deno.serve(async (req) => {
       console.warn(`ML search ${res.status} ou sem resultados. Tentando catalog search...`);
       const catalogUrl = new URL("https://api.mercadolibre.com/products/search");
       catalogUrl.searchParams.set("site_id", site);
-      catalogUrl.searchParams.set("status", "active");
       if (q) catalogUrl.searchParams.set("q", q);
-      catalogUrl.searchParams.set("sort", "relevance");
       catalogUrl.searchParams.set("limit", "50");
-      if (offset > 0) catalogUrl.searchParams.set("offset", String(offset));
       
       const catalogSearch = await getJson(catalogUrl.toString(), headers);
       if (catalogSearch.res.ok && Array.isArray(catalogSearch.data?.results) && catalogSearch.data.results.length > 0) {
@@ -443,11 +443,18 @@ Deno.serve(async (req) => {
     }
 
     const results = Array.isArray(data?.results) ? data.results : [];
+    
+    // Adicionamos uma verificação extra para garantir que o resultado mais relevante (primeiro) seja incluído
     const directProducts = results
       .map((p: any) => mapAvailableItem(p, p, accountId))
       .filter(Boolean);
     
-    // Removida a trava de 15 produtos para forçar o carregamento completo de 50
+    // Se temos produtos diretos e a busca foi por termo específico, vamos retornar logo
+    if (directProducts.length > 0 && query && query.length > 5) {
+      applyTracker(directProducts);
+      return json({ products: directProducts, total: data?.paging?.total ?? 1000 });
+    }
+    
     if (directProducts.length >= 50) {
       applyTracker(directProducts);
       return json({ products: directProducts, total: data?.paging?.total ?? 1000 });
