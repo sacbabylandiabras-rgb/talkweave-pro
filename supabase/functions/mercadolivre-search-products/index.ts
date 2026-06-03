@@ -143,7 +143,6 @@ async function fetchPublicOffers(query: string, category: string | null, account
   let url: URL;
   if (query) {
     url = new URL("https://lista.mercadolivre.com.br/" + encodeURIComponent(query.replace(/\s+/g, "-")));
-    if (category) url.searchParams.set("category", category);
     if (offset > 0) url.searchParams.set("_from", String(offset + 1));
   } else {
     url = new URL("https://www.mercadolivre.com.br/ofertas");
@@ -154,93 +153,91 @@ async function fetchPublicOffers(query: string, category: string | null, account
   try {
     const res = await fetch(url.toString(), {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-        "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "pt-BR,pt;q=0.9",
       },
     });
     if (!res.ok) return [];
     const html = await res.text();
-    
-    // Improved poly-card parsing for Mercado Livre
-    const cards = html.match(/<div\s+class="[^"]*poly-card[^"]*"[\s\S]*?(?=<div\s+class="[^"]*poly-card[^"]*"|<\/main>|<\/section>|$)/g) || 
-                  html.match(/<li\s+class="[^"]*ui-search-layout__item[^"]*"[\s\S]*?(?=<li\s+class="[^"]*ui-search-layout__item[^"]*"|<\/ol>|$)/g) ||
-                  html.match(/<div\s+class="[^"]*ui-search-result__wrapper[^"]*"[\s\S]*?(?=<div\s+class="[^"]*ui-search-result__wrapper[^"]*"|<\/ol>|$)/g) ||
-                  html.match(/<div\s+class="[^"]*promotion-item[^"]*"[\s\S]*?(?=<div\s+class="[^"]*promotion-item[^"]*"|<\/section>|$)/g) || [];
-    
-    console.log(`Found ${cards.length} cards via scraping`);
 
+    // Extrai IDs MLB do HTML
+    const idMatches = html.matchAll(/MLB-?(\d{6,12})/g);
+    const ids: string[] = [];
+    const seen = new Set<string>();
+    for (const m of idMatches) {
+      const id = "MLB" + m[1];
+      if (!seen.has(id)) {
+        seen.add(id);
+        ids.push(id);
+      }
+      if (ids.length >= limit) break;
+    }
+
+    if (ids.length === 0) return [];
+
+    console.log(`Scraping found ${ids.length} MLB IDs, fetching via public API...`);
+
+    // Busca detalhes via API pública (sem autenticação)
     const products: any[] = [];
-    for (const card of cards) {
-      // 1. Look for the product link
-      const linkMatch = card.match(/href="(https:\/\/[^"]+MLB[^"]+)"/);
-      if (!linkMatch) continue;
-      
-      const rawLink = linkMatch[1];
+    for (let i = 0; i < ids.length; i += 20) {
+      const batch = ids.slice(i, i + 20);
+      try {
+        const detailRes = await fetch(
+          `https://api.mercadolibre.com/items?ids=${batch.join(",")}&attributes=id,title,price,original_price,thumbnail,secure_thumbnail,pictures,permalink,status,available_quantity,currency_id`,
+        );
+        if (!detailRes.ok) continue;
+        const detailData = await detailRes.json();
 
-      // 2. Look for the title
-      const titleMatch = card.match(/class="[^"]*title[^"]*"[^>]*>([\s\S]*?)<\/(?:a|h2)>/i) || 
-                         card.match(/class="[^"]*ui-search-item__title[^"]*"[^>]*>([\s\S]*?)<\/(?:a|h2)>/i) ||
-                         card.match(/aria-label="([^"]+)"/i) ||
-                         card.match(/alt="([^"]+)"/i);
-      
-      const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, "").trim() : "Produto Mercado Livre";
+        for (const entry of detailData) {
+          if (entry.code !== 200 || !entry.body) continue;
+          const item = entry.body;
+          if (item.status && item.status !== "active") continue;
+          if (!item.price || !item.permalink) continue;
 
-      // 3. BROADEST IMAGE DETECTION
-      let thumbnail = null;
-      
-      // Look for the main image with more comprehensive patterns
-      const mainImgMatch = card.match(/<img[^>]+src="([^"]+)"/i) || 
-                          card.match(/data-src="([^"]+)"/i) ||
-                          card.match(/data-actualsrc="([^"]+)"/i) ||
-                          card.match(/data-thumbnail="([^"]+)"/i);
+          // Pega a melhor foto disponível
+          let thumbnail: string | null =
+            item.pictures?.[0]?.secure_url ||
+            item.pictures?.[0]?.url ||
+            item.secure_thumbnail ||
+            item.thumbnail ||
+            null;
 
-      if (mainImgMatch) {
-        thumbnail = mainImgMatch[1];
-      }
+          if (thumbnail) {
+            thumbnail = thumbnail.replace(/^http:/, "https:");
+            // Upgrade para resolução maior
+            thumbnail = thumbnail.replace(/-[WIGM]\.(jpg|jpeg|png|webp)$/i, "-O.$1");
+          }
 
-      // If the above didn't work or returned a placeholder/tracking pixel, look for mlstatic URLs
-      if (!thumbnail || thumbnail.includes("pixel.gif") || thumbnail.includes("loading.gif") || thumbnail.includes("placeholder")) {
-        const urlMatch = card.match(/https?:\/\/http2\.mlstatic\.com\/D_NQ_NP_(\d+-\w+)-[A-Z]\.(?:jpg|jpeg|png|webp)/i);
-        if (urlMatch) {
-          thumbnail = urlMatch[0];
+          const originalPrice = item.original_price;
+          products.push({
+            id: item.id,
+            name: item.title,
+            price: formatMoney(item.price, item.currency_id || "BRL"),
+            priceValue: item.price,
+            originalPrice: originalPrice && originalPrice > item.price
+              ? formatMoney(originalPrice, item.currency_id || "BRL")
+              : null,
+            discount: originalPrice && originalPrice > item.price
+              ? Math.round(((originalPrice - item.price) / originalPrice) * 100)
+              : null,
+            thumbnail,
+            link: decorateAffiliateLink(item.permalink, accountId),
+            source: "ml",
+            available: true,
+          });
+
+          if (products.length >= limit) break;
         }
+      } catch (err) {
+        console.warn("Public API batch error:", err);
       }
-      
-      // Fix and upgrade resolution
-      if (thumbnail) {
-        if (thumbnail.startsWith("//")) thumbnail = "https:" + thumbnail;
-        thumbnail = thumbnail.replace(/^http:/, "https:");
-        
-        // ML image sizes: W=160, I=284, G=400, O=500, F=1200
-        // We want O or better for good resolution
-        thumbnail = thumbnail
-          .replace(/\/D_NQ_NP_(\d+-\w+)-([A-Z])\.(\w+)$/, "/D_NQ_NP_$1-O.$3")
-          .replace(/-[WIGM]\.(jpg|jpeg|png|webp)$/i, "-O.$1");
-      }
-
-      // Look for price
-      const priceMatch = card.match(/class="[^"]*price-tag-fraction[^"]*"[^>]*>([\s\S]*?)<\/span>/i) ||
-                         card.match(/class="[^"]*poly-price__current[^"]*"[^>]*>([\s\S]*?)<\/span>/i) ||
-                         card.match(/aria-label="([^"]*reais[^"]*)"/i);
-      
-      const price = priceMatch ? priceMatch[1].replace(/<[^>]*>/g, "").trim() : "Consulte";
-      
-      products.push({
-        id: rawLink.match(/MLB-?(\d+)/)?.[0] ?? "S_" + Math.random().toString(36).substr(2, 9),
-        name: title,
-        price: price.includes("R$") ? price : `R$ ${price}`,
-        priceValue: 0, 
-        thumbnail: thumbnail,
-        link: decorateAffiliateLink(rawLink, accountId),
-        source: "ml",
-        available: true,
-      });
       if (products.length >= limit) break;
     }
+
     return products;
   } catch (err) {
-    console.error("Scraping error:", err);
+    console.error("fetchPublicOffers error:", err);
     return [];
   }
 }
