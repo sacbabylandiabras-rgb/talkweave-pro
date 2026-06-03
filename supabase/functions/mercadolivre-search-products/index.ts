@@ -428,7 +428,7 @@ Deno.serve(async (req) => {
         const publicOffers = await fetchPublicOffers(q, category, accountId, limit, offset);
         if (publicOffers.length > 0) {
           applyTracker(publicOffers);
-          return json({ products: publicOffers, total: publicOffers.length + offset + 100, fallback: true }, 200);
+          return json({ products: publicOffers, total: 1000, fallback: true }, 200);
         }
         
         // Se realmente não achou nada e o original deu erro
@@ -444,11 +444,12 @@ Deno.serve(async (req) => {
       .map((p: any) => mapAvailableItem(p, p, accountId))
       .filter(Boolean);
     
-    // Se conseguimos pelo menos 15 produtos diretos, retornamos eles (evita lentidão de enriquecimento se já tem o suficiente)
-    if (directProducts.length >= 15) {
+    // Removida a trava de 15 produtos para forçar o carregamento completo de 50
+    if (directProducts.length >= 50) {
       applyTracker(directProducts);
-      return json({ products: directProducts, total: data?.paging?.total ?? directProducts.length });
+      return json({ products: directProducts, total: data?.paging?.total ?? 1000 });
     }
+
 
     let enrichedResults = results;
     let itemIds = Array.from(new Set(enrichedResults.map(extractWinnerItemId).filter(Boolean))) as string[];
@@ -467,6 +468,7 @@ Deno.serve(async (req) => {
     }
 
     const itemsById = new Map<string, any>();
+    // Processamos todos os IDs encontrados para não perder nenhum produto
     for (let i = 0; i < itemIds.length; i += 20) {
       const ids = itemIds.slice(i, i + 20);
       const itemsRes = await fetch(`https://api.mercadolibre.com/items?ids=${encodeURIComponent(ids.join(","))}`, { headers });
@@ -493,11 +495,12 @@ Deno.serve(async (req) => {
     if (products.length === 0) {
       const publicOffers = await fetchPublicOffers(q, category, accountId, limit, offset);
       applyTracker(publicOffers);
-      return json({ products: publicOffers, total: publicOffers.length, fallback: true });
+      return json({ products: publicOffers, total: 1000, fallback: true });
     }
 
     applyTracker(products);
-    return json({ products, total: data?.paging?.total ?? products.length });
+    return json({ products, total: data?.paging?.total ?? 1000 });
+
   } catch (err) {
     console.error("ml-search error:", err);
     return json({ error: "Erro inesperado.", fallback: true }, 200);
