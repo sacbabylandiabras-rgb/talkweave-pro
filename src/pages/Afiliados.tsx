@@ -699,7 +699,25 @@ export default function Afiliados() {
             readOnly
             className="min-h-[200px] font-mono text-xs bg-muted/40"
           />
-          <div className="grid md:grid-cols-[1fr_auto] gap-3">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Instância do WhatsApp</Label>
+              <select
+                value={selectedInstanceId}
+                onChange={(e) => setSelectedInstanceId(e.target.value)}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                {availableInstances.length === 0 ? (
+                  <option value="">Nenhuma instância encontrada</option>
+                ) : (
+                  availableInstances.map((inst) => (
+                    <option key={inst.zapi_instance_id} value={inst.zapi_instance_id}>
+                      {inst.instance_name || inst.zapi_instance_id}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
             <div className="space-y-2">
               <Label>Número ou grupo do WhatsApp</Label>
               <Input
@@ -709,7 +727,7 @@ export default function Afiliados() {
               />
             </div>
             <div className="flex items-end">
-              <Button onClick={handleSend} disabled={sending} className="w-full md:w-auto">
+              <Button onClick={handleSend} disabled={sending || !selectedInstanceId} className="w-full">
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 Enviar via ZapLynx
               </Button>
