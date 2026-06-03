@@ -550,7 +550,7 @@ Deno.serve(async (req) => {
     // Processamento inicial dos produtos diretos com reordenação por matching
     const processAndSortProducts = (items: any[]) => {
       const mapped = items
-        .map((p: any) => mapAvailableItem(p, p, accountId))
+        .map((p: any) => mapAvailableItem(p, p, accountId, false))
         .filter(Boolean);
       
       if (q && q.length > 1) {
