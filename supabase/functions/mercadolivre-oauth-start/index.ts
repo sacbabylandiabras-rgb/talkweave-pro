@@ -88,6 +88,8 @@ Deno.serve(async (req) => {
     authUrl.searchParams.set("client_id", ML_CLIENT_ID);
     authUrl.searchParams.set("redirect_uri", REDIRECT_URI);
     authUrl.searchParams.set("state", state);
+    // Forçar a tela de login e permissões do Mercado Livre
+    authUrl.searchParams.set("prompt", "login");
 
     return json({ authUrl: authUrl.toString() });
   } catch (err) {
