@@ -257,12 +257,13 @@ export default function Afiliados() {
   );
 
   const fetchProducts = async (isLoadMore = false) => {
-    const anyConnected = Object.values(connected).some(Boolean);
-    if (!anyConnected) {
+    if (!connected.ml) {
       toast.error("Conecte ao menos um marketplace primeiro.");
       return;
     }
-    if (!searchQuery.trim()) {
+
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery) {
       toast.error("Digite o que você quer buscar.");
       return;
     }
@@ -271,51 +272,52 @@ export default function Afiliados() {
     setLoadingProducts(true);
     
     try {
-      const all: AffiliateProduct[] = [];
-      let lastData: any = null;
-      if (connected.ml) {
-        console.log("Searching for:", searchQuery.trim());
-        const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
-          body: { 
-            query: searchQuery.trim(), 
-            mode: "search", // Forçar explicitamente o modo search
-            limit: 50, 
-            offset: nextOffset 
-          },
-        });
-        if (error) throw new Error(error.message);
-        lastData = data;
-        if ((data as any)?.error && !(data as any)?.products) {
-          toast.error((data as any).error);
-        } else {
-          const list = ((data as any)?.products || []) as AffiliateProduct[];
-          all.push(...list);
-        }
+      console.log("Buscando por:", trimmedQuery, "offset:", nextOffset);
+
+      const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
+        body: { 
+          q: trimmedQuery,
+          query: trimmedQuery, 
+          mode: "search",
+          limit: 50, 
+          offset: nextOffset,
+          site: "MLB"
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      
+      console.log("Resposta da edge function:", data);
+
+      if ((data as any)?.error && !(data as any)?.products) {
+        toast.error((data as any).error);
+        return;
       }
+
+      const list = ((data as any)?.products || []) as AffiliateProduct[];
       
       if (isLoadMore) {
         setProducts(prev => {
           const existingIds = new Set(prev.map(p => p.id));
-          const filteredNew = all.filter(p => !existingIds.has(p.id));
-          return [...prev, ...filteredNew];
+          return [...prev, ...list.filter(p => !existingIds.has(p.id))];
         });
         setOffset(nextOffset);
-        setTotalProducts(lastData?.total || null);
       } else {
-        setProducts(all);
+        setProducts(list);
         setOffset(0);
-        setTotalProducts(lastData?.total || null);
         setSelectedIds(new Set());
       }
+
+      setTotalProducts((data as any)?.total || null);
       
-      if (all.length === 0) {
-        if (!isLoadMore) toast.info("Nenhum produto encontrado.");
-        else toast.info("Não há mais produtos para carregar.");
+      if (list.length === 0) {
+        toast.info(isLoadMore ? "Não há mais produtos." : "Nenhum produto encontrado.");
       } else if (!isLoadMore) {
-        toast.success(`${all.length} produtos encontrados.`);
+        toast.success(`${list.length} produtos encontrados.`);
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao buscar produtos.");
+      console.error(e);
     } finally {
       setLoadingProducts(false);
     }
