@@ -164,9 +164,10 @@ async function fetchPublicOffers(query: string, category: string | null, account
     
     // Improved poly-card parsing for Mercado Livre
     // We target both the generic list items and the new poly-card layout
-    const cards = html.match(/<div\s+class="[^"]*poly-card[^"]*"[\s\S]*?(?=<div\s+class="[^"]*poly-card[^"]*"|<\/main>|$)/g) || 
+    const cards = html.match(/<div\s+class="[^"]*poly-card[^"]*"[\s\S]*?(?=<div\s+class="[^"]*poly-card[^"]*"|<\/main>|<\/section>|$)/g) || 
                   html.match(/<div\s+class="[^"]*ui-search-result__wrapper[^"]*"[\s\S]*?(?=<div\s+class="[^"]*ui-search-result__wrapper[^"]*"|<\/ol>|$)/g) ||
-                  html.match(/<li\s+class="[^"]*ui-search-layout__item[^"]*"[\s\S]*?(?=<li\s+class="[^"]*ui-search-layout__item[^"]*"|<\/ol>|$)/g) || [];
+                  html.match(/<li\s+class="[^"]*ui-search-layout__item[^"]*"[\s\S]*?(?=<li\s+class="[^"]*ui-search-layout__item[^"]*"|<\/ol>|$)/g) ||
+                  html.match(/<div\s+class="[^"]*promotion-item[^"]*"[\s\S]*?(?=<div\s+class="[^"]*promotion-item[^"]*"|<\/section>|$)/g) || [];
     
     console.log(`Found ${cards.length} cards via scraping`);
 
@@ -202,11 +203,16 @@ async function fetchPublicOffers(query: string, category: string | null, account
       );
 
       // Try to find the image in data attributes (Mercado Livre often uses lazy loading)
-      const dataSrcMatch = card.match(/(?:data-src|data-actualsrc|srcset|src)="([^"]+)"/i);
+      const dataSrcMatch = card.match(/(?:data-src|data-actualsrc|srcset|src)="([^"]+)"/i) ||
+                           card.match(/data-actualsrc="([^"]+)"/i) ||
+                           card.match(/data-src="([^"]+)"/i);
+                           
       if (dataSrcMatch && (dataSrcMatch[1].includes("mlstatic.com") || dataSrcMatch[1].includes("mercadolibre.com"))) {
         thumbnail = dataSrcMatch[1].split(" ")[0]; // Take first from srcset if present
       } else if (mlImages.length > 0) {
-        thumbnail = mlImages[0];
+        // Find the one that looks most like a product image (often D_NQ_NP pattern)
+        const productImg = mlImages.find(img => img.includes("D_NQ_NP")) || mlImages[0];
+        thumbnail = productImg;
       }
 
       // 2. Final verification and resolution upgrade
