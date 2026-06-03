@@ -329,10 +329,25 @@ export default function Afiliados() {
       toast.error("Informe o número ou grupo do WhatsApp.");
       return;
     }
+
     setSending(true);
-    await new Promise((r) => setTimeout(r, 2000));
-    setSending(false);
-    toast.success(`Mensagem enviada para ${destination} via ZapLynx!`);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-message", {
+        body: {
+          phone: destination.trim(),
+          message: previewMessage,
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      
+      toast.success(`Mensagem enviada com sucesso para ${destination}!`);
+    } catch (e) {
+      console.error("Erro ao enviar mensagem:", e);
+      toast.error(e instanceof Error ? e.message : "Erro ao enviar mensagem via WhatsApp.");
+    } finally {
+      setSending(false);
+    }
   };
 
   const StatusDot = ({ active }: { active: boolean }) => (
