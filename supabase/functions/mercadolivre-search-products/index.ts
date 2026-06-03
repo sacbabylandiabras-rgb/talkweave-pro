@@ -210,6 +210,7 @@ async function fetchPublicOffers(query: string, category: string | null, account
         thumbnail = thumbnail.replace(/^http:/, "https:");
         
         // Upgrade resolution: switch common patterns to high res (e.g., -V to -O)
+        thumbnail = thumbnail.replace(/\/D_NQ_NP_(\d+-\w+)-([A-Z])\.(\w+)$/, "/D_NQ_NP_$1-O.$3");
         thumbnail = thumbnail.replace(/-[IMWV]\.(jpg|jpeg|png|webp)/i, "-O.$1");
         
         // Ensure common suffixes for Mercado Livre images
