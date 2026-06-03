@@ -399,10 +399,12 @@ export default function Afiliados() {
           url: p.link
         }));
 
+        const cleanMessage = previewMessage.replace(/\[Botão: .*?\]/g, "").trim();
+
         const { data, error } = await supabase.functions.invoke("send-message", {
           body: {
             phone: destination.trim(),
-            message: previewMessage,
+            message: cleanMessage,
             instanceId: selectedInstanceId || undefined,
             buttonActions: buttons
           },
