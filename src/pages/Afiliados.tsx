@@ -335,7 +335,7 @@ export default function Afiliados() {
     // Para 1 produto
     if (selectedProducts.length === 1) {
       const p = selectedProducts[0];
-      return `🛍️ *${p.name}*\n💰 ${p.price}\n\n[Botão: Ver Oferta 🚀]\n\n_Enviado via ZapLynx_`;
+      return `🛍️ *${p.name}*\n💰 ${p.price}\n\n[Botão: Ver Oferta 🚀]`;
     }
 
     // Para 2 a 3 produtos
@@ -343,14 +343,14 @@ export default function Afiliados() {
       const items = selectedProducts
         .map((p, idx) => `🛍️ *${p.name}*\n💰 ${p.price}\n[Botão: Comprar Item ${idx + 1} 🛒]`)
         .join("\n\n");
-      return `✨ *Ofertas selecionadas para você!*\n\n${items}\n\n_Enviado via ZapLynx_`;
+      return `✨ *Ofertas selecionadas para você!*\n\n${items}`;
     }
 
     // Para mais de 3 produtos (limite de botões do WhatsApp)
     const items = selectedProducts
       .map((p) => `🛍️ *${p.name}*\n💰 ${p.price}\n🔗 ${p.link}`)
       .join("\n\n");
-    return `✨ *Ofertas selecionadas para você!*\n\n${items}\n\n_Enviado via ZapLynx_`;
+    return `✨ *Ofertas selecionadas para você!*\n\n${items}`;
   }, [selectedProducts]);
 
   const handleSend = async () => {
@@ -368,7 +368,7 @@ export default function Afiliados() {
       // Se tiver apenas um produto, envia como imagem com legenda e BOTÃO
       if (selectedProducts.length === 1) {
         const product = selectedProducts[0];
-        const caption = `🛍️ *${product.name}*\n💰 ${product.price}\n\n_Enviado via ZapLynx_`;
+        const caption = `🛍️ *${product.name}*\n💰 ${product.price}`;
         
         const { data, error } = await supabase.functions.invoke("send-message", {
           body: {
