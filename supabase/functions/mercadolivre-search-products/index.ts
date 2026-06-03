@@ -39,9 +39,10 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const query = String(body?.query ?? "").trim();
+    const mode = String(body?.mode ?? "search"); // "search" | "deals"
     const site = String(body?.site ?? "MLB").toUpperCase();
     const limit = Math.min(Math.max(Number(body?.limit ?? 24), 1), 50);
-    if (!query) return json({ error: "Informe um termo de busca." }, 400);
+    if (mode === "search" && !query) return json({ error: "Informe um termo de busca." }, 400);
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const objectPath = `${userData.user.id}/${PROVIDER}.json`;
@@ -90,7 +91,13 @@ Deno.serve(async (req) => {
     }
 
     const url = new URL(`https://api.mercadolibre.com/sites/${site}/search`);
-    url.searchParams.set("q", query);
+    if (mode === "deals") {
+      url.searchParams.set("q", query || "oferta");
+      url.searchParams.set("discount", "20-100");
+      url.searchParams.set("sort", "price_asc");
+    } else {
+      url.searchParams.set("q", query);
+    }
     url.searchParams.set("limit", String(limit));
 
     const headers: Record<string, string> = { Accept: "application/json" };
@@ -103,6 +110,22 @@ Deno.serve(async (req) => {
       return json({ error: "Falha ao buscar produtos no marketplace.", fallback: true }, 200);
     }
 
+    const accountId = record?.account_id ?? null;
+    const decorate = (permalink: string | null) => {
+      if (!permalink) return null;
+      try {
+        const u = new URL(permalink);
+        if (accountId) {
+          // Tracking de afiliado (matt_tool é o parâmetro de tracker do programa do ML)
+          u.searchParams.set("matt_tool", String(accountId));
+          u.searchParams.set("matt_word", "zaplynx");
+        }
+        return u.toString();
+      } catch {
+        return permalink;
+      }
+    };
+
     const results = Array.isArray(data?.results) ? data.results : [];
     const products = results.map((p: any) => ({
       id: String(p.id),
@@ -111,9 +134,15 @@ Deno.serve(async (req) => {
         ? p.price.toLocaleString("pt-BR", { style: "currency", currency: p.currency_id || "BRL" })
         : "",
       priceValue: typeof p.price === "number" ? p.price : null,
+      originalPrice: typeof p.original_price === "number"
+        ? p.original_price.toLocaleString("pt-BR", { style: "currency", currency: p.currency_id || "BRL" })
+        : null,
+      discount: typeof p.original_price === "number" && typeof p.price === "number" && p.original_price > p.price
+        ? Math.round(((p.original_price - p.price) / p.original_price) * 100)
+        : null,
       currency: p.currency_id ?? "BRL",
       thumbnail: p.thumbnail ? String(p.thumbnail).replace(/^http:/, "https:") : null,
-      link: p.permalink ?? null,
+      link: decorate(p.permalink ?? null),
       source: "ml" as const,
     }));
 
