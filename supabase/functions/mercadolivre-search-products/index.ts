@@ -338,8 +338,21 @@ Deno.serve(async (req) => {
     let searchRes;
     let searchData: any = null;
 
-    // Tentativa 1: Busca Autenticada (Com Token) - Use o token se disponível
-    if (accessToken) {
+    // Tentativa 1: Busca Pública (Sem Token) - Agora é a primeira tentativa para evitar o 403 do token
+    try {
+      console.log(`[Public] Searching: ${searchUrl.toString()}`);
+      searchRes = await fetch(searchUrl.toString());
+      if (searchRes.ok) {
+        searchData = await searchRes.json();
+      } else {
+        console.warn(`[Public] Search failed: ${searchRes.status}`);
+      }
+    } catch (err) {
+      console.error(`[Public] Search error:`, err);
+    }
+
+    // Tentativa 2: Busca Autenticada (Com Token) - Caso a pública falhe
+    if ((!searchData || !searchData.results || searchData.results.length === 0) && accessToken) {
       try {
         console.log(`[Auth] Searching: ${searchUrl.toString()}`);
         searchRes = await fetch(searchUrl.toString(), {
@@ -355,21 +368,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Tentativa 2: Busca Pública (Sem Token) - Caso a autenticada falhe ou não exista token
-    if (!searchData || !searchData.results || searchData.results.length === 0) {
-      try {
-        console.log(`[Public] Searching: ${searchUrl.toString()}`);
-        // Força o uso da API pública sem headers extras
-        searchRes = await fetch(searchUrl.toString());
-        if (searchRes.ok) {
-          searchData = await searchRes.json();
-        } else {
-          console.warn(`[Public] Search failed: ${searchRes.status}`);
-        }
-      } catch (err) {
-        console.error(`[Public] Search error:`, err);
-      }
-    }
 
     let results = searchData?.results || [];
     let total = searchData?.paging?.total || 0;
