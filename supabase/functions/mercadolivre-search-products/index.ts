@@ -9,6 +9,23 @@ const corsHeaders = {
 const BUCKET = "affiliate-connections";
 const PROVIDER = "mercadolivre";
 
+const CATEGORY_KEYWORDS: Record<string, string> = {
+  MLB1459: "imoveis apartamento casa terreno",
+  MLB1499: "material construcao ferramentas",
+  MLB1430: "roupas moda tenis camiseta",
+  MLB1132: "brinquedos infantis promocao",
+  MLB1051: "celular smartphone oferta",
+  MLB1648: "notebook computador informatica",
+  MLB1574: "casa decoracao cozinha",
+  MLB5726: "eletrodomesticos cozinha oferta",
+  MLB1276: "esportes fitness bicicleta",
+  MLB1246: "beleza perfume maquiagem",
+  MLB1196: "livros promocao",
+  MLB1743: "acessorios automotivos carro moto",
+  MLB1071: "pet cachorro gato racao",
+  MLB1953: "ofertas promocao desconto",
+};
+
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -39,6 +56,16 @@ function extractWinnerItemId(product: any): string | null {
   const candidates = [winner?.item_id, winner?.item?.id, winner?.id, product?.item_id];
   const itemId = candidates.find((value) => typeof value === "string" && /^ML[A-Z]\d+$/i.test(value));
   return itemId ? String(itemId).toUpperCase() : null;
+}
+
+function safeText(value: unknown, maxLength = 80) {
+  return String(value ?? "").trim().replace(/\s+/g, " ").slice(0, maxLength);
+}
+
+function keywordForRequest(mode: string, query: string, category: string | null) {
+  if (query) return query;
+  if (category && CATEGORY_KEYWORDS[category]) return CATEGORY_KEYWORDS[category];
+  return mode === "deals" ? "promocao oferta desconto" : "";
 }
 
 function isUnavailableItem(item: any) {
