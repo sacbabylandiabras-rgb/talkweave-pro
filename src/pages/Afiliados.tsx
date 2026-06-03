@@ -20,6 +20,8 @@ interface AffiliateProduct {
   source: Source;
   link: string;
   thumbnail?: string | null;
+  originalPrice?: string | null;
+  discount?: number | null;
 }
 
 const MOCK_PRODUCTS: AffiliateProduct[] = [
@@ -81,9 +83,29 @@ export default function Afiliados() {
           ...prev,
           ml: (data as any).nickname || (data as any).accountId || "Conta conectada",
         }));
+        // Auto-carrega melhores promoções ao detectar conexão
+        loadDeals();
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadDeals = async () => {
+    setLoadingProducts(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
+        body: { mode: "deals", limit: 24 },
+      });
+      if (error) throw new Error(error.message);
+      const list = ((data as any)?.products || []) as AffiliateProduct[];
+      setProducts(list);
+      setSelectedIds(new Set());
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao carregar promoções.");
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
 
   const handleConnect = async (source: Source) => {
     const valid =
@@ -424,16 +446,16 @@ export default function Afiliados() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
           <div>
-            <CardTitle className="text-lg">Produtos de afiliado</CardTitle>
+            <CardTitle className="text-lg">🔥 Melhores promoções</CardTitle>
             <CardDescription>
               {selectedIds.size > 0
                 ? `${selectedIds.size} produto(s) selecionado(s)`
-                : "Nenhum produto selecionado"}
+                : "Ofertas com desconto puxadas da sua conta conectada (links já com seu rastreio de afiliado)."}
             </CardDescription>
           </div>
           <div className="flex gap-2 w-full md:w-auto">
             <Input
-              placeholder="Ex: fone bluetooth, smartwatch..."
+              placeholder="Buscar por palavra-chave..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") fetchProducts(); }}
@@ -442,6 +464,9 @@ export default function Afiliados() {
             <Button onClick={fetchProducts} disabled={loadingProducts}>
               {loadingProducts ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               Buscar
+            </Button>
+            <Button variant="outline" onClick={loadDeals} disabled={loadingProducts || !connected.ml}>
+              🔥 Promoções
             </Button>
           </div>
         </CardHeader>
@@ -454,7 +479,7 @@ export default function Afiliados() {
           ) : products.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-2 text-muted-foreground">
               <Package className="w-10 h-10 opacity-40" />
-              Clique em "Buscar produtos" para começar.
+              {connected.ml ? "Clique em 🔥 Promoções para carregar as melhores ofertas." : "Conecte sua conta primeiro."}
             </div>
           ) : (
             <div
@@ -489,11 +514,22 @@ export default function Afiliados() {
                     <p className="text-sm font-medium leading-snug line-clamp-2 min-h-[2.5rem]">
                       {p.name}
                     </p>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-primary text-sm">{p.price}</span>
-                      <Badge className={cn("text-[10px]", SOURCE_META[p.source].className)} variant="secondary">
-                        {SOURCE_META[p.source].label}
-                      </Badge>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-primary text-sm">{p.price}</span>
+                        {p.discount ? (
+                          <Badge variant="secondary" className="bg-green-100 text-green-700 text-[10px]">
+                            -{p.discount}%
+                          </Badge>
+                        ) : (
+                          <Badge className={cn("text-[10px]", SOURCE_META[p.source].className)} variant="secondary">
+                            {SOURCE_META[p.source].label}
+                          </Badge>
+                        )}
+                      </div>
+                      {p.originalPrice && (
+                        <span className="text-[11px] text-muted-foreground line-through">{p.originalPrice}</span>
+                      )}
                     </div>
                   </button>
                 );
