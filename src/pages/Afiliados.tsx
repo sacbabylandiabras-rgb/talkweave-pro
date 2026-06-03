@@ -14,11 +14,12 @@ import { supabase } from "@/integrations/supabase/client";
 type Source = "ml" | "shopee" | "amazon";
 
 interface AffiliateProduct {
-  id: number;
+  id: string | number;
   name: string;
   price: string;
   source: Source;
   link: string;
+  thumbnail?: string | null;
 }
 
 const MOCK_PRODUCTS: AffiliateProduct[] = [
@@ -60,7 +61,8 @@ export default function Afiliados() {
 
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [products, setProducts] = useState<AffiliateProduct[]>([]);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [destination, setDestination] = useState("");
   const [sending, setSending] = useState(false);
@@ -198,15 +200,37 @@ export default function Afiliados() {
       toast.error("Conecte ao menos um marketplace primeiro.");
       return;
     }
+    if (!searchQuery.trim()) {
+      toast.error("Digite o que você quer buscar.");
+      return;
+    }
     setLoadingProducts(true);
-    await new Promise((r) => setTimeout(r, 1800));
-    const filtered = MOCK_PRODUCTS.filter((p) => connected[p.source]);
-    setProducts(filtered);
-    setLoadingProducts(false);
-    toast.success(`${filtered.length} produtos encontrados.`);
+    try {
+      const all: AffiliateProduct[] = [];
+      if (connected.ml) {
+        const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
+          body: { query: searchQuery.trim(), limit: 24 },
+        });
+        if (error) throw new Error(error.message);
+        if ((data as any)?.error && !(data as any)?.products) {
+          toast.error((data as any).error);
+        } else {
+          const list = ((data as any)?.products || []) as AffiliateProduct[];
+          all.push(...list);
+        }
+      }
+      setProducts(all);
+      setSelectedIds(new Set());
+      if (all.length === 0) toast.info("Nenhum produto encontrado.");
+      else toast.success(`${all.length} produtos encontrados.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao buscar produtos.");
+    } finally {
+      setLoadingProducts(false);
+    }
   };
 
-  const toggleSelect = (id: number) => {
+  const toggleSelect = (id: string | number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -407,10 +431,19 @@ export default function Afiliados() {
                 : "Nenhum produto selecionado"}
             </CardDescription>
           </div>
-          <Button onClick={fetchProducts} disabled={loadingProducts}>
-            {loadingProducts ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-            Buscar produtos
-          </Button>
+          <div className="flex gap-2 w-full md:w-auto">
+            <Input
+              placeholder="Ex: fone bluetooth, smartwatch..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") fetchProducts(); }}
+              className="md:w-72"
+            />
+            <Button onClick={fetchProducts} disabled={loadingProducts}>
+              {loadingProducts ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+              Buscar
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loadingProducts ? (
@@ -446,8 +479,12 @@ export default function Afiliados() {
                         <Check className="w-4 h-4" />
                       </span>
                     )}
-                    <div className="aspect-square w-full rounded-xl bg-muted flex items-center justify-center">
-                      <Package className="w-10 h-10 text-muted-foreground/50" />
+                    <div className="aspect-square w-full rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+                      {p.thumbnail ? (
+                        <img src={p.thumbnail} alt={p.name} className="w-full h-full object-contain" loading="lazy" />
+                      ) : (
+                        <Package className="w-10 h-10 text-muted-foreground/50" />
+                      )}
                     </div>
                     <p className="text-sm font-medium leading-snug line-clamp-2 min-h-[2.5rem]">
                       {p.name}
