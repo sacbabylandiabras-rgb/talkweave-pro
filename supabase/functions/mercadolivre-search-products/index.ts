@@ -408,34 +408,63 @@ Deno.serve(async (req) => {
     const accountId = record?.account_id ?? null;
     const trackedUserId = userData.user.id;
     
+    // Sinônimos e variações comuns para melhor matching
+    const SYNONYMS: Record<string, string[]> = {
+      "inox": ["inoxidavel", "aço inoxidável", "prateado", "silver", "escovado"],
+      "touch": ["digital", "painel touch", "tela touch", "touchscreen"],
+      "painel touch": ["touch", "digital", "display digital"],
+      "fritadeira": ["air fryer", "airfryer", "fritadeira sem oleo", "fritadeira eletrica"],
+      "oster": ["osterizer"],
+    };
+
     // Função auxiliar para calcular score de matching do título
     const calculateMatchScore = (productName: string, searchTerm: string) => {
       const name = productName.toLowerCase();
       const term = searchTerm.toLowerCase();
       
       // Match exato (case insensitive)
-      if (name === term) return 1000;
+      if (name === term) return 2000;
       
       // Contém a frase inteira na mesma ordem
-      if (name.includes(term)) return 500;
+      if (name.includes(term)) return 1000;
       
-      // Match de palavras individuais preservando ordem
       const termWords = term.split(/\s+/).filter(w => w.length > 2);
       let score = 0;
       let lastIndex = -1;
       let wordsInOrder = 0;
+      let synonymMatches = 0;
       
       for (const word of termWords) {
-        const index = name.indexOf(word, lastIndex + 1);
-        if (index > lastIndex) {
+        // Busca palavra exata ou sinônimos
+        let foundIndex = name.indexOf(word, lastIndex + 1);
+        
+        // Se não achou a palavra, tenta os sinônimos dela
+        if (foundIndex === -1 && SYNONYMS[word]) {
+          for (const syn of SYNONYMS[word]) {
+            const synIndex = name.indexOf(syn, lastIndex + 1);
+            if (synIndex !== -1) {
+              foundIndex = synIndex;
+              synonymMatches++;
+              break;
+            }
+          }
+        }
+
+        if (foundIndex > lastIndex) {
           wordsInOrder++;
-          lastIndex = index;
+          lastIndex = foundIndex;
         }
       }
       
       // Bônus proporcional a palavras encontradas na ordem correta
       if (termWords.length > 0) {
-        score += (wordsInOrder / termWords.length) * 100;
+        const orderRatio = wordsInOrder / termWords.length;
+        score += orderRatio * 500;
+        
+        // Bônus se todas as palavras (ou sinônimos) foram encontradas
+        if (wordsInOrder === termWords.length) {
+          score += 200;
+        }
       }
       
       return score;
