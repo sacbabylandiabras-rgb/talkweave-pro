@@ -51,6 +51,108 @@ function decorateAffiliateLink(permalink: string | null, accountId: string | num
   }
 }
 
+// Gera shortlinks oficiais mercadolivre.com/sec/XXX via API do Programa de Afiliados.
+// Usa cache em public.ml_affiliate_link_cache para evitar regerar o mesmo link.
+async function generateAffiliateShortlinks(
+  admin: any,
+  userId: string,
+  accessToken: string,
+  sourceId: string | null,
+  originalUrls: string[],
+): Promise<Record<string, string>> {
+  const map: Record<string, string> = {};
+  if (!sourceId || originalUrls.length === 0) return map;
+
+  // 1) Consulta cache
+  try {
+    const { data: cached } = await admin
+      .from("ml_affiliate_link_cache")
+      .select("original_url, short_url")
+      .eq("user_id", userId)
+      .eq("source_id", sourceId)
+      .in("original_url", originalUrls);
+    for (const row of cached ?? []) map[row.original_url] = row.short_url;
+  } catch (err) {
+    console.warn("ml shortlink cache read failed:", err);
+  }
+
+  const missing = originalUrls.filter((u) => !map[u]);
+  if (missing.length === 0) return map;
+
+  // 2) Tenta múltiplos endpoints conhecidos da API de afiliados
+  const endpoints = [
+    "https://api.mercadolibre.com/affiliate-program/v1/links",
+    "https://api.mercadolibre.com/affiliate-program/v1/advertisers/me/links",
+  ];
+
+  const generated: Array<{ original: string; short: string }> = [];
+  for (const endpoint of endpoints) {
+    if (generated.length > 0) break;
+    // Processa em lotes de 20
+    for (let i = 0; i < missing.length; i += 20) {
+      const batch = missing.slice(i, i + 20);
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ urls: batch, source_id: sourceId }),
+        });
+        const data: any = await res.json().catch(() => null);
+        if (!res.ok) {
+          console.warn(`ml shortlink ${endpoint} -> ${res.status}`, JSON.stringify(data).slice(0, 300));
+          break;
+        }
+        const list = Array.isArray(data) ? data : (data?.urls ?? data?.links ?? data?.results ?? []);
+        for (let k = 0; k < list.length; k++) {
+          const entry = list[k];
+          const original = entry?.original_url ?? entry?.url ?? entry?.long_url ?? batch[k];
+          const short = entry?.short_url ?? entry?.shortened_url ?? entry?.url_short ?? entry?.url;
+          if (original && short && /\/sec\//.test(String(short))) {
+            generated.push({ original: String(original), short: String(short) });
+            map[String(original)] = String(short);
+          }
+        }
+      } catch (err) {
+        console.warn(`ml shortlink ${endpoint} batch failed:`, err);
+      }
+    }
+  }
+
+  // 3) Grava cache
+  if (generated.length > 0) {
+    try {
+      await admin.from("ml_affiliate_link_cache").upsert(
+        generated.map(({ original, short }) => ({
+          user_id: userId,
+          source_id: sourceId,
+          original_url: original,
+          short_url: short,
+        })),
+        { onConflict: "user_id,source_id,original_url" },
+      );
+    } catch (err) {
+      console.warn("ml shortlink cache write failed:", err);
+    }
+  }
+
+  return map;
+}
+
+function stripAffiliateParams(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    ["matt_tool", "matt_word"].forEach((k) => u.searchParams.delete(k));
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 function extractWinnerItemId(product: any): string | null {
   const winner = product?.buy_box_winner ?? product?.winner ?? {};
   const candidates = [winner?.item_id, winner?.item?.id, winner?.id, product?.item_id];
