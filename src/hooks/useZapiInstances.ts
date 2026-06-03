@@ -140,7 +140,7 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
       let allowedInstanceIds: string[] | null = null;
       try {
         const { data: member } = await (supabase as any)
-          .from('team_members')
+          .from('pipeline_members')
           .select('allowed_instance_ids, status, team:teams(owner_id)')
           .eq('user_id', user.id)
           .eq('status', 'active')

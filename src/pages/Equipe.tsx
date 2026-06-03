@@ -82,7 +82,7 @@ export default function Equipe() {
     setRoles(data || []);
   }
   async function loadMembers(tid: string) {
-    const { data } = await (supabase as any).from("team_members").select("*, role:team_roles(name)").eq("team_id", tid).order("created_at");
+    const { data } = await (supabase as any).from("pipeline_members").select("*, role:team_roles(name)").eq("team_id", tid).order("created_at");
     if (!data) { setMembers([]); return; }
     const ids = data.map((m: any) => m.user_id);
     const { data: profs } = await (supabase as any).from("profiles").select("id, email, full_name").in("id", ids);
@@ -121,23 +121,23 @@ export default function Equipe() {
 
   async function removeMember(id: string) {
     if (!confirm("Remover funcionário?")) return;
-    await (supabase as any).from("team_members").delete().eq("id", id);
+    await (supabase as any).from("pipeline_members").delete().eq("id", id);
     if (teamId) loadMembers(teamId);
   }
 
   async function toggleMemberStatus(m: any) {
     const next = m.status === "active" ? "suspended" : "active";
-    await (supabase as any).from("team_members").update({ status: next }).eq("id", m.id);
+    await (supabase as any).from("pipeline_members").update({ status: next }).eq("id", m.id);
     if (teamId) loadMembers(teamId);
   }
 
   async function updateMemberInstances(id: string, ids: string[]) {
-    await (supabase as any).from("team_members").update({ allowed_instance_ids: ids }).eq("id", id);
+    await (supabase as any).from("pipeline_members").update({ allowed_instance_ids: ids }).eq("id", id);
     if (teamId) loadMembers(teamId);
   }
 
   async function updateMemberRole(id: string, roleId: string | null) {
-    await (supabase as any).from("team_members").update({ role_id: roleId }).eq("id", id);
+    await (supabase as any).from("pipeline_members").update({ role_id: roleId }).eq("id", id);
     if (teamId) loadMembers(teamId);
   }
 
