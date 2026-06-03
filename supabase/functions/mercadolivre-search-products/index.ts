@@ -162,16 +162,22 @@ async function fetchPublicOffers(query: string, category: string | null, account
     const html = await res.text();
 
     // Extrai IDs MLB do HTML
-    const idMatches = html.matchAll(/MLB-?(\d{6,12})/g);
+    const idMatches = html.matchAll(/MLB-?(\d{6,14})/gi);
     const ids: string[] = [];
     const seen = new Set<string>();
-    for (const m of idMatches) {
+    
+    // Tenta também encontrar em links href="/p/MLB..." ou "item.mercadolivre.com.br/MLB..."
+    const linkMatches = html.matchAll(/MLB-?(\d{8,14})/gi);
+    
+    const allMatches = [...idMatches, ...linkMatches];
+    
+    for (const m of allMatches) {
       const id = "MLB" + m[1];
       if (!seen.has(id)) {
         seen.add(id);
         ids.push(id);
       }
-      if (ids.length >= limit) break;
+      if (ids.length >= limit * 2) break; // Pega mais para filtrar depois
     }
 
     if (ids.length === 0) return [];
