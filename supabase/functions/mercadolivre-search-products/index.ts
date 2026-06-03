@@ -161,23 +161,19 @@ async function fetchPublicOffers(query: string, category: string | null, account
     if (!res.ok) return [];
     const html = await res.text();
 
-    // Extrai IDs MLB do HTML
-    const idMatches = html.matchAll(/MLB-?(\d{6,14})/gi);
+    // Extrai IDs MLB do HTML usando regex mais robusto
+    const idRegex = /MLB-?(\d{8,15})/gi;
     const ids: string[] = [];
     const seen = new Set<string>();
     
-    // Tenta também encontrar em links href="/p/MLB..." ou "item.mercadolivre.com.br/MLB..."
-    const linkMatches = html.matchAll(/MLB-?(\d{8,14})/gi);
-    
-    const allMatches = [...idMatches, ...linkMatches];
-    
-    for (const m of allMatches) {
-      const id = "MLB" + m[1];
+    let match;
+    while ((match = idRegex.exec(html)) !== null) {
+      const id = "MLB" + match[1];
       if (!seen.has(id)) {
         seen.add(id);
         ids.push(id);
       }
-      if (ids.length >= limit * 2) break; // Pega mais para filtrar depois
+      if (ids.length >= limit * 2) break;
     }
 
     if (ids.length === 0) return [];
@@ -336,13 +332,15 @@ Deno.serve(async (req) => {
     searchUrl.searchParams.set("limit", String(limit));
     searchUrl.searchParams.set("offset", String(offset));
 
-    // Tenta com token primeiro, se der 403 tenta sem token (API pública)
-    let searchRes = await fetch(searchUrl.toString(), {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    if (!searchRes.ok) {
-      console.log(`Auth search failed (${searchRes.status}), trying public API...`);
+    // Tenta com token primeiro, se der erro tenta sem token (API pública)
+    let searchRes;
+    try {
+      searchRes = await fetch(searchUrl.toString(), {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!searchRes.ok) throw new Error(`Status ${searchRes.status}`);
+    } catch (err) {
+      console.log(`Auth search failed, trying public API: ${err.message}`);
       searchRes = await fetch(searchUrl.toString()); // sem autenticação
     }
 
