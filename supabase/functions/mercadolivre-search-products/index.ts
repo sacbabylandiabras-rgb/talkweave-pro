@@ -545,6 +545,7 @@ Deno.serve(async (req) => {
       return items;
     };
 
+    console.log(`[Search] Mode: ${mode}, Query: "${query}", Category: ${category}, Offset: ${offset}, UserID: ${userData.user.id}`);
     console.log(`ML Request URL: ${url.toString()}`);
     let { res, data } = await getJson(url.toString(), headers);
     
