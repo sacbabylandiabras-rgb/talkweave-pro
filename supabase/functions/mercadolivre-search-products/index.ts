@@ -10,13 +10,12 @@ const BUCKET = "affiliate-connections";
 const PROVIDER = "mercadolivre";
 
 const CATEGORY_KEYWORDS: Record<string, string> = {
-  MLB1459: "imoveis apartamento casa terreno",
+  MLB1574: "moveis decoracao cozinha",
   MLB1499: "material construcao ferramentas",
   MLB1430: "roupas moda tenis camiseta",
   MLB1132: "brinquedos infantis promocao",
   MLB1051: "celular smartphone oferta",
   MLB1648: "notebook computador informatica",
-  MLB1574: "casa decoracao cozinha",
   MLB5726: "eletrodomesticos cozinha oferta",
   MLB1276: "esportes fitness bicicleta",
   MLB1246: "beleza perfume maquiagem",
