@@ -500,7 +500,7 @@ export default function Afiliados() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => loadDeals(selectedNiche)}
+              onClick={() => searchQuery.trim() ? fetchProducts(false) : loadDeals(selectedNiche)}
               disabled={loadingProducts || !connected.ml}
               title={selectedNiche ? "Atualizar produtos do nicho" : "Atualizar promoções"}
             >
