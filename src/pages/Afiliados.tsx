@@ -614,6 +614,20 @@ export default function Afiliados() {
               })}
             </div>
           )}
+
+          {products.length > 0 && (
+            <div className="flex justify-center pt-4">
+              <Button
+                variant="outline"
+                onClick={() => searchQuery.trim() ? fetchProducts(true) : loadDeals(undefined, true)}
+                disabled={loadingProducts}
+                className="gap-2"
+              >
+                {loadingProducts ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                Carregar mais produtos
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
