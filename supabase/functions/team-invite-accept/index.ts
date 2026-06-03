@@ -39,10 +39,10 @@ Deno.serve(async (req) => {
     if (user.id === inv.team.owner_id) {
       return new Response(JSON.stringify({ error: "Você é dono desta equipe" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const { data: existing } = await admin.from("team_members").select("id").eq("user_id", user.id).maybeSingle();
+    const { data: existing } = await admin.from("pipeline_members").select("id").eq("user_id", user.id).maybeSingle();
     if (existing) return new Response(JSON.stringify({ error: "Você já está em uma equipe" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { error: insErr } = await admin.from("team_members").insert({
+    const { error: insErr } = await admin.from("pipeline_members").insert({
       team_id: inv.team_id,
       user_id: user.id,
       role_id: inv.role_id,

@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     // Check email is not already a member of any team
     const { data: existingProfile } = await admin.from("profiles").select("id").eq("email", email).maybeSingle();
     if (existingProfile) {
-      const { data: existingMember } = await admin.from("team_members").select("id").eq("user_id", existingProfile.id).maybeSingle();
+      const { data: existingMember } = await admin.from("pipeline_members").select("id").eq("user_id", existingProfile.id).maybeSingle();
       if (existingMember) return new Response(JSON.stringify({ error: "Este email já faz parte de uma equipe." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
