@@ -308,6 +308,8 @@ export default function Afiliados() {
 
       setTotalProducts((data as any)?.total || null);
       
+      console.log("Produtos formatados:", list);
+
       if (list.length === 0) {
         toast.info(isLoadMore ? "Não há mais produtos." : "Nenhum produto encontrado.");
       } else if (!isLoadMore) {
