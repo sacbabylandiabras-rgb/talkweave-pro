@@ -286,20 +286,31 @@ Deno.serve(async (req) => {
     const limit = Math.min(Number(body.limit || 50), 100);
     const offset = Number(body.offset || 0);
 
-    const objectPath = `${user.id}/${PROVIDER}.json`;
-    const { data: fileData } = await admin.storage.from(BUCKET).download(objectPath);
-    if (!fileData) {
+    // Busca token no banco de dados (tabela affiliate_connections)
+    const { data: connectionData, error: dbError } = await admin
+      .from("affiliate_connections")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("provider", PROVIDER)
+      .maybeSingle();
+
+    if (dbError) {
+      console.error("Database error fetching connection:", dbError);
+    }
+
+    if (!connectionData) {
       console.log("Fallback to public offers - account not connected for user:", user.id);
       const publicProducts = await fetchPublicOffers(query, category, null, limit, offset);
       return json({ products: publicProducts, total: 1000, fallback: true });
     }
 
-    let record = JSON.parse(await fileData.text());
-    let accessToken = record.access_token;
+    let accessToken = connectionData.access_token;
+    let record = connectionData;
 
     // Refresh token check
     const expiresAt = record.expires_at ? new Date(record.expires_at).getTime() : 0;
     if (expiresAt < Date.now() + 60000 && record.refresh_token) {
+      console.log("Refreshing ML token for user:", user.id);
       const refreshRes = await fetch("https://api.mercadolibre.com/oauth/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -313,14 +324,22 @@ Deno.serve(async (req) => {
       if (refreshRes.ok) {
         const newData = await refreshRes.json();
         accessToken = newData.access_token;
-        record = {
-          ...record,
+        const updatedRecord = {
           access_token: accessToken,
           refresh_token: newData.refresh_token || record.refresh_token,
           expires_at: new Date(Date.now() + newData.expires_in * 1000).toISOString(),
           updated_at: new Date().toISOString(),
         };
-        await admin.storage.from(BUCKET).upload(objectPath, new Blob([JSON.stringify(record)], { type: "application/json" }), { upsert: true });
+        
+        await admin
+          .from("affiliate_connections")
+          .update(updatedRecord)
+          .eq("id", record.id);
+          
+        record = { ...record, ...updatedRecord };
+      } else {
+        const errText = await refreshRes.text();
+        console.error("Failed to refresh ML token:", refreshRes.status, errText);
       }
     }
 
@@ -338,21 +357,8 @@ Deno.serve(async (req) => {
     let searchRes;
     let searchData: any = null;
 
-    // Tentativa 1: Busca Pública (Sem Token) - Agora é a primeira tentativa para evitar o 403 do token
-    try {
-      console.log(`[Public] Searching: ${searchUrl.toString()}`);
-      searchRes = await fetch(searchUrl.toString());
-      if (searchRes.ok) {
-        searchData = await searchRes.json();
-      } else {
-        console.warn(`[Public] Search failed: ${searchRes.status}`);
-      }
-    } catch (err) {
-      console.error(`[Public] Search error:`, err);
-    }
-
-    // Tentativa 2: Busca Autenticada (Com Token) - Caso a pública falhe
-    if ((!searchData || !searchData.results || searchData.results.length === 0) && accessToken) {
+    // Tentativa 1: Busca Autenticada (Com Token) - Prioridade agora que corrigimos o token
+    if (accessToken) {
       try {
         console.log(`[Auth] Searching: ${searchUrl.toString()}`);
         searchRes = await fetch(searchUrl.toString(), {
@@ -360,11 +366,28 @@ Deno.serve(async (req) => {
         });
         if (searchRes.ok) {
           searchData = await searchRes.json();
+          console.log(`[Auth] Success: found ${searchData?.results?.length || 0} results`);
         } else {
           console.warn(`[Auth] Search failed: ${searchRes.status}`);
         }
       } catch (err) {
         console.error(`[Auth] Search error:`, err);
+      }
+    }
+
+    // Tentativa 2: Busca Pública (Sem Token) - Caso a autenticada falhe ou não tenha token
+    if (!searchData || !searchData.results || searchData.results.length === 0) {
+      try {
+        console.log(`[Public] Searching: ${searchUrl.toString()}`);
+        searchRes = await fetch(searchUrl.toString());
+        if (searchRes.ok) {
+          searchData = await searchRes.json();
+          console.log(`[Public] Success: found ${searchData?.results?.length || 0} results`);
+        } else {
+          console.warn(`[Public] Search failed: ${searchRes.status}`);
+        }
+      } catch (err) {
+        console.error(`[Public] Search error:`, err);
       }
     }
 
@@ -444,8 +467,9 @@ Deno.serve(async (req) => {
     }).filter((p: any) => p.link);
 
     // Shortlink generation
-    const sourceId = record.affiliate_source_id;
-    if (sourceId && products.length > 0) {
+    // Tenta usar affiliate_source_id do banco, ou extrai do raw se disponível
+    const sourceId = record.account_id || record.raw?.affiliate_source_id;
+    if (sourceId && products.length > 0 && accessToken) {
       const originalUrls = products.map(p => p.link);
       const shortlinkMap = await generateOfficialShortlinks(admin, user.id, accessToken, sourceId, originalUrls);
       products = products.map(p => ({
