@@ -90,24 +90,28 @@ Deno.serve(async (req) => {
       console.warn("ML token load failed:", e);
     }
 
-    const url = new URL(`https://api.mercadolibre.com/sites/${site}/search`);
-    if (mode === "deals") {
-      url.searchParams.set("q", query || "oferta");
-      url.searchParams.set("discount", "20-100");
-      url.searchParams.set("sort", "price_asc");
-    } else {
-      url.searchParams.set("q", query);
+    if (!accessToken) {
+      return json({ error: "Reconecte sua conta para buscar produtos.", fallback: true }, 200);
     }
+
+    // Novo endpoint de catálogo (o /sites/MLB/search público retorna 403 desde 2024)
+    const url = new URL("https://api.mercadolibre.com/products/search");
+    url.searchParams.set("site_id", site);
+    url.searchParams.set("status", "active");
+    const q = mode === "deals" ? (query || "promocao") : query;
+    url.searchParams.set("q", q);
     url.searchParams.set("limit", String(limit));
 
-    const headers: Record<string, string> = { Accept: "application/json" };
-    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    };
 
     const res = await fetch(url.toString(), { headers });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       console.error("ML search error:", res.status, data);
-      return json({ error: "Falha ao buscar produtos no marketplace.", fallback: true }, 200);
+      return json({ error: "Não foi possível buscar produtos agora.", fallback: true, debug: { status: res.status } }, 200);
     }
 
     const accountId = record?.account_id ?? null;
@@ -127,24 +131,29 @@ Deno.serve(async (req) => {
     };
 
     const results = Array.isArray(data?.results) ? data.results : [];
-    const products = results.map((p: any) => ({
-      id: String(p.id),
-      name: String(p.title ?? ""),
-      price: typeof p.price === "number"
-        ? p.price.toLocaleString("pt-BR", { style: "currency", currency: p.currency_id || "BRL" })
-        : "",
-      priceValue: typeof p.price === "number" ? p.price : null,
-      originalPrice: typeof p.original_price === "number"
-        ? p.original_price.toLocaleString("pt-BR", { style: "currency", currency: p.currency_id || "BRL" })
-        : null,
-      discount: typeof p.original_price === "number" && typeof p.price === "number" && p.original_price > p.price
-        ? Math.round(((p.original_price - p.price) / p.original_price) * 100)
-        : null,
-      currency: p.currency_id ?? "BRL",
-      thumbnail: p.thumbnail ? String(p.thumbnail).replace(/^http:/, "https:") : null,
-      link: decorate(p.permalink ?? null),
-      source: "ml" as const,
-    }));
+    const products = results.map((p: any) => {
+      const priceInfo = p?.buy_box_winner ?? {};
+      const priceValue = typeof priceInfo.price === "number" ? priceInfo.price : (typeof p.price === "number" ? p.price : null);
+      const originalPriceValue = typeof priceInfo.original_price === "number" ? priceInfo.original_price : null;
+      const currency = priceInfo.currency_id || p.currency_id || "BRL";
+      const picture = Array.isArray(p.pictures) && p.pictures[0]?.url ? p.pictures[0].url : p.thumbnail;
+      const permalink = p.permalink || (p.id ? `https://www.mercadolivre.com.br/p/${p.id}` : null);
+      const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency });
+      return {
+        id: String(p.id),
+        name: String(p.name ?? p.title ?? ""),
+        price: priceValue != null ? fmt(priceValue) : "",
+        priceValue,
+        originalPrice: originalPriceValue != null && originalPriceValue > (priceValue ?? 0) ? fmt(originalPriceValue) : null,
+        discount: originalPriceValue && priceValue && originalPriceValue > priceValue
+          ? Math.round(((originalPriceValue - priceValue) / originalPriceValue) * 100)
+          : null,
+        currency,
+        thumbnail: picture ? String(picture).replace(/^http:/, "https:") : null,
+        link: decorate(permalink),
+        source: "ml" as const,
+      };
+    });
 
     return json({ products, total: data?.paging?.total ?? products.length });
   } catch (err) {
