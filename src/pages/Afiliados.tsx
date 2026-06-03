@@ -695,11 +695,15 @@ export default function Afiliados() {
               {products.map((p) => {
                 const isSelected = selectedIds.has(p.id);
                 return (
-                  <button
+                  <div
                     key={p.id}
-                    onClick={() => toggleSelect(p.id)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleSelect(p.id);
+                    }}
                     className={cn(
-                      "relative text-left rounded-2xl border bg-card p-3 flex flex-col gap-2 transition-all hover:shadow-md",
+                      "relative text-left rounded-2xl border bg-card p-3 flex flex-col gap-2 transition-all hover:shadow-md cursor-pointer",
                       isSelected
                         ? "border-primary ring-2 ring-primary/30"
                         : "border-primary/15 hover:border-primary/40",
@@ -745,7 +749,7 @@ export default function Afiliados() {
                         <span className="text-[11px] text-muted-foreground line-through">{p.originalPrice}</span>
                       )}
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
