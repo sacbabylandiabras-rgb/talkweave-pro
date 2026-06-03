@@ -387,9 +387,7 @@ Deno.serve(async (req) => {
     if (category) url.searchParams.set("category", category);
     url.searchParams.set("condition", "new");
     url.searchParams.set("buying_mode", "buy_it_now");
-    url.searchParams.set("sort", "relevance");
     url.searchParams.set("limit", String(Math.min(limit, 50)));
-    // Se houver offset, usamos ele para paginação real na API
     if (offset > 0) url.searchParams.set("offset", String(offset));
 
     const headers: Record<string, string> = {
@@ -407,20 +405,35 @@ Deno.serve(async (req) => {
     };
 
     let { res, data } = await getJson(url.toString(), headers);
-    if (!res.ok) {
-      console.warn("ML public search failed, trying catalog:", res.status, data);
+    
+    // Se a busca principal falhar (403 ou outros), ou não retornar resultados, tenta abordagens alternativas
+    if (!res.ok || (Array.isArray(data?.results) && data.results.length === 0)) {
+      console.warn(`ML search ${res.status} ou sem resultados. Tentando catalog search...`);
       const catalogUrl = new URL("https://api.mercadolibre.com/products/search");
       catalogUrl.searchParams.set("site_id", site);
       catalogUrl.searchParams.set("status", "active");
-      catalogUrl.searchParams.set("q", q || "promocao oferta desconto");
+      if (q) catalogUrl.searchParams.set("q", q);
       catalogUrl.searchParams.set("limit", String(Math.min(limit, 50)));
       if (offset > 0) catalogUrl.searchParams.set("offset", String(offset));
-      ({ res, data } = await getJson(catalogUrl.toString(), headers));
-      if (!res.ok) {
-        console.error("ML search error:", res.status, data);
+      
+      const catalogSearch = await getJson(catalogUrl.toString(), headers);
+      if (catalogSearch.res.ok && Array.isArray(catalogSearch.data?.results) && catalogSearch.data.results.length > 0) {
+        res = catalogSearch.res;
+        data = catalogSearch.data;
+      } else if (!res.ok || (Array.isArray(data?.results) && data.results.length === 0)) {
+        // Se ainda falhar, busca ofertas públicas (scraping/HTML) como último recurso
+        console.warn("Catalog search falhou ou sem resultados. Buscando ofertas públicas...");
         const publicOffers = await fetchPublicOffers(q, category, accountId, limit, offset);
-        applyTracker(publicOffers);
-        return json({ products: publicOffers, total: publicOffers.length, fallback: true, debug: { status: res.status } }, 200);
+        if (publicOffers.length > 0) {
+          applyTracker(publicOffers);
+          return json({ products: publicOffers, total: publicOffers.length + offset + 100, fallback: true }, 200);
+        }
+        
+        // Se realmente não achou nada e o original deu erro
+        if (!res.ok) {
+          console.error("ML search final error:", res.status, data);
+          return json({ error: `Erro na API do Mercado Livre (${res.status}).`, products: [], total: 0 }, 200);
+        }
       }
     }
 

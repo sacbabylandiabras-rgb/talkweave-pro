@@ -101,8 +101,9 @@ export default function Afiliados() {
     if (categoryId !== undefined) setSelectedNiche(categoryId);
     
     try {
+      console.log("Chamando mercadolivre-search-products com offset:", nextOffset);
       const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
-        body: { mode: "deals", limit: 50, offset: nextOffset, category: nextCategory || undefined },
+        body: { mode: "deals", limit: 50, offset: nextOffset, category: nextCategory || undefined, site: "MLB" },
       });
       if (error) throw new Error(error.message);
       if ((data as any)?.error && !(data as any)?.products) toast.error((data as any).error);
