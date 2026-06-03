@@ -467,12 +467,47 @@ export default function Afiliados() {
               {loadingProducts ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               Buscar
             </Button>
-            <Button variant="outline" onClick={loadDeals} disabled={loadingProducts || !connected.ml}>
+            <Button variant="outline" onClick={() => loadDeals(null)} disabled={loadingProducts || !connected.ml}>
               🔥 Promoções
             </Button>
           </div>
         </CardHeader>
         <CardContent>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {[
+              { id: null, label: "Todos" },
+              { id: "MLB1459", label: "🏠 Imóveis" },
+              { id: "MLB1499", label: "🏗️ Materiais" },
+              { id: "MLB1430", label: "👕 Roupas" },
+              { id: "MLB1132", label: "🧸 Brinquedos" },
+              { id: "MLB1051", label: "📱 Celulares" },
+              { id: "MLB1648", label: "💻 Informática" },
+              { id: "MLB1574", label: "🛋️ Casa & Decoração" },
+              { id: "MLB5726", label: "🔌 Eletrodomésticos" },
+              { id: "MLB1276", label: "⚽ Esportes" },
+              { id: "MLB1246", label: "💄 Beleza" },
+              { id: "MLB1196", label: "📚 Livros" },
+              { id: "MLB1743", label: "🚗 Veículos" },
+              { id: "MLB1071", label: "🐶 Pets" },
+              { id: "MLB1953", label: "✨ Outros" },
+            ].map((n) => (
+              <button
+                key={n.label}
+                type="button"
+                onClick={() => loadDeals(n.id)}
+                disabled={loadingProducts || !connected.ml}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-medium rounded-full border transition-all",
+                  selectedNiche === n.id
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background hover:bg-muted border-border text-foreground",
+                  (loadingProducts || !connected.ml) && "opacity-50 cursor-not-allowed",
+                )}
+              >
+                {n.label}
+              </button>
+            ))}
+          </div>
           {loadingProducts ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
