@@ -607,7 +607,7 @@ Deno.serve(async (req) => {
       .map((p: any) => {
         const itemId = extractWinnerItemId(p);
         if (!itemId) return null;
-        return mapAvailableItem(itemsById.get(itemId), p, accountId);
+        return mapAvailableItem(itemsById.get(itemId) ?? p, p, accountId, false);
       })
       .filter(Boolean);
 
