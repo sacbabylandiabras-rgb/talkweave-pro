@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
     url.searchParams.set("status", "active");
     const q = mode === "deals" ? (query || "promocao") : query;
     url.searchParams.set("q", q);
-    url.searchParams.set("limit", String(limit));
+    url.searchParams.set("limit", String(Math.min(limit * 3, 50)));
 
     const headers: Record<string, string> = {
       Accept: "application/json",
@@ -207,7 +207,8 @@ Deno.serve(async (req) => {
         if (!itemId) return null;
         return mapAvailableItem(itemsById.get(itemId), p, accountId);
       })
-      .filter(Boolean);
+      .filter(Boolean)
+      .slice(0, limit);
 
     return json({ products, total: data?.paging?.total ?? products.length });
   } catch (err) {
