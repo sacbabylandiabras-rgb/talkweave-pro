@@ -23,6 +23,7 @@ const CATEGORY_KEYWORDS: Record<string, string> = {
   MLB1743: "acessorios automotivos carro moto",
   MLB1071: "pet cachorro gato racao",
   MLB1953: "ofertas promocao desconto",
+  MLB3000: "ofertas", // Adicionando uma padrão para promoções gerais
 };
 
 function json(data: unknown, status = 200) {
