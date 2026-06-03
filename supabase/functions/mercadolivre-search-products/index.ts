@@ -214,10 +214,11 @@ function parseAriaMoney(label?: string | null) {
   return Number(`${match[1].replace(/\./g, "")}.${match[2] ?? "00"}`);
 }
 
-async function fetchPublicOffers(query: string, category: string | null, accountId: string | number | null, limit: number) {
+async function fetchPublicOffers(query: string, category: string | null, accountId: string | number | null, limit: number, offset = 0) {
   const url = new URL("https://www.mercadolivre.com.br/ofertas");
   if (category) url.searchParams.set("category", category);
   if (query) url.searchParams.set("q", query);
+  if (offset > 0) url.searchParams.set("offset", String(offset));
   const res = await fetch(url.toString(), {
     headers: {
       Accept: "text/html,application/xhtml+xml",
@@ -328,6 +329,7 @@ Deno.serve(async (req) => {
     const site = /^[A-Z]{3}$/.test(String(body?.site ?? "MLB").toUpperCase()) ? String(body?.site ?? "MLB").toUpperCase() : "MLB";
     const category = typeof body?.category === "string" && /^ML[A-Z]\d+$/i.test(body.category.trim()) ? body.category.trim().toUpperCase() : null;
     const limit = Math.min(Math.max(Number(body?.limit ?? 24), 1), 50);
+    const offset = Math.max(Number(body?.offset ?? 0), 0);
     if (mode === "search" && !query && !category) return json({ error: "Informe um termo de busca." }, 400);
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -388,6 +390,7 @@ Deno.serve(async (req) => {
     url.searchParams.set("buying_mode", "buy_it_now");
     url.searchParams.set("sort", "relevance");
     url.searchParams.set("limit", String(Math.min(limit * 3, 50)));
+    if (offset > 0) url.searchParams.set("offset", String(offset));
 
     const headers: Record<string, string> = {
       Accept: "application/json",
@@ -411,10 +414,11 @@ Deno.serve(async (req) => {
       catalogUrl.searchParams.set("status", "active");
       catalogUrl.searchParams.set("q", q || "promocao oferta desconto");
       catalogUrl.searchParams.set("limit", String(Math.min(limit * 3, 50)));
+      if (offset > 0) catalogUrl.searchParams.set("offset", String(offset));
       ({ res, data } = await getJson(catalogUrl.toString(), headers));
       if (!res.ok) {
         console.error("ML search error:", res.status, data);
-        const publicOffers = await fetchPublicOffers(q, category, accountId, limit);
+        const publicOffers = await fetchPublicOffers(q, category, accountId, limit, offset);
         applyTracker(publicOffers);
         return json({ products: publicOffers, total: publicOffers.length, fallback: true, debug: { status: res.status } }, 200);
       }
