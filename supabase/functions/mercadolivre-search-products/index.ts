@@ -386,9 +386,12 @@ Deno.serve(async (req) => {
     
     // Tenta uma busca mais precisa se o query for grande (provavelmente um nome completo)
     if (q) {
-      url.searchParams.set("q", q);
-      // Se tiver mais de 3 palavras, vamos tentar ser bem específico
-      if (q.split(" ").length > 3) {
+      // Normalização básica para busca: remove excesso de espaços
+      const normalizedQuery = q.trim().replace(/\s+/g, " ");
+      url.searchParams.set("q", normalizedQuery);
+      
+      // Se tiver muitas palavras, priorizar relevância total
+      if (normalizedQuery.split(" ").length > 3) {
         url.searchParams.set("sort", "relevance");
       }
     }
@@ -404,6 +407,40 @@ Deno.serve(async (req) => {
 
     const accountId = record?.account_id ?? null;
     const trackedUserId = userData.user.id;
+    
+    // Função auxiliar para calcular score de matching do título
+    const calculateMatchScore = (productName: string, searchTerm: string) => {
+      const name = productName.toLowerCase();
+      const term = searchTerm.toLowerCase();
+      
+      // Match exato (case insensitive)
+      if (name === term) return 1000;
+      
+      // Contém a frase inteira na mesma ordem
+      if (name.includes(term)) return 500;
+      
+      // Match de palavras individuais preservando ordem
+      const termWords = term.split(/\s+/).filter(w => w.length > 2);
+      let score = 0;
+      let lastIndex = -1;
+      let wordsInOrder = 0;
+      
+      for (const word of termWords) {
+        const index = name.indexOf(word, lastIndex + 1);
+        if (index > lastIndex) {
+          wordsInOrder++;
+          lastIndex = index;
+        }
+      }
+      
+      // Bônus proporcional a palavras encontradas na ordem correta
+      if (termWords.length > 0) {
+        score += (wordsInOrder / termWords.length) * 100;
+      }
+      
+      return score;
+    };
+
     const applyTracker = (items: any[]) => {
       for (const p of items) {
         if (p?.link) p.link = wrapInTracker(p.link, trackedUserId);
