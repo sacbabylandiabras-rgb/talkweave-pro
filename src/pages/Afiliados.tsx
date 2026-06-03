@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ShoppingBag, Link as LinkIcon, Loader2, Check, Send, Search, Package } from "lucide-react";
+import { ShoppingBag, Link as LinkIcon, Loader2, Check, Send, Search, Package, LogIn, KeyRound } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -46,6 +46,16 @@ export default function Afiliados() {
 
   const [connected, setConnected] = useState<Record<Source, boolean>>({ ml: false, shopee: false, amazon: false });
   const [connecting, setConnecting] = useState<Source | null>(null);
+  const [authMode, setAuthMode] = useState<Record<Source, "oauth" | "manual">>({
+    ml: "oauth",
+    shopee: "oauth",
+    amazon: "oauth",
+  });
+  const [connectedAccount, setConnectedAccount] = useState<Record<Source, string | null>>({
+    ml: null,
+    shopee: null,
+    amazon: null,
+  });
 
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [products, setProducts] = useState<AffiliateProduct[]>([]);
@@ -71,6 +81,75 @@ export default function Afiliados() {
     setConnecting(null);
     toast.success(`Marketplace conectado com sucesso!`);
   };
+
+  const handleOAuthConnect = async (source: Source) => {
+    setConnecting(source);
+    // Simulação de fluxo OAuth — em produção, abrir popup para o provedor:
+    // window.open(`https://auth.<provider>/authorize?...`, "_blank", "width=520,height=640")
+    await new Promise((r) => setTimeout(r, 1800));
+    const fakeAccounts: Record<Source, string> = {
+      ml: "minha-conta@mercadolivre",
+      shopee: "afiliado_shopee_123",
+      amazon: "associate-br-001",
+    };
+    setConnected((prev) => ({ ...prev, [source]: true }));
+    setConnectedAccount((prev) => ({ ...prev, [source]: fakeAccounts[source] }));
+    setConnecting(null);
+    toast.success(`Conta conectada com sucesso!`);
+  };
+
+  const handleDisconnect = (source: Source) => {
+    setConnected((prev) => ({ ...prev, [source]: false }));
+    setConnectedAccount((prev) => ({ ...prev, [source]: null }));
+    toast.success("Conta desconectada.");
+  };
+
+  const AuthModeSwitch = ({ source }: { source: Source }) => (
+    <div className="inline-flex p-1 rounded-xl bg-muted gap-1">
+      <button
+        type="button"
+        onClick={() => setAuthMode((p) => ({ ...p, [source]: "oauth" }))}
+        className={cn(
+          "px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-all",
+          authMode[source] === "oauth" ? "bg-background shadow-sm" : "text-muted-foreground",
+        )}
+      >
+        <LogIn className="w-3.5 h-3.5" /> Login com a conta
+      </button>
+      <button
+        type="button"
+        onClick={() => setAuthMode((p) => ({ ...p, [source]: "manual" }))}
+        className={cn(
+          "px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-all",
+          authMode[source] === "manual" ? "bg-background shadow-sm" : "text-muted-foreground",
+        )}
+      >
+        <KeyRound className="w-3.5 h-3.5" /> Credenciais
+      </button>
+    </div>
+  );
+
+  const ConnectedBanner = ({ source }: { source: Source }) => (
+    <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-green-200 bg-green-50">
+      <div className="flex items-center gap-2 text-sm">
+        <Check className="w-4 h-4 text-green-600" />
+        <span className="text-green-800">
+          Conectado{connectedAccount[source] ? ` como ` : ""}
+          {connectedAccount[source] && <strong>{connectedAccount[source]}</strong>}
+        </span>
+      </div>
+      <Button variant="ghost" size="sm" onClick={() => handleDisconnect(source)}>
+        Desconectar
+      </Button>
+    </div>
+  );
+
+  const OAuthButton = ({ source, label }: { source: Source; label: string }) => (
+    <Button onClick={() => handleOAuthConnect(source)} disabled={connecting === source} size="lg" className="w-full md:w-auto">
+      {connecting === source ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
+      {label}
+    </Button>
+  );
 
   const fetchProducts = async () => {
     const anyConnected = Object.values(connected).some(Boolean);
