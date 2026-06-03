@@ -234,7 +234,10 @@ async function fetchPublicOffers(query: string, category: string | null, account
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
     },
   });
-  if (!res.ok) return [];
+  if (!res.ok) {
+    console.error(`FetchPublicOffers failed: ${res.status} for ${url.toString()}`);
+    return [];
+  }
   const html = await res.text();
   const cards = html.match(/<div class="andes-card poly-card[\s\S]*?(?=<div class="andes-card poly-card|<\/main>|$)/g) 
              || html.match(/<li class="ui-search-layout__item[\s\S]*?(?=<li class="ui-search-layout__item|<\/ol>|$)/g)
