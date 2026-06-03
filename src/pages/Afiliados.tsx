@@ -112,6 +112,8 @@ export default function Afiliados() {
 
   const loadDeals = async (categoryId?: string | null, isLoadMore = false) => {
     const nextCategory = categoryId !== undefined ? categoryId : selectedNiche;
+    // Se não tem categoria nem busca, usa a MLB3000 como padrão de "ofertas" para garantir resultados
+    const finalCategory = nextCategory || "MLB3000";
     const nextOffset = isLoadMore ? offset + 50 : 0;
     
     setLoadingProducts(true);
@@ -120,7 +122,7 @@ export default function Afiliados() {
     try {
       console.log("Chamando mercadolivre-search-products com offset:", nextOffset);
       const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
-        body: { mode: "deals", limit: 50, offset: nextOffset, category: nextCategory || undefined, site: "MLB" },
+        body: { mode: "deals", limit: 50, offset: nextOffset, category: finalCategory, site: "MLB" },
       });
       if (error) throw new Error(error.message);
       if ((data as any)?.error && !(data as any)?.products) toast.error((data as any).error);

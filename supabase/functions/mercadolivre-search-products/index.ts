@@ -23,6 +23,7 @@ const CATEGORY_KEYWORDS: Record<string, string> = {
   MLB1743: "acessorios automotivos carro moto",
   MLB1071: "pet cachorro gato racao",
   MLB1953: "ofertas promocao desconto",
+  MLB3000: "ofertas", // Adicionando uma padrão para promoções gerais
 };
 
 function json(data: unknown, status = 200) {
@@ -234,22 +235,47 @@ async function fetchPublicOffers(query: string, category: string | null, account
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
     },
   });
-  if (!res.ok) return [];
+  if (!res.ok) {
+    console.error(`FetchPublicOffers failed: ${res.status} for ${url.toString()}`);
+    return [];
+  }
   const html = await res.text();
-  const cards = html.match(/<div class="andes-card poly-card[\s\S]*?(?=<div class="andes-card poly-card|<\/main>|$)/g) ?? [];
+  const cards = html.match(/<div class="andes-card poly-card[\s\S]*?(?=<div class="andes-card poly-card|<\/main>|$)/g) 
+             || html.match(/<li class="ui-search-layout__item[\s\S]*?(?=<li class="ui-search-layout__item|<\/ol>|$)/g)
+             || [];
+             
+  console.log(`FetchPublicOffers: HTML length: ${html.length}, Cards found: ${cards.length}`);
+  
   const products: any[] = [];
   for (const card of cards) {
     const linkMatch = card.match(/href="(https:\/\/(?:produto\.mercadolivre\.com\.br|www\.mercadolivre\.com\.br)\/[^"]+MLB[^"]+)"/);
-    const titleMatch = card.match(/class="poly-component__title"[^>]*>([\s\S]*?)<\/a>/);
+    const titleMatch = card.match(/class="(?:poly-component__title|ui-search-item__title)"[^>]*>([\s\S]*?)<\/a>/)
+                    || card.match(/<h[23] class="ui-search-item__title"[^>]*>([\s\S]*?)<\/h[23]>/);
     const imageMatch = card.match(/(?:src|data-src)="(https:\/\/http2\.mlstatic\.com\/[^"]+)"/);
-    const currentLabel = card.match(/poly-price__current[\s\S]*?aria-label="([^"]+)"/)?.[1];
+    const currentLabel = card.match(/poly-price__current[\s\S]*?aria-label="([^"]+)"/)?.[1]
+                     || card.match(/ui-search-price__second-line[\s\S]*?aria-label="([^"]+)"/)?.[1];
     const previousLabel = card.match(/andes-money-amount--previous[\s\S]*?aria-label="([^"]+)"/)?.[1];
-    const priceValue = parseAriaMoney(currentLabel);
+    
+    let priceValue = parseAriaMoney(currentLabel);
+    
+    // Fallback para preço se aria-label falhar
+    if (!priceValue) {
+      const priceTextMatch = card.match(/<span class="andes-money-amount__fraction"[^>]*>([\d.]+)<\/span>/);
+      if (priceTextMatch) {
+        priceValue = Number(priceTextMatch[1].replace(/\./g, ""));
+        const centsMatch = card.match(/<span class="andes-money-amount__cents"[^>]*>(\d+)<\/span>/);
+        if (centsMatch) priceValue += Number(centsMatch[1]) / 100;
+      }
+    }
+
     if (!linkMatch || !titleMatch || !priceValue) continue;
+    
     const rawLink = decodeHtml(linkMatch[1]);
     if (products.some((p) => p.link === rawLink)) continue;
+    
     const originalPriceValue = parseAriaMoney(previousLabel);
     const discount = Number(card.match(/(\d+)%\s*OFF/i)?.[1] ?? 0) || null;
+    
     products.push({
       id: rawLink.match(/MLB-?(\d+)/)?.[0] ?? rawLink,
       name: decodeHtml(titleMatch[1].replace(/<[^>]*>/g, "")).trim(),
@@ -346,7 +372,7 @@ Deno.serve(async (req) => {
     const limit = Math.min(Math.max(Number(body?.limit ?? 50), 1), 100);
     const offset = Math.max(Number(body?.offset ?? 0), 0);
 
-    console.log(`[Search] Mode: ${mode}, Query: "${query}", Category: ${category}, Offset: ${offset}`);
+    console.log(`[Search] Mode: ${mode}, Query: "${query}", Category: ${category}, Offset: ${offset}, UserID: ${userData.user.id}`);
 
     if (mode === "search" && !query && !category) return json({ error: "Informe um termo de busca." }, 400);
 
@@ -520,21 +546,20 @@ Deno.serve(async (req) => {
       return items;
     };
 
+    console.log(`[Search] Mode: ${mode}, Query: "${query}", Category: ${category}, Offset: ${offset}, UserID: ${userData.user.id}`);
     console.log(`ML Request URL: ${url.toString()}`);
     let { res, data } = await getJson(url.toString(), headers);
     
-    // ADICIONE AQUI - log para diagnóstico
     console.log(`ML Response status: ${res.status}`);
-    console.log(`ML Response data: ${JSON.stringify(data).slice(0, 500)}`);
     console.log(`ML Results count: ${data?.results?.length ?? 'N/A'}`);
-    if (data?.results?.[0]) {
-      console.log(`ML First result sample: ${JSON.stringify(data.results[0]).slice(0, 300)}`);
-    }
 
     // Se a busca principal falhar (403 ou outros), ou não retornar resultados, tenta abordagens alternativas
-
     if (!res.ok || (Array.isArray(data?.results) && data.results.length === 0)) {
-      console.warn(`ML search ${res.status} ou sem resultados (${data?.results?.length || 0}). Tentando catalog search...`);
+      console.warn(`ML search ${res.status} ou sem resultados. Tentando catalog search...`);
+      
+      // Busca ofertas públicas (scraping/HTML) imediatamente em paralelo com outras tentativas se falhou
+      const publicOffersPromise = fetchPublicOffers(q, category, accountId, limit, offset);
+      
       const catalogUrl = new URL("https://api.mercadolibre.com/products/search");
       catalogUrl.searchParams.set("site_id", site);
       if (q) catalogUrl.searchParams.set("q", q);
@@ -543,13 +568,17 @@ Deno.serve(async (req) => {
       
       console.log(`ML Catalog Request URL: ${catalogUrl.toString()}`);
       const catalogSearch = await getJson(catalogUrl.toString(), headers);
+      
       if (catalogSearch.res.ok && Array.isArray(catalogSearch.data?.results) && catalogSearch.data.results.length > 0) {
+        console.log("Catalog search obteve resultados.");
         res = catalogSearch.res;
         data = catalogSearch.data;
-      } else if (!res.ok || (Array.isArray(data?.results) && data.results.length === 0)) {
-        // Se ainda falhar, busca ofertas públicas (scraping/HTML) como último recurso
-        console.warn("Catalog search falhou ou sem resultados. Buscando ofertas públicas...");
-        const publicOffers = await fetchPublicOffers(q, category, accountId, limit, offset);
+      } else {
+        // Se ainda falhar, aguarda as ofertas públicas
+        console.warn("Catalog search falhou ou sem resultados. Aguardando ofertas públicas...");
+        const publicOffers = await publicOffersPromise;
+        console.log(`Public offers found: ${publicOffers.length}`);
+        
         if (publicOffers.length > 0) {
           applyTracker(publicOffers);
           return json({ products: publicOffers, total: 1000, fallback: true }, 200);
