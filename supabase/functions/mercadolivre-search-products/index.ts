@@ -168,26 +168,37 @@ async function fetchPublicOffers(query: string, category: string | null, account
       const linkMatch = card.match(/href="(https:\/\/[^"]+MLB[^"]+)"/);
       const titleMatch = card.match(/class="poly-component__title"[^>]*>([\s\S]*?)<\/a>/) || card.match(/aria-label="([^"]+)"/);
       
-      // Improved image regex to capture high-res and avoid lazy-load stubs
-      const imageMatch = 
-        card.match(/data-src="([^"]+\.webp)"/) || 
-        card.match(/src="([^"]+\.(?:jpg|jpeg|png|webp|gif))"/) ||
-        card.match(/data-src="([^"]+)"/) ||
-        card.match(/src="([^"]+)"/);
+      // Capturando imagens de várias formas possíveis (lazy load, srcset, src)
+      let thumbnail = null;
+      const imgTags = card.match(/<img[^>]+>/g) || [];
+      for (const img of imgTags) {
+        const src = img.match(/(?:data-src|src)="([^"]+\.(?:jpg|jpeg|png|webp|gif)[^"]*)"/i);
+        if (src && !src[1].includes("pixel") && !src[1].includes("blank")) {
+          thumbnail = src[1].replace(/^http:/, "https:");
+          break;
+        }
+      }
 
-      const priceMatch = card.match(/poly-price__current[\s\S]*?aria-label="([^"]+)"/);
+      // Se não encontrou nas tags img, tenta regex genérico no card
+      if (!thumbnail) {
+        const genericSrc = card.match(/(?:data-src|src)="([^"]+\.(?:jpg|jpeg|png|webp|gif)[^"]*)"/i);
+        thumbnail = genericSrc?.[1]?.replace(/^http:/, "https:");
+      }
+
+      const priceMatch = card.match(/poly-price__current[\s\S]*?aria-label="([^"]+)"/) || card.match(/class="[^"]*price[^"]*"[^>]*>([\s\S]*?)<\/span>/);
       
-      if (!linkMatch || !titleMatch || !priceMatch) continue;
+      if (!linkMatch || !titleMatch) continue;
       
       const rawLink = linkMatch[1];
       const title = titleMatch[1].replace(/<[^>]*>/g, "").trim();
+      const price = priceMatch ? priceMatch[1].replace(/<[^>]*>/g, "").trim() : "Consulte o preço";
       
       products.push({
-        id: rawLink.match(/MLB-?(\d+)/)?.[0] ?? rawLink,
+        id: rawLink.match(/MLB-?(\d+)/)?.[0] ?? "S_" + Math.random().toString(36).substr(2, 9),
         name: title,
-        price: priceMatch[1],
+        price: price,
         priceValue: 0, 
-        thumbnail: imageMatch?.[1]?.replace(/^http:/, "https:"),
+        thumbnail: thumbnail,
         link: decorateAffiliateLink(rawLink, accountId),
         source: "ml",
         available: true,
@@ -244,7 +255,11 @@ Deno.serve(async (req) => {
 
     const objectPath = `${user.id}/${PROVIDER}.json`;
     const { data: fileData } = await admin.storage.from(BUCKET).download(objectPath);
-    if (!fileData) return json({ error: "Account not connected", fallback: true });
+    if (!fileData) {
+      console.log("Fallback to public offers - account not connected for user:", user.id);
+      const publicProducts = await fetchPublicOffers(query, category, null, limit, offset);
+      return json({ products: publicProducts, total: 1000, fallback: true });
+    }
 
     let record = JSON.parse(await fileData.text());
     let accessToken = record.access_token;
