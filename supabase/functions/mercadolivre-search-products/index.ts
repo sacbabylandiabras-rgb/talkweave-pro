@@ -215,10 +215,18 @@ function parseAriaMoney(label?: string | null) {
 }
 
 async function fetchPublicOffers(query: string, category: string | null, accountId: string | number | null, limit: number, offset = 0) {
-  const url = new URL("https://www.mercadolivre.com.br/ofertas");
-  if (category) url.searchParams.set("category", category);
-  if (query) url.searchParams.set("q", query);
-  if (offset > 0) url.searchParams.set("offset", String(offset));
+  // Se tem query, usa a busca real do ML; se não, usa a página de ofertas
+  let url: URL;
+  if (query) {
+    url = new URL("https://lista.mercadolivre.com.br/" + encodeURIComponent(query.replace(/\s+/g, "-")));
+    if (category) url.searchParams.set("category", category);
+    if (offset > 0) url.searchParams.set("_from", String(offset + 1));
+  } else {
+    url = new URL("https://www.mercadolivre.com.br/ofertas");
+    if (category) url.searchParams.set("category", category);
+    if (offset > 0) url.searchParams.set("offset", String(offset));
+  }
+
   const res = await fetch(url.toString(), {
     headers: {
       Accept: "text/html,application/xhtml+xml",
@@ -231,18 +239,19 @@ async function fetchPublicOffers(query: string, category: string | null, account
   const cards = html.match(/<div class="andes-card poly-card[\s\S]*?(?=<div class="andes-card poly-card|<\/main>|$)/g) ?? [];
   const products: any[] = [];
   for (const card of cards) {
-    const linkMatch = card.match(/href="(https:\/\/produto\.mercadolivre\.com\.br\/MLB-[^"]+)"/);
+    const linkMatch = card.match(/href="(https:\/\/(?:produto\.mercadolivre\.com\.br|www\.mercadolivre\.com\.br)\/[^"]+MLB[^"]+)"/);
     const titleMatch = card.match(/class="poly-component__title"[^>]*>([\s\S]*?)<\/a>/);
-    const imageMatch = card.match(/class="poly-component__picture"[^>]*src="([^"]+)"[^>]*alt="([^"]*)"/);
+    const imageMatch = card.match(/(?:src|data-src)="(https:\/\/http2\.mlstatic\.com\/[^"]+)"/);
     const currentLabel = card.match(/poly-price__current[\s\S]*?aria-label="([^"]+)"/)?.[1];
     const previousLabel = card.match(/andes-money-amount--previous[\s\S]*?aria-label="([^"]+)"/)?.[1];
     const priceValue = parseAriaMoney(currentLabel);
-    if (!linkMatch || !titleMatch || !priceValue || products.some((p) => p.link === decodeHtml(linkMatch[1]))) continue;
+    if (!linkMatch || !titleMatch || !priceValue) continue;
+    const rawLink = decodeHtml(linkMatch[1]);
+    if (products.some((p) => p.link === rawLink)) continue;
     const originalPriceValue = parseAriaMoney(previousLabel);
     const discount = Number(card.match(/(\d+)%\s*OFF/i)?.[1] ?? 0) || null;
-    const rawLink = decodeHtml(linkMatch[1]);
     products.push({
-      id: rawLink.match(/\/(MLB-\d+)/)?.[1] ?? rawLink,
+      id: rawLink.match(/MLB-?(\d+)/)?.[0] ?? rawLink,
       name: decodeHtml(titleMatch[1].replace(/<[^>]*>/g, "")).trim(),
       price: formatMoney(priceValue),
       priceValue,
