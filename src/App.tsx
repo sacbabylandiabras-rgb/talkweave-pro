@@ -141,6 +141,7 @@ const AdminDisparoOculto = lazyWithRecovery(() => import("./pages/AdminDisparoOc
 const Comunidades = lazyWithRecovery(() => import("./pages/Comunidades"));
 const CriarGrupos = lazyWithRecovery(() => import("./pages/CriarGrupos"));
 const Afiliados = lazyWithRecovery(() => import("./pages/Afiliados"));
+const AfiliadosCallback = lazyWithRecovery(() => import("./pages/AfiliadosCallback"));
 const Prospeccao = lazyWithRecovery(() => import("./pages/Prospeccao"));
 const Equipe = lazyWithRecovery(() => import("./pages/Equipe"));
 const AceitarConvite = lazyWithRecovery(() => import("./pages/AceitarConvite"));
@@ -196,6 +197,7 @@ const App = () => (
                 <Route path="/shopify-oauth-callback" element={<ShopifyOAuthCallback />} />
                 <Route path="/shopify/callback" element={<ShopifyEmbedded />} />
                 <Route path="/shopify/embedded" element={<ShopifyEmbedded />} />
+                <Route path="/afiliados/callback/mercadolivre" element={<AfiliadosCallback />} />
                 <Route element={<DashboardLayout />}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/gateway-checkout/dashboard" element={<KycWrap><PayDashboard /></KycWrap>} />
