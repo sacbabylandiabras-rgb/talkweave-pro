@@ -80,6 +80,67 @@ async function getJson(url: string, headers: Record<string, string>) {
   return { res, data };
 }
 
+function decodeHtml(value: string) {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;|&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+function parseAriaMoney(label?: string | null) {
+  if (!label) return null;
+  const match = decodeHtml(label).match(/(\d[\d.]*)\s+reais(?:\s+com\s+(\d{1,2})\s+centavos)?/i);
+  if (!match) return null;
+  return Number(`${match[1].replace(/\./g, "")}.${match[2] ?? "00"}`);
+}
+
+async function fetchPublicOffers(query: string, category: string | null, accountId: string | number | null, limit: number) {
+  const url = new URL("https://www.mercadolivre.com.br/ofertas");
+  if (category) url.searchParams.set("category", category);
+  if (query) url.searchParams.set("q", query);
+  const res = await fetch(url.toString(), {
+    headers: {
+      Accept: "text/html,application/xhtml+xml",
+      "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
+    },
+  });
+  if (!res.ok) return [];
+  const html = await res.text();
+  const cards = html.match(/<div class="andes-card poly-card[\s\S]*?(?=<div class="andes-card poly-card|<\/main>|$)/g) ?? [];
+  const products: any[] = [];
+  for (const card of cards) {
+    const linkMatch = card.match(/href="(https:\/\/produto\.mercadolivre\.com\.br\/MLB-[^"]+)"/);
+    const titleMatch = card.match(/class="poly-component__title"[^>]*>([\s\S]*?)<\/a>/);
+    const imageMatch = card.match(/class="poly-component__picture"[^>]*src="([^"]+)"[^>]*alt="([^"]*)"/);
+    const currentLabel = card.match(/poly-price__current[\s\S]*?aria-label="([^"]+)"/)?.[1];
+    const previousLabel = card.match(/andes-money-amount--previous[\s\S]*?aria-label="([^"]+)"/)?.[1];
+    const priceValue = parseAriaMoney(currentLabel);
+    if (!linkMatch || !titleMatch || !priceValue || products.some((p) => p.link === decodeHtml(linkMatch[1]))) continue;
+    const originalPriceValue = parseAriaMoney(previousLabel);
+    const discount = Number(card.match(/(\d+)%\s*OFF/i)?.[1] ?? 0) || null;
+    const rawLink = decodeHtml(linkMatch[1]);
+    products.push({
+      id: rawLink.match(/\/(MLB-\d+)/)?.[1] ?? rawLink,
+      name: decodeHtml(titleMatch[1].replace(/<[^>]*>/g, "")).trim(),
+      price: formatMoney(priceValue),
+      priceValue,
+      originalPrice: originalPriceValue && originalPriceValue > priceValue ? formatMoney(originalPriceValue) : null,
+      discount,
+      currency: "BRL",
+      thumbnail: imageMatch?.[1] ? decodeHtml(imageMatch[1]).replace(/^http:/, "https:") : null,
+      link: decorateAffiliateLink(rawLink, accountId),
+      available: true,
+      availableQuantity: 1,
+      source: "ml" as const,
+    });
+    if (products.length >= limit) break;
+  }
+  return products;
+}
+
 function isUnavailableItem(item: any) {
   const status = String(item?.status ?? "").toLowerCase();
   const qty = Number(item?.available_quantity ?? 0);
@@ -215,6 +276,7 @@ Deno.serve(async (req) => {
       Authorization: `Bearer ${accessToken}`,
     };
 
+    const accountId = record?.account_id ?? null;
     let { res, data } = await getJson(url.toString(), headers);
     if (!res.ok) {
       console.warn("ML public search failed, trying catalog:", res.status, data);
@@ -226,11 +288,11 @@ Deno.serve(async (req) => {
       ({ res, data } = await getJson(catalogUrl.toString(), headers));
       if (!res.ok) {
         console.error("ML search error:", res.status, data);
-        return json({ products: [], total: 0, error: "Não foi possível buscar produtos agora.", fallback: true, debug: { status: res.status } }, 200);
+        const publicOffers = await fetchPublicOffers(q, category, accountId, limit);
+        return json({ products: publicOffers, total: publicOffers.length, fallback: true, debug: { status: res.status } }, 200);
       }
     }
 
-    const accountId = record?.account_id ?? null;
     const results = Array.isArray(data?.results) ? data.results : [];
     const directProducts = results
       .map((p: any) => mapAvailableItem(p, p, accountId))
@@ -278,6 +340,11 @@ Deno.serve(async (req) => {
       })
       .filter(Boolean)
       .slice(0, limit);
+
+    if (products.length === 0) {
+      const publicOffers = await fetchPublicOffers(q, category, accountId, limit);
+      return json({ products: publicOffers, total: publicOffers.length, fallback: true });
+    }
 
     return json({ products, total: data?.paging?.total ?? products.length });
   } catch (err) {
