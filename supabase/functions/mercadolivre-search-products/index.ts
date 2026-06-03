@@ -276,6 +276,7 @@ Deno.serve(async (req) => {
       Authorization: `Bearer ${accessToken}`,
     };
 
+    const accountId = record?.account_id ?? null;
     let { res, data } = await getJson(url.toString(), headers);
     if (!res.ok) {
       console.warn("ML public search failed, trying catalog:", res.status, data);
@@ -287,11 +288,11 @@ Deno.serve(async (req) => {
       ({ res, data } = await getJson(catalogUrl.toString(), headers));
       if (!res.ok) {
         console.error("ML search error:", res.status, data);
-        return json({ products: [], total: 0, error: "Não foi possível buscar produtos agora.", fallback: true, debug: { status: res.status } }, 200);
+        const publicOffers = await fetchPublicOffers(q, category, accountId, limit);
+        return json({ products: publicOffers, total: publicOffers.length, fallback: true, debug: { status: res.status } }, 200);
       }
     }
 
-    const accountId = record?.account_id ?? null;
     const results = Array.isArray(data?.results) ? data.results : [];
     const directProducts = results
       .map((p: any) => mapAvailableItem(p, p, accountId))
