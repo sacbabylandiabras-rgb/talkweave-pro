@@ -387,7 +387,9 @@ Deno.serve(async (req) => {
     if (category) url.searchParams.set("category", category);
     url.searchParams.set("condition", "new");
     url.searchParams.set("buying_mode", "buy_it_now");
-    url.searchParams.set("limit", String(Math.min(limit, 50)));
+    
+    // Aumentamos o limite para 50 para garantir mais resultados
+    url.searchParams.set("limit", "50");
     if (offset > 0) url.searchParams.set("offset", String(offset));
 
     const headers: Record<string, string> = {
@@ -413,7 +415,7 @@ Deno.serve(async (req) => {
       catalogUrl.searchParams.set("site_id", site);
       catalogUrl.searchParams.set("status", "active");
       if (q) catalogUrl.searchParams.set("q", q);
-      catalogUrl.searchParams.set("limit", String(Math.min(limit, 50)));
+      catalogUrl.searchParams.set("limit", "50");
       if (offset > 0) catalogUrl.searchParams.set("offset", String(offset));
       
       const catalogSearch = await getJson(catalogUrl.toString(), headers);
@@ -440,17 +442,18 @@ Deno.serve(async (req) => {
     const results = Array.isArray(data?.results) ? data.results : [];
     const directProducts = results
       .map((p: any) => mapAvailableItem(p, p, accountId))
-      .filter(Boolean)
-      .slice(0, limit);
-    if (directProducts.length > 0) {
+      .filter(Boolean);
+    
+    // Se conseguimos pelo menos 15 produtos diretos, retornamos eles (evita lentidão de enriquecimento se já tem o suficiente)
+    if (directProducts.length >= 15) {
       applyTracker(directProducts);
       return json({ products: directProducts, total: data?.paging?.total ?? directProducts.length });
     }
 
     let enrichedResults = results;
-    let itemIds = Array.from(new Set(enrichedResults.map(extractWinnerItemId).filter(Boolean))).slice(0, limit) as string[];
+    let itemIds = Array.from(new Set(enrichedResults.map(extractWinnerItemId).filter(Boolean))) as string[];
     if (itemIds.length === 0) {
-      const productIds = Array.from(new Set(results.map(extractCatalogProductId).filter(Boolean))).slice(0, limit) as string[];
+      const productIds = Array.from(new Set(results.map(extractCatalogProductId).filter(Boolean))) as string[];
       const productDetails: any[] = [];
       for (let i = 0; i < productIds.length; i += 6) {
         const details = await Promise.all(productIds.slice(i, i + 6).map(async (productId) => {
@@ -460,7 +463,7 @@ Deno.serve(async (req) => {
         productDetails.push(...details.filter(Boolean));
       }
       enrichedResults = productDetails.length > 0 ? productDetails : results;
-      itemIds = Array.from(new Set(enrichedResults.map(extractWinnerItemId).filter(Boolean))).slice(0, limit) as string[];
+      itemIds = Array.from(new Set(enrichedResults.map(extractWinnerItemId).filter(Boolean))) as string[];
     }
 
     const itemsById = new Map<string, any>();
@@ -485,8 +488,7 @@ Deno.serve(async (req) => {
         if (!itemId) return null;
         return mapAvailableItem(itemsById.get(itemId), p, accountId);
       })
-      .filter(Boolean)
-      .slice(0, limit);
+      .filter(Boolean);
 
     if (products.length === 0) {
       const publicOffers = await fetchPublicOffers(q, category, accountId, limit, offset);
