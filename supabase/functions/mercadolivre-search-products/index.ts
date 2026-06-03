@@ -203,16 +203,19 @@ async function fetchPublicOffers(query: string, category: string | null, account
       );
 
       // Try to find the image in data attributes (Mercado Livre often uses lazy loading)
-      const dataSrcMatch = card.match(/(?:data-src|data-actualsrc|srcset|src)="([^"]+)"/i) ||
+      // Check for specific ML lazy load patterns first
+      const dataSrcMatch = card.match(/data-src="([^"]+)"/i) ||
                            card.match(/data-actualsrc="([^"]+)"/i) ||
-                           card.match(/data-src="([^"]+)"/i);
+                           card.match(/srcset="([^",\s]+)/i) ||
+                           card.match(/src="([^"]+)"/i);
                            
-      if (dataSrcMatch && (dataSrcMatch[1].includes("mlstatic.com") || dataSrcMatch[1].includes("mercadolibre.com"))) {
-        thumbnail = dataSrcMatch[1].split(" ")[0]; // Take first from srcset if present
-      } else if (mlImages.length > 0) {
-        // Find the one that looks most like a product image (often D_NQ_NP pattern)
-        const productImg = mlImages.find(img => img.includes("D_NQ_NP")) || mlImages[0];
-        thumbnail = productImg;
+      if (dataSrcMatch) {
+        thumbnail = dataSrcMatch[1].split(" ")[0]; 
+      }
+      
+      // Fallback to mlImages if thumbnail is a placeholder or missing
+      if (!thumbnail || thumbnail.includes("pixel") || thumbnail.includes("blank")) {
+        thumbnail = mlImages.find(img => img.includes("D_NQ_NP")) || mlImages[0];
       }
 
       // 2. Final verification and resolution upgrade
@@ -222,13 +225,14 @@ async function fetchPublicOffers(query: string, category: string | null, account
         // ML patterns: -I.jpg -> -O.jpg or -F.jpg or -V.jpg
         thumbnail = thumbnail.replace(/-[IMW]\.(jpg|jpeg|png|webp)/i, "-O.$1");
         
-        // Ensure it's a valid ML static URL or search-item image
+        // Ensure it's a valid ML static URL
         if (!thumbnail.includes("mlstatic.com") && !thumbnail.includes("mercadolibre.com")) {
-          thumbnail = null;
+          // If it's not ML, but we found an image, we still try to use it as last resort
+          if (!thumbnail.match(/\.(jpg|jpeg|png|webp)/i)) thumbnail = null;
         }
       }
 
-      // If still no thumbnail, try one last regex for common patterns
+      // If still no thumbnail, try one last regex for common patterns in the whole card
       if (!thumbnail) {
         const patternMatch = card.match(/https:\/\/http2\.mlstatic\.com\/D_NQ_NP_[\w-]+\.[a-z]{3,4}/i) ||
                              card.match(/https:\/\/http2\.mlstatic\.com\/D_[\w-]+\.[a-z]{3,4}/i);
