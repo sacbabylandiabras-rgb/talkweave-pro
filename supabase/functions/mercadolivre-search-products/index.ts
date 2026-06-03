@@ -325,14 +325,13 @@ Deno.serve(async (req) => {
     }
 
     // Tenta API pública de busca primeiro (sem precisar de token autenticado)
-    const searchUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search`);
     const q = query || (category && CATEGORY_KEYWORDS[category]) || "promocao";
+    const searchUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search`);
     searchUrl.searchParams.set("q", q);
     if (category) searchUrl.searchParams.set("category", category);
     searchUrl.searchParams.set("limit", String(limit));
     searchUrl.searchParams.set("offset", String(offset));
 
-    // Tenta com token primeiro, se der erro tenta sem token (API pública)
     let searchRes;
     try {
       searchRes = await fetch(searchUrl.toString(), {
@@ -351,10 +350,11 @@ Deno.serve(async (req) => {
       const searchData = await searchRes.json();
       results = searchData.results || [];
       total = searchData.paging?.total || 0;
-      console.log(`Search returned ${results.length} results`);
+      console.log(`Search for "${q}" returned ${results.length} results`);
     }
 
     if (results.length === 0) {
+      console.log("No results from search API, falling back to scraping...");
       const publicProducts = await fetchPublicOffers(query, category, record?.account_id, limit, offset);
       return json({ products: publicProducts, total: 1000, fallback: true });
     }
