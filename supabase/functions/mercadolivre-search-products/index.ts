@@ -260,15 +260,21 @@ async function fetchPublicOffers(query: string, category: string | null, account
   return products;
 }
 
-function isUnavailableItem(item: any) {
+function isUnavailableItem(item: any, strict = true) {
+  if (!item) return true;
   const status = String(item?.status ?? "").toLowerCase();
-  const qty = Number(item?.available_quantity ?? 0);
+  // Só rejeita se explicitamente pausado/fechado
+  if (status && status !== "active" && status !== "") return true;
+  if (!strict) return false; // no modo permissivo, não filtra por qty/buying_mode
+  const qty = Number(item?.available_quantity ?? -1);
+  if (qty === 0) return true; // só rejeita se explicitamente zero
   const buyingMode = String(item?.buying_mode ?? "").toLowerCase();
-  return (status && status !== "active") || qty <= 0 || (buyingMode && buyingMode !== "buy_it_now");
+  if (buyingMode && buyingMode !== "buy_it_now" && buyingMode !== "") return true;
+  return false;
 }
 
-function mapAvailableItem(item: any, fallback: any, accountId: string | number | null) {
-  if (!item || isUnavailableItem(item)) return null;
+function mapAvailableItem(item: any, fallback: any, accountId: string | number | null, strict = true) {
+  if (!item || isUnavailableItem(item, strict)) return null;
 
   const winner = fallback?.buy_box_winner ?? {};
   const priceValue = typeof item?.price === "number"
@@ -544,7 +550,7 @@ Deno.serve(async (req) => {
     // Processamento inicial dos produtos diretos com reordenação por matching
     const processAndSortProducts = (items: any[]) => {
       const mapped = items
-        .map((p: any) => mapAvailableItem(p, p, accountId))
+        .map((p: any) => mapAvailableItem(p, p, accountId, false))
         .filter(Boolean);
       
       if (q && q.length > 1) {
@@ -601,7 +607,7 @@ Deno.serve(async (req) => {
       .map((p: any) => {
         const itemId = extractWinnerItemId(p);
         if (!itemId) return null;
-        return mapAvailableItem(itemsById.get(itemId), p, accountId);
+        return mapAvailableItem(itemsById.get(itemId) ?? p, p, accountId, false);
       })
       .filter(Boolean);
 
