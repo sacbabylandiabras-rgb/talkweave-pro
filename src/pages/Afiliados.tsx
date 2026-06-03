@@ -274,8 +274,14 @@ export default function Afiliados() {
       const all: AffiliateProduct[] = [];
       let lastData: any = null;
       if (connected.ml) {
+        console.log("Searching for:", searchQuery.trim());
         const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
-          body: { query: searchQuery.trim(), limit: 50, offset: nextOffset },
+          body: { 
+            query: searchQuery.trim(), 
+            mode: "search", // Forçar explicitamente o modo search
+            limit: 50, 
+            offset: nextOffset 
+          },
         });
         if (error) throw new Error(error.message);
         lastData = data;
