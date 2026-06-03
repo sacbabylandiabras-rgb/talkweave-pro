@@ -279,7 +279,7 @@ function mapAvailableItem(item: any, fallback: any, accountId: string | number |
     ? item.original_price
     : (typeof winner?.original_price === "number" ? winner.original_price : null);
   const currency = item?.currency_id || winner?.currency_id || fallback?.currency_id || "BRL";
-  const picture = item?.secure_thumbnail || item?.thumbnail || item?.pictures?.[0]?.secure_url || item?.pictures?.[0]?.url || fallback?.thumbnail;
+  const picture = item?.pictures?.[0]?.secure_url || item?.pictures?.[0]?.url || item?.secure_thumbnail || item?.thumbnail || fallback?.thumbnail;
   const link = decorateAffiliateLink(item?.permalink || null, accountId);
   if (!link) return null;
 
