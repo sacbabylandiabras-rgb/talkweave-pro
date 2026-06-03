@@ -188,7 +188,7 @@ function safeText(value: unknown, maxLength = 80) {
 function keywordForRequest(mode: string, query: string, category: string | null) {
   if (query) return query;
   if (category && CATEGORY_KEYWORDS[category]) return CATEGORY_KEYWORDS[category];
-  return mode === "deals" ? "promocao oferta desconto" : "";
+  return mode === "deals" ? "ofertas" : "";
 }
 
 async function getJson(url: string, headers: Record<string, string>) {
@@ -391,6 +391,7 @@ Deno.serve(async (req) => {
     
     // Aumentamos o limite para 50 para garantir mais resultados
     url.searchParams.set("limit", "50");
+    url.searchParams.set("sort", "relevance");
     if (offset > 0) url.searchParams.set("offset", String(offset));
 
     const headers: Record<string, string> = {
@@ -416,6 +417,7 @@ Deno.serve(async (req) => {
       catalogUrl.searchParams.set("site_id", site);
       catalogUrl.searchParams.set("status", "active");
       if (q) catalogUrl.searchParams.set("q", q);
+      catalogUrl.searchParams.set("sort", "relevance");
       catalogUrl.searchParams.set("limit", "50");
       if (offset > 0) catalogUrl.searchParams.set("offset", String(offset));
       
