@@ -197,6 +197,7 @@ const App = () => (
                 <Route path="/shopify-oauth-callback" element={<ShopifyOAuthCallback />} />
                 <Route path="/shopify/callback" element={<ShopifyEmbedded />} />
                 <Route path="/shopify/embedded" element={<ShopifyEmbedded />} />
+                <Route path="/afiliados/callback/mercadolivre" element={<AfiliadosCallback />} />
                 <Route element={<DashboardLayout />}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/gateway-checkout/dashboard" element={<KycWrap><PayDashboard /></KycWrap>} />
