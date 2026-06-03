@@ -386,9 +386,12 @@ Deno.serve(async (req) => {
     
     // Tenta uma busca mais precisa se o query for grande (provavelmente um nome completo)
     if (q) {
-      url.searchParams.set("q", q);
-      // Se tiver mais de 3 palavras, vamos tentar ser bem específico
-      if (q.split(" ").length > 3) {
+      // Normalização básica para busca: remove excesso de espaços
+      const normalizedQuery = q.trim().replace(/\s+/g, " ");
+      url.searchParams.set("q", normalizedQuery);
+      
+      // Se tiver muitas palavras, priorizar relevância total
+      if (normalizedQuery.split(" ").length > 3) {
         url.searchParams.set("sort", "relevance");
       }
     }
@@ -404,6 +407,40 @@ Deno.serve(async (req) => {
 
     const accountId = record?.account_id ?? null;
     const trackedUserId = userData.user.id;
+    
+    // Função auxiliar para calcular score de matching do título
+    const calculateMatchScore = (productName: string, searchTerm: string) => {
+      const name = productName.toLowerCase();
+      const term = searchTerm.toLowerCase();
+      
+      // Match exato (case insensitive)
+      if (name === term) return 1000;
+      
+      // Contém a frase inteira na mesma ordem
+      if (name.includes(term)) return 500;
+      
+      // Match de palavras individuais preservando ordem
+      const termWords = term.split(/\s+/).filter(w => w.length > 2);
+      let score = 0;
+      let lastIndex = -1;
+      let wordsInOrder = 0;
+      
+      for (const word of termWords) {
+        const index = name.indexOf(word, lastIndex + 1);
+        if (index > lastIndex) {
+          wordsInOrder++;
+          lastIndex = index;
+        }
+      }
+      
+      // Bônus proporcional a palavras encontradas na ordem correta
+      if (termWords.length > 0) {
+        score += (wordsInOrder / termWords.length) * 100;
+      }
+      
+      return score;
+    };
+
     const applyTracker = (items: any[]) => {
       for (const p of items) {
         if (p?.link) p.link = wrapInTracker(p.link, trackedUserId);
@@ -444,13 +481,27 @@ Deno.serve(async (req) => {
 
     const results = Array.isArray(data?.results) ? data.results : [];
     
-    // Adicionamos uma verificação extra para garantir que o resultado mais relevante (primeiro) seja incluído
-    const directProducts = results
-      .map((p: any) => mapAvailableItem(p, p, accountId))
-      .filter(Boolean);
+    // Processamento inicial dos produtos diretos com reordenação por matching
+    const processAndSortProducts = (items: any[]) => {
+      const mapped = items
+        .map((p: any) => mapAvailableItem(p, p, accountId))
+        .filter(Boolean);
+      
+      if (q && q.length > 5) {
+        mapped.sort((a, b) => {
+          const scoreA = calculateMatchScore(a.name, q);
+          const scoreB = calculateMatchScore(b.name, q);
+          return scoreB - scoreA;
+        });
+      }
+      return mapped;
+    };
+
+    const directProducts = processAndSortProducts(results);
     
     // Se temos produtos diretos e a busca foi por termo específico, vamos retornar logo
     if (directProducts.length > 0 && query && query.length > 5) {
+      // Se o melhor resultado tem um score muito alto, prioriza ele no topo
       applyTracker(directProducts);
       return json({ products: directProducts, total: data?.paging?.total ?? 1000 });
     }
@@ -459,7 +510,6 @@ Deno.serve(async (req) => {
       applyTracker(directProducts);
       return json({ products: directProducts, total: data?.paging?.total ?? 1000 });
     }
-
 
     let enrichedResults = results;
     let itemIds = Array.from(new Set(enrichedResults.map(extractWinnerItemId).filter(Boolean))) as string[];
@@ -478,7 +528,6 @@ Deno.serve(async (req) => {
     }
 
     const itemsById = new Map<string, any>();
-    // Processamos todos os IDs encontrados para não perder nenhum produto
     for (let i = 0; i < itemIds.length; i += 20) {
       const ids = itemIds.slice(i, i + 20);
       const itemsRes = await fetch(`https://api.mercadolibre.com/items?ids=${encodeURIComponent(ids.join(","))}`, { headers });
@@ -494,7 +543,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const products = enrichedResults
+    let products = enrichedResults
       .map((p: any) => {
         const itemId = extractWinnerItemId(p);
         if (!itemId) return null;
@@ -504,8 +553,17 @@ Deno.serve(async (req) => {
 
     if (products.length === 0) {
       const publicOffers = await fetchPublicOffers(q, category, accountId, limit, offset);
+      // Reordena ofertas públicas também
+      if (q && q.length > 5) {
+        publicOffers.sort((a: any, b: any) => calculateMatchScore(b.name, q) - calculateMatchScore(a.name, q));
+      }
       applyTracker(publicOffers);
       return json({ products: publicOffers, total: 1000, fallback: true });
+    }
+
+    // Ordenação final para resultados enriquecidos
+    if (q && q.length > 5) {
+      products.sort((a, b) => calculateMatchScore(b.name, q) - calculateMatchScore(a.name, q));
     }
 
     applyTracker(products);
