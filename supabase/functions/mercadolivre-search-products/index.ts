@@ -37,35 +37,33 @@ function formatMoney(value: number, currency = "BRL") {
   return value.toLocaleString("pt-BR", { style: "currency", currency });
 }
 
-function decorateAffiliateLink(
-  permalink: string | null,
-  accountId: string | number | null,
-  userId?: string | null,
-) {
+function decorateAffiliateLink(permalink: string | null, accountId: string | number | null) {
   if (!permalink) return null;
-  let destination = permalink;
   try {
     const u = new URL(permalink);
     if (accountId) {
       u.searchParams.set("matt_tool", String(accountId));
       u.searchParams.set("matt_word", "zaplynx");
     }
-    destination = u.toString();
+    return u.toString();
   } catch {
-    // mantém destino original
+    return permalink;
   }
+}
 
-  // Envelopa no encurtador interno do ZapLynx para rastreio de cliques (link_clicks)
+// Envelopa o link final no encurtador interno do ZapLynx para rastreio (link_clicks)
+function wrapInTracker(link: string | null, userId: string | null): string | null {
+  if (!link) return null;
   try {
     const tracker = new URL("https://go.zaplynxpro.online/r");
-    tracker.searchParams.set("url", destination);
+    tracker.searchParams.set("url", link);
     tracker.searchParams.set("src", "afiliado");
     tracker.searchParams.set("flow", "mercadolivre");
     tracker.searchParams.set("btn", "produto");
     if (userId) tracker.searchParams.set("uid", userId);
     return tracker.toString();
   } catch {
-    return destination;
+    return link;
   }
 }
 
