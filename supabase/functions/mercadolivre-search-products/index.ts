@@ -163,7 +163,6 @@ async function fetchPublicOffers(query: string, category: string | null, account
     const html = await res.text();
     
     // Improved poly-card parsing for Mercado Livre
-    // We target both the generic list items and the new poly-card layout
     const cards = html.match(/<div\s+class="[^"]*poly-card[^"]*"[\s\S]*?(?=<div\s+class="[^"]*poly-card[^"]*"|<\/main>|<\/section>|$)/g) || 
                   html.match(/<div\s+class="[^"]*ui-search-result__wrapper[^"]*"[\s\S]*?(?=<div\s+class="[^"]*ui-search-result__wrapper[^"]*"|<\/ol>|$)/g) ||
                   html.match(/<li\s+class="[^"]*ui-search-layout__item[^"]*"[\s\S]*?(?=<li\s+class="[^"]*ui-search-layout__item[^"]*"|<\/ol>|$)/g) ||
@@ -173,13 +172,13 @@ async function fetchPublicOffers(query: string, category: string | null, account
 
     const products: any[] = [];
     for (const card of cards) {
-      // Look for the product link
+      // 1. Look for the product link
       const linkMatch = card.match(/href="(https:\/\/[^"]+MLB[^"]+)"/);
       if (!linkMatch) continue;
       
       const rawLink = linkMatch[1];
 
-      // Look for the title
+      // 2. Look for the title
       const titleMatch = card.match(/class="[^"]*title[^"]*"[^>]*>([\s\S]*?)<\/(?:a|h2)>/i) || 
                          card.match(/class="[^"]*ui-search-item__title[^"]*"[^>]*>([\s\S]*?)<\/(?:a|h2)>/i) ||
                          card.match(/aria-label="([^"]+)"/i) ||
@@ -187,37 +186,31 @@ async function fetchPublicOffers(query: string, category: string | null, account
       
       const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, "").trim() : "Produto Mercado Livre";
 
-      // CRITICAL: Improved thumbnail detection with aggressive fallback
+      // 3. CRITICAL: Broadest possible image detection
       let thumbnail = null;
       
-      // 1. Check for specific ML lazy load patterns and data attributes first
-      const dataSrcMatch = card.match(/data-src="([^"]+)"/i) ||
-                           card.match(/data-actualsrc="([^"]+)"/i) ||
-                           card.match(/srcset="([^",\s]+)/i) ||
-                           card.match(/src="([^"]+)"/i);
-                           
-      if (dataSrcMatch) {
-        const potentialUrl = dataSrcMatch[1].split(" ")[0]; 
-        if (potentialUrl.includes("mlstatic.com") && !potentialUrl.includes("pixel") && !potentialUrl.includes("blank")) {
-           thumbnail = potentialUrl;
-        }
-      }
+      // Try to find ANY mlstatic image URL that looks like a product thumbnail
+      const allPossibleImages = card.match(/https?:\/\/http2\.mlstatic\.com\/D_NQ_NP_(?:[\w-]+)\.[a-z]{3,4}/gi) ||
+                               card.match(/https?:\/\/[^"'\s<>]+?\.(?:jpg|jpeg|png|webp)/gi) || [];
+      
+      const validImages = allPossibleImages.filter(url => 
+        (url.includes("mlstatic.com") || url.includes("mercadolibre.com")) && 
+        !url.includes("pixel") && 
+        !url.includes("blank") && 
+        !url.includes("dot.gif") &&
+        !url.includes("placeholder")
+      );
 
-      // 2. Find all image-like URLs in the card as fallback
-      if (!thumbnail || thumbnail.includes("pixel") || thumbnail.includes("blank")) {
-        const allUrls = card.match(/https?:\/\/http2\.mlstatic\.com\/D_NQ_NP_[\w-]+\.[a-z]{3,4}/gi) ||
-                        card.match(/https?:\/\/[^"'\s<>]+?\.(?:jpg|jpeg|png|webp|gif)/gi) || [];
-        
-        // Filter for ML static images which are typically the product photos
-        const mlImages = allUrls.filter(url => 
-          (url.includes("mlstatic.com") || url.includes("mercadolibre.com")) && 
-          !url.includes("pixel") && 
-          !url.includes("blank") && 
-          !url.includes("placeholder") &&
-          !url.includes("dot.gif")
-        );
-        
-        thumbnail = mlImages[0] || null;
+      if (validImages.length > 0) {
+        thumbnail = validImages[0];
+      } else {
+        // Search inside specific attributes if regex fails to find full URLs
+        const attrMatch = card.match(/src="([^"]+)"/i) || 
+                         card.match(/data-src="([^"]+)"/i) || 
+                         card.match(/data-actualsrc="([^"]+)"/i);
+        if (attrMatch) {
+          thumbnail = attrMatch[1];
+        }
       }
       
       // 3. Final verification and resolution upgrade
