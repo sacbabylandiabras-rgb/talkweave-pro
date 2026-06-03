@@ -89,7 +89,9 @@ Deno.serve(async (req) => {
     authUrl.searchParams.set("redirect_uri", REDIRECT_URI);
     authUrl.searchParams.set("state", state);
     // Forçar a tela de login e permissões do Mercado Livre
-    authUrl.searchParams.set("prompt", "login consent");
+    // Adicionando explicitamente PKCE e parâmetros de acesso se necessário no futuro
+    authUrl.searchParams.set("prompt", "login");
+    authUrl.searchParams.set("consent", "true");
 
     return json({ authUrl: authUrl.toString() });
   } catch (err) {
