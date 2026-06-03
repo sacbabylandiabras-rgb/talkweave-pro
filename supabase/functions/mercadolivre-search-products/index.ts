@@ -164,9 +164,10 @@ async function fetchPublicOffers(query: string, category: string | null, account
     
     // Improved poly-card parsing for Mercado Livre
     // We target both the generic list items and the new poly-card layout
-    const cards = html.match(/<div\s+class="[^"]*poly-card[^"]*"[\s\S]*?(?=<div\s+class="[^"]*poly-card[^"]*"|<\/main>|$)/g) || 
+    const cards = html.match(/<div\s+class="[^"]*poly-card[^"]*"[\s\S]*?(?=<div\s+class="[^"]*poly-card[^"]*"|<\/main>|<\/section>|$)/g) || 
                   html.match(/<div\s+class="[^"]*ui-search-result__wrapper[^"]*"[\s\S]*?(?=<div\s+class="[^"]*ui-search-result__wrapper[^"]*"|<\/ol>|$)/g) ||
-                  html.match(/<li\s+class="[^"]*ui-search-layout__item[^"]*"[\s\S]*?(?=<li\s+class="[^"]*ui-search-layout__item[^"]*"|<\/ol>|$)/g) || [];
+                  html.match(/<li\s+class="[^"]*ui-search-layout__item[^"]*"[\s\S]*?(?=<li\s+class="[^"]*ui-search-layout__item[^"]*"|<\/ol>|$)/g) ||
+                  html.match(/<div\s+class="[^"]*promotion-item[^"]*"[\s\S]*?(?=<div\s+class="[^"]*promotion-item[^"]*"|<\/section>|$)/g) || [];
     
     console.log(`Found ${cards.length} cards via scraping`);
 
@@ -190,37 +191,47 @@ async function fetchPublicOffers(query: string, category: string | null, account
       let thumbnail = null;
       
       // 1. Find all image-like URLs in the card
-      const allUrls = card.match(/https?:\/\/[^"'\s<>]+?\.(?:jpg|jpeg|png|webp)/gi) || [];
+      const allUrls = card.match(/https?:\/\/[^"'\s<>]+?\.(?:jpg|jpeg|png|webp|gif)/gi) || [];
       
       // Filter for ML static images which are typically the product photos
       const mlImages = allUrls.filter(url => 
-        url.includes("mlstatic.com") && 
+        (url.includes("mlstatic.com") || url.includes("mercadolibre.com")) && 
         !url.includes("pixel") && 
         !url.includes("blank") && 
-        !url.includes("placeholder")
+        !url.includes("placeholder") &&
+        !url.includes("dot.gif")
       );
 
-      if (mlImages.length > 0) {
-        // Preference for data-src/src pattern but if not found, take the first ML image
-        const imgTagMatch = card.match(/<img[^>]+(?:data-src|src|data-actualsrc)="([^"]+)"/i);
-        thumbnail = imgTagMatch ? imgTagMatch[1] : mlImages[0];
+      // Try to find the image in data attributes (Mercado Livre often uses lazy loading)
+      const dataSrcMatch = card.match(/(?:data-src|data-actualsrc|srcset|src)="([^"]+)"/i) ||
+                           card.match(/data-actualsrc="([^"]+)"/i) ||
+                           card.match(/data-src="([^"]+)"/i);
+                           
+      if (dataSrcMatch && (dataSrcMatch[1].includes("mlstatic.com") || dataSrcMatch[1].includes("mercadolibre.com"))) {
+        thumbnail = dataSrcMatch[1].split(" ")[0]; // Take first from srcset if present
+      } else if (mlImages.length > 0) {
+        // Find the one that looks most like a product image (often D_NQ_NP pattern)
+        const productImg = mlImages.find(img => img.includes("D_NQ_NP")) || mlImages[0];
+        thumbnail = productImg;
       }
 
       // 2. Final verification and resolution upgrade
       if (thumbnail) {
         thumbnail = thumbnail.replace(/^http:/, "https:");
-        // Improve resolution from -I.jpg (small) to -O.jpg (large) or -V.jpg
+        // Improve resolution: try to get the largest version
+        // ML patterns: -I.jpg -> -O.jpg or -F.jpg or -V.jpg
         thumbnail = thumbnail.replace(/-[IMW]\.(jpg|jpeg|png|webp)/i, "-O.$1");
         
-        // Ensure it's a valid ML static URL
-        if (!thumbnail.includes("mlstatic.com")) {
+        // Ensure it's a valid ML static URL or search-item image
+        if (!thumbnail.includes("mlstatic.com") && !thumbnail.includes("mercadolibre.com")) {
           thumbnail = null;
         }
       }
 
-      // If still no thumbnail, try one last regex for the pattern D_NQ_NP_
+      // If still no thumbnail, try one last regex for common patterns
       if (!thumbnail) {
-        const patternMatch = card.match(/https:\/\/http2\.mlstatic\.com\/D_NQ_NP_[\w-]+\.[a-z]{3,4}/i);
+        const patternMatch = card.match(/https:\/\/http2\.mlstatic\.com\/D_NQ_NP_[\w-]+\.[a-z]{3,4}/i) ||
+                             card.match(/https:\/\/http2\.mlstatic\.com\/D_[\w-]+\.[a-z]{3,4}/i);
         if (patternMatch) thumbnail = patternMatch[0];
       }
 
