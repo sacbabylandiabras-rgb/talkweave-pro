@@ -349,22 +349,42 @@ export default function Afiliados() {
 
     setSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke("send-message", {
-        body: {
-          phone: destination.trim(),
-          message: previewMessage,
-          instanceId: selectedInstanceId || undefined,
-        },
-      });
+      // Se tiver apenas um produto, envia como imagem com legenda
+      if (selectedProducts.length === 1) {
+        const product = selectedProducts[0];
+        const caption = `🛍️ *${product.name}*\n💰 ${product.price}\n🔗 ${product.link}\n\n_Enviado via ZapLynx_`;
+        
+        const { data, error } = await supabase.functions.invoke("send-message", {
+          body: {
+            phone: destination.trim(),
+            message: caption,
+            mediaUrl: product.thumbnail || undefined,
+            mediaType: product.thumbnail ? "image" : undefined,
+            instanceId: selectedInstanceId || undefined,
+          },
+        });
 
-      if (error) {
-        if (error.message?.includes("whatsapp is disconnected") || (data as any)?.error?.includes("disconnected")) {
-          throw new Error("O WhatsApp desta instância está desconectado. Por favor, conecte o celular em Dispositivos.");
+        if (error) throw new Error(error.message);
+        toast.success(`Oferta enviada com sucesso para ${destination}!`);
+      } else {
+        // Se tiver vários, envia a mensagem de texto normalmente
+        const { data, error } = await supabase.functions.invoke("send-message", {
+          body: {
+            phone: destination.trim(),
+            message: previewMessage,
+            instanceId: selectedInstanceId || undefined,
+          },
+        });
+
+        if (error) {
+          if (error.message?.includes("whatsapp is disconnected") || (data as any)?.error?.includes("disconnected")) {
+            throw new Error("O WhatsApp desta instância está desconectado. Por favor, conecte o celular em Dispositivos.");
+          }
+          throw new Error(error.message);
         }
-        throw new Error(error.message);
+        
+        toast.success(`Mensagem enviada com sucesso para ${destination}!`);
       }
-      
-      toast.success(`Mensagem enviada com sucesso para ${destination}!`);
     } catch (e) {
       console.error("Erro ao enviar mensagem:", e);
       toast.error(e instanceof Error ? e.message : "Erro ao enviar mensagem via WhatsApp.");
