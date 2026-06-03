@@ -222,6 +222,7 @@ const App = () => (
                   <Route path="/extrair-membros" element={<PaidRouteGuard><ExtractMembers /></PaidRouteGuard>} />
                   <Route path="/comunidades" element={<PaidRouteGuard><Comunidades /></PaidRouteGuard>} />
                   <Route path="/criar-grupos" element={<PaidRouteGuard><CriarGrupos /></PaidRouteGuard>} />
+                  <Route path="/afiliados" element={<PaidRouteGuard><Afiliados /></PaidRouteGuard>} />
                    <Route path="/canais" element={<PaidRouteGuard><Canais /></PaidRouteGuard>} />
                    <Route path="/prospeccao" element={<Prospeccao />} />
                    <Route path="/equipe" element={<Equipe />} />
