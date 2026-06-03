@@ -1,0 +1,335 @@
+import { useMemo, useState } from "react";
+import { ShoppingBag, Link as LinkIcon, Loader2, Check, Send, Search, Package } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+type Source = "ml" | "shopee" | "amazon";
+
+interface AffiliateProduct {
+  id: number;
+  name: string;
+  price: string;
+  source: Source;
+  link: string;
+}
+
+const MOCK_PRODUCTS: AffiliateProduct[] = [
+  { id: 1, name: "Fone Bluetooth JBL Tune 510BT", price: "R$ 189,90", source: "ml", link: "https://mercadolivre.com.br/p/MLB1234" },
+  { id: 2, name: "Tênis Nike Air Max 270 Masculino", price: "R$ 479,99", source: "shopee", link: "https://shopee.com.br/p/5678" },
+  { id: 3, name: "Câmera de Segurança TP-Link Tapo", price: "R$ 219,00", source: "amazon", link: "https://amzn.to/3abc" },
+  { id: 4, name: "Smartwatch Samsung Galaxy Watch 6", price: "R$ 1.299,00", source: "ml", link: "https://mercadolivre.com.br/p/MLB9999" },
+  { id: 5, name: "Carregador Turbo 65W USB-C GaN", price: "R$ 89,90", source: "shopee", link: "https://shopee.com.br/p/1122" },
+  { id: 6, name: "Livro: O Poder do Hábito", price: "R$ 34,90", source: "amazon", link: "https://amzn.to/4def" },
+];
+
+const SOURCE_META: Record<Source, { label: string; className: string }> = {
+  ml: { label: "ML", className: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100" },
+  shopee: { label: "Shopee", className: "bg-orange-100 text-orange-700 hover:bg-orange-100" },
+  amazon: { label: "Amazon", className: "bg-zinc-200 text-zinc-800 hover:bg-zinc-200" },
+};
+
+interface MlCreds { clientId: string; clientSecret: string }
+interface ShopeeCreds { appId: string; secretKey: string; affiliateId: string }
+interface AmazonCreds { accessKey: string; secretKey: string; associateTag: string; locale: string }
+
+export default function Afiliados() {
+  const [mlCreds, setMlCreds] = useState<MlCreds>({ clientId: "", clientSecret: "" });
+  const [shopeeCreds, setShopeeCreds] = useState<ShopeeCreds>({ appId: "", secretKey: "", affiliateId: "" });
+  const [amazonCreds, setAmazonCreds] = useState<AmazonCreds>({ accessKey: "", secretKey: "", associateTag: "", locale: "BR" });
+
+  const [connected, setConnected] = useState<Record<Source, boolean>>({ ml: false, shopee: false, amazon: false });
+  const [connecting, setConnecting] = useState<Source | null>(null);
+
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [products, setProducts] = useState<AffiliateProduct[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  const [destination, setDestination] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const handleConnect = async (source: Source) => {
+    const valid =
+      source === "ml" ? mlCreds.clientId && mlCreds.clientSecret :
+      source === "shopee" ? shopeeCreds.appId && shopeeCreds.secretKey && shopeeCreds.affiliateId :
+      amazonCreds.accessKey && amazonCreds.secretKey && amazonCreds.associateTag && amazonCreds.locale;
+
+    if (!valid) {
+      toast.error("Preencha todas as credenciais antes de conectar.");
+      return;
+    }
+
+    setConnecting(source);
+    await new Promise((r) => setTimeout(r, 1500));
+    setConnected((prev) => ({ ...prev, [source]: true }));
+    setConnecting(null);
+    toast.success(`Marketplace conectado com sucesso!`);
+  };
+
+  const fetchProducts = async () => {
+    const anyConnected = Object.values(connected).some(Boolean);
+    if (!anyConnected) {
+      toast.error("Conecte ao menos um marketplace primeiro.");
+      return;
+    }
+    setLoadingProducts(true);
+    await new Promise((r) => setTimeout(r, 1800));
+    const filtered = MOCK_PRODUCTS.filter((p) => connected[p.source]);
+    setProducts(filtered);
+    setLoadingProducts(false);
+    toast.success(`${filtered.length} produtos encontrados.`);
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectedProducts = useMemo(
+    () => products.filter((p) => selectedIds.has(p.id)),
+    [products, selectedIds],
+  );
+
+  const previewMessage = useMemo(() => {
+    if (selectedProducts.length === 0) return "Selecione ao menos um produto para gerar a mensagem.";
+    const items = selectedProducts
+      .map((p) => `🛍️ *${p.name}*\n💰 ${p.price}\n🔗 ${p.link}`)
+      .join("\n\n");
+    return `✨ *Ofertas selecionadas para você!*\n\n${items}\n\n_Enviado via ZapLynx_`;
+  }, [selectedProducts]);
+
+  const handleSend = async () => {
+    if (selectedProducts.length === 0) {
+      toast.error("Selecione ao menos um produto.");
+      return;
+    }
+    if (!destination.trim()) {
+      toast.error("Informe o número ou grupo do WhatsApp.");
+      return;
+    }
+    setSending(true);
+    await new Promise((r) => setTimeout(r, 2000));
+    setSending(false);
+    toast.success(`Mensagem enviada para ${destination} via ZapLynx!`);
+  };
+
+  const StatusDot = ({ active }: { active: boolean }) => (
+    <span
+      className={cn(
+        "inline-block w-2.5 h-2.5 rounded-full",
+        active ? "bg-green-500 shadow-[0_0_0_3px_rgba(34,197,94,0.2)]" : "bg-red-500",
+      )}
+    />
+  );
+
+  return (
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      <div>
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <ShoppingBag className="w-6 h-6 text-primary" />
+          Afiliados
+        </h1>
+        <p className="text-muted-foreground">
+          Conecte marketplaces, busque produtos e envie ofertas pelo ZapLynx.
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Conexões com marketplaces</CardTitle>
+          <CardDescription>Configure suas credenciais de afiliado.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="ml">
+            <TabsList className="grid grid-cols-3 w-full md:w-auto">
+              <TabsTrigger value="ml" className="gap-2">
+                <StatusDot active={connected.ml} /> Mercado Livre
+              </TabsTrigger>
+              <TabsTrigger value="shopee" className="gap-2">
+                <StatusDot active={connected.shopee} /> Shopee
+              </TabsTrigger>
+              <TabsTrigger value="amazon" className="gap-2">
+                <StatusDot active={connected.amazon} /> Amazon
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="ml" className="space-y-4 pt-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Client ID</Label>
+                  <Input value={mlCreds.clientId} onChange={(e) => setMlCreds({ ...mlCreds, clientId: e.target.value })} placeholder="Seu Client ID" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Client Secret</Label>
+                  <Input type="password" value={mlCreds.clientSecret} onChange={(e) => setMlCreds({ ...mlCreds, clientSecret: e.target.value })} placeholder="Seu Client Secret" />
+                </div>
+              </div>
+              <Button onClick={() => handleConnect("ml")} disabled={connecting === "ml"}>
+                {connecting === "ml" ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
+                {connected.ml ? "Reconectar" : "Conectar"}
+              </Button>
+            </TabsContent>
+
+            <TabsContent value="shopee" className="space-y-4 pt-4">
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>App ID</Label>
+                  <Input value={shopeeCreds.appId} onChange={(e) => setShopeeCreds({ ...shopeeCreds, appId: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Secret Key</Label>
+                  <Input type="password" value={shopeeCreds.secretKey} onChange={(e) => setShopeeCreds({ ...shopeeCreds, secretKey: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Affiliate ID</Label>
+                  <Input value={shopeeCreds.affiliateId} onChange={(e) => setShopeeCreds({ ...shopeeCreds, affiliateId: e.target.value })} />
+                </div>
+              </div>
+              <Button onClick={() => handleConnect("shopee")} disabled={connecting === "shopee"}>
+                {connecting === "shopee" ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
+                {connected.shopee ? "Reconectar" : "Conectar"}
+              </Button>
+            </TabsContent>
+
+            <TabsContent value="amazon" className="space-y-4 pt-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Access Key</Label>
+                  <Input value={amazonCreds.accessKey} onChange={(e) => setAmazonCreds({ ...amazonCreds, accessKey: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Secret Key</Label>
+                  <Input type="password" value={amazonCreds.secretKey} onChange={(e) => setAmazonCreds({ ...amazonCreds, secretKey: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Associate Tag</Label>
+                  <Input value={amazonCreds.associateTag} onChange={(e) => setAmazonCreds({ ...amazonCreds, associateTag: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Locale</Label>
+                  <Input value={amazonCreds.locale} onChange={(e) => setAmazonCreds({ ...amazonCreds, locale: e.target.value })} />
+                </div>
+              </div>
+              <Button onClick={() => handleConnect("amazon")} disabled={connecting === "amazon"}>
+                {connecting === "amazon" ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
+                {connected.amazon ? "Reconectar" : "Conectar"}
+              </Button>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
+          <div>
+            <CardTitle className="text-lg">Produtos de afiliado</CardTitle>
+            <CardDescription>
+              {selectedIds.size > 0
+                ? `${selectedIds.size} produto(s) selecionado(s)`
+                : "Nenhum produto selecionado"}
+            </CardDescription>
+          </div>
+          <Button onClick={fetchProducts} disabled={loadingProducts}>
+            {loadingProducts ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+            Buscar produtos
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {loadingProducts ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              Buscando produtos...
+            </div>
+          ) : products.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-2 text-muted-foreground">
+              <Package className="w-10 h-10 opacity-40" />
+              Clique em "Buscar produtos" para começar.
+            </div>
+          ) : (
+            <div
+              className="grid gap-4"
+              style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}
+            >
+              {products.map((p) => {
+                const isSelected = selectedIds.has(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => toggleSelect(p.id)}
+                    className={cn(
+                      "relative text-left rounded-2xl border bg-card p-3 flex flex-col gap-2 transition-all hover:shadow-md",
+                      isSelected
+                        ? "border-primary ring-2 ring-primary/30"
+                        : "border-primary/15 hover:border-primary/40",
+                    )}
+                  >
+                    {isSelected && (
+                      <span className="absolute top-2 right-2 w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center shadow">
+                        <Check className="w-4 h-4" />
+                      </span>
+                    )}
+                    <div className="aspect-square w-full rounded-xl bg-muted flex items-center justify-center">
+                      <Package className="w-10 h-10 text-muted-foreground/50" />
+                    </div>
+                    <p className="text-sm font-medium leading-snug line-clamp-2 min-h-[2.5rem]">
+                      {p.name}
+                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-primary text-sm">{p.price}</span>
+                      <Badge className={cn("text-[10px]", SOURCE_META[p.source].className)} variant="secondary">
+                        {SOURCE_META[p.source].label}
+                      </Badge>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Send className="w-5 h-5 text-primary" />
+            Enviar via ZapLynx
+          </CardTitle>
+          <CardDescription>Prévia da mensagem que será enviada no WhatsApp.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Textarea
+            value={previewMessage}
+            readOnly
+            className="min-h-[200px] font-mono text-xs bg-muted/40"
+          />
+          <div className="grid md:grid-cols-[1fr_auto] gap-3">
+            <div className="space-y-2">
+              <Label>Número ou grupo do WhatsApp</Label>
+              <Input
+                placeholder="5511999999999"
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+              />
+            </div>
+            <div className="flex items-end">
+              <Button onClick={handleSend} disabled={sending} className="w-full md:w-auto">
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Enviar via ZapLynx
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
