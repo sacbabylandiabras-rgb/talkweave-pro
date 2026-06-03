@@ -573,9 +573,9 @@ Deno.serve(async (req) => {
         res = catalogSearch.res;
         data = catalogSearch.data;
       } else {
-        // Se ainda falhar, busca ofertas públicas (scraping/HTML) como último recurso
-        console.warn("Catalog search falhou ou sem resultados. Buscando ofertas públicas...");
-        const publicOffers = await fetchPublicOffers(q, category, accountId, limit, offset);
+        // Se ainda falhar, aguarda as ofertas públicas
+        console.warn("Catalog search falhou ou sem resultados. Aguardando ofertas públicas...");
+        const publicOffers = await publicOffersPromise;
         console.log(`Public offers found: ${publicOffers.length}`);
         
         if (publicOffers.length > 0) {
