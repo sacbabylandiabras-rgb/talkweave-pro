@@ -236,20 +236,42 @@ async function fetchPublicOffers(query: string, category: string | null, account
   });
   if (!res.ok) return [];
   const html = await res.text();
-  const cards = html.match(/<div class="andes-card poly-card[\s\S]*?(?=<div class="andes-card poly-card|<\/main>|$)/g) ?? [];
+  const cards = html.match(/<div class="andes-card poly-card[\s\S]*?(?=<div class="andes-card poly-card|<\/main>|$)/g) 
+             || html.match(/<li class="ui-search-layout__item[\s\S]*?(?=<li class="ui-search-layout__item|<\/ol>|$)/g)
+             || [];
+             
+  console.log(`FetchPublicOffers: HTML length: ${html.length}, Cards found: ${cards.length}`);
+  
   const products: any[] = [];
   for (const card of cards) {
     const linkMatch = card.match(/href="(https:\/\/(?:produto\.mercadolivre\.com\.br|www\.mercadolivre\.com\.br)\/[^"]+MLB[^"]+)"/);
-    const titleMatch = card.match(/class="poly-component__title"[^>]*>([\s\S]*?)<\/a>/);
+    const titleMatch = card.match(/class="(?:poly-component__title|ui-search-item__title)"[^>]*>([\s\S]*?)<\/a>/)
+                    || card.match(/<h[23] class="ui-search-item__title"[^>]*>([\s\S]*?)<\/h[23]>/);
     const imageMatch = card.match(/(?:src|data-src)="(https:\/\/http2\.mlstatic\.com\/[^"]+)"/);
-    const currentLabel = card.match(/poly-price__current[\s\S]*?aria-label="([^"]+)"/)?.[1];
+    const currentLabel = card.match(/poly-price__current[\s\S]*?aria-label="([^"]+)"/)?.[1]
+                     || card.match(/ui-search-price__second-line[\s\S]*?aria-label="([^"]+)"/)?.[1];
     const previousLabel = card.match(/andes-money-amount--previous[\s\S]*?aria-label="([^"]+)"/)?.[1];
-    const priceValue = parseAriaMoney(currentLabel);
+    
+    let priceValue = parseAriaMoney(currentLabel);
+    
+    // Fallback para preço se aria-label falhar
+    if (!priceValue) {
+      const priceTextMatch = card.match(/<span class="andes-money-amount__fraction"[^>]*>([\d.]+)<\/span>/);
+      if (priceTextMatch) {
+        priceValue = Number(priceTextMatch[1].replace(/\./g, ""));
+        const centsMatch = card.match(/<span class="andes-money-amount__cents"[^>]*>(\d+)<\/span>/);
+        if (centsMatch) priceValue += Number(centsMatch[1]) / 100;
+      }
+    }
+
     if (!linkMatch || !titleMatch || !priceValue) continue;
+    
     const rawLink = decodeHtml(linkMatch[1]);
     if (products.some((p) => p.link === rawLink)) continue;
+    
     const originalPriceValue = parseAriaMoney(previousLabel);
     const discount = Number(card.match(/(\d+)%\s*OFF/i)?.[1] ?? 0) || null;
+    
     products.push({
       id: rawLink.match(/MLB-?(\d+)/)?.[0] ?? rawLink,
       name: decodeHtml(titleMatch[1].replace(/<[^>]*>/g, "")).trim(),
