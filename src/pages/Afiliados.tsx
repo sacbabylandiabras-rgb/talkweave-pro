@@ -112,6 +112,8 @@ export default function Afiliados() {
 
   const loadDeals = async (categoryId?: string | null, isLoadMore = false) => {
     const nextCategory = categoryId !== undefined ? categoryId : selectedNiche;
+    // Se não tem categoria nem busca, usa a MLB3000 como padrão de "ofertas" para garantir resultados
+    const finalCategory = nextCategory || "MLB3000";
     const nextOffset = isLoadMore ? offset + 50 : 0;
     
     setLoadingProducts(true);
