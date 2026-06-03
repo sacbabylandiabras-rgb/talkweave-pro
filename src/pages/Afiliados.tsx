@@ -71,23 +71,40 @@ export default function Afiliados() {
 
   const [destination, setDestination] = useState("");
   const [sending, setSending] = useState(false);
+  const [availableInstances, setAvailableInstances] = useState<any[]>([]);
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
 
-  // Carrega conexão real do Mercado Livre ao montar
+  // Carrega conexões do usuário
   useEffect(() => {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
-      const { data } = await supabase.functions.invoke("mercadolivre-connection-status", {
+      
+      // Carrega status do Mercado Livre
+      const { data: mlStatus } = await supabase.functions.invoke("mercadolivre-connection-status", {
         body: {},
       });
-      if ((data as any)?.connected) {
+      if ((mlStatus as any)?.connected) {
         setConnected((prev) => ({ ...prev, ml: true }));
         setConnectedAccount((prev) => ({
           ...prev,
-          ml: (data as any).nickname || (data as any).accountId || "Conta conectada",
+          ml: (mlStatus as any).nickname || (mlStatus as any).accountId || "Conta conectada",
         }));
-        // Auto-carrega melhores promoções ao detectar conexão
         loadDeals();
+      }
+
+      // Carrega instâncias Z-API
+      const { data: instances } = await supabase
+        .from('zapi_instances')
+        .select('zapi_instance_id, instance_name, is_default, api_provider')
+        .eq('user_id', session.user.id)
+        .eq('is_active', true)
+        .eq('api_provider', 'zapi');
+      
+      if (instances && instances.length > 0) {
+        setAvailableInstances(instances);
+        const defaultInst = instances.find(i => i.is_default) || instances[0];
+        setSelectedInstanceId(defaultInst.zapi_instance_id);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -336,10 +353,16 @@ export default function Afiliados() {
         body: {
           phone: destination.trim(),
           message: previewMessage,
+          instanceId: selectedInstanceId || undefined,
         },
       });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        if (error.message?.includes("whatsapp is disconnected") || (data as any)?.error?.includes("disconnected")) {
+          throw new Error("O WhatsApp desta instância está desconectado. Por favor, conecte o celular em Dispositivos.");
+        }
+        throw new Error(error.message);
+      }
       
       toast.success(`Mensagem enviada com sucesso para ${destination}!`);
     } catch (e) {
@@ -676,7 +699,25 @@ export default function Afiliados() {
             readOnly
             className="min-h-[200px] font-mono text-xs bg-muted/40"
           />
-          <div className="grid md:grid-cols-[1fr_auto] gap-3">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Instância do WhatsApp</Label>
+              <select
+                value={selectedInstanceId}
+                onChange={(e) => setSelectedInstanceId(e.target.value)}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                {availableInstances.length === 0 ? (
+                  <option value="">Nenhuma instância encontrada</option>
+                ) : (
+                  availableInstances.map((inst) => (
+                    <option key={inst.zapi_instance_id} value={inst.zapi_instance_id}>
+                      {inst.instance_name || inst.zapi_instance_id}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
             <div className="space-y-2">
               <Label>Número ou grupo do WhatsApp</Label>
               <Input
@@ -686,7 +727,7 @@ export default function Afiliados() {
               />
             </div>
             <div className="flex items-end">
-              <Button onClick={handleSend} disabled={sending} className="w-full md:w-auto">
+              <Button onClick={handleSend} disabled={sending || !selectedInstanceId} className="w-full">
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 Enviar via ZapLynx
               </Button>
