@@ -47,7 +47,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const { data: member, error } = await supabase
+      const { data: member, error } = await (supabase as any)
         .from("team_members")
         .select("user_id, allowed_instance_ids, role_id, status, team:teams(owner_id), role:team_roles(name, permissions)")
         .eq("user_id", user.id)
@@ -56,7 +56,6 @@ export function TeamProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         if (error.code === "PGRST116" || error.message?.includes("not found") || error.message?.includes("does not exist")) {
-          console.warn("Team tables not found, falling back to non-employee state");
           setState({
             loading: false, isEmployee: false, ownerId: user.id, effectiveUserId: user.id,
             selfUserId: user.id, permissions: {}, allowedInstanceIds: [], roleName: null,
