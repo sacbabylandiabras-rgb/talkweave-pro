@@ -319,6 +319,7 @@ const App = () => (
                 <Route path="/pedido/:id" element={<PublicOrder />} />
                 <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
                 <Route path="/termos-servico" element={<TermosServico />} />
+                <Route path="/shopify/pricing" element={<ShopifyPricing />} />
                  <Route path="/r/:slug" element={<PublicTelegramRedirect />} />
                 <Route path="/r" element={<PublicRedirectTracker />} />
                 <Route path="*" element={<NotFound />} />
