@@ -108,8 +108,9 @@ Deno.serve(async (req) => {
     const query = String(body?.query ?? "").trim();
     const mode = String(body?.mode ?? "search"); // "search" | "deals"
     const site = String(body?.site ?? "MLB").toUpperCase();
+    const category = typeof body?.category === "string" && body.category.trim() ? body.category.trim() : null;
     const limit = Math.min(Math.max(Number(body?.limit ?? 24), 1), 50);
-    if (mode === "search" && !query) return json({ error: "Informe um termo de busca." }, 400);
+    if (mode === "search" && !query && !category) return json({ error: "Informe um termo de busca." }, 400);
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const objectPath = `${userData.user.id}/${PROVIDER}.json`;
@@ -165,8 +166,11 @@ Deno.serve(async (req) => {
     const url = new URL("https://api.mercadolibre.com/products/search");
     url.searchParams.set("site_id", site);
     url.searchParams.set("status", "active");
-    const q = mode === "deals" ? (query || "promocao") : query;
-    url.searchParams.set("q", q);
+    const q = mode === "deals"
+      ? (query || (category ? "" : "promocao"))
+      : query;
+    if (q) url.searchParams.set("q", q);
+    if (category) url.searchParams.set("category", category);
     url.searchParams.set("limit", String(Math.min(limit * 3, 50)));
 
     const headers: Record<string, string> = {

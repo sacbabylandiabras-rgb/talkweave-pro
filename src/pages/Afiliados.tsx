@@ -65,6 +65,7 @@ export default function Afiliados() {
   const [products, setProducts] = useState<AffiliateProduct[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
 
   const [destination, setDestination] = useState("");
   const [sending, setSending] = useState(false);
@@ -90,11 +91,12 @@ export default function Afiliados() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadDeals = async () => {
+  const loadDeals = async (categoryId?: string | null) => {
     setLoadingProducts(true);
+    if (categoryId !== undefined) setSelectedNiche(categoryId);
     try {
       const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
-        body: { mode: "deals", limit: 24 },
+        body: { mode: "deals", limit: 24, category: categoryId ?? selectedNiche ?? undefined },
       });
       if (error) throw new Error(error.message);
       const list = ((data as any)?.products || []) as AffiliateProduct[];
