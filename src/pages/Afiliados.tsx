@@ -67,6 +67,7 @@ export default function Afiliados() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
   const [offset, setOffset] = useState(0);
+  const [totalProducts, setTotalProducts] = useState<number | null>(null);
 
   const [destination, setDestination] = useState("");
   const [sending, setSending] = useState(false);
@@ -114,9 +115,11 @@ export default function Afiliados() {
           return [...prev, ...filteredNew];
         });
         setOffset(nextOffset);
+        setTotalProducts((data as any)?.total || null);
       } else {
         setProducts(list);
         setOffset(0);
+        setTotalProducts((data as any)?.total || null);
         setSelectedIds(new Set());
       }
     } catch (e) {
@@ -271,9 +274,11 @@ export default function Afiliados() {
           return [...prev, ...filteredNew];
         });
         setOffset(nextOffset);
+        setTotalProducts((data as any)?.total || null);
       } else {
         setProducts(all);
         setOffset(0);
+        setTotalProducts((data as any)?.total || null);
         setSelectedIds(new Set());
       }
       

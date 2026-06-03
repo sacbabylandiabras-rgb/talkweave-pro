@@ -328,7 +328,7 @@ Deno.serve(async (req) => {
     const site = /^[A-Z]{3}$/.test(String(body?.site ?? "MLB").toUpperCase()) ? String(body?.site ?? "MLB").toUpperCase() : "MLB";
     const category = typeof body?.category === "string" && /^ML[A-Z]\d+$/i.test(body.category.trim()) ? body.category.trim().toUpperCase() : null;
     const limit = Math.min(Math.max(Number(body?.limit ?? 50), 1), 100);
-    const offset = Math.max(Number(body?.offset ?? 0), 0) + Math.floor(Math.random() * 50);
+    const offset = Math.max(Number(body?.offset ?? 0), 0);
     if (mode === "search" && !query && !category) return json({ error: "Informe um termo de busca." }, 400);
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
