@@ -162,9 +162,10 @@ async function fetchPublicOffers(query: string, category: string | null, account
     if (!res.ok) return [];
     const html = await res.text();
     
-    // Poly-card parsing improvement
-    // We try to find products using multiple selector patterns
+    // Improved poly-card parsing for Mercado Livre
+    // We target both the generic list items and the new poly-card layout
     const cards = html.match(/<div\s+class="[^"]*poly-card[^"]*"[\s\S]*?(?=<div\s+class="[^"]*poly-card[^"]*"|<\/main>|$)/g) || 
+                  html.match(/<div\s+class="[^"]*ui-search-result__wrapper[^"]*"[\s\S]*?(?=<div\s+class="[^"]*ui-search-result__wrapper[^"]*"|<\/ol>|$)/g) ||
                   html.match(/<li\s+class="[^"]*ui-search-layout__item[^"]*"[\s\S]*?(?=<li\s+class="[^"]*ui-search-layout__item[^"]*"|<\/ol>|$)/g) || [];
     
     console.log(`Found ${cards.length} cards via scraping`);
@@ -179,39 +180,38 @@ async function fetchPublicOffers(query: string, category: string | null, account
 
       // Look for the title
       const titleMatch = card.match(/class="[^"]*title[^"]*"[^>]*>([\s\S]*?)<\/(?:a|h2)>/i) || 
+                         card.match(/class="[^"]*ui-search-item__title[^"]*"[^>]*>([\s\S]*?)<\/(?:a|h2)>/i) ||
                          card.match(/aria-label="([^"]+)"/i) ||
                          card.match(/alt="([^"]+)"/i);
       
       const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, "").trim() : "Produto Mercado Livre";
 
-      // Improved thumbnail detection
+      // CRITICAL: Improved thumbnail detection
       let thumbnail = null;
       
-      // 1. Check for images specifically in the poly-card__portada or similar wrappers
-      // We look for any img tag and try to extract its source
+      // 1. Try to find images inside data-src or src with specific ML patterns
+      // Mercado Livre often uses data-src for lazy loading
       const imgTags = card.match(/<img[\s\S]*?>/gi) || [];
       for (const tag of imgTags) {
-        // Try various source attributes
-        const srcMatch = tag.match(/(?:data-src|src|data-lazy|data-actualsrc|srcset)="([^"]+)"/i);
+        // ML patterns: data-src is very common for search results
+        const srcMatch = tag.match(/data-src="([^"]+)"/i) || 
+                         tag.match(/src="([^"]+)"/i) ||
+                         tag.match(/data-actualsrc="([^"]+)"/i);
+        
         if (srcMatch) {
           let url = srcMatch[1];
-          // If it's a srcset, take the last one
-          if (url.includes(",")) {
-            const parts = url.split(",");
-            url = parts[parts.length - 1].trim().split(" ")[0];
-          }
-          
-          if (url && url.startsWith("http") && !url.includes("pixel") && !url.includes("blank") && !url.includes("data:image")) {
+          // Filter out tracking pixels, transparent gifs, etc.
+          if (url && url.startsWith("http") && !url.includes("pixel") && !url.includes("blank") && !url.includes("data:image") && !url.includes(".gif")) {
             thumbnail = url;
             break;
           }
         }
       }
 
-      // 2. Try generic URL search in card if no img tag found
+      // 2. Fallback to generic URL search in card if no valid img tag found
       if (!thumbnail) {
-        const genericUrls = card.match(/https:\/\/[^"]+\.(?:jpg|jpeg|png|webp)/gi) || [];
-        for (const url of genericUrls) {
+        const urlMatches = card.match(/https:\/\/http2\.mlstatic\.com\/D_NQ_NP_[^"]+\.(?:jpg|jpeg|png|webp)/gi) || [];
+        for (const url of urlMatches) {
           if (!url.includes("pixel") && !url.includes("blank")) {
             thumbnail = url;
             break;
@@ -221,23 +221,22 @@ async function fetchPublicOffers(query: string, category: string | null, account
 
       if (thumbnail) {
         thumbnail = thumbnail.replace(/^http:/, "https:");
-        // Improve resolution from -I.jpg to -O.jpg or -V.jpg
+        // Improve resolution from -I.jpg (small) to -O.jpg (large) or -V.jpg
         thumbnail = thumbnail.replace(/-I\.(jpg|jpeg|png|webp)/, "-O.$1");
-        // Also handle the case where ML uses different size suffixes
         thumbnail = thumbnail.replace(/-M\.(jpg|jpeg|png|webp)/, "-O.$1");
       }
 
       // Look for price
-      const priceMatch = card.match(/aria-label="([^"]*reais[^"]*)"/i) || 
-                         card.match(/class="[^"]*price[^"]*"[^>]*>([\s\S]*?)<\/span>/i) ||
-                         card.match(/class="[^"]*poly-price__current[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
+      const priceMatch = card.match(/class="[^"]*price-tag-fraction[^"]*"[^>]*>([\s\S]*?)<\/span>/i) ||
+                         card.match(/class="[^"]*poly-price__current[^"]*"[^>]*>([\s\S]*?)<\/span>/i) ||
+                         card.match(/aria-label="([^"]*reais[^"]*)"/i);
       
-      const price = priceMatch ? priceMatch[1].replace(/<[^>]*>/g, "").trim() : "Consulte o preço";
+      const price = priceMatch ? priceMatch[1].replace(/<[^>]*>/g, "").trim() : "Consulte";
       
       products.push({
         id: rawLink.match(/MLB-?(\d+)/)?.[0] ?? "S_" + Math.random().toString(36).substr(2, 9),
         name: title,
-        price: price,
+        price: price.includes("R$") ? price : `R$ ${price}`,
         priceValue: 0, 
         thumbnail: thumbnail,
         link: decorateAffiliateLink(rawLink, accountId),
