@@ -554,7 +554,11 @@ Deno.serve(async (req) => {
 
     // Se a busca principal falhar (403 ou outros), ou não retornar resultados, tenta abordagens alternativas
     if (!res.ok || (Array.isArray(data?.results) && data.results.length === 0)) {
-      console.warn(`ML search ${res.status} ou sem resultados (${data?.results?.length || 0}). Tentando catalog search...`);
+      console.warn(`ML search ${res.status} ou sem resultados. Tentando catalog search...`);
+      
+      // Busca ofertas públicas (scraping/HTML) imediatamente em paralelo com outras tentativas se falhou
+      const publicOffersPromise = fetchPublicOffers(q, category, accountId, limit, offset);
+      
       const catalogUrl = new URL("https://api.mercadolibre.com/products/search");
       catalogUrl.searchParams.set("site_id", site);
       if (q) catalogUrl.searchParams.set("q", q);
