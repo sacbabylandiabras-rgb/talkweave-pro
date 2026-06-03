@@ -132,10 +132,10 @@ Deno.serve(async (req) => {
     if (userErr || !userData.user) return json({ error: "Não autenticado." }, 401);
 
     const body = await req.json().catch(() => ({}));
-    const query = String(body?.query ?? "").trim();
+    const query = safeText(body?.query, 100);
     const mode = String(body?.mode ?? "search"); // "search" | "deals"
-    const site = String(body?.site ?? "MLB").toUpperCase();
-    const category = typeof body?.category === "string" && body.category.trim() ? body.category.trim() : null;
+    const site = /^[A-Z]{3}$/.test(String(body?.site ?? "MLB").toUpperCase()) ? String(body?.site ?? "MLB").toUpperCase() : "MLB";
+    const category = typeof body?.category === "string" && /^ML[A-Z]\d+$/i.test(body.category.trim()) ? body.category.trim().toUpperCase() : null;
     const limit = Math.min(Math.max(Number(body?.limit ?? 24), 1), 50);
     if (mode === "search" && !query && !category) return json({ error: "Informe um termo de busca." }, 400);
 
@@ -193,10 +193,8 @@ Deno.serve(async (req) => {
     const url = new URL("https://api.mercadolibre.com/products/search");
     url.searchParams.set("site_id", site);
     url.searchParams.set("status", "active");
-    const q = mode === "deals"
-      ? (query || (category ? "" : "promocao"))
-      : query;
-    if (q) url.searchParams.set("q", q);
+    const q = keywordForRequest(mode, query, category);
+    if (q) url.searchParams.set("keywords", q);
     if (category) url.searchParams.set("category", category);
     url.searchParams.set("limit", String(Math.min(limit * 3, 50)));
 
