@@ -395,17 +395,10 @@ Deno.serve(async (req) => {
     };
 
     const accountId = record?.account_id ?? null;
-    const affiliateSourceId: string | null = record?.affiliate_source_id ?? null;
-
-    const applyShortlinks = async (items: any[]) => {
-      if (!affiliateSourceId || items.length === 0) return items;
-      const originals = items
-        .map((p) => stripAffiliateParams(p?.link))
-        .filter((x): x is string => typeof x === "string");
-      const map = await generateAffiliateShortlinks(admin, userData.user.id, accessToken!, affiliateSourceId, originals);
+    const trackedUserId = userData.user.id;
+    const applyTracker = (items: any[]) => {
       for (const p of items) {
-        const original = stripAffiliateParams(p?.link);
-        if (original && map[original]) p.link = map[original];
+        if (p?.link) p.link = wrapInTracker(p.link, trackedUserId);
       }
       return items;
     };
@@ -422,7 +415,7 @@ Deno.serve(async (req) => {
       if (!res.ok) {
         console.error("ML search error:", res.status, data);
         const publicOffers = await fetchPublicOffers(q, category, accountId, limit);
-        await applyShortlinks(publicOffers);
+        applyTracker(publicOffers);
         return json({ products: publicOffers, total: publicOffers.length, fallback: true, debug: { status: res.status } }, 200);
       }
     }
@@ -433,7 +426,7 @@ Deno.serve(async (req) => {
       .filter(Boolean)
       .slice(0, limit);
     if (directProducts.length > 0) {
-      await applyShortlinks(directProducts);
+      applyTracker(directProducts);
       return json({ products: directProducts, total: data?.paging?.total ?? directProducts.length });
     }
 
@@ -480,11 +473,11 @@ Deno.serve(async (req) => {
 
     if (products.length === 0) {
       const publicOffers = await fetchPublicOffers(q, category, accountId, limit);
-      await applyShortlinks(publicOffers);
+      applyTracker(publicOffers);
       return json({ products: publicOffers, total: publicOffers.length, fallback: true });
     }
 
-    await applyShortlinks(products);
+    applyTracker(products);
     return json({ products, total: data?.paging?.total ?? products.length });
   } catch (err) {
     console.error("ml-search error:", err);
