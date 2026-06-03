@@ -326,9 +326,18 @@ export default function Afiliados() {
   const toggleSelect = (id: string | number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
+      const idStr = String(id);
+      
+      let found = false;
+      for (const existingId of next) {
+        if (String(existingId) === idStr) {
+          next.delete(existingId);
+          found = true;
+          break;
+        }
+      }
+      
+      if (!found) {
         next.add(id);
       }
       return next;
@@ -336,7 +345,13 @@ export default function Afiliados() {
   };
 
   const selectedProducts = useMemo(
-    () => products.filter((p) => selectedIds.has(p.id)),
+    () => products.filter((p) => {
+      const idStr = String(p.id);
+      for (const selectedId of selectedIds) {
+        if (String(selectedId) === idStr) return true;
+      }
+      return false;
+    }),
     [products, selectedIds],
   );
 
