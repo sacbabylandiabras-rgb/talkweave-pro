@@ -98,6 +98,7 @@ const zapiMenuItems = [
   { id: "departamento", label: "Departamento", icon: Building2, path: "/departamento" },
   { id: "skills", label: "Skills", icon: Sparkles, path: "/skills" },
   { id: "produtos", label: "Produtos", icon: ShoppingBag, path: "/produtos" },
+  { id: "afiliados", label: "Afiliados", icon: ShoppingBag, path: "/afiliados" },
   { id: "equipe", label: "Equipe", icon: Users2, path: "/equipe", ownerOnly: true },
  ];
 
