@@ -58,6 +58,12 @@ function extractWinnerItemId(product: any): string | null {
   return itemId ? String(itemId).toUpperCase() : null;
 }
 
+function extractCatalogProductId(product: any): string | null {
+  const candidates = [product?.id, product?.catalog_product_id, product?.product_id];
+  const productId = candidates.find((value) => typeof value === "string" && /^ML[A-Z]\d+$/i.test(value));
+  return productId ? String(productId).toUpperCase() : null;
+}
+
 function safeText(value: unknown, maxLength = 80) {
   return String(value ?? "").trim().replace(/\s+/g, " ").slice(0, maxLength);
 }
@@ -68,11 +74,17 @@ function keywordForRequest(mode: string, query: string, category: string | null)
   return mode === "deals" ? "promocao oferta desconto" : "";
 }
 
+async function getJson(url: string, headers: Record<string, string>) {
+  const res = await fetch(url, { headers });
+  const data = await res.json().catch(() => ({}));
+  return { res, data };
+}
+
 function isUnavailableItem(item: any) {
   const status = String(item?.status ?? "").toLowerCase();
   const qty = Number(item?.available_quantity ?? 0);
   const buyingMode = String(item?.buying_mode ?? "").toLowerCase();
-  return status !== "active" || qty <= 0 || (buyingMode && buyingMode !== "buy_it_now");
+  return (status && status !== "active") || qty <= 0 || (buyingMode && buyingMode !== "buy_it_now");
 }
 
 function mapAvailableItem(item: any, fallback: any, accountId: string | number | null) {
@@ -189,13 +201,13 @@ Deno.serve(async (req) => {
       return json({ error: "Reconecte sua conta para buscar produtos.", fallback: true }, 200);
     }
 
-    // Novo endpoint de catálogo (o /sites/MLB/search público retorna 403 desde 2024)
-    const url = new URL("https://api.mercadolibre.com/products/search");
-    url.searchParams.set("site_id", site);
-    url.searchParams.set("status", "active");
+    const url = new URL(`https://api.mercadolibre.com/sites/${site}/search`);
     const q = keywordForRequest(mode, query, category);
-    if (q) url.searchParams.set("keywords", q);
+    if (q) url.searchParams.set("q", q);
     if (category) url.searchParams.set("category", category);
+    url.searchParams.set("condition", "new");
+    url.searchParams.set("buying_mode", "buy_it_now");
+    url.searchParams.set("sort", "relevance");
     url.searchParams.set("limit", String(Math.min(limit * 3, 50)));
 
     const headers: Record<string, string> = {
@@ -203,16 +215,44 @@ Deno.serve(async (req) => {
       Authorization: `Bearer ${accessToken}`,
     };
 
-    const res = await fetch(url.toString(), { headers });
-    const data = await res.json().catch(() => ({}));
+    let { res, data } = await getJson(url.toString(), headers);
     if (!res.ok) {
-      console.error("ML search error:", res.status, data);
-      return json({ error: "Não foi possível buscar produtos agora.", fallback: true, debug: { status: res.status } }, 200);
+      console.warn("ML public search failed, trying catalog:", res.status, data);
+      const catalogUrl = new URL("https://api.mercadolibre.com/products/search");
+      catalogUrl.searchParams.set("site_id", site);
+      catalogUrl.searchParams.set("status", "active");
+      catalogUrl.searchParams.set("q", q || "promocao oferta desconto");
+      catalogUrl.searchParams.set("limit", String(Math.min(limit * 3, 50)));
+      ({ res, data } = await getJson(catalogUrl.toString(), headers));
+      if (!res.ok) {
+        console.error("ML search error:", res.status, data);
+        return json({ products: [], total: 0, error: "Não foi possível buscar produtos agora.", fallback: true, debug: { status: res.status } }, 200);
+      }
     }
 
     const accountId = record?.account_id ?? null;
     const results = Array.isArray(data?.results) ? data.results : [];
-    const itemIds = Array.from(new Set(results.map(extractWinnerItemId).filter(Boolean))).slice(0, limit) as string[];
+    const directProducts = results
+      .map((p: any) => mapAvailableItem(p, p, accountId))
+      .filter(Boolean)
+      .slice(0, limit);
+    if (directProducts.length > 0) return json({ products: directProducts, total: data?.paging?.total ?? directProducts.length });
+
+    let enrichedResults = results;
+    let itemIds = Array.from(new Set(enrichedResults.map(extractWinnerItemId).filter(Boolean))).slice(0, limit) as string[];
+    if (itemIds.length === 0) {
+      const productIds = Array.from(new Set(results.map(extractCatalogProductId).filter(Boolean))).slice(0, limit) as string[];
+      const productDetails: any[] = [];
+      for (let i = 0; i < productIds.length; i += 6) {
+        const details = await Promise.all(productIds.slice(i, i + 6).map(async (productId) => {
+          const detail = await getJson(`https://api.mercadolibre.com/products/${productId}`, headers);
+          return detail.res.ok ? detail.data : null;
+        }));
+        productDetails.push(...details.filter(Boolean));
+      }
+      enrichedResults = productDetails.length > 0 ? productDetails : results;
+      itemIds = Array.from(new Set(enrichedResults.map(extractWinnerItemId).filter(Boolean))).slice(0, limit) as string[];
+    }
 
     const itemsById = new Map<string, any>();
     for (let i = 0; i < itemIds.length; i += 20) {
@@ -230,7 +270,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const products = results
+    const products = enrichedResults
       .map((p: any) => {
         const itemId = extractWinnerItemId(p);
         if (!itemId) return null;
