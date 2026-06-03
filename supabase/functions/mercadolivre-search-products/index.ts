@@ -58,6 +58,12 @@ function extractWinnerItemId(product: any): string | null {
   return itemId ? String(itemId).toUpperCase() : null;
 }
 
+function extractCatalogProductId(product: any): string | null {
+  const candidates = [product?.id, product?.catalog_product_id, product?.product_id];
+  const productId = candidates.find((value) => typeof value === "string" && /^ML[A-Z]\d+$/i.test(value));
+  return productId ? String(productId).toUpperCase() : null;
+}
+
 function safeText(value: unknown, maxLength = 80) {
   return String(value ?? "").trim().replace(/\s+/g, " ").slice(0, maxLength);
 }
@@ -66,6 +72,12 @@ function keywordForRequest(mode: string, query: string, category: string | null)
   if (query) return query;
   if (category && CATEGORY_KEYWORDS[category]) return CATEGORY_KEYWORDS[category];
   return mode === "deals" ? "promocao oferta desconto" : "";
+}
+
+async function getJson(url: string, headers: Record<string, string>) {
+  const res = await fetch(url, { headers });
+  const data = await res.json().catch(() => ({}));
+  return { res, data };
 }
 
 function isUnavailableItem(item: any) {
