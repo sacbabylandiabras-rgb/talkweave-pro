@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ShoppingBag, Link as LinkIcon, Loader2, Check, Send, Search, Package, LogIn, KeyRound } from "lucide-react";
+import { ShoppingBag, Link as LinkIcon, Loader2, Check, Send, Search, Package, LogIn, KeyRound, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -471,6 +471,19 @@ export default function Afiliados() {
             </Button>
             <Button variant="outline" onClick={() => loadDeals(null)} disabled={loadingProducts || !connected.ml}>
               🔥 Promoções
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => loadDeals(selectedNiche)}
+              disabled={loadingProducts || !connected.ml}
+              title={selectedNiche ? "Atualizar produtos do nicho" : "Atualizar promoções"}
+            >
+              {loadingProducts ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              Atualizar
             </Button>
           </div>
         </CardHeader>
