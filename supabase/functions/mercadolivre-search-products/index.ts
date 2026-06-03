@@ -167,7 +167,14 @@ async function fetchPublicOffers(query: string, category: string | null, account
     for (const card of cards) {
       const linkMatch = card.match(/href="(https:\/\/[^"]+MLB[^"]+)"/);
       const titleMatch = card.match(/class="poly-component__title"[^>]*>([\s\S]*?)<\/a>/) || card.match(/aria-label="([^"]+)"/);
-      const imageMatch = card.match(/src="([^"]+)"/) || card.match(/data-src="([^"]+)"/);
+      
+      // Improved image regex to capture high-res and avoid lazy-load stubs
+      const imageMatch = 
+        card.match(/data-src="([^"]+\.webp)"/) || 
+        card.match(/src="([^"]+\.(?:jpg|jpeg|png|webp|gif))"/) ||
+        card.match(/data-src="([^"]+)"/) ||
+        card.match(/src="([^"]+)"/);
+
       const priceMatch = card.match(/poly-price__current[\s\S]*?aria-label="([^"]+)"/);
       
       if (!linkMatch || !titleMatch || !priceMatch) continue;
@@ -180,7 +187,7 @@ async function fetchPublicOffers(query: string, category: string | null, account
         name: title,
         price: priceMatch[1],
         priceValue: 0, 
-        thumbnail: imageMatch?.[1].replace(/^http:/, "https:"),
+        thumbnail: imageMatch?.[1]?.replace(/^http:/, "https:"),
         link: decorateAffiliateLink(rawLink, accountId),
         source: "ml",
         available: true,
@@ -302,6 +309,14 @@ Deno.serve(async (req) => {
       const price = item.price || r.price;
       const originalPrice = item.original_price || r.original_price;
       
+      // Ensure we get a high-quality thumbnail if pictures are available
+      let thumbnail = item.pictures?.[0]?.secure_url || item.thumbnail || r.thumbnail;
+      if (thumbnail) {
+        thumbnail = thumbnail.replace(/^http:/, "https:");
+        // Convert typical thumbnail sizes to higher resolution if it matches the pattern
+        thumbnail = thumbnail.replace(/-I\.(jpg|jpeg|png|webp)/, "-O.$1");
+      }
+      
       return {
         id: item.id,
         name: item.title,
@@ -309,7 +324,7 @@ Deno.serve(async (req) => {
         priceValue: price,
         originalPrice: originalPrice && originalPrice > price ? formatMoney(originalPrice) : null,
         discount: originalPrice && originalPrice > price ? Math.round(((originalPrice - price) / originalPrice) * 100) : null,
-        thumbnail: (item.pictures?.[0]?.secure_url || item.thumbnail || r.thumbnail)?.replace(/^http:/, "https:"),
+        thumbnail: thumbnail,
         link: item.permalink || r.permalink,
         source: "ml",
         available: item.status === "active",
