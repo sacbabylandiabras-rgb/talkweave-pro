@@ -381,23 +381,27 @@ Deno.serve(async (req) => {
       return json({ error: "Reconecte sua conta para buscar produtos.", fallback: true }, 200);
     }
 
-    const url = new URL(`https://api.mercadolibre.com/sites/${site}/search`);
     const q = keywordForRequest(mode, query, category);
+    const accountId = record?.account_id ?? null;
+    const trackedUserId = userData.user.id;
+
+    // Detectar se a busca contém atributos como voltagem
+    const hasVoltage = /\b(110v|220v|127v|bivolt)\b/i.test(q);
     
     // Tenta uma busca mais precisa se o query for grande (provavelmente um nome completo)
+    const url = new URL(`https://api.mercadolibre.com/sites/${site}/search`);
     if (q) {
       // Normalização básica para busca: remove excesso de espaços
       const normalizedQuery = q.trim().replace(/\s+/g, " ");
       url.searchParams.set("q", normalizedQuery);
       
-      // Se tiver muitas palavras, priorizar relevância total
-      if (normalizedQuery.split(" ").length > 3) {
+      // Se não houver voltagem explícita no termo, priorizar relevância
+      if (!hasVoltage && normalizedQuery.split(" ").length > 3) {
         url.searchParams.set("sort", "relevance");
       }
     }
     
     if (category) url.searchParams.set("category", category);
-    url.searchParams.set("condition", "new");
     url.searchParams.set("limit", "50");
     
     const headers: Record<string, string> = {
@@ -405,16 +409,15 @@ Deno.serve(async (req) => {
       Authorization: `Bearer ${accessToken}`,
     };
 
-    const accountId = record?.account_id ?? null;
-    const trackedUserId = userData.user.id;
     
     // Sinônimos e variações comuns para melhor matching
     const SYNONYMS: Record<string, string[]> = {
-      "inox": ["inoxidavel", "aço inoxidável", "prateado", "silver", "escovado"],
-      "touch": ["digital", "painel touch", "tela touch", "touchscreen"],
-      "painel touch": ["touch", "digital", "display digital"],
+      "inox": ["inoxidavel", "aço inoxidável", "prateado", "silver", "escovado", "platina"],
+      "touch": ["digital", "painel touch", "tela touch", "touchscreen", "led"],
+      "painel touch": ["touch", "digital", "display digital", "display led"],
       "fritadeira": ["air fryer", "airfryer", "fritadeira sem oleo", "fritadeira eletrica"],
       "oster": ["osterizer"],
+      "5l": ["5 litros", "5lts", "5 l"],
     };
 
     // Função auxiliar para calcular score de matching do título
@@ -422,51 +425,60 @@ Deno.serve(async (req) => {
       const name = productName.toLowerCase();
       const term = searchTerm.toLowerCase();
       
-      // Match exato (case insensitive)
-      if (name === term) return 2000;
+      // 1. Match exato total: topo absoluto
+      if (name === term) return 5000;
       
-      // Contém a frase inteira na mesma ordem
-      if (name.includes(term)) return 1000;
-      
-      const termWords = term.split(/\s+/).filter(w => w.length > 2);
+      const termWords = term.split(/\s+/).filter(w => w.length >= 2);
+      if (termWords.length === 0) return 0;
+
       let score = 0;
+      
+      // 2. Ordem exata: se as palavras aparecem na mesma ordem do termo original
+      const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (new RegExp(escapedTerm).test(name)) {
+        score += 2000;
+      }
+
+      // 3. Contagem de palavras e sinônimos
+      let matches = 0;
       let lastIndex = -1;
       let wordsInOrder = 0;
-      let synonymMatches = 0;
-      
+
       for (const word of termWords) {
-        // Busca palavra exata ou sinônimos
-        let foundIndex = name.indexOf(word, lastIndex + 1);
+        let foundIndex = name.indexOf(word);
         
-        // Se não achou a palavra, tenta os sinônimos dela
+        // Se não achou a palavra, tenta os sinônimos
         if (foundIndex === -1 && SYNONYMS[word]) {
           for (const syn of SYNONYMS[word]) {
-            const synIndex = name.indexOf(syn, lastIndex + 1);
+            const synIndex = name.indexOf(syn);
             if (synIndex !== -1) {
               foundIndex = synIndex;
-              synonymMatches++;
               break;
             }
           }
         }
 
-        if (foundIndex > lastIndex) {
-          wordsInOrder++;
-          lastIndex = foundIndex;
+        if (foundIndex !== -1) {
+          matches++;
+          if (foundIndex > lastIndex) {
+            wordsInOrder++;
+            lastIndex = foundIndex;
+          }
         }
       }
-      
-      // Bônus proporcional a palavras encontradas na ordem correta
-      if (termWords.length > 0) {
-        const orderRatio = wordsInOrder / termWords.length;
-        score += orderRatio * 500;
-        
-        // Bônus se todas as palavras (ou sinônimos) foram encontradas
-        if (wordsInOrder === termWords.length) {
-          score += 200;
-        }
-      }
-      
+
+      // 4. Bônus por cobertura (quantas palavras do termo estão no título)
+      const coverage = matches / termWords.length;
+      score += coverage * 1000;
+
+      // 5. Bônus por ordem relativa
+      const orderBonus = wordsInOrder / termWords.length;
+      score += orderBonus * 500;
+
+      // 6. Penalidade por excesso de palavras (títulos muito longos e genéricos perdem para os precisos)
+      const nameWords = name.split(/\s+/).length;
+      score -= nameWords * 5;
+
       return score;
     };
 
