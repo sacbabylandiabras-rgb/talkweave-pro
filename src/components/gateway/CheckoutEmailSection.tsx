@@ -159,77 +159,83 @@ export default function CheckoutEmailSection() {
   };
 
   return (
-    <div className="space-y-4">
-      <Card className="border-[#2A2A2A]">
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Mail className="w-4 h-4 text-[#a78bfa]" />
+    <div className="space-y-5">
+      <Card className="border-border/60 shadow-sm overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-[#a78bfa] via-[#8b5cf6] to-[#a78bfa]" />
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#a78bfa]/10 text-[#a78bfa]">
+              <Mail className="w-4 h-4" />
+            </span>
             Configuração de Remetente
           </CardTitle>
-          <CardDescription className="text-xs">
+          <CardDescription className="text-xs ml-[42px] -mt-1">
             Defina como os e-mails aparecerão para seus clientes.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-xs">Nome do Remetente</Label>
+              <Label className="text-xs font-medium">Nome do Remetente</Label>
               <Input 
                 value={senderName}
                 onChange={e => setSenderName(e.target.value)}
                 placeholder="Ex: Equipe de Suporte"
-                className="text-xs"
+                className="text-xs h-10"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">E-mail do Remetente</Label>
+              <Label className="text-xs font-medium">E-mail do Remetente</Label>
               <Input 
                 value={senderEmail}
                 onChange={e => setSenderEmail(e.target.value)}
                 placeholder="Ex: contato@seudominio.com"
-                className="text-xs font-mono"
+                className="text-xs font-mono h-10"
               />
             </div>
           </div>
-          <Button 
-            variant="outline"
-            className="w-full text-xs h-8"
-            onClick={handleSaveSenderInfo}
-            disabled={senderSaving}
-          >
-            {senderSaving ? <Loader2 className="w-3 h-3 animate-spin mr-1.5" /> : null}
-            Salvar Dados do Remetente
-          </Button>
-          <p className="text-[10px] text-muted-foreground bg-muted/30 p-2 rounded">
-            <strong>Dica:</strong> O e-mail do remetente deve pertencer ao domínio verificado abaixo para evitar que caia no SPAM.
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
+            <p className="text-[11px] text-muted-foreground flex-1 leading-relaxed">
+              <strong className="text-foreground">Dica:</strong> O e-mail do remetente deve pertencer ao domínio verificado abaixo para evitar que caia no SPAM.
+            </p>
+            <Button 
+              className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white text-xs h-9 px-5 shrink-0"
+              onClick={handleSaveSenderInfo}
+              disabled={senderSaving}
+            >
+              {senderSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+              Salvar Remetente
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      <Card className="border-[#2A2A2A]">
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-[#a78bfa]" />
-            Autenticação de Domínio (Zaplynx)
+      <Card className="border-border/60 shadow-sm overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-emerald-400 via-[#a78bfa] to-[#8b5cf6]" />
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+              <ShieldCheck className="w-4 h-4" />
+            </span>
+            Autenticação de Domínio
           </CardTitle>
-          <CardDescription className="text-xs">
-            Configure o DKIM e SPF para garantir a entrega dos e-mails pela Zaplynx.
+          <CardDescription className="text-xs ml-[42px] -mt-1">
+            Configure DKIM, SPF e DMARC para garantir a entrega dos seus e-mails.
           </CardDescription>
-
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label className="text-xs">Domínio para Disparo</Label>
-            <div className="flex gap-2 mt-1">
+            <Label className="text-xs font-medium">Domínio para Disparo</Label>
+            <div className="flex gap-2 mt-1.5">
               <Input 
                 value={emailDomain}
                 onChange={e => setEmailDomain(e.target.value)}
                 placeholder="seusite.com"
-                className="font-mono text-xs"
+                className="font-mono text-xs h-10"
                 disabled={emailVerification?.status === "verified"}
               />
               <Button 
-                className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white rounded-full px-5 text-xs h-9"
+                className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white rounded-md px-5 text-xs h-10 shrink-0"
                 onClick={handleSaveEmailDomain}
                 disabled={emailSaving || !emailDomain.trim()}
               >
@@ -237,37 +243,45 @@ export default function CheckoutEmailSection() {
                 {emailVerification?.status === "verified" ? "Registrado" : "Registrar"}
               </Button>
               {emailVerification && (
-                <div className="flex gap-2">
-                  <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={handleRefreshEmailStatus} disabled={statusChecking}>
+                <div className="flex gap-1.5">
+                  <Button variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={handleRefreshEmailStatus} disabled={statusChecking}>
                     <RefreshCw className={`w-3.5 h-3.5 ${statusChecking ? 'animate-spin' : ''}`} />
                   </Button>
-                  <Button variant="outline" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleDeleteEmailDomain} disabled={emailSaving}>
+                  <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleDeleteEmailDomain} disabled={emailSaving}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 </div>
               )}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1">
-              <strong>Importante:</strong> Use o domínio raiz (ex: <code>seusite.com</code>) ou um subdomínio específico para e-mails.
+            <p className="text-[11px] text-muted-foreground mt-2">
+              <strong className="text-foreground">Importante:</strong> Use o domínio raiz (ex: <code className="px-1 py-0.5 rounded bg-muted text-foreground">seusite.com</code>) ou um subdomínio específico para e-mails.
             </p>
           </div>
 
           {emailVerification && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 rounded-lg border border-[#2A2A2A] bg-muted/30">
-                <div className="flex items-center gap-2">
+              <div className={`flex items-center justify-between p-4 rounded-xl border ${
+                emailVerification?.status === "verified"
+                  ? "border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 to-transparent"
+                  : "border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-transparent"
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                    emailVerification?.status === "verified" ? "bg-emerald-500/15 text-emerald-500" : "bg-amber-500/15 text-amber-500"
+                  }`}>
                   {emailVerification?.status === "verified" ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <CheckCircle2 className="w-4 h-4" />
                   ) : (
-                    <Clock className="w-4 h-4 text-amber-400" />
+                    <Clock className="w-4 h-4" />
                   )}
+                  </div>
                   <div>
-                    <p className="text-xs font-medium">Status de Verificação</p>
-                    <p className="text-[10px] text-muted-foreground font-mono">{emailDomain}</p>
+                    <p className="text-sm font-semibold">Status de Verificação</p>
+                    <p className="text-[11px] text-muted-foreground font-mono">{emailDomain}</p>
                   </div>
                 </div>
-                <Badge variant="outline" className={`text-[10px] ${
-                  emailVerification?.status === "verified" ? "border-emerald-500/30 text-emerald-400" : "border-amber-500/30 text-amber-400"
+                <Badge variant="outline" className={`text-[10px] font-semibold ${
+                  emailVerification?.status === "verified" ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-500" : "border-amber-500/40 bg-amber-500/10 text-amber-500"
                 }`}>
                   {emailVerification?.status === "verified" ? "Verificado" : "Aguardando DNS"}
                 </Badge>
@@ -275,17 +289,17 @@ export default function CheckoutEmailSection() {
 
               {emailVerification?.records && emailVerification.records.length > 0 && (
                 <div className="space-y-3">
-                  <div className="p-3 rounded-lg border border-blue-500/10 bg-blue-500/5 flex flex-col gap-3">
+                  <div className="p-4 rounded-xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-blue-500/5 flex flex-col gap-3">
                     <div>
-                      <p className="text-[11px] text-blue-400 font-medium mb-1 flex items-center gap-1.5">
-                        <AlertTriangle className="w-3.5 h-3.5" />
+                      <p className="text-xs text-blue-500 font-semibold mb-1.5 flex items-center gap-1.5">
+                        <AlertTriangle className="w-4 h-4" />
                         Configuração de DNS Necessária
                       </p>
-                      <p className="text-[10px] text-blue-400/80">
+                      <p className="text-[11px] text-blue-500/80 leading-relaxed">
                         Adicione os registros abaixo no seu provedor de domínio (Cloudflare, GoDaddy, etc) para validar o envio.
                       </p>
-                      <p className="text-[10px] text-blue-400/80 mt-1">
-                        <strong>Dica:</strong> Se o seu provedor de DNS já adiciona o domínio automaticamente, use apenas <code>resend._domainkey</code> como nome do registro DKIM.
+                      <p className="text-[11px] text-blue-500/80 mt-1.5 leading-relaxed">
+                        <strong>Dica:</strong> Se o seu provedor de DNS já adiciona o domínio automaticamente, use apenas <code className="px-1 py-0.5 rounded bg-blue-500/10">resend._domainkey</code> como nome do registro DKIM.
                       </p>
                     </div>
                     
@@ -293,10 +307,10 @@ export default function CheckoutEmailSection() {
                       <Button 
                         onClick={handleVerifyEmailDNS} 
                         disabled={statusChecking}
-                        className="w-full bg-blue-500 hover:bg-blue-600 text-white text-xs h-8"
+                        className="w-full bg-blue-500 hover:bg-blue-600 text-white text-xs h-9"
                       >
-                        {statusChecking ? <Loader2 className="w-3 h-3 animate-spin mr-1.5" /> : <ShieldCheck className="w-3 h-3 mr-1.5" />}
-                        Verificar DNS na Zaplynx
+                        {statusChecking ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <ShieldCheck className="w-3.5 h-3.5 mr-1.5" />}
+                        Verificar DNS
                       </Button>
                     )}
                   </div>
@@ -312,28 +326,30 @@ export default function CheckoutEmailSection() {
                         optional: true,
                       },
                     ].map((record: any, idx: number) => (
-                      <div key={idx} className="p-3 rounded-lg border border-[#2A2A2A] bg-muted/20 space-y-2">
-                        <div className="flex justify-between items-center">
+                      <div key={idx} className="rounded-xl border border-border/60 bg-card/50 overflow-hidden hover:border-[#a78bfa]/30 transition-colors">
+                        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-muted/40 border-b border-border/60">
                           <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-[9px] font-mono uppercase">{record.type}</Badge>
-                            {record.priority && <Badge variant="outline" className="text-[9px]">Prioridade: {record.priority}</Badge>}
-                            {record.optional && <Badge variant="outline" className="text-[9px] border-muted-foreground/30 text-muted-foreground">Opcional</Badge>}
+                            <Badge variant="secondary" className="text-[10px] font-mono uppercase font-bold">{record.type}</Badge>
+                            {record.priority && <Badge variant="outline" className="text-[10px]">Prioridade: {record.priority}</Badge>}
+                            {record.optional && <Badge variant="outline" className="text-[10px] border-muted-foreground/30 text-muted-foreground">Opcional</Badge>}
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[9px] text-muted-foreground">Nome:</span>
-                            <code className="text-[9px] font-mono text-primary font-bold">{record.name}</code>
-                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => copyToClipboard(record.name)}>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Nome</span>
+                            <code className="text-[11px] font-mono text-[#a78bfa] font-semibold">{record.name}</code>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(record.name)}>
                               <Copy className="w-3 h-3" />
                             </Button>
                           </div>
                         </div>
-                        <div className="flex gap-2 items-start">
-                          <div className="flex-1 bg-background/50 p-2.5 rounded text-[10px] font-mono break-all leading-relaxed border border-[#2A2A2A] min-h-[40px]">
-                            {record.value}
+                        <div className="p-3">
+                          <div className="flex gap-2 items-start">
+                            <div className="flex-1 bg-background/80 p-3 rounded-lg text-[11px] font-mono break-all leading-relaxed border border-border/50 min-h-[44px]">
+                              {record.value}
+                            </div>
+                            <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => copyToClipboard(record.value)}>
+                              <Copy className="w-3.5 h-3.5" />
+                            </Button>
                           </div>
-                          <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={() => copyToClipboard(record.value)}>
-                            <Copy className="w-3.5 h-3.5" />
-                          </Button>
                         </div>
                       </div>
                     ))}
