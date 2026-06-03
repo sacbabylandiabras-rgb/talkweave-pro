@@ -16,6 +16,73 @@ function json(data: unknown, status = 200) {
   });
 }
 
+function formatMoney(value: number, currency = "BRL") {
+  return value.toLocaleString("pt-BR", { style: "currency", currency });
+}
+
+function decorateAffiliateLink(permalink: string | null, accountId: string | number | null) {
+  if (!permalink) return null;
+  try {
+    const u = new URL(permalink);
+    if (accountId) {
+      u.searchParams.set("matt_tool", String(accountId));
+      u.searchParams.set("matt_word", "zaplynx");
+    }
+    return u.toString();
+  } catch {
+    return permalink;
+  }
+}
+
+function extractWinnerItemId(product: any): string | null {
+  const winner = product?.buy_box_winner ?? product?.winner ?? {};
+  const candidates = [winner?.item_id, winner?.item?.id, winner?.id, product?.item_id];
+  const itemId = candidates.find((value) => typeof value === "string" && /^ML[A-Z]\d+$/i.test(value));
+  return itemId ? String(itemId).toUpperCase() : null;
+}
+
+function isUnavailableItem(item: any) {
+  const status = String(item?.status ?? "").toLowerCase();
+  const qty = Number(item?.available_quantity ?? 0);
+  const buyingMode = String(item?.buying_mode ?? "").toLowerCase();
+  return status !== "active" || qty <= 0 || (buyingMode && buyingMode !== "buy_it_now");
+}
+
+function mapAvailableItem(item: any, fallback: any, accountId: string | number | null) {
+  if (!item || isUnavailableItem(item)) return null;
+
+  const winner = fallback?.buy_box_winner ?? {};
+  const priceValue = typeof item?.price === "number"
+    ? item.price
+    : (typeof winner?.price === "number" ? winner.price : null);
+  if (!priceValue || priceValue <= 0) return null;
+
+  const originalPriceValue = typeof item?.original_price === "number"
+    ? item.original_price
+    : (typeof winner?.original_price === "number" ? winner.original_price : null);
+  const currency = item?.currency_id || winner?.currency_id || fallback?.currency_id || "BRL";
+  const picture = item?.secure_thumbnail || item?.thumbnail || item?.pictures?.[0]?.secure_url || item?.pictures?.[0]?.url || fallback?.thumbnail;
+  const link = decorateAffiliateLink(item?.permalink || null, accountId);
+  if (!link) return null;
+
+  return {
+    id: String(item.id),
+    name: String(item.title ?? fallback?.name ?? fallback?.title ?? ""),
+    price: formatMoney(priceValue, currency),
+    priceValue,
+    originalPrice: originalPriceValue != null && originalPriceValue > priceValue ? formatMoney(originalPriceValue, currency) : null,
+    discount: originalPriceValue && originalPriceValue > priceValue
+      ? Math.round(((originalPriceValue - priceValue) / originalPriceValue) * 100)
+      : null,
+    currency,
+    thumbnail: picture ? String(picture).replace(/^http:/, "https:") : null,
+    link,
+    available: true,
+    availableQuantity: Number(item?.available_quantity ?? 0),
+    source: "ml" as const,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Método inválido" }, 405);
