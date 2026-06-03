@@ -70,17 +70,14 @@ export default function Afiliados() {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
-      const { data } = await supabase
-        .from("affiliate_connections" as any)
-        .select("account_nickname, account_id")
-        .eq("user_id", session.user.id)
-        .eq("provider", "mercadolivre")
-        .maybeSingle();
-      if (data) {
+      const { data } = await supabase.functions.invoke("mercadolivre-connection-status", {
+        body: {},
+      });
+      if ((data as any)?.connected) {
         setConnected((prev) => ({ ...prev, ml: true }));
         setConnectedAccount((prev) => ({
           ...prev,
-          ml: (data as any).account_nickname || (data as any).account_id || "Conta conectada",
+          ml: (data as any).nickname || (data as any).accountId || "Conta conectada",
         }));
       }
     })();
@@ -141,14 +138,7 @@ export default function Afiliados() {
 
   const handleDisconnect = async (source: Source) => {
     if (source === "ml") {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await supabase
-          .from("affiliate_connections" as any)
-          .delete()
-          .eq("user_id", session.user.id)
-          .eq("provider", "mercadolivre");
-      }
+      await supabase.functions.invoke("mercadolivre-disconnect", { body: {} });
     }
     setConnected((prev) => ({ ...prev, [source]: false }));
     setConnectedAccount((prev) => ({ ...prev, [source]: null }));

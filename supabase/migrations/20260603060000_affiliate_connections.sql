@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS public.affiliate_connections (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL,
   provider text NOT NULL,
   account_id text,
   account_nickname text,
@@ -35,7 +35,7 @@ CREATE INDEX IF NOT EXISTS idx_affiliate_connections_user_provider
 
 CREATE TABLE IF NOT EXISTS public.affiliate_oauth_states (
   state text PRIMARY KEY,
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL,
   provider text NOT NULL,
   redirect_uri text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
