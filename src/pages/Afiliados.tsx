@@ -66,6 +66,7 @@ export default function Afiliados() {
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
+  const [offset, setOffset] = useState(0);
 
   const [destination, setDestination] = useState("");
   const [sending, setSending] = useState(false);
@@ -91,19 +92,29 @@ export default function Afiliados() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadDeals = async (categoryId?: string | null) => {
+  const loadDeals = async (categoryId?: string | null, isLoadMore = false) => {
     const nextCategory = categoryId !== undefined ? categoryId : selectedNiche;
+    const nextOffset = isLoadMore ? offset + 24 : 0;
+    
     setLoadingProducts(true);
     if (categoryId !== undefined) setSelectedNiche(categoryId);
+    
     try {
       const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
-        body: { mode: "deals", limit: 24, category: nextCategory || undefined },
+        body: { mode: "deals", limit: 24, offset: nextOffset, category: nextCategory || undefined },
       });
       if (error) throw new Error(error.message);
       if ((data as any)?.error && !(data as any)?.products) toast.error((data as any).error);
       const list = ((data as any)?.products || []) as AffiliateProduct[];
-      setProducts(list);
-      setSelectedIds(new Set());
+      
+      if (isLoadMore) {
+        setProducts(prev => [...prev, ...list]);
+        setOffset(nextOffset);
+      } else {
+        setProducts(list);
+        setOffset(0);
+        setSelectedIds(new Set());
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao carregar promoções.");
     } finally {
@@ -220,7 +231,7 @@ export default function Afiliados() {
     </Button>
   );
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (isLoadMore = false) => {
     const anyConnected = Object.values(connected).some(Boolean);
     if (!anyConnected) {
       toast.error("Conecte ao menos um marketplace primeiro.");
@@ -230,12 +241,15 @@ export default function Afiliados() {
       toast.error("Digite o que você quer buscar.");
       return;
     }
+    
+    const nextOffset = isLoadMore ? offset + 24 : 0;
     setLoadingProducts(true);
+    
     try {
       const all: AffiliateProduct[] = [];
       if (connected.ml) {
         const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
-          body: { query: searchQuery.trim(), limit: 24 },
+          body: { query: searchQuery.trim(), limit: 24, offset: nextOffset },
         });
         if (error) throw new Error(error.message);
         if ((data as any)?.error && !(data as any)?.products) {
@@ -245,10 +259,22 @@ export default function Afiliados() {
           all.push(...list);
         }
       }
-      setProducts(all);
-      setSelectedIds(new Set());
-      if (all.length === 0) toast.info("Nenhum produto encontrado.");
-      else toast.success(`${all.length} produtos encontrados.`);
+      
+      if (isLoadMore) {
+        setProducts(prev => [...prev, ...all]);
+        setOffset(nextOffset);
+      } else {
+        setProducts(all);
+        setOffset(0);
+        setSelectedIds(new Set());
+      }
+      
+      if (all.length === 0) {
+        if (!isLoadMore) toast.info("Nenhum produto encontrado.");
+        else toast.info("Não há mais produtos para carregar.");
+      } else if (!isLoadMore) {
+        toast.success(`${all.length} produtos encontrados.`);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao buscar produtos.");
     } finally {
@@ -462,10 +488,10 @@ export default function Afiliados() {
               placeholder="Buscar por palavra-chave..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") fetchProducts(); }}
+              onKeyDown={(e) => { if (e.key === "Enter") fetchProducts(false); }}
               className="md:w-72"
             />
-            <Button onClick={fetchProducts} disabled={loadingProducts}>
+            <Button onClick={() => fetchProducts(false)} disabled={loadingProducts}>
               {loadingProducts ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               Buscar
             </Button>
@@ -586,6 +612,20 @@ export default function Afiliados() {
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {products.length > 0 && (
+            <div className="flex justify-center pt-4">
+              <Button
+                variant="outline"
+                onClick={() => searchQuery.trim() ? fetchProducts(true) : loadDeals(undefined, true)}
+                disabled={loadingProducts}
+                className="gap-2"
+              >
+                {loadingProducts ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                Carregar mais produtos
+              </Button>
             </div>
           )}
         </CardContent>
