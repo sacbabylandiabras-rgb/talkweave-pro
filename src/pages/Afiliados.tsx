@@ -94,14 +94,14 @@ export default function Afiliados() {
 
   const loadDeals = async (categoryId?: string | null, isLoadMore = false) => {
     const nextCategory = categoryId !== undefined ? categoryId : selectedNiche;
-    const nextOffset = isLoadMore ? offset + 24 : 0;
+    const nextOffset = isLoadMore ? offset + 50 : 0;
     
     setLoadingProducts(true);
     if (categoryId !== undefined) setSelectedNiche(categoryId);
     
     try {
       const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
-        body: { mode: "deals", limit: 24, offset: nextOffset, category: nextCategory || undefined },
+        body: { mode: "deals", limit: 50, offset: nextOffset, category: nextCategory || undefined },
       });
       if (error) throw new Error(error.message);
       if ((data as any)?.error && !(data as any)?.products) toast.error((data as any).error);
@@ -242,14 +242,14 @@ export default function Afiliados() {
       return;
     }
     
-    const nextOffset = isLoadMore ? offset + 24 : 0;
+    const nextOffset = isLoadMore ? offset + 50 : 0;
     setLoadingProducts(true);
     
     try {
       const all: AffiliateProduct[] = [];
       if (connected.ml) {
         const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
-          body: { query: searchQuery.trim(), limit: 24, offset: nextOffset },
+          body: { query: searchQuery.trim(), limit: 50, offset: nextOffset },
         });
         if (error) throw new Error(error.message);
         if ((data as any)?.error && !(data as any)?.products) {
