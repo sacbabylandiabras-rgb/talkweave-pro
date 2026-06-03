@@ -381,7 +381,7 @@ Deno.serve(async (req) => {
           .replace(/^http:/, "https:")
           // ML usa sufixos de tamanho: W, I, G, O, F, V, etc.
           // O = grande (480px), V = grande, F = full
-          .replace(/\/D_NQ_NP_(\d+-\w+)-([A-Z])\.(\w+)$/, "/D_NQ_NP_$1-O.$3")
+          .replace(/\/D_NQ_NP_(\d+-\w+)-[A-Z]\.(\w+)$/i, "/D_NQ_NP_$1-O.$2")
           .replace(/-[WIGM]\.(jpg|jpeg|png|webp)$/i, "-O.$1");
       }
 
