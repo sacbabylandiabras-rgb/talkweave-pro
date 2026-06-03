@@ -389,6 +389,7 @@ Deno.serve(async (req) => {
     url.searchParams.set("buying_mode", "buy_it_now");
     url.searchParams.set("sort", "relevance");
     url.searchParams.set("limit", String(Math.min(limit, 50)));
+    // Se houver offset, usamos ele para paginação real na API
     if (offset > 0) url.searchParams.set("offset", String(offset));
 
     const headers: Record<string, string> = {
@@ -475,7 +476,7 @@ Deno.serve(async (req) => {
       .slice(0, limit);
 
     if (products.length === 0) {
-      const publicOffers = await fetchPublicOffers(q, category, accountId, limit);
+      const publicOffers = await fetchPublicOffers(q, category, accountId, limit, offset);
       applyTracker(publicOffers);
       return json({ products: publicOffers, total: publicOffers.length, fallback: true });
     }
