@@ -331,6 +331,15 @@ export default function Afiliados() {
 
   const previewMessage = useMemo(() => {
     if (selectedProducts.length === 0) return "Selecione ao menos um produto para gerar a mensagem.";
+    
+    // Se tiver entre 1 e 3 produtos, os links irão nos botões (se for apenas um, já é tratado separadamente no handleSend)
+    if (selectedProducts.length > 1 && selectedProducts.length <= 3) {
+      const items = selectedProducts
+        .map((p) => `🛍️ *${p.name}*\n💰 ${p.price}`)
+        .join("\n\n");
+      return `✨ *Ofertas selecionadas para você!*\n\n${items}\n\n_Enviado via ZapLynx_`;
+    }
+
     const items = selectedProducts
       .map((p) => `🛍️ *${p.name}*\n💰 ${p.price}\n🔗 ${p.link}`)
       .join("\n\n");
@@ -349,10 +358,10 @@ export default function Afiliados() {
 
     setSending(true);
     try {
-      // Se tiver apenas um produto, envia como imagem com legenda
+      // Se tiver apenas um produto, envia como imagem com legenda e BOTÃO
       if (selectedProducts.length === 1) {
         const product = selectedProducts[0];
-        const caption = `🛍️ *${product.name}*\n💰 ${product.price}\n🔗 ${product.link}\n\n_Enviado via ZapLynx_`;
+        const caption = `🛍️ *${product.name}*\n💰 ${product.price}\n\n_Enviado via ZapLynx_`;
         
         const { data, error } = await supabase.functions.invoke("send-message", {
           body: {
@@ -361,13 +370,41 @@ export default function Afiliados() {
             mediaUrl: product.thumbnail || undefined,
             mediaType: product.thumbnail ? "image" : undefined,
             instanceId: selectedInstanceId || undefined,
+            buttonActions: [
+              {
+                id: "1",
+                type: "URL",
+                label: "Ver Oferta 🚀",
+                url: product.link
+              }
+            ]
           },
         });
 
         if (error) throw new Error(error.message);
         toast.success(`Oferta enviada com sucesso para ${destination}!`);
+      } else if (selectedProducts.length > 1 && selectedProducts.length <= 3) {
+        // Se tiver entre 2 e 3, envia com botões para cada produto
+        const buttons = selectedProducts.map((p, idx) => ({
+          id: String(idx + 1),
+          type: "URL" as const,
+          label: `Comprar Item ${idx + 1} 🛒`,
+          url: p.link
+        }));
+
+        const { data, error } = await supabase.functions.invoke("send-message", {
+          body: {
+            phone: destination.trim(),
+            message: previewMessage,
+            instanceId: selectedInstanceId || undefined,
+            buttonActions: buttons
+          },
+        });
+
+        if (error) throw new Error(error.message);
+        toast.success(`Mensagem com botões enviada para ${destination}!`);
       } else {
-        // Se tiver vários, envia a mensagem de texto normalmente
+        // Se tiver mais de 3, envia a mensagem de texto com links normalmente (limite do WhatsApp para botões nativos)
         const { data, error } = await supabase.functions.invoke("send-message", {
           body: {
             phone: destination.trim(),
