@@ -7,6 +7,6 @@
     { "source": "/r/:slug*", "destination": "/tg-r.html" },
     { "source": "/r", "destination": "/r.html" },
     { "source": "/lp/:path*", "destination": "/lp.html" },
-    { "source": "/shopify/pricing", "destination": "/shopify-pricing.html" }
+    { "source": "/integracao-loja/precos", "destination": "/integracao-loja-precos.html" }
   ]
 }
