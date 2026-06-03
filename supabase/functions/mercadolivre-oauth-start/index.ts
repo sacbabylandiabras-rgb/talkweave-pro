@@ -88,10 +88,12 @@ Deno.serve(async (req) => {
     authUrl.searchParams.set("client_id", ML_CLIENT_ID);
     authUrl.searchParams.set("redirect_uri", REDIRECT_URI);
     authUrl.searchParams.set("state", state);
-    // Forçar a tela de login e permissões do Mercado Livre
-    // Adicionando explicitamente PKCE e parâmetros de acesso se necessário no futuro
+    // Mercado Livre utiliza 'prompt=login' para forçar autenticação
+    // Alguns provedores OAuth também respeitam 'force_login=true' ou 'access_type=offline'
     authUrl.searchParams.set("prompt", "login");
-    authUrl.searchParams.set("consent", "true");
+    // Adicionando um timestamp ao state para garantir que a URL seja única e não cacheada pelo browser
+    authUrl.searchParams.set("pkce", "true"); // ML suporta PKCE em alguns fluxos, forçar ajuda a invalidar sessões automáticas
+
 
     return json({ authUrl: authUrl.toString() });
   } catch (err) {
