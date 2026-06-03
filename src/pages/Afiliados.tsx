@@ -353,10 +353,16 @@ export default function Afiliados() {
         body: {
           phone: destination.trim(),
           message: previewMessage,
+          instanceId: selectedInstanceId || undefined,
         },
       });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        if (error.message?.includes("whatsapp is disconnected") || (data as any)?.error?.includes("disconnected")) {
+          throw new Error("O WhatsApp desta instância está desconectado. Por favor, conecte o celular em Dispositivos.");
+        }
+        throw new Error(error.message);
+      }
       
       toast.success(`Mensagem enviada com sucesso para ${destination}!`);
     } catch (e) {
