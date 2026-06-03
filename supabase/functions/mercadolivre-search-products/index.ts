@@ -186,38 +186,36 @@ async function fetchPublicOffers(query: string, category: string | null, account
       
       const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, "").trim() : "Produto Mercado Livre";
 
-      // 3. CRITICAL: Broadest possible image detection
+      // 3. BROADEST IMAGE DETECTION (Enhanced for dynamic content)
       let thumbnail = null;
       
-      // Try to find ANY mlstatic image URL that looks like a product thumbnail
-      const allPossibleImages = card.match(/https?:\/\/http2\.mlstatic\.com\/D_NQ_NP_(?:[\w-]+)\.[a-z]{3,4}/gi) ||
-                               card.match(/https?:\/\/[^"'\s<>]+?\.(?:jpg|jpeg|png|webp)/gi) || [];
-      
-      const validImages = allPossibleImages.filter(url => 
-        (url.includes("mlstatic.com") || url.includes("mercadolibre.com")) && 
-        !url.includes("pixel") && 
-        !url.includes("blank") && 
-        !url.includes("dot.gif") &&
-        !url.includes("placeholder")
-      );
-
-      if (validImages.length > 0) {
-        thumbnail = validImages[0];
+      // Look specifically for images in data-src, data-actualsrc, or src
+      const imageMatch = card.match(/data-src="([^"]+)"/i) || 
+                         card.match(/data-actualsrc="([^"]+)"/i) || 
+                         card.match(/src="([^"]+)"/i);
+                         
+      if (imageMatch) {
+        thumbnail = imageMatch[1];
       } else {
-        // Search inside specific attributes if regex fails to find full URLs
-        const attrMatch = card.match(/src="([^"]+)"/i) || 
-                         card.match(/data-src="([^"]+)"/i) || 
-                         card.match(/data-actualsrc="([^"]+)"/i);
-        if (attrMatch) {
-          thumbnail = attrMatch[1];
+        // Fallback: search for any mlstatic URL in the card
+        const urlMatch = card.match(/https?:\/\/http2\.mlstatic\.com\/D_NQ_NP_[^"'\s<>]+/gi);
+        if (urlMatch && urlMatch.length > 0) {
+          thumbnail = urlMatch[0];
         }
       }
       
-      // 3. Final verification and resolution upgrade
+      // Fix relative URLs and upgrade resolution
       if (thumbnail) {
+        if (thumbnail.startsWith("//")) thumbnail = "https:" + thumbnail;
         thumbnail = thumbnail.replace(/^http:/, "https:");
-        // Improve resolution: ML patterns: -I.jpg -> -O.jpg or -F.jpg or -V.jpg
-        thumbnail = thumbnail.replace(/-[IMW]\.(jpg|jpeg|png|webp)/i, "-O.$1");
+        
+        // Upgrade resolution: switch common patterns to high res (e.g., -V to -O)
+        thumbnail = thumbnail.replace(/-[IMWV]\.(jpg|jpeg|png|webp)/i, "-O.$1");
+        
+        // Ensure common suffixes for Mercado Livre images
+        if (!thumbnail.includes("-O.") && thumbnail.includes("mlstatic.com")) {
+          thumbnail = thumbnail.replace(/\.(jpg|jpeg|png|webp)$/i, "-O.$1");
+        }
       }
 
       // Look for price

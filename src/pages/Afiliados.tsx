@@ -328,16 +328,18 @@ export default function Afiliados() {
       const next = new Set(prev);
       const idStr = String(id);
       
-      let found = false;
-      for (const existingId of next) {
-        if (String(existingId) === idStr) {
-          next.delete(existingId);
-          found = true;
+      // Verifica se o ID já está selecionado comparando como string
+      let existingItem: string | number | null = null;
+      for (const item of next) {
+        if (String(item) === idStr) {
+          existingItem = item;
           break;
         }
       }
-      
-      if (!found) {
+
+      if (existingItem !== null) {
+        next.delete(existingItem);
+      } else {
         next.add(id);
       }
       return next;
