@@ -379,6 +379,21 @@ Deno.serve(async (req) => {
     };
 
     const accountId = record?.account_id ?? null;
+    const affiliateSourceId: string | null = record?.affiliate_source_id ?? null;
+
+    const applyShortlinks = async (items: any[]) => {
+      if (!affiliateSourceId || items.length === 0) return items;
+      const originals = items
+        .map((p) => stripAffiliateParams(p?.link))
+        .filter((x): x is string => typeof x === "string");
+      const map = await generateAffiliateShortlinks(admin, userData.user.id, accessToken!, affiliateSourceId, originals);
+      for (const p of items) {
+        const original = stripAffiliateParams(p?.link);
+        if (original && map[original]) p.link = map[original];
+      }
+      return items;
+    };
+
     let { res, data } = await getJson(url.toString(), headers);
     if (!res.ok) {
       console.warn("ML public search failed, trying catalog:", res.status, data);
@@ -391,6 +406,7 @@ Deno.serve(async (req) => {
       if (!res.ok) {
         console.error("ML search error:", res.status, data);
         const publicOffers = await fetchPublicOffers(q, category, accountId, limit);
+        await applyShortlinks(publicOffers);
         return json({ products: publicOffers, total: publicOffers.length, fallback: true, debug: { status: res.status } }, 200);
       }
     }
@@ -400,7 +416,10 @@ Deno.serve(async (req) => {
       .map((p: any) => mapAvailableItem(p, p, accountId))
       .filter(Boolean)
       .slice(0, limit);
-    if (directProducts.length > 0) return json({ products: directProducts, total: data?.paging?.total ?? directProducts.length });
+    if (directProducts.length > 0) {
+      await applyShortlinks(directProducts);
+      return json({ products: directProducts, total: data?.paging?.total ?? directProducts.length });
+    }
 
     let enrichedResults = results;
     let itemIds = Array.from(new Set(enrichedResults.map(extractWinnerItemId).filter(Boolean))).slice(0, limit) as string[];
@@ -445,9 +464,11 @@ Deno.serve(async (req) => {
 
     if (products.length === 0) {
       const publicOffers = await fetchPublicOffers(q, category, accountId, limit);
+      await applyShortlinks(publicOffers);
       return json({ products: publicOffers, total: publicOffers.length, fallback: true });
     }
 
+    await applyShortlinks(products);
     return json({ products, total: data?.paging?.total ?? products.length });
   } catch (err) {
     console.error("ml-search error:", err);
