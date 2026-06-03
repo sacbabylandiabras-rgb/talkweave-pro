@@ -710,7 +710,15 @@ export default function Afiliados() {
                     )}
                     <div className="aspect-square w-full rounded-xl bg-muted flex items-center justify-center overflow-hidden">
                       {p.thumbnail ? (
-                        <img src={p.thumbnail} alt={p.name} className="w-full h-full object-contain" loading="lazy" />
+                        <img 
+                          src={p.thumbnail} 
+                          alt={p.name} 
+                          className="w-full h-full object-contain" 
+                          loading="lazy"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "https://placehold.co/400x400/f3f4f6/94a3b8?text=Imagem+Indispon%C3%ADvel";
+                          }}
+                        />
                       ) : (
                         <Package className="w-10 h-10 text-muted-foreground/50" />
                       )}
