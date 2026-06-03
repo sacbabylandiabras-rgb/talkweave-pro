@@ -254,11 +254,13 @@ export default function Afiliados() {
     
     try {
       const all: AffiliateProduct[] = [];
+      let lastData: any = null;
       if (connected.ml) {
         const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
           body: { query: searchQuery.trim(), limit: 50, offset: nextOffset },
         });
         if (error) throw new Error(error.message);
+        lastData = data;
         if ((data as any)?.error && !(data as any)?.products) {
           toast.error((data as any).error);
         } else {
@@ -274,11 +276,11 @@ export default function Afiliados() {
           return [...prev, ...filteredNew];
         });
         setOffset(nextOffset);
-        setTotalProducts((data as any)?.total || null);
+        setTotalProducts(lastData?.total || null);
       } else {
         setProducts(all);
         setOffset(0);
-        setTotalProducts((data as any)?.total || null);
+        setTotalProducts(lastData?.total || null);
         setSelectedIds(new Set());
       }
       
