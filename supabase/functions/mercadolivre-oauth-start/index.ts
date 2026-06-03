@@ -9,14 +9,6 @@ const corsHeaders = {
 const REDIRECT_URI = "https://zaplynx.com/afiliados/callback/mercadolivre";
 const PROVIDER = "mercadolivre";
 
-type StatePayload = {
-  u: string;
-  p: string;
-  r: string;
-  exp: number;
-  n: string;
-};
-
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -24,80 +16,42 @@ function json(data: unknown, status = 200) {
   });
 }
 
-function base64Url(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-}
-
-function base64UrlJson(value: unknown): string {
-  return base64Url(new TextEncoder().encode(JSON.stringify(value)));
-}
-
 async function sign(value: string, secret: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value));
-  return base64Url(new Uint8Array(signature));
-}
-
-async function createState(userId: string, secret: string): Promise<string> {
-  const payload: StatePayload = {
-    u: userId,
-    p: PROVIDER,
-    r: REDIRECT_URI,
-    exp: Date.now() + 10 * 60 * 1000,
-    n: crypto.randomUUID(),
-  };
-  const encodedPayload = base64UrlJson(payload);
-  const signature = await sign(encodedPayload, secret);
-  return `${encodedPayload}.${signature}`;
+  return btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "Método inválido" }, 405);
-
+  
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const ML_CLIENT_ID = Deno.env.get("ML_CLIENT_ID");
     const ML_CLIENT_SECRET = Deno.env.get("ML_CLIENT_SECRET");
-    if (!ML_CLIENT_ID || !ML_CLIENT_SECRET) {
-      return json({ error: "Integração ainda não configurada." }, 500);
-    }
+
+    if (!ML_CLIENT_ID || !ML_CLIENT_SECRET) return json({ error: "ML credentials missing" }, 500);
 
     const authHeader = req.headers.get("authorization") || "";
-    if (!authHeader) return json({ error: "Faça login novamente." }, 401);
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const { data: { user }, error: authErr } = await admin.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (authErr || !user) return json({ error: "Unauthorized" }, 401);
 
-    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const token = authHeader.replace(/^Bearer\s+/i, "");
-    const { data: userData, error: userErr } = await userClient.auth.getUser(token);
-    if (userErr || !userData.user) return json({ error: "Faça login novamente." }, 401);
+    const payload = { u: user.id, p: PROVIDER, exp: Date.now() + 600000 };
+    const payloadBase64 = btoa(JSON.stringify(payload)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    const signature = await sign(payloadBase64, ML_CLIENT_SECRET);
+    const state = `${payloadBase64}.${signature}`;
 
-    const state = await createState(userData.user.id, ML_CLIENT_SECRET);
     const authUrl = new URL("https://auth.mercadolivre.com.br/authorization");
     authUrl.searchParams.set("response_type", "code");
     authUrl.searchParams.set("client_id", ML_CLIENT_ID);
     authUrl.searchParams.set("redirect_uri", REDIRECT_URI);
     authUrl.searchParams.set("state", state);
-    // Mercado Livre utiliza 'prompt=login' para forçar autenticação
-    // Alguns provedores OAuth também respeitam 'force_login=true' ou 'access_type=offline'
     authUrl.searchParams.set("prompt", "login");
-    // Adicionando um timestamp ao state para garantir que a URL seja única e não cacheada pelo browser
-    authUrl.searchParams.set("pkce", "true"); // ML suporta PKCE em alguns fluxos, forçar ajuda a invalidar sessões automáticas
-
 
     return json({ authUrl: authUrl.toString() });
   } catch (err) {
-    console.error("ml-oauth-start error:", err);
-    return json({ error: "Não foi possível iniciar a conexão." }, 500);
+    return json({ error: err.message }, 500);
   }
 });

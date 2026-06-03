@@ -112,38 +112,34 @@ export default function Afiliados() {
 
   const loadDeals = async (categoryId?: string | null, isLoadMore = false) => {
     const nextCategory = categoryId !== undefined ? categoryId : selectedNiche;
-    // Se não tem categoria nem busca, usa a MLB3000 como padrão de "ofertas" para garantir resultados
     const finalCategory = nextCategory || "MLB3000";
-    const nextOffset = isLoadMore ? offset + 50 : 0;
+    const nextOffset = isLoadMore ? offset + (products.length > 0 ? products.length : 0) : 0;
     
     setLoadingProducts(true);
     if (categoryId !== undefined) setSelectedNiche(categoryId);
     
     try {
-      console.log("Chamando mercadolivre-search-products com offset:", nextOffset);
       const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
-        body: { mode: "deals", limit: 50, offset: nextOffset, category: finalCategory, site: "MLB" },
+        body: { mode: "deals", limit: 50, offset: nextOffset, category: finalCategory },
       });
-      if (error) throw new Error(error.message);
-      if ((data as any)?.error && !(data as any)?.products) toast.error((data as any).error);
-      const list = ((data as any)?.products || []) as AffiliateProduct[];
+      if (error) throw error;
       
+      const list = (data?.products || []) as AffiliateProduct[];
       if (isLoadMore) {
         setProducts(prev => {
-          const existingIds = new Set(prev.map(p => p.id));
-          const filteredNew = list.filter(p => !existingIds.has(p.id));
-          return [...prev, ...filteredNew];
+          const ids = new Set(prev.map(p => p.id));
+          return [...prev, ...list.filter(p => !ids.has(p.id))];
         });
         setOffset(nextOffset);
-        setTotalProducts((data as any)?.total || null);
       } else {
         setProducts(list);
         setOffset(0);
-        setTotalProducts((data as any)?.total || null);
         setSelectedIds(new Set());
       }
+      setTotalProducts(data?.total || null);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro ao carregar promoções.");
+      console.error(e);
+      toast.error("Erro ao carregar promoções.");
     } finally {
       setLoadingProducts(false);
     }
