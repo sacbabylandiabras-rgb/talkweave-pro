@@ -353,10 +353,30 @@ Deno.serve(async (req) => {
       console.log(`Search for "${q}" returned ${results.length} results`);
     }
 
+    // Se não houver resultados na API de busca, tenta o scraping
     if (results.length === 0) {
       console.log("No results from search API, falling back to scraping...");
       const publicProducts = await fetchPublicOffers(query, category, record?.account_id, limit, offset);
-      return json({ products: publicProducts, total: 1000, fallback: true });
+      // Se o scraping retornou algo, usa ele
+      if (publicProducts && publicProducts.length > 0) {
+        return json({ products: publicProducts, total: 1000, fallback: true });
+      }
+      // Se nem o scraping funcionou, tenta uma busca genérica como última tentativa
+      if (!query && !category) {
+        console.log("Generic search as last resort...");
+        const lastResortUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search?q=ofertas&limit=${limit}`);
+        const lastResortRes = await fetch(lastResortUrl.toString());
+        if (lastResortRes.ok) {
+          const lastResortData = await lastResortRes.json();
+          results = lastResortData.results || [];
+          total = lastResortData.paging?.total || 0;
+        }
+      }
+    }
+
+    // Se ainda não tiver resultados, retorna lista vazia antes de tentar processar
+    if (results.length === 0) {
+      return json({ products: [], total: 0 });
     }
 
     // Busca detalhes via API pública (sem autenticação, não precisa de token)
@@ -395,8 +415,6 @@ Deno.serve(async (req) => {
       if (thumbnail) {
         thumbnail = thumbnail
           .replace(/^http:/, "https:")
-          // ML usa sufixos de tamanho: W, I, G, O, F, V, etc.
-          // O = grande (480px), V = grande, F = full
           .replace(/\/D_NQ_NP_(\d+-\w+)-[A-Z]\.(\w+)$/i, "/D_NQ_NP_$1-O.$2")
           .replace(/-[WIGM]\.(jpg|jpeg|png|webp)$/i, "-O.$1");
       }
