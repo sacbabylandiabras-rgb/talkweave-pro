@@ -395,13 +395,13 @@ Deno.serve(async (req) => {
       const normalizedQuery = q.trim().replace(/\s+/g, " ");
       url.searchParams.set("q", normalizedQuery);
       
-      // CRITICAL: Se o usuário enviou uma palavra-chave específica, NÃO queremos os filtros padrão de "Melhores promoções" ou "Ofertas"
-      // Se mode for "search", usamos search_type=scan para ser mais abrangente e exato nos termos
-      if (mode === "search") {
-        url.searchParams.set("search_type", "scan");
-        // Forçar ordenação por relevância na API quando for busca por palavra-chave
-        url.searchParams.set("sort", "relevance");
-      }
+      // CRITICAL: Se o usuário enviou uma palavra-chave específica, queremos os resultados mais RELEVANTES.
+      // A API do ML às vezes retorna lixo se usarmos 'scan' ou filtros restritivos.
+      // Vamos usar a busca padrão mas garantir que a ordenação de relevância seja respeitada.
+      url.searchParams.set("sort", "relevance");
+      
+      // Experimentar remover search_type=scan que pode estar limitando a busca em alguns casos de produtos muito específicos
+      // url.searchParams.set("search_type", "scan");
     }
     
     if (category) url.searchParams.set("category", category);
@@ -429,7 +429,7 @@ Deno.serve(async (req) => {
       const term = searchTerm.toLowerCase();
       
       // 1. Match exato total: topo absoluto
-      if (name === term) return 5000;
+      if (name === term) return 10000;
       
       const termWords = term.split(/\s+/).filter(w => w.length >= 2);
       if (termWords.length === 0) return 0;
@@ -438,14 +438,18 @@ Deno.serve(async (req) => {
       
       // 2. Ordem exata: se as palavras aparecem na mesma ordem do termo original
       const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      if (new RegExp(escapedTerm).test(name)) {
-        score += 2000;
+      if (name.includes(term)) {
+        score += 5000;
       }
 
       // 3. Contagem de palavras e sinônimos
       let matches = 0;
       let lastIndex = -1;
       let wordsInOrder = 0;
+      let essentialWordsMatch = 0;
+
+      // Palavras essenciais (geralmente as primeiras da busca como a marca e tipo do produto)
+      const essentialWords = termWords.slice(0, 3);
 
       for (const word of termWords) {
         let foundIndex = name.indexOf(word);
@@ -463,6 +467,7 @@ Deno.serve(async (req) => {
 
         if (foundIndex !== -1) {
           matches++;
+          if (essentialWords.includes(word)) essentialWordsMatch++;
           if (foundIndex > lastIndex) {
             wordsInOrder++;
             lastIndex = foundIndex;
@@ -470,17 +475,21 @@ Deno.serve(async (req) => {
         }
       }
 
-      // 4. Bônus por cobertura (quantas palavras do termo estão no título)
+      // 4. Bônus agressivo por cobertura de palavras essenciais
+      const essentialCoverage = essentialWordsMatch / essentialWords.length;
+      score += essentialCoverage * 3000;
+
+      // 5. Bônus por cobertura total (quantas palavras do termo estão no título)
       const coverage = matches / termWords.length;
-      score += coverage * 1000;
+      score += coverage * 2000;
 
-      // 5. Bônus por ordem relativa
+      // 6. Bônus por ordem relativa
       const orderBonus = wordsInOrder / termWords.length;
-      score += orderBonus * 500;
+      score += orderBonus * 1000;
 
-      // 6. Penalidade por excesso de palavras (títulos muito longos e genéricos perdem para os precisos)
+      // 7. Penalidade por excesso de palavras (títulos muito longos e genéricos perdem para os precisos)
       const nameWords = name.split(/\s+/).length;
-      score -= nameWords * 5;
+      score -= nameWords * 10;
 
       return score;
     };
