@@ -815,20 +815,27 @@ export default function Afiliados() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Send className="w-5 h-5 text-primary" />
-            Enviar via ZapLynx
-          </CardTitle>
-          <CardDescription>Prévia da mensagem que será enviada no WhatsApp.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Textarea
-            value={previewMessage}
-            readOnly
-            className="min-h-[200px] font-mono text-xs bg-muted/40"
-          />
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-lg border-t z-50 md:relative md:p-0 md:bg-transparent md:border-t-0">
+        <Card className="max-w-7xl mx-auto shadow-lg md:shadow-none border-primary/20 md:border">
+          <CardHeader className="py-3 px-4 md:py-6 md:px-6 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Send className="w-5 h-5 text-primary" />
+              <CardTitle className="text-base md:text-lg">Enviar via ZapLynx</CardTitle>
+            </div>
+            {selectedIds.size > 0 && (
+              <Badge className="bg-primary text-primary-foreground">
+                {selectedIds.size} selecionado(s)
+              </Badge>
+            )}
+          </CardHeader>
+          <CardContent className="py-2 px-4 md:py-6 md:px-6 space-y-4">
+            <div className="hidden md:block">
+              <Textarea
+                value={previewMessage}
+                readOnly
+                className="min-h-[120px] font-mono text-xs bg-muted/40"
+              />
+            </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Instância do WhatsApp</Label>
