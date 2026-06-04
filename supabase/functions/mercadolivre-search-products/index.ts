@@ -153,6 +153,12 @@ async function generateOfficialShortlinks(
         body: JSON.stringify({ urls: batch, source_id: sourceId }),
       });
       
+      if (res.status === 403) {
+        console.warn(`[Affiliate] Shortlink API 403 - Access forbidden for sourceId: ${sourceId}`);
+        // If 403, we stop trying this batch to avoid further rate limiting/blocking
+        break; 
+      }
+
       if (!res.ok) {
         const errText = await res.text().catch(() => "N/A");
         console.warn(`[Affiliate] Shortlink API error: ${res.status} - ${errText}`);
@@ -184,6 +190,7 @@ async function generateOfficialShortlinks(
           source_id: sourceId,
           original_url: original,
           short_url: short,
+          created_at: new Date().toISOString()
         })),
         { onConflict: "user_id,source_id,original_url" },
       );
@@ -735,18 +742,19 @@ Deno.serve(async (req) => {
 
     // Shortlink generation
     // Tenta usar affiliate_source_id do banco, ou extrai do raw se disponível
-    const sourceId = record.account_id || record.raw?.affiliate_source_id;
+    const sourceId = record.metadata?.source_id || record.affiliate_source_id || record.account_id || record.raw?.affiliate_source_id;
+    
     if (sourceId && products.length > 0 && accessToken) {
       const originalUrls = products.map(p => p.link);
-      const shortlinkMap = await generateOfficialShortlinks(admin, user.id, accessToken, sourceId, originalUrls);
+      const shortlinkMap = await generateOfficialShortlinks(admin, user.id, accessToken, String(sourceId), originalUrls);
       products = products.map(p => ({
         ...p,
-        link: shortlinkMap[p.link] || decorateAffiliateLink(p.link, record.account_id),
+        link: shortlinkMap[p.link] || decorateAffiliateLink(p.link, sourceId),
       }));
     } else {
       products = products.map(p => ({
         ...p,
-        link: decorateAffiliateLink(p.link, record.account_id),
+        link: decorateAffiliateLink(p.link, sourceId),
       }));
     }
 
