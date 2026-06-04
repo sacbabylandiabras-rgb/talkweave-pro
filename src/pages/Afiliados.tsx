@@ -149,7 +149,8 @@ export default function Afiliados() {
       const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
         body: { 
           mode: "deals", 
-          limit: 50, 
+          limit: 10, 
+
           offset: nextOffset, 
           category: finalCategory,
           site: "MLB"
