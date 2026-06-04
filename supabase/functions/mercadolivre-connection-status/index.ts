@@ -35,12 +35,31 @@ Deno.serve(async (req) => {
     if (userErr || !userData.user) return json({ connected: false }, 200);
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    
+    // Tenta carregar do banco de dados primeiro
+    const { data: dbData } = await admin
+      .from("affiliate_connections")
+      .select("*")
+      .eq("user_id", userData.user.id)
+      .eq("provider", PROVIDER)
+      .maybeSingle();
+
+    if (dbData) {
+      console.log(`[DB] Connection found for user ${userData.user.id}`);
+      return json({
+        connected: true,
+        accountId: dbData.account_id ?? null,
+        nickname: dbData.account_nickname ?? null,
+        expiresAt: dbData.expires_at ?? null,
+      });
+    }
+
+    // Fallback para storage
     const storagePath = `${userData.user.id}/${PROVIDER}.json`;
     console.log(`[Storage] Checking connection at: ${storagePath}`);
     const { data, error } = await admin.storage
       .from(BUCKET)
       .download(storagePath);
-
 
     if (error || !data) {
       console.log(`[Storage] Connection not found or error for path ${storagePath}:`, error?.message);
