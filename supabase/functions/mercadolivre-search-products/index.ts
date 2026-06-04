@@ -283,22 +283,23 @@ Deno.serve(async (req) => {
       };
 
       // Try authenticated search first
+      const appUserAgent = "ZapLynx-Affiliate/1.0 (+https://zaplynx.com)";
       let res = await fetch(searchUrl.toString(), { 
         headers: { 
           ...commonHeaders,
           "Authorization": `Bearer ${accessToken}`,
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+          "User-Agent": appUserAgent
         } 
       });
 
-      // Fallback strategies
+      // Fallback strategies if primary fails
       if (!res.ok) {
         const initialStatus = res.status;
-        console.warn(`[Search] Primary search failed with status ${initialStatus}. Attempting fallbacks...`);
+        console.warn(`[Search] Primary search failed with status ${initialStatus}.`);
         
-        // Strategy 1: Public Search (No Auth, Different User Agent)
+        // Strategy 1: Public Search if 403 (could be account restrictions)
         if (initialStatus === 403 || initialStatus === 401) {
-          console.log(`[Search] Fallback 1: Public search for ${mode}`);
+          console.log(`[Search] Attempting public search fallback...`);
           const publicUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
           if (searchUrl.searchParams.get("q")) publicUrl.searchParams.set("q", searchUrl.searchParams.get("q")!);
           if (searchUrl.searchParams.get("category")) publicUrl.searchParams.set("category", searchUrl.searchParams.get("category")!);
@@ -308,21 +309,21 @@ Deno.serve(async (req) => {
           res = await fetch(publicUrl.toString(), { 
             headers: {
               "Accept": "application/json",
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+              "User-Agent": appUserAgent
             } 
           });
         }
 
-        // Strategy 2: Category-only search (if strategy 1 failed)
+        // Strategy 2: Category-only search
         if (!res.ok && category) {
-          console.log(`[Search] Fallback 2: Category-only search for ${category}`);
+          console.log(`[Search] Attempting category-only fallback...`);
           const catUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
           catUrl.searchParams.set("category", category);
           catUrl.searchParams.set("limit", String(limit));
           res = await fetch(catUrl.toString(), { 
             headers: {
               "Accept": "application/json",
-              "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1"
+              "User-Agent": appUserAgent
             } 
           });
         }
@@ -330,12 +331,11 @@ Deno.serve(async (req) => {
         // Strategy 3: Minimal keyword search
         if (!res.ok) {
           const fallbackQ = query || (category ? CATEGORY_KEYWORDS[category] : null) || "ofertas";
-          console.log(`[Search] Fallback 3: Minimal search for "${fallbackQ}"`);
           const fallbackUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
           fallbackUrl.searchParams.set("q", fallbackQ);
           fallbackUrl.searchParams.set("limit", String(limit));
           res = await fetch(fallbackUrl.toString(), { 
-            headers: commonHeaders 
+            headers: { ...commonHeaders, "User-Agent": appUserAgent } 
           });
         }
       }
@@ -344,17 +344,15 @@ Deno.serve(async (req) => {
         const data = await res.json();
         results = data.results || [];
         total = data.paging?.total || 0;
-        console.log(`[Search] Success. Found ${results.length} items.`);
       } else {
         const finalStatus = res.status;
-        const errText = await res.text().catch(() => "N/A");
-        console.error(`[Search] All fallbacks failed. Final Error: ${finalStatus} - ${errText}`);
+        console.error(`[Search] All fallbacks failed. Status: ${finalStatus}`);
         
         return json({ 
           products: [],
           total: 0,
           error: `API Mercado Livre: ${finalStatus}`,
-          details: finalStatus === 403 ? "Acesso restrito pelo Mercado Livre. Tente reconectar sua conta." : "Erro na busca de produtos."
+          details: finalStatus === 403 ? "Acesso restrito. Verifique as permissões do seu app no Mercado Livre." : "Erro na busca de produtos."
         }, 200);
       }
 
