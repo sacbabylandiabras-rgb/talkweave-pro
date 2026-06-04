@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
 
     if (!ML_CLIENT_ID || !ML_CLIENT_SECRET) return json({ error: "ML credentials missing" }, 500);
 
-    const { code, state, code_verifier } = await req.json();
+    const { code, state } = await req.json();
     console.log(`[OAuth] Processing callback for code: ${code?.substring(0, 5)}...`);
     
     const [payloadBase64, signature] = state.split(".");
@@ -54,6 +54,28 @@ Deno.serve(async (req) => {
     const payload = JSON.parse(decodeBase64Url(payloadBase64));
     const userId = payload.u;
     console.log(`[OAuth] User ID from payload: ${userId}`);
+
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    
+    // Retrieve verifier from bucket
+    let code_verifier = null;
+    try {
+      const storagePath = `${userId}/oauth_pending.json`;
+      const { data, error: downloadError } = await admin.storage
+        .from(BUCKET)
+        .download(storagePath);
+      
+      if (data) {
+        const pending = JSON.parse(await data.text());
+        if (pending.expires > Date.now()) {
+          code_verifier = pending.code_verifier;
+        }
+        // Clean up
+        await admin.storage.from(BUCKET).remove([storagePath]);
+      }
+    } catch (e) {
+      console.warn("[OAuth] Could not retrieve code_verifier from storage:", e.message);
+    }
 
     const tokenParams = new URLSearchParams({
       grant_type: "authorization_code",
