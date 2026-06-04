@@ -61,7 +61,15 @@ Deno.serve(async (req) => {
       client_secret: ML_CLIENT_SECRET,
       code,
       redirect_uri: REDIRECT_URI,
-      code_verifier: "", // Mercado Livre requires this even if not using PKCE
+      // Mercado Livre usually doesn't require code_verifier unless you started the flow with code_challenge (PKCE)
+      // but some app types or configurations might still expect it or the SDK/API might be strict.
+      // However, the error "code_verifier is a required parameter" strongly suggests it's expecting PKCE.
+      // If we didn't send a code_challenge, we shouldn't need a code_verifier.
+      // BUT, since it's failing with this specific error, we might have an app configured to REQUIRE PKCE.
+      // As a workaround for now, we'll try to provide a dummy one if possible, but real PKCE needs a challenge.
+      // Let's remove it if it's empty, or ensure it's NOT sent if not used.
+      // Actually, looking at ML docs, for "Server Side" flow without PKCE, it shouldn't be there.
+      // If the error persists, it means the App in ML is configured as "Public" (Mobile/Web) which REQUIRES PKCE.
     });
 
     console.log(`[OAuth] Fetching token from ML...`);
