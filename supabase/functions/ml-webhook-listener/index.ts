@@ -6,11 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-/**
- * MERCADO LIVRE WEBHOOK LISTENER
- * Recebe eventos do ML em tempo real
- */
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -24,26 +19,18 @@ Deno.serve(async (req) => {
 
     const bodyText = await req.text();
     const event = JSON.parse(bodyText);
-    const signature = req.headers.get("x-mercadolibre-signature");
 
-    console.log("[ML Webhook] Evento recebido:", event.topic, event.resource);
+    console.log("[ML Webhook] Evento:", event.topic, event.resource);
 
-    // O ML envia user_id no payload
     const ml_user_id = event.user_id;
-    
-    // Buscar usuário interno correspondente
     const { data: connection } = await supabase
       .from("mercadolivre_connections")
       .select("user_id, access_token")
-      .eq("mercadolivre_user_id", ml_user_id.toString())
+      .eq("mercadolivre_user_id", ml_user_id?.toString())
       .single();
 
-    if (!connection) {
-      console.warn("[ML Webhook] Usuário não encontrado para ML ID:", ml_user_id);
-      return new Response("Ignored", { status: 200 });
-    }
+    if (!connection) return new Response("Ignored", { status: 200 });
 
-    // Registrar evento
     await supabase.from("ml_webhook_events").insert({
       user_id: connection.user_id,
       topic: event.topic,
@@ -52,12 +39,8 @@ Deno.serve(async (req) => {
       processed_at: new Date().toISOString()
     });
 
-    // Processar de acordo com o tópico
-    if (event.topic === "promotions" || event.topic === "promotions_seller") {
-        // Buscar detalhes da promoção no ML e salvar
+    if (event.topic?.startsWith("promotions")) {
         const promotion_id = event.resource.split("/").pop();
-        console.log(`[ML Webhook] Sincronizando promoção ${promotion_id}`);
-        
         const mlResponse = await fetch(`https://api.mercadolibre.com/seller-promotions/promotions/${promotion_id}?app_version=v2`, {
             headers: { "Authorization": `Bearer ${connection.access_token}` }
         });
@@ -73,26 +56,6 @@ Deno.serve(async (req) => {
                 updated_at: new Date().toISOString()
             });
         }
-    } else if (event.topic === "items") {
-        const item_id = event.resource.split("/").pop();
-        console.log(`[ML Webhook] Sincronizando item ${item_id}`);
-
-        const mlResponse = await fetch(`https://api.mercadolibre.com/items/${item_id}`, {
-            headers: { "Authorization": `Bearer ${connection.access_token}` }
-        });
-
-        if (mlResponse.ok) {
-            const itemData = await mlResponse.json();
-            await supabase.from("ml_webhook_items").upsert({
-                user_id: connection.user_id,
-                item_id,
-                data: itemData,
-                title: itemData.title,
-                price: itemData.price,
-                status: itemData.status,
-                updated_at: new Date().toISOString()
-            });
-        }
     }
 
     return new Response(JSON.stringify({ success: true }), { 
@@ -101,10 +64,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error("[ML Webhook Error]", error);
-    return new Response(JSON.stringify({ error: error.message }), { 
-      status: 500, 
-      headers: { ...corsHeaders, "Content-Type": "application/json" } 
-    });
+    console.error(error);
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
