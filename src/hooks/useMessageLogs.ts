@@ -450,7 +450,7 @@ export const useMessageLogs = (
     let allData: MessageLog[] = [];
     let from = 0;
     const batchSize = 1000;
-    const maxRecords = 3000;
+    const maxRecords = 10000;
     let hasMore = true;
     while (hasMore && allData.length < maxRecords) {
       const { data, error } = await supabase
@@ -577,7 +577,7 @@ export const useMessageLogs = (
     let allData: CampaignSendMessage[] = [];
     let from = 0;
     const batchSize = 1000;
-    const maxRecords = 3000;
+    const maxRecords = 10000;
     let hasMore = true;
     while (hasMore && allData.length < maxRecords) {
       const { data, error } = await supabase
