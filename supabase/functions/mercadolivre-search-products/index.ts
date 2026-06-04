@@ -157,12 +157,12 @@ async function getDetails(ids: string[], accessToken?: string) {
     const batch = ids.slice(i, i + 20);
     try {
       const headers: Record<string, string> = {
-        "User-Agent": "ZapLynx/1.0",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "application/json"
       };
       if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
       
-      const res = await fetch(`https://api.mercadolibre.com/items?ids=${batch.join(",")}`, { 
+      const res = await fetch(`https://api.mercadolibre.com/items?ids=${batch.join(",")}&attributes=id,title,price,original_price,currency_id,thumbnail,secure_thumbnail,pictures,status,permalink,attributes,catalog_product_id`, { 
         headers
       });
       if (res.ok) {
@@ -176,6 +176,12 @@ async function getDetails(ids: string[], accessToken?: string) {
     }
   }
   return map;
+}
+
+function isProductIdentifier(query: string): boolean {
+  const q = query.trim();
+  // Standard GTIN/EAN/ISBN lengths: 8, 10, 12, 13, 14
+  return /^\d{8,14}$/.test(q);
 }
 
 Deno.serve(async (req) => {
@@ -245,8 +251,16 @@ Deno.serve(async (req) => {
 
     // Build Search URL
     const searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
-    const q = query || (category && CATEGORY_KEYWORDS[category]) || "ofertas";
-    searchUrl.searchParams.set("q", q);
+    let q = query || (category && CATEGORY_KEYWORDS[category]) || "ofertas";
+    
+    // Support for Product Identifiers (GTIN/EAN)
+    if (isProductIdentifier(q)) {
+      console.log(`[Search] Query ${q} identified as GTIN/EAN. Searching specifically...`);
+      searchUrl.searchParams.set("q", `GTIN:${q.trim()}`);
+    } else {
+      searchUrl.searchParams.set("q", q);
+    }
+
     if (category) searchUrl.searchParams.set("category", category);
     searchUrl.searchParams.set("limit", String(limit));
     searchUrl.searchParams.set("offset", String(offset));
@@ -260,7 +274,7 @@ Deno.serve(async (req) => {
 
     const headers: Record<string, string> = {
       "Accept": "application/json",
-      "User-Agent": "ZapLynx/1.0"
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     };
     if (accessToken) {
       headers["Authorization"] = `Bearer ${accessToken}`;
@@ -339,6 +353,19 @@ Deno.serve(async (req) => {
           .replace(/-[WIGM]\.(jpg|jpeg|png|webp)$/i, "-O.$1");
       }
 
+      // Extract identifiers as requested from docs
+      const identifiers: Record<string, string> = {};
+      if (item.attributes) {
+        const ean = item.attributes.find((a: any) => a.id === "GTIN" || a.id === "EAN")?.value_name;
+        if (ean) identifiers.ean = ean;
+        
+        const isbn = item.attributes.find((a: any) => a.id === "ISBN")?.value_name;
+        if (isbn) identifiers.isbn = isbn;
+
+        const brand = item.attributes.find((a: any) => a.id === "BRAND")?.value_name;
+        if (brand) identifiers.brand = brand;
+      }
+
       return {
         id: r.id,
         name: r.title,
@@ -350,6 +377,8 @@ Deno.serve(async (req) => {
         link: r.permalink,
         source: "ml",
         available: item.status === "active" || !item.status,
+        catalog_id: item.catalog_product_id,
+        identifiers
       };
     });
 

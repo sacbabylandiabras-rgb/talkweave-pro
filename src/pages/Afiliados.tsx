@@ -23,6 +23,12 @@ interface AffiliateProduct {
   originalPrice?: string | null;
   discount?: number | null;
   promotionLabel?: string | null;
+  catalog_id?: string | null;
+  identifiers?: {
+    ean?: string;
+    isbn?: string;
+    brand?: string;
+  };
 }
 
 const MOCK_PRODUCTS: AffiliateProduct[] = [
@@ -63,6 +69,7 @@ export default function Afiliados() {
   });
 
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [checkingConnection, setCheckingConnection] = useState(true);
   const [products, setProducts] = useState<AffiliateProduct[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
@@ -79,10 +86,14 @@ export default function Afiliados() {
   useEffect(() => {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
+      if (!session?.user) {
+        setCheckingConnection(false);
+        return;
+      }
       
       // Carrega status do Mercado Livre
       try {
+        setCheckingConnection(true);
         const { data: mlStatus, error: mlError } = await supabase.functions.invoke("mercadolivre-connection-status", {
           body: {},
         });
@@ -110,6 +121,8 @@ export default function Afiliados() {
         }
       } catch (err) {
         console.error("Caught error checking ML connection:", err);
+      } finally {
+        setCheckingConnection(false);
       }
 
       // Carrega instâncias Z-API
@@ -572,15 +585,21 @@ export default function Afiliados() {
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <AuthModeSwitch source="ml" />
               </div>
-              {connected.ml && <ConnectedBanner source="ml" />}
-              {!connected.ml && authMode.ml === "oauth" && (
+              {checkingConnection ? (
+                <div className="rounded-xl border border-dashed p-10 text-center space-y-3 bg-muted/20">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+                  <p className="text-sm text-muted-foreground italic">Verificando conexão com Mercado Livre...</p>
+                </div>
+              ) : connected.ml ? (
+                <ConnectedBanner source="ml" />
+              ) : authMode.ml === "oauth" ? (
                 <div className="rounded-xl border border-dashed p-6 text-center space-y-3 bg-muted/30">
                   <p className="text-sm text-muted-foreground">
                     Conecte sua conta do Mercado Livre via login seguro — sem precisar copiar chaves.
                   </p>
                   <OAuthButton source="ml" label="Entrar com Mercado Livre" />
                 </div>
-              )}
+              ) : null}
               {!connected.ml && authMode.ml === "manual" && (
                 <>
                 <div className="grid md:grid-cols-2 gap-4">
@@ -832,6 +851,11 @@ export default function Afiliados() {
                       </div>
                       {p.originalPrice && (
                         <span className="text-[11px] text-muted-foreground line-through">{p.originalPrice}</span>
+                      )}
+                      {p.identifiers?.ean && (
+                        <span className="text-[10px] text-muted-foreground truncate" title={`EAN: ${p.identifiers.ean}`}>
+                          EAN: {p.identifiers.ean}
+                        </span>
                       )}
                     </div>
                   </div>
