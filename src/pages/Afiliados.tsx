@@ -23,6 +23,12 @@ interface AffiliateProduct {
   originalPrice?: string | null;
   discount?: number | null;
   promotionLabel?: string | null;
+  catalog_id?: string | null;
+  identifiers?: {
+    ean?: string;
+    isbn?: string;
+    brand?: string;
+  };
 }
 
 const MOCK_PRODUCTS: AffiliateProduct[] = [
