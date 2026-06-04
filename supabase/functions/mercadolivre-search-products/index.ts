@@ -153,12 +153,25 @@ async function fetchPublicOffers(query: string, category: string | null, account
   try {
     const res = await fetch(url.toString(), {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "pt-BR,pt;q=0.9",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Cache-Control": "max-age=0",
+        "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"Windows"',
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Sec-Fetch-User": "?1",
+        "Upgrade-Insecure-Requests": "1"
       },
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.warn(`Scrape fetch failed status=${res.status} url=${url.toString()}`);
+      return [];
+    }
+
     const html = await res.text();
 
     // Extrai IDs MLB do HTML usando regex mais robusto
@@ -189,9 +202,11 @@ async function fetchPublicOffers(query: string, category: string | null, account
           `https://api.mercadolibre.com/items?ids=${batch.join(",")}&attributes=id,title,price,original_price,thumbnail,secure_thumbnail,pictures,permalink,status,available_quantity,currency_id`,
           {
             headers: {
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
               "Accept": "application/json",
+              "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
             }
+
           }
         );
         if (!detailRes.ok) continue;
@@ -261,8 +276,10 @@ async function getDetails(ids: string[], accessToken: string) {
       const res = await fetch(`https://api.mercadolibre.com/items?ids=${batch.join(",")}`, { 
         headers: {
           ...headers,
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
         }
+
       });
       if (res.ok) {
         const data = await res.json();
@@ -371,8 +388,10 @@ Deno.serve(async (req) => {
         searchRes = await fetch(searchUrl.toString(), {
           headers: { 
             Authorization: `Bearer ${accessToken}`,
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
           },
+
         });
         if (searchRes.ok) {
           searchData = await searchRes.json();
@@ -393,8 +412,10 @@ Deno.serve(async (req) => {
         console.log(`[Public] Searching: ${searchUrl.toString()}`);
         searchRes = await fetch(searchUrl.toString(), {
           headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
           }
+
         });
         if (searchRes.ok) {
           searchData = await searchRes.json();
