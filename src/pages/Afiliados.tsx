@@ -316,7 +316,7 @@ export default function Afiliados() {
           q: trimmedQuery,
           query: trimmedQuery, 
           mode: "search",
-          limit: 50, 
+          limit: 10, 
           offset: nextOffset,
           site: "MLB"
         },
