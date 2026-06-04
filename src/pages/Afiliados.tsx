@@ -22,6 +22,7 @@ interface AffiliateProduct {
   thumbnail?: string | null;
   originalPrice?: string | null;
   discount?: number | null;
+  promotionLabel?: string | null;
 }
 
 const MOCK_PRODUCTS: AffiliateProduct[] = [
