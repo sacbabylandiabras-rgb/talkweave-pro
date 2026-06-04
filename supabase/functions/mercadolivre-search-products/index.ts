@@ -186,7 +186,6 @@ async function generateOfficialShortlinks(
 }
 
 async function fetchPublicOffers(query: string, category: string | null, accountId: string | number | null, limit: number, offset = 0) {
-  // Se não houver query nem categoria, busca as ofertas do dia do usuário se possível, ou ofertas gerais
   const searchUrl = new URL("https://api.mercadolibre.com/sites/MLB/search");
   
   if (query) {
@@ -194,22 +193,35 @@ async function fetchPublicOffers(query: string, category: string | null, account
   } else if (category) {
     searchUrl.searchParams.set("category", category);
   } else {
-    // Busca padrão de ofertas
     searchUrl.searchParams.set("q", "ofertas");
   }
   
   searchUrl.searchParams.set("limit", String(limit));
   searchUrl.searchParams.set("offset", String(offset));
 
+  const standardHeaders = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Accept": "application/json",
+    "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+  };
+
   try {
-    const res = await fetch(searchUrl.toString(), {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json",
-      },
+    let res = await fetch(searchUrl.toString(), {
+      headers: standardHeaders,
     });
     
-    if (!res.ok) return [];
+    if (res.status === 403 && category) {
+      console.warn("[Public] 403 with category, retrying without category...");
+      searchUrl.searchParams.delete("category");
+      if (!searchUrl.searchParams.get("q")) searchUrl.searchParams.set("q", "ofertas");
+      res = await fetch(searchUrl.toString(), { headers: standardHeaders });
+    }
+
+    if (!res.ok) {
+      console.warn(`[Public] Search failed: ${res.status}`);
+      return [];
+    }
+
     const data = await res.json();
     const results = data.results || [];
     
@@ -395,10 +407,15 @@ Deno.serve(async (req) => {
 
     let results: any[] = [];
     let total = 0;
+    let isBlocked = false;
+
+    const standardHeaders = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      "Accept": "application/json",
+      "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+    };
 
     // Modo de busca: se for "offers" ou "deals" e não tiver query, busca as promoções.
-    // O Mercado Livre permite filtrar por descontos significativos ou ofertas do dia usando o parâmetro "deal_ids" 
-    // mas o mais comum para busca geral de ofertas é usar filtros de preço original e filtros de categoria.
     if ((mode === "offers" || mode === "deals") && !query) {
       try {
         console.log(`[Affiliate] Fetching seller-promotions...`);
@@ -411,10 +428,11 @@ Deno.serve(async (req) => {
           console.log(`[Affiliate] Requesting: ${promoUrl}`);
           const promoRes = await fetch(promoUrl, {
             headers: { 
+              ...standardHeaders,
               Authorization: `Bearer ${accessToken}`,
-              "User-Agent": "ZapLynx/1.0",
             },
           });
+
 
           if (promoRes.ok) {
             const promoText = await promoRes.text();
@@ -434,10 +452,11 @@ Deno.serve(async (req) => {
               console.log(`[Affiliate] Fetching items: ${itemsUrl}`);
               const itemsRes = await fetch(itemsUrl, {
                 headers: { 
+                  ...standardHeaders,
                   Authorization: `Bearer ${accessToken}`,
-                  "User-Agent": "ZapLynx/1.0",
                 },
               });
+
 
               if (itemsRes.ok) {
                 const itemsText = await itemsRes.text();
@@ -485,13 +504,23 @@ Deno.serve(async (req) => {
           searchUrl.searchParams.set("limit", String(limit));
           searchUrl.searchParams.set("offset", String(offset));
 
-          const res = await fetch(searchUrl.toString(), {
+          let res = await fetch(searchUrl.toString(), {
             headers: { 
+              ...standardHeaders,
               Authorization: `Bearer ${accessToken}`,
-              "User-Agent": "ZapLynx/1.0",
             },
           });
           
+          if (res.status === 403 && category) {
+            console.warn("[Affiliate] 403 with category, retrying without category...");
+            searchUrl.searchParams.delete("category");
+            res = await fetch(searchUrl.toString(), {
+              headers: { ...standardHeaders, Authorization: `Bearer ${accessToken}` },
+            });
+          }
+
+          if (res.status === 403) isBlocked = true;
+
           if (res.ok) {
             const data = await res.json();
             if (data && data.results) {
@@ -500,6 +529,7 @@ Deno.serve(async (req) => {
               total = data.paging?.total || 0;
             }
           }
+
         }
       } catch (err) {
         console.error("[Affiliate] Error fetching deals:", err);
@@ -519,12 +549,23 @@ Deno.serve(async (req) => {
 
       // Tenta Autenticado
       try {
-        const authRes = await fetch(searchUrl.toString(), {
+        let authRes = await fetch(searchUrl.toString(), {
           headers: { 
+            ...standardHeaders,
             Authorization: `Bearer ${accessToken}`,
-            "User-Agent": "ZapLynx/1.0",
           },
         });
+
+        if (authRes.status === 403 && category) {
+          console.warn("[Auth] 403 with category, retrying without category...");
+          searchUrl.searchParams.delete("category");
+          authRes = await fetch(searchUrl.toString(), {
+            headers: { ...standardHeaders, Authorization: `Bearer ${accessToken}` },
+          });
+        }
+
+        if (authRes.status === 403) isBlocked = true;
+
         if (authRes.ok) {
           const data = await authRes.json();
           results = data.results || [];
@@ -538,11 +579,20 @@ Deno.serve(async (req) => {
         console.warn("[Auth] Search error:", err);
       }
 
+
       // Fallback Público se falhar
       if (results.length === 0) {
         try {
           console.log(`[Public] Falling back to public search for: ${q}`);
-          const pubRes = await fetch(searchUrl.toString());
+          let pubRes = await fetch(searchUrl.toString(), { headers: standardHeaders });
+          
+          if (pubRes.status === 403 && category) {
+            searchUrl.searchParams.delete("category");
+            pubRes = await fetch(searchUrl.toString(), { headers: standardHeaders });
+          }
+
+          if (pubRes.status === 403) isBlocked = true;
+
           if (pubRes.ok) {
             const data = await pubRes.json();
             results = data.results || [];
@@ -555,12 +605,14 @@ Deno.serve(async (req) => {
           console.warn("[Public] Search error:", err);
         }
       }
+
     }
 
     // Se ainda não tiver resultados, retorna lista vazia antes de tentar processar
     if (results.length === 0) {
-      return json({ products: [], total: 0 });
+      return json({ products: [], total: 0, isBlocked });
     }
+
 
     // Busca detalhes via API pública (sem autenticação, não precisa de token)
     const itemIds = results.map((r: any) => r.id).filter(Boolean);
@@ -642,7 +694,7 @@ Deno.serve(async (req) => {
       link: wrapInTracker(p.link, user.id),
     }));
 
-    return json({ products, total });
+    return json({ products, total, isBlocked });
 
   } catch (err) {
     console.error("Main error:", err);
