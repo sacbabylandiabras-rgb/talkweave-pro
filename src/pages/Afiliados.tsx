@@ -22,6 +22,7 @@ interface AffiliateProduct {
   thumbnail?: string | null;
   originalPrice?: string | null;
   discount?: number | null;
+  promotionLabel?: string | null;
 }
 
 const MOCK_PRODUCTS: AffiliateProduct[] = [
@@ -382,20 +383,27 @@ export default function Afiliados() {
     // Para 1 produto
     if (selectedProducts.length === 1) {
       const p = selectedProducts[0];
-      return `🛍️ *${p.name}*\n💰 ${p.price}\n\n[Botão: Ver Oferta 🚀]`;
+      const promoText = p.promotionLabel ? `\n🎁 *Promoção: ${p.promotionLabel}*` : "";
+      return `🛍️ *${p.name}*\n💰 ${p.price}${promoText}\n\n[Botão: Ver Oferta 🚀]`;
     }
 
     // Para 2 a 3 produtos
     if (selectedProducts.length > 1 && selectedProducts.length <= 3) {
       const items = selectedProducts
-        .map((p, idx) => `🛍️ *${p.name}*\n💰 ${p.price}\n[Botão: Comprar Item ${idx + 1} 🛒]`)
+        .map((p, idx) => {
+          const promoText = p.promotionLabel ? `\n🎁 *Promoção: ${p.promotionLabel}*` : "";
+          return `🛍️ *${p.name}*\n💰 ${p.price}${promoText}\n[Botão: Comprar Item ${idx + 1} 🛒]`;
+        })
         .join("\n\n");
       return `✨ *Ofertas selecionadas para você!*\n\n${items}`;
     }
 
     // Para mais de 3 produtos (limite de botões do WhatsApp)
     const items = selectedProducts
-      .map((p) => `🛍️ *${p.name}*\n💰 ${p.price}\n🔗 ${p.link}`)
+      .map((p) => {
+        const promoText = p.promotionLabel ? `\n🎁 *Promoção: ${p.promotionLabel}*` : "";
+        return `🛍️ *${p.name}*\n💰 ${p.price}${promoText}\n🔗 ${p.link}`;
+      })
       .join("\n\n");
     return `✨ *Ofertas selecionadas para você!*\n\n${items}`;
   }, [selectedProducts]);
@@ -415,7 +423,8 @@ export default function Afiliados() {
       // Se tiver apenas um produto, envia como imagem com legenda e BOTÃO
       if (selectedProducts.length === 1) {
         const product = selectedProducts[0];
-        const caption = `🛍️ *${product.name}*\n💰 ${product.price}`;
+        const promoText = product.promotionLabel ? `\n🎁 *Promoção: ${product.promotionLabel}*` : "";
+        const caption = `🛍️ *${product.name}*\n💰 ${product.price}${promoText}`;
         
         const { data, error } = await supabase.functions.invoke("send-message", {
           body: {
@@ -783,7 +792,11 @@ export default function Afiliados() {
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-semibold text-primary text-sm">{p.price}</span>
-                        {p.discount ? (
+                        {p.promotionLabel ? (
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-[10px]">
+                            {p.promotionLabel}
+                          </Badge>
+                        ) : p.discount ? (
                           <Badge variant="secondary" className="bg-green-100 text-green-700 text-[10px]">
                             -{p.discount}%
                           </Badge>
