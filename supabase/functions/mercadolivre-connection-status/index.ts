@@ -42,9 +42,14 @@ Deno.serve(async (req) => {
       .download(storagePath);
 
 
-    if (error || !data) return json({ connected: false });
+    if (error || !data) {
+      console.log(`[Storage] Connection not found or error for path ${storagePath}:`, error?.message);
+      return json({ connected: false });
+    }
 
-    const record = JSON.parse(await data.text());
+    const text = await data.text();
+    console.log(`[Storage] Loaded data length: ${text.length}`);
+    const record = JSON.parse(text);
     return json({
       connected: true,
       accountId: record.account_id ?? null,
