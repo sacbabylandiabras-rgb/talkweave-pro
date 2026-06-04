@@ -591,7 +591,7 @@ Deno.serve(async (req) => {
         link: item.permalink || r.permalink,
         source: "ml",
         available: item.status === "active" || !item.status,
-        promotionLabel: getVolumeLabel(r) || (r.promotion_type === "PRE_NEGOTIATED" ? "Desconto Exclusivo" : null),
+        promotionLabel: getPromotionLabel(r),
       };
     }).filter((p: any) => p.link);
 
