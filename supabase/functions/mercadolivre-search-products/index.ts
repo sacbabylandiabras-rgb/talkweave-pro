@@ -328,38 +328,35 @@ Deno.serve(async (req) => {
 
     try {
       if (results.length === 0) {
-        const res = await fetch(searchUrl.toString(), { headers });
+        // We clone headers to avoid modifying the original
+        let currentHeaders = { ...headers };
         
-        if (res.status === 403) {
-          console.warn("[Search] Received 403 Forbidden. Likely bot detection or scope issues.");
-          isBlocked = true;
+        console.log(`[Search] Attempting search with URL: ${searchUrl.toString()}`);
+        let res = await fetch(searchUrl.toString(), { headers: currentHeaders });
+        
+        // If 403, it's likely that the accessToken or the User-Agent is being blocked
+        // Some endpoints in ML are restricted for certain application scopes
+        if (res.status === 403 || res.status === 401) {
+          console.warn(`[Search] Received ${res.status}. Retrying as public search...`);
+          // Remove Authorization to try public search
+          delete (currentHeaders as any)["Authorization"];
+          res = await fetch(searchUrl.toString(), { 
+            headers: { 
+              "Accept": "application/json", 
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" 
+            } 
+          });
         }
 
         if (res.ok) {
           const data = await res.json();
-          // The /products/search endpoint has a different structure
-          if (searchUrl && searchUrl.pathname.includes("/products/search")) {
-            results = data.results?.map((p: any) => ({
-              id: p.id,
-              title: p.name,
-              price: p.buy_box_item?.price || p.price,
-              permalink: p.permalink,
-              thumbnail: p.pictures?.[0]?.url || p.thumbnail,
-              currency_id: "BRL"
-            })) || [];
-          } else {
-            results = data.results || [];
-            total = data.paging?.total || 0;
-          }
+          results = data.results || [];
+          total = data.paging?.total || 0;
           console.log(`[Search] Success! Found ${results.length} items.`);
         } else {
           const errText = await res.text().catch(() => "N/A");
           console.error(`[Search] API Error: ${res.status} - ${errText}`);
-          
-          // If 403 or 401, we might need to clear token and try public if allowed
-          if (res.status === 401 || res.status === 403) {
-            accessToken = undefined; // Force retry without token
-          }
+          if (res.status === 403) isBlocked = true;
         }
       }
     } catch (err) {
@@ -369,13 +366,16 @@ Deno.serve(async (req) => {
     // Fallback for deals/highlights if specific endpoint fails or returns empty
     if (results.length === 0 && (mode === "offers" || mode === "deals" || mode === "highlights" || mode === "lightning") && !query) {
       console.log(`[Search] Mode ${mode} failed or returned empty. Falling back to standard search for 'ofertas'...`);
-      searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
-      searchUrl.searchParams.set("q", "ofertas");
-      searchUrl.searchParams.set("limit", String(limit));
-      searchUrl.searchParams.set("offset", String(offset));
+      const fallbackUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
+      fallbackUrl.searchParams.set("q", mode === "lightning" ? "oferta relampago" : "oferta do dia");
+      fallbackUrl.searchParams.set("limit", String(limit));
+      fallbackUrl.searchParams.set("offset", String(offset));
+      if (category) fallbackUrl.searchParams.set("category", category);
       
       try {
-        const fallbackRes = await fetch(searchUrl.toString(), { headers });
+        const fallbackRes = await fetch(fallbackUrl.toString(), { 
+          headers: { "Accept": "application/json", "User-Agent": "Mozilla/5.0" } 
+        });
         if (fallbackRes.ok) {
           const data = await fallbackRes.json();
           results = data.results || [];
@@ -383,25 +383,6 @@ Deno.serve(async (req) => {
         }
       } catch (err) {
         console.warn("[Search] Fallback search error:", err);
-      }
-    }
-
-    // Fallback for public search if authenticated failed or not available (only if not already blocked)
-    if (results.length === 0 && !isBlocked) {
-      console.log("[Search] Retrying without token (public search)...");
-      try {
-        const pubRes = await fetch(searchUrl.toString(), {
-          headers: { "Accept": "application/json", "User-Agent": "Mozilla/5.0" }
-        });
-        if (pubRes.ok) {
-          const data = await pubRes.json();
-          results = data.results || [];
-          total = data.paging?.total || 0;
-        } else if (pubRes.status === 403) {
-          isBlocked = true;
-        }
-      } catch (err) {
-        console.warn("[Search] Public fallback error:", err);
       }
     }
 
