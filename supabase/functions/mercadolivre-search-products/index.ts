@@ -300,14 +300,14 @@ Deno.serve(async (req) => {
         const errText = await res.text().catch(() => "N/A");
         console.error(`[Search] API Error: ${res.status} - ${errText}`);
         
-        // Se for modo de promoções automáticas, retornamos erro amigável se tudo falhar
-        if (isPromotionMode && (res.status === 403 || res.status === 401)) {
-           return json({ 
-             error: "A API do Mercado Livre está limitando as buscas automáticas temporariamente. Isso acontece por excesso de requisições. Tente buscar algo específico ou aguarde alguns minutos.",
-             isBlocked: true 
-           }, 403);
-        }
+        // If we still fail, return the error
+        return json({ 
+          error: `Erro na API do Mercado Livre: ${res.status}. ${errText.includes("limit") ? "Limite de buscas excedido." : "Tente novamente em instantes."}`,
+          details: errText,
+          status: res.status
+        }, res.status);
       }
+
     }
 
     if (results.length === 0) {
