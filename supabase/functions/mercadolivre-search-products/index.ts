@@ -339,8 +339,13 @@ Deno.serve(async (req) => {
 
     const authHeader = req.headers.get("authorization") || "";
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    
+    // Validate user authentication
     const { data: { user }, error: authErr } = await admin.auth.getUser(authHeader.replace("Bearer ", ""));
-    if (authErr || !user) return json({ error: "Unauthorized" }, 401);
+    if (authErr || !user) {
+      console.warn("[Auth] Invalid or missing user token");
+      return json({ error: "Unauthorized" }, 401);
+    }
 
     const body = await req.json().catch(() => ({}));
     const query = body.query || body.q || "";
@@ -350,7 +355,7 @@ Deno.serve(async (req) => {
     const limit = Math.min(Number(body.limit || 50), 100);
     const offset = Number(body.offset || 0);
 
-    // Tenta carregar do banco de dados primeiro (mais confiável)
+    // Try to load connection from database (most reliable)
     console.log(`[DB] Looking for connection for user: ${user.id}`);
     const { data: dbData, error: dbErr } = await admin
       .from("affiliate_connections")
@@ -365,13 +370,12 @@ Deno.serve(async (req) => {
       console.log("[DB] Found connection in database");
       record = {
         ...dbData,
-        // Map metadata back if present
-        affiliate_source_id: dbData.metadata?.source_id || dbData.affiliate_source_id
+        affiliate_source_id: dbData.affiliate_source_id || dbData.metadata?.source_id
       };
     } else {
       if (dbErr) console.warn("[DB] Error fetching connection:", dbErr.message);
       
-      // Fallback para storage
+      // Fallback to storage
       const storagePath = `${user.id}/${PROVIDER}.json`;
       console.log(`[Storage] Falling back to storage: ${storagePath}`);
       const { data: storageData, error: storageErr } = await admin.storage
@@ -379,75 +383,83 @@ Deno.serve(async (req) => {
         .download(storagePath);
 
       if (storageErr || !storageData) {
-        console.log("No connection found in storage or DB for user:", user.id);
+        console.log("[Search] No connection found, returning public offers only");
         const publicProducts = await fetchPublicOffers(query, category, null, limit, offset);
         return json({ products: publicProducts, total: 1000, fallback: true });
       }
       
-      record = JSON.parse(await storageData.text());
-      console.log("[Storage] Found connection in storage");
+      try {
+        record = JSON.parse(await storageData.text());
+        console.log("[Storage] Found connection in storage");
+      } catch (e) {
+        console.error("[Storage] Failed to parse storage record:", e.message);
+        const publicProducts = await fetchPublicOffers(query, category, null, limit, offset);
+        return json({ products: publicProducts, total: 1000, fallback: true });
+      }
     }
 
     let accessToken = record.access_token;
     if (!accessToken) {
-      console.log("Record found but no access_token. Fallback to public.");
+      console.warn("[Search] Record found but no access_token. Fallback to public.");
       const publicProducts = await fetchPublicOffers(query, category, null, limit, offset);
       return json({ products: publicProducts, total: 1000, fallback: true });
     }
 
     // Refresh token check
     const expiresAt = record.expires_at ? new Date(record.expires_at).getTime() : 0;
-    if (expiresAt < Date.now() + 60000 && record.refresh_token) {
-      console.log("Refreshing ML token for user:", user.id);
-      const refreshRes = await fetch("https://api.mercadolibre.com/oauth/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          grant_type: "refresh_token",
-          client_id: ML_CLIENT_ID!,
-          client_secret: ML_CLIENT_SECRET!,
-          refresh_token: record.refresh_token,
-        }),
-      });
-      if (refreshRes.ok) {
-        const newData = await refreshRes.json();
-        accessToken = newData.access_token;
-        const updatedRecord = {
-          ...record,
-          access_token: accessToken,
-          refresh_token: newData.refresh_token || record.refresh_token,
-          expires_at: new Date(Date.now() + newData.expires_in * 1000).toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        
-        // Update both Storage and DB
-        await admin.storage
-          .from(BUCKET)
-          .upload(`${user.id}/${PROVIDER}.json`, JSON.stringify(updatedRecord), {
-            upsert: true,
-            contentType: "application/json",
-          });
+    if (expiresAt < Date.now() + 300000 && record.refresh_token) { // 5 minutes buffer
+      console.log("[Auth] Refreshing ML token for user:", user.id);
+      try {
+        const refreshRes = await fetch("https://api.mercadolibre.com/oauth/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            grant_type: "refresh_token",
+            client_id: ML_CLIENT_ID!,
+            client_secret: ML_CLIENT_SECRET!,
+            refresh_token: record.refresh_token,
+          }),
+        });
 
-        try {
-          await admin.from("affiliate_connections").upsert({
-            user_id: user.id,
-            provider: PROVIDER,
+        if (refreshRes.ok) {
+          const newData = await refreshRes.json();
+          accessToken = newData.access_token;
+          const updatedRecord = {
+            ...record,
             access_token: accessToken,
             refresh_token: newData.refresh_token || record.refresh_token,
-            expires_at: updatedRecord.expires_at,
-            updated_at: updatedRecord.updated_at
-          }, { onConflict: "user_id,provider" });
-        } catch (e) {
-          console.warn("[DB] Failed to update refreshed connection:", e.message);
-        }
+            expires_at: new Date(Date.now() + newData.expires_in * 1000).toISOString(),
+            updated_at: new Date().toISOString(),
+          };
           
-        record = updatedRecord;
-      } else {
-        const errText = await refreshRes.text();
-        console.error("Failed to refresh ML token:", refreshRes.status, errText);
+          // Parallel update to Storage and DB
+          await Promise.all([
+            admin.storage.from(BUCKET).upload(`${user.id}/${PROVIDER}.json`, JSON.stringify(updatedRecord), {
+              upsert: true,
+              contentType: "application/json",
+            }),
+            admin.from("affiliate_connections").upsert({
+              user_id: user.id,
+              provider: PROVIDER,
+              access_token: accessToken,
+              refresh_token: newData.refresh_token || record.refresh_token,
+              expires_at: updatedRecord.expires_at,
+              updated_at: updatedRecord.updated_at
+            }, { onConflict: "user_id,provider" })
+          ]).catch(e => console.warn("[Sync] Background sync failed:", e.message));
+            
+          record = updatedRecord;
+          console.log("[Auth] Token refreshed successfully");
+        } else {
+          const errText = await refreshRes.text();
+          console.error(`[Auth] Failed to refresh ML token: ${refreshRes.status} - ${errText}`);
+          // If refresh fails, the access_token might still be valid for a very short time
+          // or we might need to re-authenticate. Proceeding for now but flagging error.
+        }
+      } catch (e) {
+        console.error("[Auth] Exception during token refresh:", e.message);
       }
     }
-
 
     let results: any[] = [];
     let total = 0;
