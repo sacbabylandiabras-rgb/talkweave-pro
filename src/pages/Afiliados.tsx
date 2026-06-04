@@ -150,7 +150,7 @@ export default function Afiliados() {
   };
 
   const loadDealsInternal = async (categoryId?: string | null, isLoadMore = false, isConnected = false, type: "deals" | "lightning" = "deals") => {
-    if (!isConnected) {
+    if (!isConnected && !loadingProducts) {
       toast.info("Conecte sua conta do Mercado Livre para ver as promoções.");
       return;
     }
@@ -311,14 +311,14 @@ export default function Afiliados() {
   );
 
   const fetchProducts = async (isLoadMore = false) => {
-    if (!connected.ml) {
-      toast.error("Conecte ao menos um marketplace primeiro.");
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery) {
+      toast.error("Digite o que você quer buscar (nome ou código de barras/EAN).");
       return;
     }
 
-    const trimmedQuery = searchQuery.trim();
-    if (!trimmedQuery) {
-      toast.error("Digite o que você quer buscar.");
+    if (!connected.ml) {
+      toast.error("Conecte ao menos um marketplace primeiro.");
       return;
     }
     
