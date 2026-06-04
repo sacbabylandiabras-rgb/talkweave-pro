@@ -291,8 +291,16 @@ Deno.serve(async (req) => {
         res = await fetch(searchUrl.toString(), { headers: commonHeaders });
       }
 
+      // If search still fails (or wasn't attempted due to previous errors), try a category-based fallback
+      if (!res.ok && category) {
+        console.warn(`[Search] Previous attempt failed with ${res.status}. Trying simple category fetch.`);
+        const catUrl = new URL(`https://api.mercadolibre.com/categories/${category}/products`);
+        catUrl.searchParams.set("limit", String(limit));
+        res = await fetch(catUrl.toString(), { headers: commonHeaders });
+      }
+
       // Final fallback for rate limiting (429) or other errors: try a very simple query without categories
-      if (!res.ok && (res.status === 429 || res.status === 403)) {
+      if (!res.ok) {
         console.warn(`[Search] Error ${res.status}. Trying minimal query fallback.`);
         const fallbackUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
         fallbackUrl.searchParams.set("q", query || "ofertas");
