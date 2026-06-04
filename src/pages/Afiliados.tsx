@@ -88,16 +88,14 @@ export default function Afiliados() {
         
         if (mlError) {
           console.error("Error checking ML connection:", mlError);
-          // If the error is a 404/not found, it means the function or some resource is missing
-          return;
-        }
-
-        if ((mlStatus as any)?.connected) {
+        } else if ((mlStatus as any)?.connected) {
           setConnected((prev) => ({ ...prev, ml: true }));
           setConnectedAccount((prev) => ({
             ...prev,
             ml: (mlStatus as any).nickname || (mlStatus as any).accountId || "Conta conectada",
           }));
+          
+          // Only auto-load if we don't have products yet
           loadDeals();
         }
       } catch (err) {
@@ -494,15 +492,24 @@ export default function Afiliados() {
   );
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <ShoppingBag className="w-6 h-6 text-primary" />
-          Afiliados
-        </h1>
-        <p className="text-muted-foreground">
-          Conecte marketplaces, busque produtos e envie ofertas pelo ZapLynx.
-        </p>
+    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto pb-24">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <ShoppingBag className="w-6 h-6 text-primary" />
+            Afiliados
+          </h1>
+          <p className="text-muted-foreground">
+            Conecte marketplaces, busque produtos e envie ofertas pelo ZapLynx.
+          </p>
+        </div>
+        
+        {connected.ml && (
+          <Badge variant="outline" className="py-1.5 px-3 flex items-center gap-2 bg-green-50 text-green-700 border-green-200 w-fit">
+            <Check className="w-3.5 h-3.5" />
+            {connectedAccount.ml || "Mercado Livre Conectado"}
+          </Badge>
+        )}
       </div>
 
       <Card>
@@ -638,14 +645,17 @@ export default function Afiliados() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
+      <Card className="border-none shadow-sm overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap bg-muted/20 pb-4">
           <div>
-            <CardTitle className="text-lg">🔥 Melhores promoções</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <RefreshCw className={cn("w-5 h-5 text-primary", loadingProducts && "animate-spin")} />
+              🔥 Melhores promoções
+            </CardTitle>
             <CardDescription>
               {selectedIds.size > 0
                 ? `${selectedIds.size} produto(s) selecionado(s)`
-                : "Ofertas com desconto puxadas da sua conta conectada (links já com seu rastreio de afiliado)."}
+                : "Ofertas com desconto puxadas da sua conta (links com seu rastreio)."}
             </CardDescription>
           </div>
           <div className="flex gap-2 w-full md:w-auto">
@@ -682,20 +692,17 @@ export default function Afiliados() {
           <div className="flex flex-wrap gap-2 mb-4">
             {[
               { id: null, label: "Todos" },
-              { id: "MLB1574", label: "🛋️ Móveis" },
-              { id: "MLB1499", label: "🏗️ Materiais" },
-              { id: "MLB1430", label: "👕 Roupas" },
-              { id: "MLB1132", label: "🧸 Brinquedos" },
               { id: "MLB1051", label: "📱 Celulares" },
               { id: "MLB1648", label: "💻 Informática" },
-              { id: "MLB1574", label: "🛋️ Casa & Decoração" },
-              { id: "MLB5726", label: "🔌 Eletrodomésticos" },
-              { id: "MLB1276", label: "⚽ Esportes" },
+              { id: "MLB5726", label: "🔌 Eletro" },
+              { id: "MLB1430", label: "👕 Roupas" },
               { id: "MLB1246", label: "💄 Beleza" },
+              { id: "MLB1574", label: "🛋️ Casa" },
+              { id: "MLB1132", label: "🧸 Brinquedos" },
+              { id: "MLB1276", label: "⚽ Esportes" },
               { id: "MLB1196", label: "📚 Livros" },
-              { id: "MLB1743", label: "🚗 Veículos" },
               { id: "MLB1071", label: "🐶 Pets" },
-              { id: "MLB1953", label: "✨ Outros" },
+              { id: "MLB1743", label: "🚗 Veículos" },
             ].map((n) => (
               <button
                 key={n.label}
@@ -808,56 +815,64 @@ export default function Afiliados() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Send className="w-5 h-5 text-primary" />
-            Enviar via ZapLynx
-          </CardTitle>
-          <CardDescription>Prévia da mensagem que será enviada no WhatsApp.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Textarea
-            value={previewMessage}
-            readOnly
-            className="min-h-[200px] font-mono text-xs bg-muted/40"
-          />
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Instância do WhatsApp</Label>
-              <select
-                value={selectedInstanceId}
-                onChange={(e) => setSelectedInstanceId(e.target.value)}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                {availableInstances.length === 0 ? (
-                  <option value="">Nenhuma instância encontrada</option>
-                ) : (
-                  availableInstances.map((inst) => (
-                    <option key={inst.zapi_instance_id} value={inst.zapi_instance_id}>
-                      {inst.instance_name || inst.zapi_instance_id}
-                    </option>
-                  ))
-                )}
-              </select>
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-lg border-t z-50 md:relative md:p-0 md:bg-transparent md:border-t-0">
+        <Card className="max-w-7xl mx-auto shadow-lg md:shadow-none border-primary/20 md:border">
+          <CardHeader className="py-3 px-4 md:py-6 md:px-6 flex flex-row items-center justify-between border-b md:border-b-0">
+            <div className="flex items-center gap-2">
+              <Send className="w-5 h-5 text-primary" />
+              <CardTitle className="text-base md:text-lg">Enviar via ZapLynx</CardTitle>
             </div>
-            <div className="space-y-2">
-              <Label>Número ou grupo do WhatsApp</Label>
-              <Input
-                placeholder="5511999999999"
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
+            {selectedIds.size > 0 && (
+              <Badge className="bg-primary text-primary-foreground">
+                {selectedIds.size} selecionado(s)
+              </Badge>
+            )}
+          </CardHeader>
+          <CardContent className="py-4 px-4 md:py-6 md:px-6 space-y-4">
+            <div className="hidden md:block">
+              <Textarea
+                value={previewMessage}
+                readOnly
+                className="min-h-[120px] font-mono text-xs bg-muted/40"
               />
             </div>
-            <div className="flex items-end">
-              <Button onClick={handleSend} disabled={sending || !selectedInstanceId} className="w-full">
-                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                Enviar via ZapLynx
-              </Button>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs md:text-sm">Instância do WhatsApp</Label>
+                <select
+                  value={selectedInstanceId}
+                  onChange={(e) => setSelectedInstanceId(e.target.value)}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  {availableInstances.length === 0 ? (
+                    <option value="">Nenhuma instância encontrada</option>
+                  ) : (
+                    availableInstances.map((inst) => (
+                      <option key={inst.zapi_instance_id} value={inst.zapi_instance_id}>
+                        {inst.instance_name || inst.zapi_instance_id}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs md:text-sm">Número ou grupo</Label>
+                <Input
+                  placeholder="5511999999999"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                />
+              </div>
+              <div className="flex items-end">
+                <Button onClick={handleSend} disabled={sending || !selectedInstanceId || selectedIds.size === 0} className="w-full">
+                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {sending ? "Enviando..." : "Enviar Oferta"}
+                </Button>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
