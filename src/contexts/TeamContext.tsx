@@ -40,14 +40,15 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   });
 
   const load = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setState((s) => ({ ...s, loading: false, isEmployee: false, ownerId: null, effectiveUserId: null, selfUserId: null }));
-      return;
-    }
-
     try {
-      const { data: member, error } = await (supabase as any)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setState((s) => ({ ...s, loading: false, isEmployee: false, ownerId: null, effectiveUserId: null, selfUserId: null }));
+        return;
+      }
+
+      // We just check if the member exists without joining or querying related tables that might not exist
+      const { data: member } = await supabase
         .from("pipeline_members")
         .select("user_id")
         .eq("user_id", user.id)
@@ -65,10 +66,20 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         refresh: load,
       });
     } catch (err) {
-      console.error("Error loading team state:", err);
+      // Fail silently for team state errors to prevent blocking the app
+      console.warn("Team state failed to load (expected if tables are missing), defaulting to owner mode:", err);
+      
+      const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+      
       setState({
-        loading: false, isEmployee: false, ownerId: user.id, effectiveUserId: user.id,
-        selfUserId: user.id, permissions: {}, allowedInstanceIds: [], roleName: null,
+        loading: false, 
+        isEmployee: false, 
+        ownerId: user?.id || null, 
+        effectiveUserId: user?.id || null,
+        selfUserId: user?.id || null, 
+        permissions: {}, 
+        allowedInstanceIds: [], 
+        roleName: "Owner",
         refresh: load,
       });
     }

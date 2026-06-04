@@ -81,16 +81,27 @@ export default function Afiliados() {
       if (!session?.user) return;
       
       // Carrega status do Mercado Livre
-      const { data: mlStatus } = await supabase.functions.invoke("mercadolivre-connection-status", {
-        body: {},
-      });
-      if ((mlStatus as any)?.connected) {
-        setConnected((prev) => ({ ...prev, ml: true }));
-        setConnectedAccount((prev) => ({
-          ...prev,
-          ml: (mlStatus as any).nickname || (mlStatus as any).accountId || "Conta conectada",
-        }));
-        loadDeals();
+      try {
+        const { data: mlStatus, error: mlError } = await supabase.functions.invoke("mercadolivre-connection-status", {
+          body: {},
+        });
+        
+        if (mlError) {
+          console.error("Error checking ML connection:", mlError);
+          // If the error is a 404/not found, it means the function or some resource is missing
+          return;
+        }
+
+        if ((mlStatus as any)?.connected) {
+          setConnected((prev) => ({ ...prev, ml: true }));
+          setConnectedAccount((prev) => ({
+            ...prev,
+            ml: (mlStatus as any).nickname || (mlStatus as any).accountId || "Conta conectada",
+          }));
+          loadDeals();
+        }
+      } catch (err) {
+        console.error("Caught error checking ML connection:", err);
       }
 
       // Carrega instâncias Z-API
