@@ -35,7 +35,17 @@ Deno.serve(async (req) => {
     if (userErr || !userData.user) return json({ error: "Faça login novamente." }, 401);
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    
+    // Remove do banco de dados
+    await admin
+      .from("affiliate_connections")
+      .delete()
+      .eq("user_id", userData.user.id)
+      .eq("provider", PROVIDER);
+
+    // Remove do storage
     await admin.storage.from(BUCKET).remove([`${userData.user.id}/${PROVIDER}.json`]);
+    
     return json({ success: true });
   } catch (err) {
     console.error("ml-disconnect error:", err);
