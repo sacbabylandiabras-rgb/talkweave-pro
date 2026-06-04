@@ -200,12 +200,15 @@ async function fetchPublicOffers(query: string, category: string | null, account
   searchUrl.searchParams.set("offset", String(offset));
 
   const standardHeaders = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
     "Accept": "application/json",
     "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Cache-Control": "no-cache",
+    "Pragma": "no-cache",
   };
 
   try {
+    console.log(`[Public] Fetching: ${searchUrl.toString()}`);
     let res = await fetch(searchUrl.toString(), {
       headers: standardHeaders,
     });
@@ -218,12 +221,14 @@ async function fetchPublicOffers(query: string, category: string | null, account
     }
 
     if (!res.ok) {
-      console.warn(`[Public] Search failed: ${res.status}`);
+      const errText = await res.text().catch(() => "N/A");
+      console.warn(`[Public] Search failed: ${res.status} - ${errText}`);
       return [];
     }
 
     const data = await res.json();
     const results = data.results || [];
+    console.log(`[Public] Found ${results.length} items`);
     
     return results.map((item: any) => {
       let thumbnail = item.thumbnail || item.secure_thumbnail || null;
@@ -257,6 +262,7 @@ async function fetchPublicOffers(query: string, category: string | null, account
   }
 }
 
+
 async function getDetails(ids: string[], accessToken: string) {
   const map = new Map<string, any>();
   for (let i = 0; i < ids.length; i += 20) {
@@ -268,8 +274,11 @@ async function getDetails(ids: string[], accessToken: string) {
       const res = await fetch(`https://api.mercadolibre.com/items?ids=${batch.join(",")}`, { 
         headers: {
           ...headers,
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
           "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache",
+
         }
 
       });
@@ -410,10 +419,13 @@ Deno.serve(async (req) => {
     let isBlocked = false;
 
     const standardHeaders = {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
       "Accept": "application/json",
       "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+      "Cache-Control": "no-cache",
+      "Pragma": "no-cache",
     };
+
 
     // Modo de busca: se for "offers" ou "deals" e não tiver query, busca as promoções.
     if ((mode === "offers" || mode === "deals") && !query) {
