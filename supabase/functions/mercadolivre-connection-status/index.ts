@@ -29,8 +29,11 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authErr } = await admin.auth.getUser(authHeader.replace("Bearer ", ""));
     
     if (authErr || !user) {
+      console.warn("[Status] No user session found");
       return json({ connected: false });
     }
+
+    console.log(`[Status] Checking connection for user: ${user.id}`);
 
     const { data: record } = await admin
       .from("affiliate_connections")
@@ -40,6 +43,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!record || !record.access_token) {
+      console.warn("[Status] No record found for user in affiliate_connections");
       return json({ connected: false });
     }
 
@@ -59,6 +63,7 @@ Deno.serve(async (req) => {
 
         if (meRes.ok) {
           const meData = await meRes.json();
+          console.log(`[Status] Validation success for ${meData.nickname}`);
           return json({
             connected: true,
             accountId: meData.id,
@@ -66,6 +71,8 @@ Deno.serve(async (req) => {
             expiresAt: record.expires_at,
           });
         }
+        
+        console.warn(`[Status] Validation failed with status: ${meRes.status}`);
         
         // If it's a 403, ML might be blocking the IP. 
         // If we just got the token and it's not expired, we assume it's still connected
