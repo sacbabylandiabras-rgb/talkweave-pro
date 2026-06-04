@@ -409,27 +409,32 @@ Deno.serve(async (req) => {
         let totalCount = 0;
 
         for (const type of promoTypes) {
-          const promoRes = await fetch(`https://api.mercadolibre.com/seller-promotions/promotions?promotion_type=${type}&app_version=v2`, {
+          const promoUrl = `https://api.mercadolibre.com/seller-promotions/promotions?promotion_type=${type}&app_version=v2`;
+          console.log(`[Affiliate] Requesting: ${promoUrl}`);
+          const promoRes = await fetch(promoUrl, {
             headers: { 
               Authorization: `Bearer ${accessToken}`,
               "User-Agent": "ZapLynx/1.0",
             },
           });
 
-
           if (promoRes.ok) {
             const promoText = await promoRes.text();
-            if (!promoText) continue;
+            if (!promoText) {
+              console.log(`[Affiliate] Empty response for type ${type}`);
+              continue;
+            }
             
             const promoData = JSON.parse(promoText);
             const activePromos = promoData.results || [];
-            console.log(`[Affiliate] Found ${activePromos.length} active promotions of type ${type}`);
+            console.log(`[Affiliate] Type ${type}: Found ${activePromos.length} active promotions`);
 
             for (const promo of activePromos) {
               if (allPromoItems.length >= limit) break;
               
-              console.log(`[Affiliate] Fetching items for promotion: ${promo.id} (${promo.type || type})`);
-              const itemsRes = await fetch(`https://api.mercadolibre.com/seller-promotions/promotions/${promo.id}/items?promotion_type=${promo.type || type}&app_version=v2`, {
+              const itemsUrl = `https://api.mercadolibre.com/seller-promotions/promotions/${promo.id}/items?promotion_type=${promo.type || type}&app_version=v2`;
+              console.log(`[Affiliate] Fetching items: ${itemsUrl}`);
+              const itemsRes = await fetch(itemsUrl, {
                 headers: { 
                   Authorization: `Bearer ${accessToken}`,
                   "User-Agent": "ZapLynx/1.0",
@@ -438,11 +443,14 @@ Deno.serve(async (req) => {
 
               if (itemsRes.ok) {
                 const itemsText = await itemsRes.text();
-                if (!itemsText) continue;
+                if (!itemsText) {
+                  console.log(`[Affiliate] Empty items response for promo ${promo.id}`);
+                  continue;
+                }
                 
                 const itemsData = JSON.parse(itemsText);
                 const promoItems = itemsData.results || [];
-                console.log(`[Affiliate] Found ${promoItems.length} items in promotion ${promo.id}`);
+                console.log(`[Affiliate] Promo ${promo.id}: Found ${promoItems.length} items`);
                 
                 const itemsWithMetadata = promoItems.map((item: any) => ({
                   ...item,
@@ -451,8 +459,14 @@ Deno.serve(async (req) => {
                 }));
                 allPromoItems = [...allPromoItems, ...itemsWithMetadata];
                 totalCount += itemsData.paging?.total || promoItems.length;
+              } else {
+                const errText = await itemsRes.text().catch(() => "N/A");
+                console.warn(`[Affiliate] Failed to fetch items for ${promo.id}: ${itemsRes.status} - ${errText}`);
               }
             }
+          } else {
+            const errText = await promoRes.text().catch(() => "N/A");
+            console.warn(`[Affiliate] Failed to fetch promotions for type ${type}: ${promoRes.status} - ${errText}`);
           }
           if (allPromoItems.length >= limit) break;
         }
