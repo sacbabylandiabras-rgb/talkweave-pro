@@ -19,9 +19,11 @@ export type Database = {
           access_token: string | null
           account_id: string | null
           account_nickname: string | null
+          affiliate_source_id: string | null
           created_at: string
           expires_at: string | null
           id: string
+          metadata: Json | null
           provider: string
           raw: Json | null
           refresh_token: string | null
@@ -34,9 +36,11 @@ export type Database = {
           access_token?: string | null
           account_id?: string | null
           account_nickname?: string | null
+          affiliate_source_id?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
+          metadata?: Json | null
           provider: string
           raw?: Json | null
           refresh_token?: string | null
@@ -49,9 +53,11 @@ export type Database = {
           access_token?: string | null
           account_id?: string | null
           account_nickname?: string | null
+          affiliate_source_id?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
+          metadata?: Json | null
           provider?: string
           raw?: Json | null
           refresh_token?: string | null

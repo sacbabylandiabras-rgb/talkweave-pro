@@ -61,6 +61,7 @@ Deno.serve(async (req) => {
       client_secret: ML_CLIENT_SECRET,
       code,
       redirect_uri: REDIRECT_URI,
+      code_verifier: "", // Mercado Livre requires this even if not using PKCE
     });
 
     console.log(`[OAuth] Fetching token from ML...`);
