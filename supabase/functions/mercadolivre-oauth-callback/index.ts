@@ -95,7 +95,18 @@ Deno.serve(async (req) => {
 
     const storagePath = `${userId}/${PROVIDER}.json`;
     console.log(`[Storage] Saving token to: ${storagePath}`);
-    await admin.storage.from(BUCKET).upload(storagePath, new Blob([JSON.stringify(record)], { type: "application/json" }), { upsert: true });
+    const { data: uploadData, error: uploadError } = await admin.storage
+      .from(BUCKET)
+      .upload(storagePath, new Blob([JSON.stringify(record)], { type: "application/json" }), { 
+        upsert: true,
+        contentType: "application/json" 
+      });
+
+    if (uploadError) {
+      console.error("[Storage] Error saving token:", uploadError);
+      throw new Error(`Erro ao salvar credenciais: ${uploadError.message}`);
+    }
+    console.log("[Storage] Token saved successfully:", uploadData);
 
 
     return json({ success: true, nickname: meData.nickname });
