@@ -401,18 +401,29 @@ Deno.serve(async (req) => {
 
     // Affiliate Link & Shortlink Generation
     const sourceId = record?.affiliate_source_id || record?.metadata?.source_id;
+    console.log(`[Affiliate] Applying links for sourceId: ${sourceId}, hasAccessToken: ${!!accessToken}`);
+    
     if (sourceId && products.length > 0 && accessToken) {
       const originalUrls = products.map(p => p.link);
       const shortlinkMap = await generateOfficialShortlinks(admin, user.id, accessToken, String(sourceId), originalUrls);
-      products = products.map(p => ({
-        ...p,
-        link: shortlinkMap[p.link] || decorateAffiliateLink(p.link, sourceId),
-      }));
+      products = products.map(p => {
+        const originalUrl = p.link;
+        const shortUrl = shortlinkMap[originalUrl];
+        if (shortUrl) {
+          console.log(`[Affiliate] Using official shortlink for ${p.id}`);
+          return { ...p, link: shortUrl };
+        }
+        console.log(`[Affiliate] Falling back to decorated link for ${p.id}`);
+        return { ...p, link: decorateAffiliateLink(originalUrl, sourceId) };
+      });
     } else if (sourceId) {
+      console.log(`[Affiliate] No access token or no products, using decoration only for sourceId: ${sourceId}`);
       products = products.map(p => ({
         ...p,
         link: decorateAffiliateLink(p.link, sourceId),
       }));
+    } else {
+      console.warn(`[Affiliate] No sourceId found for user ${user.id}. Links will remain original.`);
     }
 
     // Wrap in tracker
