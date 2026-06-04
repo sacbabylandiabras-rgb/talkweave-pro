@@ -730,8 +730,21 @@ export default function Afiliados() {
               {loadingProducts ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               Buscar
             </Button>
-            <Button variant="outline" onClick={() => loadDeals(null, false)} disabled={loadingProducts || !connected.ml}>
-              🔥 Promoções
+            <Button
+              variant={dealType === "deals" ? "default" : "outline"}
+              onClick={() => loadDeals(null, false, "deals")}
+              disabled={loadingProducts || !connected.ml}
+              className={cn(dealType === "deals" && "bg-orange-500 hover:bg-orange-600")}
+            >
+              🔥 Ofertas do Dia
+            </Button>
+            <Button
+              variant={dealType === "lightning" ? "default" : "outline"}
+              onClick={() => loadDeals(null, false, "lightning")}
+              disabled={loadingProducts || !connected.ml}
+              className={cn(dealType === "lightning" && "bg-blue-600 hover:bg-blue-700")}
+            >
+              ⚡ Relâmpago
             </Button>
             <Button
               variant="outline"
