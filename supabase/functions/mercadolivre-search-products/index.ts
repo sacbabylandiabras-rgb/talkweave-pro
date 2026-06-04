@@ -140,125 +140,59 @@ async function generateOfficialShortlinks(
 }
 
 async function fetchPublicOffers(query: string, category: string | null, accountId: string | number | null, limit: number, offset = 0) {
-  let url: URL;
+  // Se não houver query nem categoria, busca as ofertas do dia do usuário se possível, ou ofertas gerais
+  const searchUrl = new URL("https://api.mercadolibre.com/sites/MLB/search");
+  
   if (query) {
-    url = new URL("https://lista.mercadolivre.com.br/" + encodeURIComponent(query.replace(/\s+/g, "-")));
-    if (offset > 0) url.searchParams.set("_from", String(offset + 1));
+    searchUrl.searchParams.set("q", query);
+  } else if (category) {
+    searchUrl.searchParams.set("category", category);
   } else {
-    url = new URL("https://www.mercadolivre.com.br/ofertas");
-    if (category) url.searchParams.set("category", category);
-    if (offset > 0) url.searchParams.set("offset", String(offset));
+    // Busca padrão de ofertas
+    searchUrl.searchParams.set("q", "ofertas");
   }
+  
+  searchUrl.searchParams.set("limit", String(limit));
+  searchUrl.searchParams.set("offset", String(offset));
 
   try {
-    const res = await fetch(url.toString(), {
+    const res = await fetch(searchUrl.toString(), {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-        "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Cache-Control": "max-age=0",
-        "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-        "Sec-Ch-Ua-Mobile": "?0",
-        "Sec-Ch-Ua-Platform": '"Windows"',
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-        "Sec-Fetch-User": "?1",
-        "Upgrade-Insecure-Requests": "1"
+        "Accept": "application/json",
       },
     });
-    if (!res.ok) {
-      console.warn(`Scrape fetch failed status=${res.status} url=${url.toString()}`);
-      return [];
-    }
-
-    const html = await res.text();
-
-    // Extrai IDs MLB do HTML usando regex mais robusto
-    const idRegex = /MLB-?(\d{8,15})/gi;
-    const ids: string[] = [];
-    const seen = new Set<string>();
     
-    let match;
-    while ((match = idRegex.exec(html)) !== null) {
-      const id = "MLB" + match[1];
-      if (!seen.has(id)) {
-        seen.add(id);
-        ids.push(id);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const results = data.results || [];
+    
+    return results.map((item: any) => {
+      let thumbnail = item.thumbnail || item.secure_thumbnail || null;
+      if (thumbnail) {
+        thumbnail = thumbnail.replace(/^http:/, "https:").replace(/-[WIGM]\.(jpg|jpeg|png|webp)$/i, "-O.$1");
       }
-      if (ids.length >= limit * 2) break;
-    }
+      
+      const price = item.price;
+      const originalPrice = item.original_price;
 
-    if (ids.length === 0) return [];
-
-    console.log(`Scraping found ${ids.length} MLB IDs, fetching via public API...`);
-
-    // Busca detalhes via API pública (sem autenticação)
-    const products: any[] = [];
-    for (let i = 0; i < ids.length; i += 20) {
-      const batch = ids.slice(i, i + 20);
-      try {
-        const detailRes = await fetch(
-          `https://api.mercadolibre.com/items?ids=${batch.join(",")}&attributes=id,title,price,original_price,thumbnail,secure_thumbnail,pictures,permalink,status,available_quantity,currency_id`,
-          {
-            headers: {
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-              "Accept": "application/json",
-              "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-            }
-
-          }
-        );
-        if (!detailRes.ok) continue;
-        const detailData = await detailRes.json();
-
-        for (const entry of detailData) {
-          if (entry.code !== 200 || !entry.body) continue;
-          const item = entry.body;
-          if (item.status && item.status !== "active") continue;
-          if (!item.price || !item.permalink) continue;
-
-          // Pega a melhor foto disponível
-          let thumbnail: string | null =
-            item.pictures?.[0]?.secure_url ||
-            item.pictures?.[0]?.url ||
-            item.secure_thumbnail ||
-            item.thumbnail ||
-            null;
-
-          if (thumbnail) {
-            thumbnail = thumbnail.replace(/^http:/, "https:");
-            // Upgrade para resolução maior
-            thumbnail = thumbnail.replace(/-[WIGM]\.(jpg|jpeg|png|webp)$/i, "-O.$1");
-          }
-
-          const originalPrice = item.original_price;
-          products.push({
-            id: item.id,
-            name: item.title,
-            price: formatMoney(item.price, item.currency_id || "BRL"),
-            priceValue: item.price,
-            originalPrice: originalPrice && originalPrice > item.price
-              ? formatMoney(originalPrice, item.currency_id || "BRL")
-              : null,
-            discount: originalPrice && originalPrice > item.price
-              ? Math.round(((originalPrice - item.price) / originalPrice) * 100)
-              : null,
-            thumbnail,
-            link: decorateAffiliateLink(item.permalink, accountId),
-            source: "ml",
-            available: true,
-          });
-
-          if (products.length >= limit) break;
-        }
-      } catch (err) {
-        console.warn("Public API batch error:", err);
-      }
-      if (products.length >= limit) break;
-    }
-
-    return products;
+      return {
+        id: item.id,
+        name: item.title,
+        price: formatMoney(price, item.currency_id || "BRL"),
+        priceValue: price,
+        originalPrice: originalPrice && originalPrice > price
+          ? formatMoney(originalPrice, item.currency_id || "BRL")
+          : null,
+        discount: originalPrice && originalPrice > price
+          ? Math.round(((originalPrice - price) / originalPrice) * 100)
+          : null,
+        thumbnail,
+        link: decorateAffiliateLink(item.permalink, accountId),
+        source: "ml",
+        available: true,
+      };
+    });
   } catch (err) {
     console.error("fetchPublicOffers error:", err);
     return [];
@@ -412,80 +346,81 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Tenta API pública de busca (sem autenticação) como primeira opção para busca e detalhes
-    // pois o token pode ter restrições de permissão para busca pública
-    const q = query || (category && CATEGORY_KEYWORDS[category]) || "ofertas";
-    console.log(`[Search] query="${q}" category=${category} offset=${offset}`);
-
-    const searchUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search`);
-    searchUrl.searchParams.set("q", q);
-    if (category) searchUrl.searchParams.set("category", category);
-    searchUrl.searchParams.set("limit", String(limit));
-    searchUrl.searchParams.set("offset", String(offset));
-
-    let searchRes;
-    let searchData: any = null;
-
-    // Tentativa 1: Busca Autenticada (Com Token) - Prioridade agora que corrigimos o token
-    if (accessToken) {
+    // Modo de busca: se for "ofertas" e não tiver query, busca as promoções do usuário
+    if (mode === "offers" && !query) {
       try {
-        console.log(`[Auth] Searching: ${searchUrl.toString()}`);
-        searchRes = await fetch(searchUrl.toString(), {
+        console.log(`[Seller] Fetching user items to find offers...`);
+        // Primeiro busca os itens do próprio vendedor (afiliado às vezes quer promover seus próprios ou ver ofertas da conta)
+        // Mas para AFILIADOS, o ideal é usar a API de promoções se disponível ou uma busca filtrada por descontos
+        
+        // Tentativa de buscar ofertas globais usando o token do usuário (o que permite maior limite ou bypass de alguns blocks)
+        const searchUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search`);
+        searchUrl.searchParams.set("q", "ofertas");
+        searchUrl.searchParams.set("sort", "relevance");
+        searchUrl.searchParams.set("limit", String(limit));
+        searchUrl.searchParams.set("offset", String(offset));
+        if (category) searchUrl.searchParams.set("category", category);
+
+        const res = await fetch(searchUrl.toString(), {
           headers: { 
             Authorization: `Bearer ${accessToken}`,
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+            "User-Agent": "ZapLynx/1.0",
           },
-
         });
-        if (searchRes.ok) {
-          searchData = await searchRes.json();
-          console.log(`[Auth] Success: found ${searchData?.results?.length || 0} results`);
-        } else {
-          const errText = await searchRes.text().catch(() => "no body");
-          console.warn(`[Auth] Search failed status=${searchRes.status}: ${errText}`);
+        
+        if (res.ok) {
+          const data = await res.json();
+          results = data.results || [];
+          total = data.paging?.total || 0;
+          console.log(`[Seller] Found ${results.length} offers via auth search`);
         }
       } catch (err) {
-        console.error(`[Auth] Search error:`, err);
+        console.error("[Seller] Error fetching offers:", err);
       }
-
     }
 
-    // Tentativa 2: Busca Pública (Sem Token) - Caso a autenticada falhe ou não tenha token
-    if (!searchData || !searchData.results || searchData.results.length === 0) {
-      try {
-        console.log(`[Public] Searching: ${searchUrl.toString()}`);
-        searchRes = await fetch(searchUrl.toString(), {
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-          }
-
-        });
-        if (searchRes.ok) {
-          searchData = await searchRes.json();
-          console.log(`[Public] Success: found ${searchData?.results?.length || 0} results`);
-        } else {
-          const errText = await searchRes.text().catch(() => "no body");
-          console.warn(`[Public] Search failed status=${searchRes.status}: ${errText}`);
-        }
-      } catch (err) {
-        console.error(`[Public] Search error:`, err);
-      }
-
-    }
-
-
-    let results = searchData?.results || [];
-    let total = searchData?.paging?.total || 0;
-
-    // Tentativa 3: Scraping (Último Recurso)
+    // Se ainda não tem resultados (ou se for modo search), faz a busca padrão
     if (results.length === 0) {
-      console.log("[Fallback] No results from API, trying scraping...");
-      const publicProducts = await fetchPublicOffers(query, category, record?.account_id, limit, offset);
-      if (publicProducts && publicProducts.length > 0) {
-        console.log(`[Done] Returning ${publicProducts.length} scraped products`);
-        return json({ products: publicProducts, total: 1000, fallback: true });
+      const q = query || (category && CATEGORY_KEYWORDS[category]) || "ofertas";
+      const searchUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search`);
+      searchUrl.searchParams.set("q", q);
+      if (category) searchUrl.searchParams.set("category", category);
+      searchUrl.searchParams.set("limit", String(limit));
+      searchUrl.searchParams.set("offset", String(offset));
+
+      console.log(`[Search] query="${q}" category=${category} offset=${offset}`);
+
+      // Tenta Autenticado
+      try {
+        const authRes = await fetch(searchUrl.toString(), {
+          headers: { 
+            Authorization: `Bearer ${accessToken}`,
+            "User-Agent": "ZapLynx/1.0",
+          },
+        });
+        if (authRes.ok) {
+          const data = await authRes.json();
+          results = data.results || [];
+          total = data.paging?.total || 0;
+          console.log(`[Auth] Search success: ${results.length} items`);
+        }
+      } catch (err) {
+        console.warn("[Auth] Search error:", err);
+      }
+
+      // Fallback Público se falhar
+      if (results.length === 0) {
+        try {
+          const pubRes = await fetch(searchUrl.toString());
+          if (pubRes.ok) {
+            const data = await pubRes.json();
+            results = data.results || [];
+            total = data.paging?.total || 0;
+            console.log(`[Public] Search success: ${results.length} items`);
+          }
+        } catch (err) {
+          console.warn("[Public] Search error:", err);
+        }
       }
     }
 
