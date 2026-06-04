@@ -354,7 +354,7 @@ Deno.serve(async (req) => {
     const category = body.category || null;
     const mode = body.mode || body.deals || "search";
     const siteId = body.site || "MLB"; // Default to Brazil
-    const limit = Math.min(Number(body.limit || 50), 100);
+    const limit = Math.min(Number(body.limit || 10), 10); // Reduzido para 10 conforme solicitado
     const offset = Number(body.offset || 0);
 
     // Try to load connection from database (most reliable)
