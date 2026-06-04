@@ -88,16 +88,14 @@ export default function Afiliados() {
         
         if (mlError) {
           console.error("Error checking ML connection:", mlError);
-          // If the error is a 404/not found, it means the function or some resource is missing
-          return;
-        }
-
-        if ((mlStatus as any)?.connected) {
+        } else if ((mlStatus as any)?.connected) {
           setConnected((prev) => ({ ...prev, ml: true }));
           setConnectedAccount((prev) => ({
             ...prev,
             ml: (mlStatus as any).nickname || (mlStatus as any).accountId || "Conta conectada",
           }));
+          
+          // Only auto-load if we don't have products yet
           loadDeals();
         }
       } catch (err) {
