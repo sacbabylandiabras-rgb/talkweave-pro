@@ -144,6 +144,10 @@ export default function Afiliados() {
       });
       if (error) throw error;
       
+      if ((data as any)?.isBlocked) {
+        toast.warning("A API do Mercado Livre está limitando as buscas automáticas temporariamente. Tente novamente em alguns minutos.");
+      }
+
       const list = (data?.products || []) as AffiliateProduct[];
       if (isLoadMore) {
         setProducts(prev => {
@@ -157,6 +161,7 @@ export default function Afiliados() {
         setSelectedIds(new Set());
       }
       setTotalProducts(data?.total || null);
+
     } catch (e) {
       console.error(e);
       toast.error("Erro ao carregar promoções.");
@@ -307,6 +312,10 @@ export default function Afiliados() {
       
       console.log("Resposta da edge function:", data);
 
+      if ((data as any)?.isBlocked) {
+        toast.warning("A API do Mercado Livre está limitando as buscas automáticas temporariamente. Tente novamente em alguns minutos.");
+      }
+
       if ((data as any)?.error && !(data as any)?.products) {
         toast.error((data as any).error);
         return;
@@ -327,6 +336,7 @@ export default function Afiliados() {
       }
 
       setTotalProducts((data as any)?.total || null);
+
       
       console.log("Produtos formatados:", list);
 
