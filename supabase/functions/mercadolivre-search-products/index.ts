@@ -85,6 +85,31 @@ function getVolumeLabel(item: any) {
   return null;
 }
 
+function getPromotionLabel(item: any) {
+  const volumeLabel = getVolumeLabel(item);
+  if (volumeLabel) return volumeLabel;
+
+  switch (item.promotion_type) {
+    case "PRE_NEGOTIATED":
+      return "Desconto Exclusivo";
+    case "PRICE_DISCOUNT":
+      return "Desconto Individual";
+    case "LIGHTNING":
+      return "Oferta Relâmpago";
+    case "SMART":
+      return "Oferta Inteligente";
+    case "DEAL":
+      return "Oferta Especial";
+    case "MARKETPLACE_CAMPAIGN":
+      return "Campanha Co-participada";
+    case "DOD":
+      return "Oferta do Dia";
+    default:
+      return null;
+  }
+}
+
+
 async function generateOfficialShortlinks(
   admin: any,
   userId: string,
