@@ -317,7 +317,9 @@ Deno.serve(async (req) => {
     }
 
     // Fallback for public search if authenticated failed or not available (only if not already blocked)
-    if (results.length === 0 && accessToken && !isBlocked) {
+    // For highlights/deals, if no access token, we might need to fallback to standard search
+    if (results.length === 0 && !isBlocked) {
+
       console.log("[Search] Retrying without token (public search)...");
       try {
         const pubRes = await fetch(searchUrl.toString(), {
