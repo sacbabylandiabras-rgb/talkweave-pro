@@ -211,6 +211,9 @@ export default function Afiliados() {
     setConnectedAccount((prev) => ({ ...prev, [source]: fakeAccounts[source] }));
     setConnecting(null);
     toast.success(`Conta conectada com sucesso!`);
+    
+    // Auto load deals if ML just connected (though for ML it redirects)
+    if (source === "ml") loadDeals();
   };
 
   const handleDisconnect = async (source: Source) => {
