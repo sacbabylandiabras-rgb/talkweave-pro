@@ -331,6 +331,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
+  const startTimestamp = Date.now();
+
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -491,7 +493,7 @@ Deno.serve(async (req) => {
       try {
         console.log(`[Affiliate] Fetching seller-promotions...`);
         // Reduzi os tipos para os mais comuns para diminuir o número de requisições iniciais
-        const promoTypes = ["MARKETPLACE_CAMPAIGN", "PRICE_DISCOUNT", "DEAL", "LIGHTNING", "SMART", "DOD", "PRE_NEGOTIATED", "CUSTOM_PRICE"];
+        const promoTypes = ["PRICE_DISCOUNT", "DEAL", "LIGHTNING", "DOD", "PRE_NEGOTIATED"];
         let allPromoItems: any[] = [];
         let totalCount = 0;
 
@@ -524,9 +526,15 @@ Deno.serve(async (req) => {
             console.log(`[Affiliate] Type ${type}: Found ${activePromos.length} active promotions`);
 
             // Pega apenas as 3 primeiras promoções de cada tipo para não estourar rate limit
-            for (const promo of activePromos.slice(0, 3)) {
+            for (const promo of activePromos.slice(0, 1)) {
               if (allPromoItems.length >= limit) break;
               
+              // Se já passou 10 segundos no total, pára de buscar mais promoções
+              if (Date.now() - startTimestamp > 10000) {
+                console.warn("[Affiliate] Search timeout threshold reached, stopping promo fetch");
+                break;
+              }
+
               const itemsUrl = `https://api.mercadolibre.com/seller-promotions/promotions/${promo.id}/items?promotion_type=${promo.type || type}&app_version=v2`;
               console.log(`[Affiliate] Fetching items: ${itemsUrl}`);
               const itemsRes = await fetch(itemsUrl, {
@@ -538,7 +546,7 @@ Deno.serve(async (req) => {
 
               if (itemsRes.status === 403) {
                 console.warn("[Affiliate] Blocked while fetching items for promo", promo.id);
-                continue; // Tenta a próxima, talvez não seja um bloqueio global
+                continue;
               }
 
               if (itemsRes.ok) {
@@ -558,7 +566,7 @@ Deno.serve(async (req) => {
               }
             }
           }
-          if (allPromoItems.length >= limit) break;
+          if (allPromoItems.length >= limit || (Date.now() - startTimestamp > 10000)) break;
         }
 
         if (allPromoItems.length > 0) {
