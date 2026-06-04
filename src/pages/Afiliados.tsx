@@ -852,6 +852,11 @@ export default function Afiliados() {
                       {p.originalPrice && (
                         <span className="text-[11px] text-muted-foreground line-through">{p.originalPrice}</span>
                       )}
+                      {p.identifiers?.ean && (
+                        <span className="text-[10px] text-muted-foreground truncate" title={`EAN: ${p.identifiers.ean}`}>
+                          EAN: {p.identifiers.ean}
+                        </span>
+                      )}
                     </div>
                   </div>
                 );
