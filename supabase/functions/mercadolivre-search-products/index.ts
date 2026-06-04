@@ -259,11 +259,15 @@ Deno.serve(async (req) => {
       headers["Authorization"] = `Bearer ${accessToken}`;
     }
 
-    if ((mode === "offers" || mode === "deals" || mode === "highlights") && !query) {
-      // Use the daily deals / highlights endpoint
-      // Documentation: https://developers.mercadolivre.com.br/pt_br/ofertas-do-dia
-      searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/highlights/listing-type/gold_pro`);
-      // Highlights API supports offset and limit
+    if ((mode === "offers" || mode === "deals" || mode === "highlights" || mode === "lightning") && !query) {
+      // Documentation: 
+      // Highlights: https://developers.mercadolivre.com.br/pt_br/ofertas-do-dia
+      // Lightning: https://developers.mercadolivre.com.br/pt_br/ofertas-relampago
+      
+      const endpoint = mode === "lightning" ? "lightning" : "highlights";
+      searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/${endpoint}/listing-type/gold_pro`);
+      
+      // Both APIs support offset and limit
       searchUrl.searchParams.set("offset", String(offset));
       searchUrl.searchParams.set("limit", String(limit));
     } else {

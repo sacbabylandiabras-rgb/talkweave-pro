@@ -74,6 +74,7 @@ export default function Afiliados() {
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
+  const [dealType, setDealType] = useState<"deals" | "lightning">("deals");
   const [offset, setOffset] = useState(0);
   const [totalProducts, setTotalProducts] = useState<number | null>(null);
 
@@ -114,7 +115,7 @@ export default function Afiliados() {
             }));
             
             // Call loadDeals directly with the state value to avoid closure issues
-            loadDealsInternal(null, false, true);
+            loadDealsInternal(null, false, true, "deals");
           } else {
             setConnectedAccount((prev) => ({ ...prev, ml: null }));
           }
@@ -142,11 +143,13 @@ export default function Afiliados() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadDeals = (categoryId?: string | null, isLoadMore = false) => {
-    loadDealsInternal(categoryId, isLoadMore, connected.ml);
+  const loadDeals = (categoryId?: string | null, isLoadMore = false, type?: "deals" | "lightning") => {
+    const finalType = type || dealType;
+    if (type) setDealType(type);
+    loadDealsInternal(categoryId, isLoadMore, connected.ml, finalType);
   };
 
-  const loadDealsInternal = async (categoryId?: string | null, isLoadMore = false, isConnected = false) => {
+  const loadDealsInternal = async (categoryId?: string | null, isLoadMore = false, isConnected = false, type: "deals" | "lightning" = "deals") => {
     if (!isConnected) {
       toast.info("Conecte sua conta do Mercado Livre para ver as promoções.");
       return;
@@ -161,8 +164,9 @@ export default function Afiliados() {
     try {
       const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
         body: { 
-          mode: "deals", 
+          mode: type === "lightning" ? "lightning" : "deals", 
           limit: 10, 
+
 
           offset: nextOffset, 
           category: finalCategory,
@@ -726,8 +730,21 @@ export default function Afiliados() {
               {loadingProducts ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               Buscar
             </Button>
-            <Button variant="outline" onClick={() => loadDeals(null, false)} disabled={loadingProducts || !connected.ml}>
-              🔥 Promoções
+            <Button
+              variant={dealType === "deals" ? "default" : "outline"}
+              onClick={() => loadDeals(null, false, "deals")}
+              disabled={loadingProducts || !connected.ml}
+              className={cn(dealType === "deals" && "bg-orange-500 hover:bg-orange-600")}
+            >
+              🔥 Ofertas do Dia
+            </Button>
+            <Button
+              variant={dealType === "lightning" ? "default" : "outline"}
+              onClick={() => loadDeals(null, false, "lightning")}
+              disabled={loadingProducts || !connected.ml}
+              className={cn(dealType === "lightning" && "bg-blue-600 hover:bg-blue-700")}
+            >
+              ⚡ Relâmpago
             </Button>
             <Button
               variant="outline"
