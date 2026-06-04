@@ -47,9 +47,9 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { data: member } = await supabase
+      const { data: member } = await (supabase as any)
         .from("team_members")
-        .select("team_id, role_id, allowed_instance_ids, role:team_roles(name, permissions)")
+        .select("team_id, role, permissions")
         .eq("user_id", user.id)
         .eq("status", "active")
         .maybeSingle();
@@ -67,9 +67,9 @@ export function TeamProvider({ children }: { children: ReactNode }) {
           ownerId: team?.owner_id || null,
           effectiveUserId: team?.owner_id || user.id,
           selfUserId: user.id,
-          permissions: (member.role as any)?.permissions || {},
-          allowedInstanceIds: (member.allowed_instance_ids as any) || [],
-          roleName: (member.role as any)?.name || "Funcionário",
+          permissions: (member as any).permissions || {},
+          allowedInstanceIds: [], // To be implemented if needed
+          roleName: (member as any).role || "Funcionário",
           refresh: load,
         });
       } else {
