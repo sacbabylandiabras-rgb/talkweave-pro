@@ -70,7 +70,6 @@ Deno.serve(async (req) => {
         if (pending.expires > Date.now()) {
           code_verifier = pending.code_verifier;
         }
-        // Clean up
         await admin.storage.from(BUCKET).remove([storagePath]);
       }
     } catch (e) {
@@ -85,11 +84,9 @@ Deno.serve(async (req) => {
       redirect_uri: REDIRECT_URI,
     });
 
-    if (code_verifier) {
-      tokenParams.set("code_verifier", code_verifier);
-    }
+    if (code_verifier) tokenParams.set("code_verifier", code_verifier);
 
-    console.log(`[OAuth] Fetching token from ML... params: ${tokenParams.toString().replace(ML_CLIENT_SECRET, '***')}`);
+    console.log(`[OAuth] Fetching token from ML...`);
     const tokenRes = await fetch("https://api.mercadolibre.com/oauth/token", {
       method: "POST",
       headers: { 
@@ -105,7 +102,6 @@ Deno.serve(async (req) => {
       return json({ error: `Failed to exchange code: ${errBody}` }, 400);
     }
     const tokenData = await tokenRes.json();
-    console.log(`[OAuth] Token received successfully. Access token starts with: ${tokenData.access_token?.substring(0, 10)}...`);
 
     const meRes = await fetch("https://api.mercadolibre.com/users/me", {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
@@ -115,6 +111,7 @@ Deno.serve(async (req) => {
     // Fetch affiliate source_id
     let sourceId = null;
     try {
+      // Strategy 1: advertisers/me
       const affRes = await fetch("https://api.mercadolibre.com/affiliate-program/v1/advertisers/me", {
         headers: { Authorization: `Bearer ${tokenData.access_token}` },
       });
@@ -122,61 +119,58 @@ Deno.serve(async (req) => {
         const affData = await affRes.json();
         sourceId = affData.source_id || affData.id;
       }
-    } catch {}
+      
+      // Strategy 2: If Strategy 1 failed or returned null, try /sources
+      if (!sourceId) {
+        const sourcesRes = await fetch("https://api.mercadolibre.com/affiliate-program/v1/sources", {
+          headers: { Authorization: `Bearer ${tokenData.access_token}` },
+        });
+        if (sourcesRes.ok) {
+          const sourcesData = await sourcesRes.json();
+          const sources = Array.isArray(sourcesData) ? sourcesData : (sourcesData.sources || []);
+          if (sources.length > 0) {
+            sourceId = sources[0].id || sources[0].source_id;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[Affiliate] Error fetching sources:", err.message);
+    }
 
     const record = {
       provider: PROVIDER,
-      account_id: meData.id,
+      account_id: String(meData.id),
       account_nickname: meData.nickname,
-      affiliate_source_id: sourceId,
+      affiliate_source_id: sourceId ? String(sourceId) : null,
       access_token: tokenData.access_token,
       refresh_token: tokenData.refresh_token,
       expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
       updated_at: new Date().toISOString(),
+      metadata: { source_id: sourceId }
     };
 
     const storagePath = `${userId}/${PROVIDER}.json`;
-    console.log(`[Storage] Saving token to: ${storagePath}`);
-    
-    // Save to storage
-    const { data: uploadData, error: uploadError } = await admin.storage
+    await admin.storage
       .from(BUCKET)
       .upload(storagePath, new Blob([JSON.stringify(record)], { type: "application/json" }), { 
         upsert: true,
         contentType: "application/json" 
       });
 
-    if (uploadError) {
-      console.error("[Storage] Error saving token:", uploadError);
-    } else {
-      console.log("[Storage] Token saved successfully:", uploadData);
-    }
+    const { error: dbError } = await admin.from("affiliate_connections").upsert({
+      user_id: userId,
+      provider: PROVIDER,
+      account_id: String(meData.id),
+      account_nickname: meData.nickname,
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token,
+      expires_at: record.expires_at,
+      updated_at: new Date().toISOString(),
+      affiliate_source_id: sourceId ? String(sourceId) : null,
+      metadata: { source_id: sourceId }
+    }, { onConflict: "user_id,provider" });
 
-    // NEW: Save to database as well to ensure persistence and easier lookup
-    try {
-      const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
-      
-      const { error: dbError } = await admin.from("affiliate_connections").upsert({
-        user_id: userId,
-        provider: PROVIDER,
-        account_id: String(meData.id),
-        account_nickname: meData.nickname,
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
-        expires_at: expiresAt,
-        updated_at: new Date().toISOString(),
-        metadata: { source_id: sourceId }
-      }, { onConflict: "user_id,provider" });
-
-      if (dbError) {
-        console.error("[DB] Error saving connection:", dbError);
-      } else {
-        console.log("[DB] Connection saved successfully to database");
-      }
-    } catch (err) {
-      console.error("[DB] Error in database operations:", err.message);
-    }
-
+    if (dbError) console.error("[DB] Error saving connection:", dbError);
 
     return json({ success: true, nickname: meData.nickname });
   } catch (err) {
