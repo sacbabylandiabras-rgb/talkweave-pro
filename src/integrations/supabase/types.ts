@@ -1748,6 +1748,168 @@ export type Database = {
         }
         Relationships: []
       }
+      ml_webhook_config: {
+        Row: {
+          configured_at: string | null
+          created_at: string | null
+          id: number
+          subscriptions: Json | null
+          updated_at: string | null
+          user_id: string
+          webhook_url: string
+        }
+        Insert: {
+          configured_at?: string | null
+          created_at?: string | null
+          id?: number
+          subscriptions?: Json | null
+          updated_at?: string | null
+          user_id: string
+          webhook_url: string
+        }
+        Update: {
+          configured_at?: string | null
+          created_at?: string | null
+          id?: number
+          subscriptions?: Json | null
+          updated_at?: string | null
+          user_id?: string
+          webhook_url?: string
+        }
+        Relationships: []
+      }
+      ml_webhook_events: {
+        Row: {
+          created_at: string | null
+          data: Json | null
+          id: number
+          processed_at: string | null
+          resource: string | null
+          topic: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data?: Json | null
+          id?: number
+          processed_at?: string | null
+          resource?: string | null
+          topic: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json | null
+          id?: number
+          processed_at?: string | null
+          resource?: string | null
+          topic?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ml_webhook_items: {
+        Row: {
+          created_at: string | null
+          data: Json
+          id: number
+          item_id: string
+          price: number | null
+          status: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data: Json
+          id?: number
+          item_id: string
+          price?: number | null
+          status?: string | null
+          title?: string | null
+          updated_at: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json
+          id?: number
+          item_id?: string
+          price?: number | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ml_webhook_promotions: {
+        Row: {
+          created_at: string | null
+          data: Json
+          id: number
+          promotion_id: string
+          status: string | null
+          type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data: Json
+          id?: number
+          promotion_id: string
+          status?: string | null
+          type?: string | null
+          updated_at: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json
+          id?: number
+          promotion_id?: string
+          status?: string | null
+          type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ml_webhook_stats: {
+        Row: {
+          events_failed: number | null
+          events_processed: number | null
+          events_received: number | null
+          id: number
+          last_event_at: string | null
+          topic: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          events_failed?: number | null
+          events_processed?: number | null
+          events_received?: number | null
+          id?: number
+          last_event_at?: string | null
+          topic: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          events_failed?: number | null
+          events_processed?: number | null
+          events_received?: number | null
+          id?: number
+          last_event_at?: string | null
+          topic?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           checkout_id: string | null

@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const REDIRECT_URI = "https://zaplynx.com/afiliados/callback/mercadolivre";
+const REDIRECT_URI = "https://talkweave-pro.lovable.app/afiliados/callback/mercadolivre";
 const PROVIDER = "mercadolivre";
 
 function json(data: unknown, status = 200) {
