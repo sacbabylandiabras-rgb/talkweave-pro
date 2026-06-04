@@ -250,35 +250,46 @@ Deno.serve(async (req) => {
     }
 
     // Build Search URL
-    const searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
-    let q = query || (category && CATEGORY_KEYWORDS[category]) || "ofertas";
-    
-    // Support for Product Identifiers (GTIN/EAN)
-    if (isProductIdentifier(q)) {
-      console.log(`[Search] Query ${q} identified as GTIN/EAN. Searching specifically...`);
-      searchUrl.searchParams.set("q", `GTIN:${q.trim()}`);
-    } else {
-      searchUrl.searchParams.set("q", q);
-    }
-
-    if (category) searchUrl.searchParams.set("category", category);
-    searchUrl.searchParams.set("limit", String(limit));
-    searchUrl.searchParams.set("offset", String(offset));
-
-    // For "deals/offers" mode without specific query, we use filters or specific terms
-    if ((mode === "offers" || mode === "deals") && !query) {
-      searchUrl.searchParams.set("sort", "relevance");
-    }
-
-    console.log(`[Search] Requesting: ${searchUrl.toString()} (Authenticated: ${!!accessToken})`);
-
-    const headers: Record<string, string> = {
+    let searchUrl: URL;
+    let headers: Record<string, string> = {
       "Accept": "application/json",
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     };
     if (accessToken) {
       headers["Authorization"] = `Bearer ${accessToken}`;
     }
+
+    if ((mode === "offers" || mode === "deals" || mode === "highlights") && !query) {
+      // Use the daily deals / highlights endpoint
+      // Documentation: https://developers.mercadolivre.com.br/pt_br/ofertas-do-dia
+      searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/highlights/listing-type/gold_pro`);
+      // Highlights API supports offset and limit
+      searchUrl.searchParams.set("offset", String(offset));
+      searchUrl.searchParams.set("limit", String(limit));
+    } else {
+      searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
+      let q = query || (category && CATEGORY_KEYWORDS[category]) || "ofertas";
+      
+      // Support for Product Identifiers (GTIN/EAN)
+      if (isProductIdentifier(q)) {
+        console.log(`[Search] Query ${q} identified as GTIN/EAN. Searching specifically...`);
+        searchUrl.searchParams.set("q", `GTIN:${q.trim()}`);
+      } else {
+        searchUrl.searchParams.set("q", q);
+      }
+
+      if (category) searchUrl.searchParams.set("category", category);
+      searchUrl.searchParams.set("limit", String(limit));
+      searchUrl.searchParams.set("offset", String(offset));
+
+      // For "deals/offers" mode without specific query, we use filters or specific terms
+      if ((mode === "offers" || mode === "deals") && !query) {
+        searchUrl.searchParams.set("sort", "relevance");
+      }
+    }
+
+    console.log(`[Search] Requesting: ${searchUrl.toString()} (Authenticated: ${!!accessToken})`);
+
 
     let isBlocked = false;
     let results: any[] = [];
