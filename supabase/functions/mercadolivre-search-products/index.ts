@@ -288,13 +288,21 @@ Deno.serve(async (req) => {
       // Fallback strategies for 403 (Forbidden)
       if (!res.ok && res.status === 403) {
         console.warn(`[Search] Auth search 403. Trying public fallback for mode: ${mode}`);
-        res = await fetch(searchUrl.toString(), { headers: commonHeaders });
+        // For 403, try without Authorization header and with a cleaner URL
+        const publicUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
+        if (searchUrl.searchParams.get("q")) publicUrl.searchParams.set("q", searchUrl.searchParams.get("q")!);
+        if (searchUrl.searchParams.get("category")) publicUrl.searchParams.set("category", searchUrl.searchParams.get("category")!);
+        publicUrl.searchParams.set("limit", String(limit));
+        publicUrl.searchParams.set("offset", String(offset));
+        
+        res = await fetch(publicUrl.toString(), { headers: commonHeaders });
       }
 
       // If search still fails (or wasn't attempted due to previous errors), try a category-based fallback
       if (!res.ok && category) {
         console.warn(`[Search] Previous attempt failed with ${res.status}. Trying simple category fetch.`);
-        const catUrl = new URL(`https://api.mercadolibre.com/categories/${category}/products`);
+        const catUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
+        catUrl.searchParams.set("category", category);
         catUrl.searchParams.set("limit", String(limit));
         res = await fetch(catUrl.toString(), { headers: commonHeaders });
       }
@@ -303,7 +311,8 @@ Deno.serve(async (req) => {
       if (!res.ok) {
         console.warn(`[Search] Error ${res.status}. Trying minimal query fallback.`);
         const fallbackUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
-        fallbackUrl.searchParams.set("q", query || "ofertas");
+        const fallbackQ = query || (category ? CATEGORY_KEYWORDS[category] : null) || "ofertas";
+        fallbackUrl.searchParams.set("q", fallbackQ);
         fallbackUrl.searchParams.set("limit", String(limit));
         res = await fetch(fallbackUrl.toString(), { headers: commonHeaders });
       }
