@@ -101,8 +101,8 @@ Deno.serve(async (req) => {
 
     if (!tokenRes.ok) {
       const errBody = await tokenRes.text();
-      console.error(`[OAuth] Failed to exchange code. Status: ${tokenRes.status}, Body: ${errBody}`);
-      return json({ error: `Failed to exchange code: ${errBody}` }, 400);
+      console.error(`[OAuth] Failed to exchange code. Status: ${tokenRes.status}`);
+      return json({ error: "Failed to exchange authorization code with Mercado Livre" }, 400);
     }
     const tokenData = await tokenRes.json();
 
