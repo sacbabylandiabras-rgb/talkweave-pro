@@ -285,7 +285,7 @@ export default function Afiliados() {
       return;
     }
     
-    const nextOffset = isLoadMore ? offset + 50 : 0;
+    const nextOffset = isLoadMore ? offset + (products.length > 0 ? products.length : 0) : 0;
     setLoadingProducts(true);
     
     try {
