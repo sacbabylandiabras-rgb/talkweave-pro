@@ -579,15 +579,21 @@ export default function Afiliados() {
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <AuthModeSwitch source="ml" />
               </div>
-              {connected.ml && <ConnectedBanner source="ml" />}
-              {!connected.ml && authMode.ml === "oauth" && (
+              {checkingConnection ? (
+                <div className="rounded-xl border border-dashed p-10 text-center space-y-3 bg-muted/20">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+                  <p className="text-sm text-muted-foreground italic">Verificando conexão com Mercado Livre...</p>
+                </div>
+              ) : connected.ml ? (
+                <ConnectedBanner source="ml" />
+              ) : authMode.ml === "oauth" ? (
                 <div className="rounded-xl border border-dashed p-6 text-center space-y-3 bg-muted/30">
                   <p className="text-sm text-muted-foreground">
                     Conecte sua conta do Mercado Livre via login seguro — sem precisar copiar chaves.
                   </p>
                   <OAuthButton source="ml" label="Entrar com Mercado Livre" />
                 </div>
-              )}
+              ) : null}
               {!connected.ml && authMode.ml === "manual" && (
                 <>
                 <div className="grid md:grid-cols-2 gap-4">
