@@ -402,8 +402,6 @@ Deno.serve(async (req) => {
     if ((mode === "offers" || mode === "deals") && !query) {
       try {
         console.log(`[Affiliate] Fetching seller-promotions...`);
-        // 1. Listamos as promoções disponíveis para o vendedor
-        // Buscamos tanto DEAL quanto MARKETPLACE_CAMPAIGN (co-participação)
         const promoTypes = ["CUSTOM_PRICE", "DEAL", "MARKETPLACE_CAMPAIGN", "VOLUME", "PRICE_DISCOUNT", "LIGHTNING", "SMART", "PRE_NEGOTIATED", "DOD", "SELLER_CAMPAIGN"];
         let allPromoItems: any[] = [];
         let totalCount = 0;
@@ -517,7 +515,7 @@ Deno.serve(async (req) => {
       searchUrl.searchParams.set("limit", String(limit));
       searchUrl.searchParams.set("offset", String(offset));
 
-      console.log(`[Search] query="${q}" category=${category} offset=${offset}`);
+      console.log(`[Search] Requesting: ${searchUrl.toString()} (mode: ${mode})`);
 
       // Tenta Autenticado
       try {
@@ -531,7 +529,10 @@ Deno.serve(async (req) => {
           const data = await authRes.json();
           results = data.results || [];
           total = data.paging?.total || 0;
-          console.log(`[Auth] Search success: ${results.length} items`);
+          console.log(`[Auth] Search success: ${results.length} items (query: ${q})`);
+        } else {
+          const errBody = await authRes.text().catch(() => "N/A");
+          console.warn(`[Auth] Search failed: ${authRes.status} - ${errBody}`);
         }
       } catch (err) {
         console.warn("[Auth] Search error:", err);
@@ -540,12 +541,15 @@ Deno.serve(async (req) => {
       // Fallback Público se falhar
       if (results.length === 0) {
         try {
+          console.log(`[Public] Falling back to public search for: ${q}`);
           const pubRes = await fetch(searchUrl.toString());
           if (pubRes.ok) {
             const data = await pubRes.json();
             results = data.results || [];
             total = data.paging?.total || 0;
             console.log(`[Public] Search success: ${results.length} items`);
+          } else {
+            console.warn(`[Public] Search failed: ${pubRes.status}`);
           }
         } catch (err) {
           console.warn("[Public] Search error:", err);
