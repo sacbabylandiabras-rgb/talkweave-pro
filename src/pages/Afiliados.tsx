@@ -492,15 +492,24 @@ export default function Afiliados() {
   );
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <ShoppingBag className="w-6 h-6 text-primary" />
-          Afiliados
-        </h1>
-        <p className="text-muted-foreground">
-          Conecte marketplaces, busque produtos e envie ofertas pelo ZapLynx.
-        </p>
+    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto pb-24">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <ShoppingBag className="w-6 h-6 text-primary" />
+            Afiliados
+          </h1>
+          <p className="text-muted-foreground">
+            Conecte marketplaces, busque produtos e envie ofertas pelo ZapLynx.
+          </p>
+        </div>
+        
+        {connected.ml && (
+          <Badge variant="outline" className="py-1.5 px-3 flex items-center gap-2 bg-green-50 text-green-700 border-green-200 w-fit">
+            <Check className="w-3.5 h-3.5" />
+            {connectedAccount.ml || "Mercado Livre Conectado"}
+          </Badge>
+        )}
       </div>
 
       <Card>
