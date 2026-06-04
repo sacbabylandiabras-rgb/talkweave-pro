@@ -460,12 +460,19 @@ Deno.serve(async (req) => {
     if ((mode === "offers" || mode === "deals") && !query) {
       try {
         console.log(`[Affiliate] Fetching seller-promotions...`);
-        const promoTypes = ["CUSTOM_PRICE", "DEAL", "MARKETPLACE_CAMPAIGN", "VOLUME", "PRICE_DISCOUNT", "LIGHTNING", "SMART", "PRE_NEGOTIATED", "DOD", "SELLER_CAMPAIGN"];
+        const promoTypes = ["MARKETPLACE_CAMPAIGN", "PRICE_DISCOUNT", "VOLUME", "DEAL", "LIGHTNING", "SMART", "PRE_NEGOTIATED", "DOD", "SELLER_CAMPAIGN"];
         let allPromoItems: any[] = [];
         let totalCount = 0;
 
+        // Tenta buscar o user_id do vendedor (seller id) se tiver account_id
+        const sellerId = record.account_id;
+        
         for (const type of promoTypes) {
-          const promoUrl = `https://api.mercadolibre.com/seller-promotions/promotions?promotion_type=${type}&app_version=v2`;
+          let promoUrl = `https://api.mercadolibre.com/seller-promotions/promotions?promotion_type=${type}&app_version=v2`;
+          
+          // Se tivermos o sellerId, podemos tentar filtrar ou usar endpoints específicos se necessário, 
+          // mas o endpoint padrão /seller-promotions/promotions já deve filtrar pelo usuário do token.
+          
           console.log(`[Affiliate] Requesting: ${promoUrl}`);
           const promoRes = await fetch(promoUrl, {
             headers: { 
@@ -475,20 +482,20 @@ Deno.serve(async (req) => {
           });
 
           if (promoRes.status === 403) {
-            isBlocked = true;
             console.warn(`[Affiliate] 403 blocked for type ${type}`);
-            break; 
+            // Não paramos o loop inteiro, talvez outros tipos funcionem ou o fallback ajude
+            continue; 
           }
 
           if (promoRes.ok) {
             const promoText = await promoRes.text();
-            if (!promoText) {
+            if (!promoText || promoText === "[]") {
               console.log(`[Affiliate] Empty response for type ${type}`);
               continue;
             }
             
             const promoData = JSON.parse(promoText);
-            const activePromos = promoData.results || [];
+            const activePromos = Array.isArray(promoData) ? promoData : (promoData.results || []);
             console.log(`[Affiliate] Type ${type}: Found ${activePromos.length} active promotions`);
 
             for (const promo of activePromos) {
@@ -543,17 +550,24 @@ Deno.serve(async (req) => {
           total = totalCount;
         }
 
-        // Se não encontrou nada via seller-promotions e não estiver bloqueado, fallback para busca de ofertas gerais
-        if (results.length === 0 && !isBlocked) {
-          console.log(`[Affiliate] No seller-promotions found, falling back to general offers search...`);
+        // Fallback para busca de ofertas gerais SE não encontrou nada específico
+        if (results.length === 0) {
+          console.log(`[Affiliate] No specific seller-promotions items found, searching general offers...`);
           const searchUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search`);
+          
+          // Se for uma categoria específica, usa o termo dela, senão "ofertas"
           const q = (category && CATEGORY_KEYWORDS[category]) || "ofertas";
           searchUrl.searchParams.set("q", q);
           if (category) searchUrl.searchParams.set("category", category);
+          
+          // Adiciona filtros de ofertas se possível
           searchUrl.searchParams.set("sort", "relevance");
           searchUrl.searchParams.set("limit", String(limit));
           searchUrl.searchParams.set("offset", String(offset));
 
+          // Importante: Mercado Livre às vezes exige que buscas por "ofertas" tenham filtros específicos
+          // ou usem o endpoint de /highlights/v1/MLB/promotions se o token permitir.
+          
           let res = await fetch(searchUrl.toString(), {
             headers: { 
               ...standardHeaders,
@@ -562,22 +576,25 @@ Deno.serve(async (req) => {
           });
           
           if (res.status === 403 && category) {
-            console.warn("[Affiliate] 403 with category, retrying without category...");
+            console.warn("[Affiliate] 403 with category fallback, retrying without category...");
             searchUrl.searchParams.delete("category");
             res = await fetch(searchUrl.toString(), {
               headers: { ...standardHeaders, Authorization: `Bearer ${accessToken}` },
             });
           }
 
-          if (res.status === 403) isBlocked = true;
-
           if (res.ok) {
             const data = await res.json();
-            if (data && data.results) {
+            if (data && data.results && data.results.length > 0) {
+              // Filtra produtos que tenham desconto real (original_price > price)
               results = data.results.filter((r: any) => r.original_price && r.original_price > r.price);
-              if (results.length < 5) results = data.results;
-              total = data.paging?.total || 0;
+              if (results.length === 0) results = data.results; // se nada tiver "original_price", pega tudo
+              total = data.paging?.total || results.length;
+              console.log(`[Affiliate] Found ${results.length} items via general search fallback`);
             }
+          } else {
+            const errText = await res.text().catch(() => "N/A");
+            console.warn(`[Affiliate] General search fallback failed: ${res.status} - ${errText}`);
           }
         }
       } catch (err) {
