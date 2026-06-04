@@ -39,12 +39,32 @@ Deno.serve(async (req) => {
     const ML_CLIENT_ID = Deno.env.get("ML_CLIENT_ID");
     const ML_CLIENT_SECRET = Deno.env.get("ML_CLIENT_SECRET");
 
-    if (!ML_CLIENT_ID || !ML_CLIENT_SECRET) return json({ error: "ML credentials missing" }, 500);
-
     const authHeader = req.headers.get("authorization") || "";
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { data: { user }, error: authErr } = await admin.auth.getUser(authHeader.replace("Bearer ", ""));
     if (authErr || !user) return json({ error: "Unauthorized" }, 401);
+
+    // PKCE: Generate code verifier and challenge
+    const verifierArray = new Uint8Array(32);
+    crypto.getRandomValues(verifierArray);
+    const code_verifier = btoa(String.fromCharCode(...verifierArray))
+      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    
+    const encoder = new TextEncoder();
+    const data = encoder.encode(code_verifier);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const code_challenge = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)))
+      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+
+    // Store verifier in bucket temporarily for the callback to pick up
+    // We use a short TTL if bucket supports it, or just overwrite.
+    const storagePath = `${user.id}/oauth_pending.json`;
+    await admin.storage
+      .from(BUCKET)
+      .upload(storagePath, new Blob([JSON.stringify({ code_verifier, expires: Date.now() + 600000 })], { type: "application/json" }), { 
+        upsert: true,
+        contentType: "application/json" 
+      });
 
     const payload = { u: user.id, p: PROVIDER, exp: Date.now() + 600000 };
     const payloadBase64 = btoa(JSON.stringify(payload)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
@@ -56,6 +76,8 @@ Deno.serve(async (req) => {
     authUrl.searchParams.set("client_id", ML_CLIENT_ID);
     authUrl.searchParams.set("redirect_uri", REDIRECT_URI);
     authUrl.searchParams.set("state", state);
+    authUrl.searchParams.set("code_challenge", code_challenge);
+    authUrl.searchParams.set("code_challenge_method", "S256");
     authUrl.searchParams.set("prompt", "login");
 
     return json({ authUrl: authUrl.toString() });
