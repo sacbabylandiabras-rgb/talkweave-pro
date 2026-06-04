@@ -354,17 +354,20 @@ Deno.serve(async (req) => {
     if ((mode === "offers" || mode === "deals") && !query) {
       try {
         console.log(`[Affiliate] Fetching deals...`);
-        // Tentativa 1: API de promoções para afiliados (se o usuário tiver acesso)
-        // O Mercado Livre tem um endpoint de deals em alguns mercados, mas para MLB costuma ser search com filtros
+        // O Mercado Livre não tem um endpoint público simples de "deals". 
+        // Vamos usar a busca com o termo "ofertas" ou palavras-chave de categoria, mas garantindo que enviamos o access_token.
+        const q = (category && CATEGORY_KEYWORDS[category]) || "ofertas";
         const searchUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search`);
-        searchUrl.searchParams.set("q", "ofertas");
-        searchUrl.searchParams.set("sort", "relevance");
+        searchUrl.searchParams.set("q", q);
+        
+        // Filtros específicos para promoções se não houver categoria
+        if (!category) {
+          searchUrl.searchParams.set("sort", "relevance");
+          // searchUrl.searchParams.set("status", "active");
+        }
+        
         searchUrl.searchParams.set("limit", String(limit));
         searchUrl.searchParams.set("offset", String(offset));
-        
-        // Filtro de descontos se possível
-        // searchUrl.searchParams.set("discount", "5-100"); 
-
         if (category) searchUrl.searchParams.set("category", category);
 
         const res = await fetch(searchUrl.toString(), {
@@ -375,12 +378,15 @@ Deno.serve(async (req) => {
         });
         
         if (res.ok) {
-          const data = await res.ok ? await res.json() : null;
-          if (data) {
-            results = data.results || [];
+          const data = await res.json();
+          if (data && data.results) {
+            results = data.results;
             total = data.paging?.total || 0;
-            console.log(`[Affiliate] Found ${results.length} offers via auth search`);
+            console.log(`[Affiliate] Found ${results.length} offers via auth search for "${q}"`);
           }
+        } else {
+          const errBody = await res.text();
+          console.warn(`[Affiliate] Search failed with status ${res.status}:`, errBody);
         }
       } catch (err) {
         console.error("[Affiliate] Error fetching deals:", err);
