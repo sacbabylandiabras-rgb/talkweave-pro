@@ -2499,7 +2499,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
       }
 
       const { data, error } = await supabase.functions.invoke("sync-zapi-history", {
-        body: { maxChats: 200, amountPerChat: 12, instanceId: targetInstance.id },
+        body: { maxChats: 500, amountPerChat: 30, instanceId: targetInstance.id },
       });
 
       if (error) throw error;
@@ -2679,7 +2679,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
     if (fetchedHistoryRef.current.has(key)) return;
     fetchedHistoryRef.current.add(key);
     supabase.functions
-      .invoke("fetch-chat-messages", { body: { phone: selectedPhone, instanceId: targetInstance.id, limit: 30 } })
+      .invoke("fetch-chat-messages", { body: { phone: selectedPhone, instanceId: targetInstance.id, limit: 100 } })
       .then(({ data, error }) => {
         if (error) {
           console.warn("fetch-chat-messages failed", error);
