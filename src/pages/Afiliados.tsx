@@ -91,17 +91,19 @@ export default function Afiliados() {
           console.error("Error checking ML connection:", mlError);
         } else if ((mlStatus as any)?.connected) {
           setConnected((prev) => ({ ...prev, ml: true }));
+          const nickname = (mlStatus as any).nickname;
           setConnectedAccount((prev) => ({
             ...prev,
-            ml: (mlStatus as any).nickname || (mlStatus as any).accountId || "Conta conectada",
+            ml: nickname || (mlStatus as any).accountId || "Conta conectada",
           }));
           
           // Auto-load promotions after connection
           loadDeals(null, false);
+        } else {
+          // If explicitly disconnected in the response
+          setConnected((prev) => ({ ...prev, ml: false }));
+          setConnectedAccount((prev) => ({ ...prev, ml: null }));
         }
-      } catch (err) {
-        console.error("Caught error checking ML connection:", err);
-      }
 
       // Carrega instâncias Z-API
       const { data: instances } = await supabase
