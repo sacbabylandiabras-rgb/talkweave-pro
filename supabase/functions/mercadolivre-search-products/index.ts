@@ -37,38 +37,19 @@ function formatMoney(value: number, currency = "BRL") {
   return value.toLocaleString("pt-BR", { style: "currency", currency });
 }
 
-function decorateAffiliateLink(permalink: string | null, accountId: string | number | null) {
-  if (!permalink) return null;
+async function getAffiliateSources(accessToken: string) {
   try {
-    const u = new URL(permalink);
-    if (accountId) {
-      // Modern affiliate links use shortened format, but if fallback is needed, 
-      // some parameters can be used depending on the specific program version.
-      // We try to use official shortener first in the main flow.
-      u.searchParams.set("utm_source", "affiliate");
-      u.searchParams.set("utm_medium", "zaplynx");
+    const res = await fetch("https://api.mercadolibre.com/affiliate-program/v1/sources", {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return Array.isArray(data) ? data : (data.sources || []);
     }
-    return u.toString();
-  } catch {
-    return permalink;
+  } catch (err) {
+    console.warn("Error fetching affiliate sources:", err);
   }
-}
-
-function wrapInTracker(link: string | null, userId: string | null): string | null {
-  if (!link) return null;
-  // If it's already a tracker link, don't double wrap
-  if (link.includes("go.zaplynxpro.online")) return link;
-  
-  try {
-    const tracker = new URL("https://go.zaplynxpro.online/r");
-    tracker.searchParams.set("url", link);
-    tracker.searchParams.set("src", "afiliado");
-    tracker.searchParams.set("flow", "mercadolivre");
-    if (userId) tracker.searchParams.set("uid", userId);
-    return tracker.toString();
-  } catch {
-    return link;
-  }
+  return [];
 }
 
 async function generateOfficialShortlinks(
@@ -186,7 +167,6 @@ async function getDetails(ids: string[], accessToken?: string) {
 
 function isProductIdentifier(query: string): boolean {
   const q = query.trim();
-  // Standard GTIN/EAN/ISBN lengths: 8, 10, 12, 13, 14
   return /^\d{8,14}$/.test(q);
 }
 
@@ -204,16 +184,14 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
     const { data: { user }, error: authErr } = await admin.auth.getUser(authHeader.replace("Bearer ", ""));
-    if (authErr || !user) {
-      return json({ error: "Unauthorized" }, 401);
-    }
+    if (authErr || !user) return json({ error: "Unauthorized" }, 401);
 
     const body = await req.json().catch(() => ({}));
     const query = body.query || body.q || "";
     const category = body.category || null;
     const mode = body.mode || "search";
     const siteId = body.site || "MLB";
-    const limit = Math.min(Number(body.limit || 10), 10); // Enforcing 10 per request as requested
+    const limit = Math.min(Number(body.limit || 10), 50);
     const offset = Number(body.offset || 0);
 
     const { data: record } = await admin
@@ -228,7 +206,7 @@ Deno.serve(async (req) => {
     // Refresh token if needed
     if (record && record.refresh_token) {
       const expiresAt = record.expires_at ? new Date(record.expires_at).getTime() : 0;
-      if (expiresAt < Date.now() + 300000) { // 5 min buffer
+      if (expiresAt < Date.now() + 300000) {
         try {
           const refreshRes = await fetch("https://api.mercadolibre.com/oauth/token", {
             method: "POST",
@@ -255,142 +233,98 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Build Search URL
-    let searchUrl: URL;
-    let headers: Record<string, string> = {
-      "Accept": "application/json",
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    };
-    if (accessToken) {
-      headers["Authorization"] = `Bearer ${accessToken}`;
-    }
+    let results: any[] = [];
+    let total = 0;
+    let isBlocked = false;
+
+    // Build Search URL logic
+    let searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
+    searchUrl.searchParams.set("limit", String(limit));
+    searchUrl.searchParams.set("offset", String(offset));
 
     if ((mode === "offers" || mode === "deals" || mode === "highlights" || mode === "lightning") && !query) {
-      // Use the proper seller promotion endpoints which are more specific for real deals
-      // or fall back to search with specific filters
-      const type = mode === "lightning" ? "lightning" : "deals";
-      console.log(`[Search] Fetching specific deals for type: ${type}`);
-      
-      searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
-      searchUrl.searchParams.set("limit", String(limit));
-      searchUrl.searchParams.set("offset", String(offset));
-      
       if (mode === "lightning") {
-        // Lightning deals often have a specific flag in the API or specific keywords
         searchUrl.searchParams.set("q", "oferta relampago");
       } else {
         searchUrl.searchParams.set("q", "oferta do dia");
       }
-      
-      // Add official "deal" filter if possible (P-...)
-      // searchUrl.searchParams.set("promotion_type", "deal_of_the_day"); 
-      
       if (category) searchUrl.searchParams.set("category", category);
-    } else {
+    } else if (query) {
       // If it's a URL, extract ID
       const urlMatch = query.match(/MLB-?(\d+)/i) || query.match(/item\/(\d+)/i);
       if (urlMatch) {
         const itemId = `MLB${urlMatch[1]}`;
-        console.log(`[Search] Extracted Item ID: ${itemId}`);
         const details = await getDetails([itemId], accessToken);
         const item = details.get(itemId);
         if (item) {
           results = [item];
+          total = 1;
         }
       }
 
       if (results.length === 0) {
-        searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
         let q = query || (category && CATEGORY_KEYWORDS[category]) || "ofertas";
-        
-        // Support for Product Identifiers (GTIN/EAN)
         if (isProductIdentifier(q)) {
-          console.log(`[Search] Query ${q} identified as GTIN/EAN. Searching specifically...`);
-          // Note: /products/search is restricted for many applications, 
-          // we use standard search with the identifier as query first as it's more reliable
           searchUrl.searchParams.set("q", q.trim());
         } else {
           searchUrl.searchParams.set("q", q);
         }
-        
         if (category) searchUrl.searchParams.set("category", category);
-        searchUrl.searchParams.set("limit", String(limit));
-        searchUrl.searchParams.set("offset", String(offset));
       }
+    } else {
+       searchUrl.searchParams.set("q", "ofertas");
+       if (category) searchUrl.searchParams.set("category", category);
     }
 
-    console.log(`[Search] Requesting: ${searchUrl.toString()} (Authenticated: ${!!accessToken})`);
-
-
-    let isBlocked = false;
-    let results: any[] = [];
-    let total = 0;
-
-    try {
-      if (results.length === 0) {
-        // We clone headers to avoid modifying the original
-        let currentHeaders = { ...headers };
-        
-        console.log(`[Search] Attempting search with URL: ${searchUrl.toString()}`);
-        let res = await fetch(searchUrl.toString(), { headers: currentHeaders });
-        
-        // If 403, it's likely that the accessToken or the User-Agent is being blocked
-        // Some endpoints in ML are restricted for certain application scopes
-        if (res.status === 403 || res.status === 401) {
-          console.warn(`[Search] Received ${res.status}. Retrying as public search...`);
-          // Remove Authorization to try public search
-          delete (currentHeaders as any)["Authorization"];
-          res = await fetch(searchUrl.toString(), { 
-            headers: { 
-              "Accept": "application/json", 
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" 
-            } 
-          });
-        }
-
-        if (res.ok) {
-          const data = await res.json();
-          results = data.results || [];
-          total = data.paging?.total || 0;
-          console.log(`[Search] Success! Found ${results.length} items.`);
-        } else {
-          const errText = await res.text().catch(() => "N/A");
-          console.error(`[Search] API Error: ${res.status} - ${errText}`);
-          if (res.status === 403) isBlocked = true;
-        }
-      }
-    } catch (err) {
-      console.error("[Search] Fetch error:", err);
-    }
-
-    // Fallback for deals/highlights if specific endpoint fails or returns empty
-    if (results.length === 0 && (mode === "offers" || mode === "deals" || mode === "highlights" || mode === "lightning") && !query) {
-      console.log(`[Search] Mode ${mode} failed or returned empty. Falling back to standard search for 'ofertas'...`);
-      const fallbackUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
-      fallbackUrl.searchParams.set("q", mode === "lightning" ? "oferta relampago" : "oferta do dia");
-      fallbackUrl.searchParams.set("limit", String(limit));
-      fallbackUrl.searchParams.set("offset", String(offset));
-      if (category) fallbackUrl.searchParams.set("category", category);
+    // Execute Search if results not already populated (by ID match)
+    if (results.length === 0) {
+      console.log(`[Search] Requesting: ${searchUrl.toString()}`);
       
-      try {
-        const fallbackRes = await fetch(fallbackUrl.toString(), { 
-          headers: { "Accept": "application/json", "User-Agent": "Mozilla/5.0" } 
+      const commonHeaders = {
+        "Accept": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+      };
+
+      // Try public search first as it's less likely to be 403-blocked for standard queries
+      let res = await fetch(searchUrl.toString(), { headers: commonHeaders });
+      
+      if (!res.ok && accessToken) {
+        console.warn(`[Search] Public search failed with ${res.status}. Retrying with auth...`);
+        res = await fetch(searchUrl.toString(), { 
+          headers: { ...commonHeaders, "Authorization": `Bearer ${accessToken}` } 
         });
-        if (fallbackRes.ok) {
-          const data = await fallbackRes.json();
-          results = data.results || [];
-          total = data.paging?.total || 0;
-        }
-      } catch (err) {
-        console.warn("[Search] Fallback search error:", err);
       }
+
+      if (res.ok) {
+        const data = await res.json();
+        results = data.results || [];
+        total = data.paging?.total || 0;
+      } else {
+        const errText = await res.text().catch(() => "N/A");
+        console.error(`[Search] API Error: ${res.status} - ${errText}`);
+        if (res.status === 403) isBlocked = true;
+      }
+    }
+
+    // Fallback if still empty for deals
+    if (results.length === 0 && (mode === "deals" || mode === "lightning") && !isBlocked) {
+       console.log("[Search] No results for specific deals, trying general offers...");
+       searchUrl.searchParams.set("q", "ofertas");
+       const fallbackRes = await fetch(searchUrl.toString(), { 
+         headers: { "Accept": "application/json", "User-Agent": "Mozilla/5.0" } 
+       });
+       if (fallbackRes.ok) {
+         const data = await fallbackRes.json();
+         results = data.results || [];
+         total = data.paging?.total || 0;
+       }
     }
 
     if (results.length === 0) {
       return json({ products: [], total: 0, isBlocked });
     }
 
-    // Get enriched details for better images and confirmation
+    // Enrichment and detail gathering
     const itemIds = results.map(r => r.id);
     const detailsMap = await getDetails(itemIds, accessToken);
 
@@ -406,8 +340,6 @@ Deno.serve(async (req) => {
       if (!thumbnail) {
         thumbnail = item.secure_thumbnail || item.thumbnail || r.thumbnail || r.secure_thumbnail;
       }
-
-      // Upgrade thumbnail resolution
       if (thumbnail) {
         thumbnail = thumbnail
           .replace(/^http:/, "https:")
@@ -415,15 +347,10 @@ Deno.serve(async (req) => {
           .replace(/-[WIGM]\.(jpg|jpeg|png|webp)$/i, "-O.$1");
       }
 
-      // Extract identifiers as requested from docs
       const identifiers: Record<string, string> = {};
       if (item.attributes) {
         const ean = item.attributes.find((a: any) => a.id === "GTIN" || a.id === "EAN")?.value_name;
         if (ean) identifiers.ean = ean;
-        
-        const isbn = item.attributes.find((a: any) => a.id === "ISBN")?.value_name;
-        if (isbn) identifiers.isbn = isbn;
-
         const brand = item.attributes.find((a: any) => a.id === "BRAND")?.value_name;
         if (brand) identifiers.brand = brand;
       }
@@ -431,9 +358,9 @@ Deno.serve(async (req) => {
       return {
         id: r.id,
         name: r.title,
-        price: formatMoney(price, r.currency_id),
+        price: formatMoney(price, r.currency_id || "BRL"),
         priceValue: price,
-        originalPrice: originalPrice && originalPrice > price ? formatMoney(originalPrice, r.currency_id) : null,
+        originalPrice: originalPrice && originalPrice > price ? formatMoney(originalPrice, r.currency_id || "BRL") : null,
         discount: originalPrice && originalPrice > price ? Math.round(((originalPrice - price) / originalPrice) * 100) : null,
         thumbnail,
         link: r.permalink,
@@ -444,44 +371,36 @@ Deno.serve(async (req) => {
       };
     });
 
-    const sourceId = record?.affiliate_source_id || record?.metadata?.source_id;
-    console.log(`[Affiliate] Applying links for sourceId: ${sourceId}, hasAccessToken: ${!!accessToken}`);
+    // Affiliate Link Generation
+    let sourceId = record?.affiliate_source_id || record?.metadata?.source_id;
     
-    if (sourceId && products.length > 0 && accessToken) {
-      // Prioritize identifying if we can generate official shortlinks
-      const originalUrls = products.map(p => p.link).filter(Boolean);
-      if (originalUrls.length > 0) {
-        const shortlinkMap = await generateOfficialShortlinks(admin, user.id, accessToken, String(sourceId), originalUrls);
-        products = products.map(p => {
-          const originalUrl = p.link;
-          const shortUrl = shortlinkMap[originalUrl];
-          if (shortUrl) {
-            return { ...p, link: shortUrl, isOfficialAffiliate: true };
-          }
-          // If official fails, try the decoration as fallback
-          return { ...p, link: decorateAffiliateLink(originalUrl, sourceId) };
-        });
-      }
-    } else if (sourceId) {
-      console.log(`[Affiliate] No access token or no products, using decoration only for sourceId: ${sourceId}`);
-      products = products.map(p => ({
-        ...p,
-        link: decorateAffiliateLink(p.link, sourceId),
-      }));
-    } else {
-      console.warn(`[Affiliate] No sourceId found for user ${user.id}. Links will remain original.`);
+    // If we have an access token but no source_id, try to fetch it
+    if (accessToken && !sourceId) {
+       console.log("[Affiliate] Missing sourceId, attempting to fetch from API...");
+       const sources = await getAffiliateSources(accessToken);
+       if (sources.length > 0) {
+         sourceId = sources[0].id || sources[0].source_id;
+         console.log(`[Affiliate] Found sourceId: ${sourceId}. Saving to DB.`);
+         await admin.from("affiliate_connections").update({
+           affiliate_source_id: String(sourceId),
+           metadata: { ...record?.metadata, source_id: sourceId }
+         }).eq("user_id", user.id).eq("provider", PROVIDER);
+       }
     }
 
-    // Wrap in tracker
-    products = products.map(p => ({
-      ...p,
-      link: wrapInTracker(p.link, user.id),
-    }));
+    if (sourceId && products.length > 0 && accessToken) {
+      const originalUrls = products.map(p => p.link).filter(Boolean);
+      const shortlinkMap = await generateOfficialShortlinks(admin, user.id, accessToken, String(sourceId), originalUrls);
+      products = products.map(p => {
+        const shortUrl = shortlinkMap[p.link];
+        return shortUrl ? { ...p, link: shortUrl, isOfficialAffiliate: true } : p;
+      });
+    }
 
-    return json({ products, total, isBlocked });
+    return json({ products, total });
 
   } catch (err) {
-    console.error("Global Error:", err);
+    console.error("[Fatal] Error processing request:", err);
     return json({ error: "Internal server error", details: err.message }, 500);
   }
 });
