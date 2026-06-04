@@ -479,7 +479,7 @@ Deno.serve(async (req) => {
       try {
         console.log(`[Affiliate] Fetching seller-promotions...`);
         // Reduzi os tipos para os mais comuns para diminuir o número de requisições iniciais
-        const promoTypes = ["MARKETPLACE_CAMPAIGN", "PRICE_DISCOUNT", "DEAL", "LIGHTNING", "SMART", "DOD"];
+        const promoTypes = ["MARKETPLACE_CAMPAIGN", "PRICE_DISCOUNT", "DEAL", "LIGHTNING", "SMART", "DOD", "PRE_NEGOTIATED", "CUSTOM_PRICE"];
         let allPromoItems: any[] = [];
         let totalCount = 0;
 
