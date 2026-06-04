@@ -187,6 +187,12 @@ async function fetchPublicOffers(query: string, category: string | null, account
       try {
         const detailRes = await fetch(
           `https://api.mercadolibre.com/items?ids=${batch.join(",")}&attributes=id,title,price,original_price,thumbnail,secure_thumbnail,pictures,permalink,status,available_quantity,currency_id`,
+          {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+              "Accept": "application/json",
+            }
+          }
         );
         if (!detailRes.ok) continue;
         const detailData = await detailRes.json();
@@ -252,7 +258,12 @@ async function getDetails(ids: string[], accessToken: string) {
       const headers: Record<string, string> = {};
       if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
       
-      const res = await fetch(`https://api.mercadolibre.com/items?ids=${batch.join(",")}`, { headers });
+      const res = await fetch(`https://api.mercadolibre.com/items?ids=${batch.join(",")}`, { 
+        headers: {
+          ...headers,
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        }
+      });
       if (res.ok) {
         const data = await res.json();
         data.forEach((item: any) => {
@@ -358,7 +369,10 @@ Deno.serve(async (req) => {
       try {
         console.log(`[Auth] Searching: ${searchUrl.toString()}`);
         searchRes = await fetch(searchUrl.toString(), {
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: { 
+            Authorization: `Bearer ${accessToken}`,
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          },
         });
         if (searchRes.ok) {
           searchData = await searchRes.json();
@@ -375,7 +389,11 @@ Deno.serve(async (req) => {
     if (!searchData || !searchData.results || searchData.results.length === 0) {
       try {
         console.log(`[Public] Searching: ${searchUrl.toString()}`);
-        searchRes = await fetch(searchUrl.toString());
+        searchRes = await fetch(searchUrl.toString(), {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          }
+        });
         if (searchRes.ok) {
           searchData = await searchRes.json();
           console.log(`[Public] Success: found ${searchData?.results?.length || 0} results`);
