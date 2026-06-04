@@ -384,12 +384,26 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString(),
         };
         
+        // Update both Storage and DB
         await admin.storage
           .from(BUCKET)
           .upload(`${user.id}/${PROVIDER}.json`, JSON.stringify(updatedRecord), {
             upsert: true,
             contentType: "application/json",
           });
+
+        try {
+          await admin.from("affiliate_connections").upsert({
+            user_id: user.id,
+            provider: PROVIDER,
+            access_token: accessToken,
+            refresh_token: newData.refresh_token || record.refresh_token,
+            expires_at: updatedRecord.expires_at,
+            updated_at: updatedRecord.updated_at
+          }, { onConflict: "user_id,provider" });
+        } catch (e) {
+          console.warn("[DB] Failed to update refreshed connection:", e.message);
+        }
           
         record = updatedRecord;
       } else {
