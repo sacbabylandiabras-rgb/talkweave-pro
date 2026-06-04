@@ -2679,7 +2679,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
     if (fetchedHistoryRef.current.has(key)) return;
     fetchedHistoryRef.current.add(key);
     supabase.functions
-      .invoke("fetch-chat-messages", { body: { phone: selectedPhone, instanceId: targetInstance.id, limit: 100 } })
+      .invoke("fetch-chat-messages", { body: { phone: selectedPhone, instanceId: targetInstance.id, limit: 100, full_history: true } })
       .then(({ data, error }) => {
         if (error) {
           console.warn("fetch-chat-messages failed", error);
