@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
         const meRes = await fetch("https://api.mercadolibre.com/users/me", {
           headers: { 
             "Authorization": `Bearer ${record.access_token}`,
-            "User-Agent": "ZapLynx/1.0"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
           },
         });
 

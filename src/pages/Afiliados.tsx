@@ -63,6 +63,7 @@ export default function Afiliados() {
   });
 
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [checkingConnection, setCheckingConnection] = useState(true);
   const [products, setProducts] = useState<AffiliateProduct[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
@@ -79,10 +80,14 @@ export default function Afiliados() {
   useEffect(() => {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
+      if (!session?.user) {
+        setCheckingConnection(false);
+        return;
+      }
       
       // Carrega status do Mercado Livre
       try {
+        setCheckingConnection(true);
         const { data: mlStatus, error: mlError } = await supabase.functions.invoke("mercadolivre-connection-status", {
           body: {},
         });
@@ -110,6 +115,8 @@ export default function Afiliados() {
         }
       } catch (err) {
         console.error("Caught error checking ML connection:", err);
+      } finally {
+        setCheckingConnection(false);
       }
 
       // Carrega instâncias Z-API
