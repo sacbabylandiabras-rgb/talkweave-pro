@@ -89,21 +89,24 @@ export default function Afiliados() {
         
         if (mlError) {
           console.error("Error checking ML connection:", mlError);
-        } else if ((mlStatus as any)?.connected) {
-          console.log("ML Connected:", (mlStatus as any).nickname);
-          setConnected((prev) => ({ ...prev, ml: true }));
-          const nickname = (mlStatus as any).nickname;
-          setConnectedAccount((prev) => ({
-            ...prev,
-            ml: nickname || (mlStatus as any).accountId || "Conta conectada",
-          }));
-          
-          // Only load deals if we're not already loading them or have products
-          loadDeals(null, false);
         } else {
-          console.log("ML Disconnected");
-          setConnected((prev) => ({ ...prev, ml: false }));
-          setConnectedAccount((prev) => ({ ...prev, ml: null }));
+          const isConnected = !!(mlStatus as any)?.connected;
+          console.log("ML connection status:", isConnected ? "Connected" : "Disconnected", (mlStatus as any)?.nickname);
+          
+          setConnected((prev) => ({ ...prev, ml: isConnected }));
+          
+          if (isConnected) {
+            const nickname = (mlStatus as any).nickname;
+            setConnectedAccount((prev) => ({
+              ...prev,
+              ml: nickname || (mlStatus as any).accountId || "Conta conectada",
+            }));
+            
+            // Only load deals if we're not already loading them or have products
+            loadDeals(null, false);
+          } else {
+            setConnectedAccount((prev) => ({ ...prev, ml: null }));
+          }
         }
       } catch (err) {
         console.error("Caught error checking ML connection:", err);
