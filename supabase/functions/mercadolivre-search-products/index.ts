@@ -93,6 +93,7 @@ function getPromotionLabel(item: any) {
     case "PRE_NEGOTIATED":
       return "Desconto Exclusivo";
     case "PRICE_DISCOUNT":
+    case "CUSTOM_PRICE":
       return "Desconto Individual";
     case "LIGHTNING":
       return "Oferta Relâmpago";
@@ -403,7 +404,7 @@ Deno.serve(async (req) => {
         console.log(`[Affiliate] Fetching seller-promotions...`);
         // 1. Listamos as promoções disponíveis para o vendedor
         // Buscamos tanto DEAL quanto MARKETPLACE_CAMPAIGN (co-participação)
-        const promoTypes = ["DEAL", "MARKETPLACE_CAMPAIGN", "VOLUME", "PRICE_DISCOUNT", "LIGHTNING", "SMART", "PRE_NEGOTIATED", "DOD", "SELLER_CAMPAIGN"];
+        const promoTypes = ["DEAL", "MARKETPLACE_CAMPAIGN", "VOLUME", "PRICE_DISCOUNT", "CUSTOM_PRICE", "LIGHTNING", "SMART", "PRE_NEGOTIATED", "DOD", "SELLER_CAMPAIGN"];
         let allPromoItems: any[] = [];
         let totalCount = 0;
 
@@ -415,8 +416,12 @@ Deno.serve(async (req) => {
             },
           });
 
+
           if (promoRes.ok) {
-            const promoData = await promoRes.json();
+            const promoText = await promoRes.text();
+            if (!promoText) continue;
+            
+            const promoData = JSON.parse(promoText);
             const activePromos = promoData.results || [];
             console.log(`[Affiliate] Found ${activePromos.length} active promotions of type ${type}`);
 
@@ -432,12 +437,13 @@ Deno.serve(async (req) => {
               });
 
               if (itemsRes.ok) {
-                const itemsData = await itemsRes.json();
+                const itemsText = await itemsRes.text();
+                if (!itemsText) continue;
+                
+                const itemsData = JSON.parse(itemsText);
                 const promoItems = itemsData.results || [];
                 console.log(`[Affiliate] Found ${promoItems.length} items in promotion ${promo.id}`);
                 
-                // Em campanhas de co-participação (MARKETPLACE_CAMPAIGN), os itens podem ter campos específicos de preço
-                // mas a API costuma retornar o preço atual e original no objeto de busca/detalhes.
                 const itemsWithMetadata = promoItems.map((item: any) => ({
                   ...item,
                   promotion_id: promo.id,
