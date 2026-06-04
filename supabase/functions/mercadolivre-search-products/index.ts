@@ -297,14 +297,21 @@ Deno.serve(async (req) => {
         "X-Custom-Header": Math.random().toString(36).substring(7) // Cache busting
       };
 
-      // Try public search first
-      let res = await fetch(searchUrl.toString(), { headers: commonHeaders });
-      
-      if (!res.ok && accessToken) {
-        console.warn(`[Search] Public search failed with ${res.status}. Retrying with auth...`);
+      // Try authenticated search first if we have a token, as it is less likely to be blocked
+      let res;
+      if (accessToken) {
+        console.log(`[Search] Attempting authenticated search for: ${searchUrl.toString()}`);
         res = await fetch(searchUrl.toString(), { 
           headers: { ...commonHeaders, "Authorization": `Bearer ${accessToken}` } 
         });
+        
+        if (!res.ok) {
+          console.warn(`[Search] Authenticated search failed with ${res.status}. Falling back to public...`);
+          res = await fetch(searchUrl.toString(), { headers: commonHeaders });
+        }
+      } else {
+        console.log(`[Search] Attempting public search for: ${searchUrl.toString()}`);
+        res = await fetch(searchUrl.toString(), { headers: commonHeaders });
       }
 
       if (res.ok) {
@@ -317,6 +324,7 @@ Deno.serve(async (req) => {
         
         // If still blocked, attempt a search without any specific query/category as a last resort
         if (res.status === 403 || res.status === 429) {
+          isBlocked = true;
           console.log("[Search] Rate limited or forbidden. Attempting basic search fallback...");
           const basicUrl = `https://api.mercadolibre.com/sites/${siteId}/search?q=ofertas&limit=${limit}`;
           const basicRes = await fetch(basicUrl, { headers: commonHeaders });
@@ -324,8 +332,6 @@ Deno.serve(async (req) => {
             const basicData = await basicRes.json();
             results = basicData.results || [];
             total = basicData.paging?.total || 0;
-          } else {
-             isBlocked = true;
           }
         }
       }
