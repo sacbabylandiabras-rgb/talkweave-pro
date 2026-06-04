@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
 
     if (!ML_CLIENT_ID || !ML_CLIENT_SECRET) return json({ error: "ML credentials missing" }, 500);
 
-    const { code, state } = await req.json();
+    const { code, state, code_verifier } = await req.json();
     console.log(`[OAuth] Processing callback for code: ${code?.substring(0, 5)}...`);
     
     const [payloadBase64, signature] = state.split(".");
@@ -61,18 +61,13 @@ Deno.serve(async (req) => {
       client_secret: ML_CLIENT_SECRET,
       code,
       redirect_uri: REDIRECT_URI,
-      // Mercado Livre usually doesn't require code_verifier unless you started the flow with code_challenge (PKCE)
-      // but some app types or configurations might still expect it or the SDK/API might be strict.
-      // However, the error "code_verifier is a required parameter" strongly suggests it's expecting PKCE.
-      // If we didn't send a code_challenge, we shouldn't need a code_verifier.
-      // BUT, since it's failing with this specific error, we might have an app configured to REQUIRE PKCE.
-      // As a workaround for now, we'll try to provide a dummy one if possible, but real PKCE needs a challenge.
-      // Let's remove it if it's empty, or ensure it's NOT sent if not used.
-      // Actually, looking at ML docs, for "Server Side" flow without PKCE, it shouldn't be there.
-      // If the error persists, it means the App in ML is configured as "Public" (Mobile/Web) which REQUIRES PKCE.
     });
 
-    console.log(`[OAuth] Fetching token from ML...`);
+    if (code_verifier) {
+      tokenParams.set("code_verifier", code_verifier);
+    }
+
+    console.log(`[OAuth] Fetching token from ML... params: ${tokenParams.toString().replace(ML_CLIENT_SECRET, '***')}`);
     const tokenRes = await fetch("https://api.mercadolibre.com/oauth/token", {
       method: "POST",
       headers: { 
