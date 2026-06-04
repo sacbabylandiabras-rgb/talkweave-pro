@@ -413,7 +413,12 @@ Deno.serve(async (req) => {
                 
                 // Em campanhas de co-participação (MARKETPLACE_CAMPAIGN), os itens podem ter campos específicos de preço
                 // mas a API costuma retornar o preço atual e original no objeto de busca/detalhes.
-                allPromoItems = [...allPromoItems, ...promoItems];
+                const itemsWithMetadata = promoItems.map((item: any) => ({
+                  ...item,
+                  promotion_id: promo.id,
+                  promotion_type: type
+                }));
+                allPromoItems = [...allPromoItems, ...itemsWithMetadata];
                 totalCount += itemsData.paging?.total || promoItems.length;
               }
             }
