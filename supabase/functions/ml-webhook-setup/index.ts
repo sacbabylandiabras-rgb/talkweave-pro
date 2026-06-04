@@ -3,6 +3,9 @@ import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
 };
 
 Deno.serve(async (req) => {
