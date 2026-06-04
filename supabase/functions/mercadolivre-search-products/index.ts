@@ -433,6 +433,11 @@ Deno.serve(async (req) => {
             },
           });
 
+          if (promoRes.status === 403) {
+            isBlocked = true;
+            console.warn(`[Affiliate] 403 blocked for type ${type}`);
+            break; 
+          }
 
           if (promoRes.ok) {
             const promoText = await promoRes.text();
@@ -457,6 +462,10 @@ Deno.serve(async (req) => {
                 },
               });
 
+              if (itemsRes.status === 403) {
+                isBlocked = true;
+                break;
+              }
 
               if (itemsRes.ok) {
                 const itemsText = await itemsRes.text();
@@ -485,7 +494,7 @@ Deno.serve(async (req) => {
             const errText = await promoRes.text().catch(() => "N/A");
             console.warn(`[Affiliate] Failed to fetch promotions for type ${type}: ${promoRes.status} - ${errText}`);
           }
-          if (allPromoItems.length >= limit) break;
+          if (allPromoItems.length >= limit || isBlocked) break;
         }
 
         if (allPromoItems.length > 0) {
@@ -493,8 +502,8 @@ Deno.serve(async (req) => {
           total = totalCount;
         }
 
-        // Se não encontrou nada via seller-promotions, fallback para busca de ofertas gerais
-        if (results.length === 0) {
+        // Se não encontrou nada via seller-promotions e não estiver bloqueado, fallback para busca de ofertas gerais
+        if (results.length === 0 && !isBlocked) {
           console.log(`[Affiliate] No seller-promotions found, falling back to general offers search...`);
           const searchUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search`);
           const q = (category && CATEGORY_KEYWORDS[category]) || "ofertas";
@@ -529,7 +538,6 @@ Deno.serve(async (req) => {
               total = data.paging?.total || 0;
             }
           }
-
         }
       } catch (err) {
         console.error("[Affiliate] Error fetching deals:", err);
