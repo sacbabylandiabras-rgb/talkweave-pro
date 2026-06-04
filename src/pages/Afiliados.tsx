@@ -720,13 +720,13 @@ export default function Afiliados() {
           </div>
           <div className="flex gap-2 w-full md:w-auto">
             <Input
-              placeholder="Buscar por palavra-chave..."
+              placeholder="Buscar por nome, EAN ou link do Mercado Livre..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") fetchProducts(false); }}
               className="md:w-72"
             />
-            <Button onClick={() => fetchProducts(false)} disabled={loadingProducts}>
+            <Button onClick={() => fetchProducts(false)} disabled={loadingProducts || !connected.ml}>
               {loadingProducts ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               Buscar
             </Button>
