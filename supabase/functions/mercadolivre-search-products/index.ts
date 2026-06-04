@@ -323,13 +323,33 @@ Deno.serve(async (req) => {
 
 
     if (storageErr || !storageData) {
-      console.log("Fallback to public offers - account not connected for user (storage):", user.id);
+      console.log("No connection found in storage for user:", user.id, "error:", storageErr?.message);
+      // Try to find in database as fallback if storage is failing for some reason
+      const { data: dbData } = await admin
+        .from("affiliate_connections")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("provider", PROVIDER)
+        .single();
+
+      if (!dbData) {
+        console.log("Fallback to public offers - account not connected for user:", user.id);
+        const publicProducts = await fetchPublicOffers(query, category, null, limit, offset);
+        return json({ products: publicProducts, total: 1000, fallback: true });
+      }
+      
+      console.log("Found connection in DB, using it.");
+      record = dbData;
+    } else {
+      record = JSON.parse(await storageData.text());
+    }
+
+    let accessToken = record.access_token;
+    if (!accessToken) {
+      console.log("Record found but no access_token. Fallback to public.");
       const publicProducts = await fetchPublicOffers(query, category, null, limit, offset);
       return json({ products: publicProducts, total: 1000, fallback: true });
     }
-
-    let record = JSON.parse(await storageData.text());
-    let accessToken = record.access_token;
 
     // Refresh token check
     const expiresAt = record.expires_at ? new Date(record.expires_at).getTime() : 0;

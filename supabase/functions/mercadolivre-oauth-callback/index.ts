@@ -42,27 +42,44 @@ Deno.serve(async (req) => {
     if (!ML_CLIENT_ID || !ML_CLIENT_SECRET) return json({ error: "ML credentials missing" }, 500);
 
     const { code, state } = await req.json();
+    console.log(`[OAuth] Processing callback for code: ${code?.substring(0, 5)}...`);
+    
     const [payloadBase64, signature] = state.split(".");
     const expectedSignature = await sign(payloadBase64, ML_CLIENT_SECRET);
-    if (signature !== expectedSignature) return json({ error: "Invalid state signature" }, 400);
+    if (signature !== expectedSignature) {
+      console.error("[OAuth] Invalid state signature");
+      return json({ error: "Invalid state signature" }, 400);
+    }
 
     const payload = JSON.parse(decodeBase64Url(payloadBase64));
     const userId = payload.u;
+    console.log(`[OAuth] User ID from payload: ${userId}`);
 
-    const tokenRes = await fetch("https://api.mercadolibre.com/oauth/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "authorization_code",
-        client_id: ML_CLIENT_ID,
-        client_secret: ML_CLIENT_SECRET,
-        code,
-        redirect_uri: REDIRECT_URI,
-      }),
+    const tokenParams = new URLSearchParams({
+      grant_type: "authorization_code",
+      client_id: ML_CLIENT_ID,
+      client_secret: ML_CLIENT_SECRET,
+      code,
+      redirect_uri: REDIRECT_URI,
     });
 
-    if (!tokenRes.ok) return json({ error: "Failed to exchange code" }, 400);
+    console.log(`[OAuth] Fetching token from ML...`);
+    const tokenRes = await fetch("https://api.mercadolibre.com/oauth/token", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "application/json"
+      },
+      body: tokenParams,
+    });
+
+    if (!tokenRes.ok) {
+      const errBody = await tokenRes.text();
+      console.error(`[OAuth] Failed to exchange code. Status: ${tokenRes.status}, Body: ${errBody}`);
+      return json({ error: `Failed to exchange code: ${errBody}` }, 400);
+    }
     const tokenData = await tokenRes.json();
+    console.log(`[OAuth] Token received successfully. Access token starts with: ${tokenData.access_token?.substring(0, 10)}...`);
 
     const meRes = await fetch("https://api.mercadolibre.com/users/me", {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
