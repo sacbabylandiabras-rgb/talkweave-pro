@@ -423,7 +423,8 @@ export default function Afiliados() {
       // Se tiver apenas um produto, envia como imagem com legenda e BOTÃO
       if (selectedProducts.length === 1) {
         const product = selectedProducts[0];
-        const caption = `🛍️ *${product.name}*\n💰 ${product.price}`;
+        const promoText = product.promotionLabel ? `\n🎁 *Promoção: ${product.promotionLabel}*` : "";
+        const caption = `🛍️ *${product.name}*\n💰 ${product.price}${promoText}`;
         
         const { data, error } = await supabase.functions.invoke("send-message", {
           body: {
