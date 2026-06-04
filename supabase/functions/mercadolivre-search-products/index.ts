@@ -355,49 +355,72 @@ Deno.serve(async (req) => {
     // mas o mais comum para busca geral de ofertas é usar filtros de preço original e filtros de categoria.
     if ((mode === "offers" || mode === "deals") && !query) {
       try {
-        console.log(`[Affiliate] Fetching deals...`);
-        const searchUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search`);
-        
-        // Se não houver categoria, usa um termo genérico de ofertas
-        const q = (category && CATEGORY_KEYWORDS[category]) || "ofertas";
-        searchUrl.searchParams.set("q", q);
-        
-        if (category) {
-          searchUrl.searchParams.set("category", category);
-        }
-        
-        // Filtros para trazer ofertas melhores:
-        // 1. Sort por maior desconto se disponível ou por relevância
-        searchUrl.searchParams.set("sort", "relevance");
-        
-        searchUrl.searchParams.set("limit", String(limit));
-        searchUrl.searchParams.set("offset", String(offset));
-
-        // Tenta buscar com o token do usuário para melhores resultados e personalização
-        const res = await fetch(searchUrl.toString(), {
+        console.log(`[Affiliate] Fetching seller-promotions...`);
+        // 1. Primeiro, listamos as promoções disponíveis para o vendedor
+        const promoRes = await fetch("https://api.mercadolibre.com/seller-promotions/promotions?promotion_type=DEAL&app_version=v2", {
           headers: { 
             Authorization: `Bearer ${accessToken}`,
             "User-Agent": "ZapLynx/1.0",
           },
         });
-        
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.results) {
-            // Filtra resultados que REALMENTE têm desconto (original_price > price)
-            results = data.results.filter((r: any) => r.original_price && r.original_price > r.price);
+
+        if (promoRes.ok) {
+          const promoData = await promoRes.json();
+          const activePromos = promoData.results || [];
+          console.log(`[Affiliate] Found ${activePromos.length} active promotions`);
+
+          if (activePromos.length > 0) {
+            // Pegamos os itens da primeira promoção ativa (ou podemos iterar por várias)
+            const promoId = activePromos[0].id;
+            console.log(`[Affiliate] Fetching items for promotion: ${promoId}`);
             
-            // Se o filtro removeu muitos itens, tenta pegar os primeiros resultados mesmo sem o filtro rigoroso
-            if (results.length < 5) {
-              results = data.results;
+            const itemsRes = await fetch(`https://api.mercadolibre.com/seller-promotions/promotions/${promoId}/items?promotion_type=DEAL&app_version=v2`, {
+              headers: { 
+                Authorization: `Bearer ${accessToken}`,
+                "User-Agent": "ZapLynx/1.0",
+              },
+            });
+
+            if (itemsRes.ok) {
+              const itemsData = await itemsRes.json();
+              const promoItems = itemsData.results || [];
+              console.log(`[Affiliate] Found ${promoItems.length} items in promotion ${promoId}`);
+              
+              if (promoItems.length > 0) {
+                results = promoItems;
+                total = itemsData.paging?.total || promoItems.length;
+              }
             }
-            
-            total = data.paging?.total || 0;
-            console.log(`[Affiliate] Found ${results.length} offers via search for "${q}"`);
           }
-        } else {
-          const errBody = await res.text();
-          console.warn(`[Affiliate] Search failed with status ${res.status}:`, errBody);
+        }
+
+        // Se não encontrou nada via seller-promotions (pode ser que o usuário não tenha campanhas ativas),
+        // faz o fallback para a busca de ofertas gerais mas usando o token para personalização
+        if (results.length === 0) {
+          console.log(`[Affiliate] No seller-promotions found, falling back to general offers search...`);
+          const searchUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search`);
+          const q = (category && CATEGORY_KEYWORDS[category]) || "ofertas";
+          searchUrl.searchParams.set("q", q);
+          if (category) searchUrl.searchParams.set("category", category);
+          searchUrl.searchParams.set("sort", "relevance");
+          searchUrl.searchParams.set("limit", String(limit));
+          searchUrl.searchParams.set("offset", String(offset));
+
+          const res = await fetch(searchUrl.toString(), {
+            headers: { 
+              Authorization: `Bearer ${accessToken}`,
+              "User-Agent": "ZapLynx/1.0",
+            },
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.results) {
+              results = data.results.filter((r: any) => r.original_price && r.original_price > r.price);
+              if (results.length < 5) results = data.results;
+              total = data.paging?.total || 0;
+            }
+          }
         }
       } catch (err) {
         console.error("[Affiliate] Error fetching deals:", err);
