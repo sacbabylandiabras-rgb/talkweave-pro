@@ -245,7 +245,9 @@ Deno.serve(async (req) => {
     searchUrl.searchParams.set("limit", String(limit));
     searchUrl.searchParams.set("offset", String(offset));
 
-    if ((mode === "offers" || mode === "deals" || mode === "highlights" || mode === "lightning") && !query) {
+    const isPromotionMode = (mode === "offers" || mode === "deals" || mode === "highlights" || mode === "lightning") && !query;
+
+    if (isPromotionMode) {
       searchUrl.searchParams.set("q", mode === "lightning" ? "oferta relampago" : "oferta do dia");
       if (category) searchUrl.searchParams.set("category", category);
     } else if (query) {
@@ -269,28 +271,39 @@ Deno.serve(async (req) => {
     }
 
     if (results.length === 0) {
-      console.log(`[Search] Forcing Authenticated Request: ${searchUrl.toString()}`);
+      console.log(`[Search] Requesting: ${searchUrl.toString()}`);
       
-      const res = await fetch(searchUrl.toString(), { 
+      const commonHeaders = {
+        "Accept": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+      };
+
+      let res = await fetch(searchUrl.toString(), { 
         headers: { 
-          "Authorization": `Bearer ${accessToken}`,
-          "Accept": "application/json",
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+          ...commonHeaders,
+          "Authorization": `Bearer ${accessToken}`
         } 
       });
+
+      // Fallback strategies for 403 (Forbidden)
+      if (!res.ok && res.status === 403) {
+        console.warn(`[Search] Auth search 403. Trying public fallback for mode: ${mode}`);
+        res = await fetch(searchUrl.toString(), { headers: commonHeaders });
+      }
 
       if (res.ok) {
         const data = await res.json();
         results = data.results || [];
         total = data.paging?.total || 0;
+        console.log(`[Search] Success. Found ${results.length} items.`);
       } else {
         const errText = await res.text().catch(() => "N/A");
         console.error(`[Search] API Error: ${res.status} - ${errText}`);
         
-        if (res.status === 403 || res.status === 401) {
+        // Se for modo de promoções automáticas, retornamos erro amigável se tudo falhar
+        if (isPromotionMode && (res.status === 403 || res.status === 401)) {
            return json({ 
-             error: "Acesso negado pela API do Mercado Livre. Verifique se sua conta de afiliado está ativa ou tente reconectar.",
-             details: errText,
+             error: "A API do Mercado Livre está limitando as buscas automáticas temporariamente. Isso acontece por excesso de requisições. Tente buscar algo específico ou aguarde alguns minutos.",
              isBlocked: true 
            }, 403);
         }
