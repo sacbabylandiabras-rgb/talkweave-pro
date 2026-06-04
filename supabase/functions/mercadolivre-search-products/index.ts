@@ -404,7 +404,7 @@ Deno.serve(async (req) => {
         console.log(`[Affiliate] Fetching seller-promotions...`);
         // 1. Listamos as promoções disponíveis para o vendedor
         // Buscamos tanto DEAL quanto MARKETPLACE_CAMPAIGN (co-participação)
-        const promoTypes = ["DEAL", "MARKETPLACE_CAMPAIGN", "VOLUME", "PRICE_DISCOUNT", "CUSTOM_PRICE", "LIGHTNING", "SMART", "PRE_NEGOTIATED", "DOD", "SELLER_CAMPAIGN"];
+        const promoTypes = ["CUSTOM_PRICE", "DEAL", "MARKETPLACE_CAMPAIGN", "VOLUME", "PRICE_DISCOUNT", "LIGHTNING", "SMART", "PRE_NEGOTIATED", "DOD", "SELLER_CAMPAIGN"];
         let allPromoItems: any[] = [];
         let totalCount = 0;
 
@@ -428,8 +428,8 @@ Deno.serve(async (req) => {
             for (const promo of activePromos) {
               if (allPromoItems.length >= limit) break;
               
-              console.log(`[Affiliate] Fetching items for promotion: ${promo.id} (${type})`);
-              const itemsRes = await fetch(`https://api.mercadolibre.com/seller-promotions/promotions/${promo.id}/items?promotion_type=${type}&app_version=v2`, {
+              console.log(`[Affiliate] Fetching items for promotion: ${promo.id} (${promo.type || type})`);
+              const itemsRes = await fetch(`https://api.mercadolibre.com/seller-promotions/promotions/${promo.id}/items?promotion_type=${promo.type || type}&app_version=v2`, {
                 headers: { 
                   Authorization: `Bearer ${accessToken}`,
                   "User-Agent": "ZapLynx/1.0",
