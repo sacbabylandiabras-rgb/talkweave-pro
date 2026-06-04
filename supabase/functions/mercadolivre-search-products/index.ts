@@ -561,6 +561,7 @@ Deno.serve(async (req) => {
         link: item.permalink || r.permalink,
         source: "ml",
         available: item.status === "active" || !item.status,
+        promotionLabel: getVolumeLabel(r),
       };
     }).filter((p: any) => p.link);
 
