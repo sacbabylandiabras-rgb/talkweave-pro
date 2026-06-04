@@ -90,6 +90,7 @@ export default function Afiliados() {
         if (mlError) {
           console.error("Error checking ML connection:", mlError);
         } else if ((mlStatus as any)?.connected) {
+          console.log("ML Connected:", (mlStatus as any).nickname);
           setConnected((prev) => ({ ...prev, ml: true }));
           const nickname = (mlStatus as any).nickname;
           setConnectedAccount((prev) => ({
@@ -97,9 +98,10 @@ export default function Afiliados() {
             ml: nickname || (mlStatus as any).accountId || "Conta conectada",
           }));
           
-          // Auto-load promotions after connection
+          // Only load deals if we're not already loading them or have products
           loadDeals(null, false);
         } else {
+          console.log("ML Disconnected");
           setConnected((prev) => ({ ...prev, ml: false }));
           setConnectedAccount((prev) => ({ ...prev, ml: null }));
         }
