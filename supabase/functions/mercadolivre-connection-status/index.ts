@@ -35,9 +35,12 @@ Deno.serve(async (req) => {
     if (userErr || !userData.user) return json({ connected: false }, 200);
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const storagePath = `${userData.user.id}/${PROVIDER}.json`;
+    console.log(`[Storage] Checking connection at: ${storagePath}`);
     const { data, error } = await admin.storage
       .from(BUCKET)
-      .download(`${userData.user.id}/${PROVIDER}.json`);
+      .download(storagePath);
+
 
     if (error || !data) return json({ connected: false });
 
