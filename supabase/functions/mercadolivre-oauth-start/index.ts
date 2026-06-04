@@ -18,6 +18,12 @@ function json(data: unknown, status = 200) {
   });
 }
 
+function decodeBase64Url(value: string): string {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+  return new TextDecoder().decode(Uint8Array.from(atob(padded), c => c.charCodeAt(0)));
+}
+
 async function sign(value: string, secret: string): Promise<string> {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value));
