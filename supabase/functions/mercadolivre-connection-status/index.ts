@@ -22,67 +22,75 @@ Deno.serve(async (req) => {
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const authHeader = req.headers.get("authorization") || "";
-    if (!authHeader) return json({ connected: false }, 200);
-
-    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const token = authHeader.replace(/^Bearer\s+/i, "");
-    const { data: userData, error: userErr } = await userClient.auth.getUser(token);
-    if (userErr || !userData.user) return json({ connected: false }, 200);
-
-    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
-    // Verificamos a validade real do token chamando a API do Mercado Livre
-    // Tenta carregar do banco de dados primeiro
-    const { data: dbData } = await admin
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const { data: { user }, error: authErr } = await admin.auth.getUser(authHeader.replace("Bearer ", ""));
+    
+    if (authErr || !user) {
+      return json({ connected: false });
+    }
+
+    const { data: record } = await admin
       .from("affiliate_connections")
       .select("*")
-      .eq("user_id", userData.user.id)
+      .eq("user_id", user.id)
       .eq("provider", PROVIDER)
       .maybeSingle();
-
-    let record = dbData;
-
-    // Fallback para storage se não houver no banco
-    if (!record) {
-      const storagePath = `${userData.user.id}/${PROVIDER}.json`;
-      const { data: storageData } = await admin.storage
-        .from(BUCKET)
-        .download(storagePath);
-
-      if (storageData) {
-        record = JSON.parse(await storageData.text());
-      }
-    }
 
     if (!record || !record.access_token) {
       return json({ connected: false });
     }
 
-    // Valida o token com a API do Mercado Livre
-    try {
-      const meRes = await fetch("https://api.mercadolibre.com/users/me", {
-        headers: { Authorization: `Bearer ${record.access_token}` },
-      });
+    // First check: is the token expired based on our DB?
+    const expiresAt = record.expires_at ? new Date(record.expires_at).getTime() : 0;
+    const isActuallyExpired = expiresAt < Date.now();
 
-      if (meRes.ok) {
-        const meData = await meRes.json();
-        return json({
-          connected: true,
-          accountId: meData.id,
-          nickname: meData.nickname,
-          expiresAt: record.expires_at,
+    // If not expired, try to validate with ML
+    if (!isActuallyExpired) {
+      try {
+        const meRes = await fetch("https://api.mercadolibre.com/users/me", {
+          headers: { 
+            "Authorization": `Bearer ${record.access_token}`,
+            "User-Agent": "ZapLynx/1.0"
+          },
         });
-      } else {
-        // Se o token expirou, tentamos usar o refresh token
-        const ML_CLIENT_ID = Deno.env.get("ML_CLIENT_ID");
-        const ML_CLIENT_SECRET = Deno.env.get("ML_CLIENT_SECRET");
 
-        if (record.refresh_token && ML_CLIENT_ID && ML_CLIENT_SECRET) {
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          return json({
+            connected: true,
+            accountId: meData.id,
+            nickname: meData.nickname,
+            expiresAt: record.expires_at,
+          });
+        }
+        
+        // If it's a 403, ML might be blocking the IP. 
+        // If we just got the token and it's not expired, we assume it's still connected
+        // but the validation call was blocked.
+        if (meRes.status === 403) {
+          console.warn("[Status] Validation blocked (403), assuming connected since token is not expired in DB");
+          return json({
+            connected: true,
+            accountId: record.account_id,
+            nickname: record.account_nickname || "Minha Conta",
+            expiresAt: record.expires_at,
+          });
+        }
+      } catch (err) {
+        console.warn("[Status] Validation error:", err);
+      }
+    }
+
+    // If expired or validation failed (non-403), try refresh
+    if (record.refresh_token) {
+      const ML_CLIENT_ID = Deno.env.get("ML_CLIENT_ID");
+      const ML_CLIENT_SECRET = Deno.env.get("ML_CLIENT_SECRET");
+
+      if (ML_CLIENT_ID && ML_CLIENT_SECRET) {
+        try {
           const refreshRes = await fetch("https://api.mercadolibre.com/oauth/token", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -96,40 +104,34 @@ Deno.serve(async (req) => {
 
           if (refreshRes.ok) {
             const newData = await refreshRes.json();
-            // Atualiza record com novos dados
             const updatedRecord = {
-              ...record,
               access_token: newData.access_token,
               refresh_token: newData.refresh_token || record.refresh_token,
               expires_at: new Date(Date.now() + newData.expires_in * 1000).toISOString(),
             };
 
-            // Salva atualizações
-            await admin.from("affiliate_connections").upsert({
-              user_id: userData.user.id,
-              provider: PROVIDER,
+            await admin.from("affiliate_connections").update({
               access_token: updatedRecord.access_token,
               refresh_token: updatedRecord.refresh_token,
               expires_at: updatedRecord.expires_at,
-              account_id: String(newData.user_id || record.account_id),
-            }, { onConflict: "user_id,provider" });
+              updated_at: new Date().toISOString()
+            }).eq("user_id", user.id).eq("provider", PROVIDER);
 
             return json({
               connected: true,
               accountId: newData.user_id || record.account_id,
-              nickname: record.account_nickname,
+              nickname: record.account_nickname || "Minha Conta",
               expiresAt: updatedRecord.expires_at,
             });
           }
+        } catch (e) {
+          console.error("[Status] Refresh error:", e);
         }
-        
-        console.log(`[Auth] Token invalid or expired for user ${userData.user.id}`);
-        return json({ connected: false });
       }
-    } catch (err) {
-      console.error("Error validating ML token:", err);
-      return json({ connected: false });
     }
+
+    return json({ connected: false });
+    
   } catch (err) {
     console.error("ml-connection-status error:", err);
     return json({ connected: false }, 200);

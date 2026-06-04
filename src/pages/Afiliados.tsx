@@ -102,8 +102,8 @@ export default function Afiliados() {
               ml: nickname || (mlStatus as any).accountId || "Conta conectada",
             }));
             
-            // Only load deals if we're not already loading them or have products
-            loadDeals(null, false);
+            // Call loadDeals directly with the state value to avoid closure issues
+            loadDealsInternal(null, false, true);
           } else {
             setConnectedAccount((prev) => ({ ...prev, ml: null }));
           }
@@ -129,8 +129,12 @@ export default function Afiliados() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadDeals = async (categoryId?: string | null, isLoadMore = false) => {
-    if (!connected.ml) {
+  const loadDeals = (categoryId?: string | null, isLoadMore = false) => {
+    loadDealsInternal(categoryId, isLoadMore, connected.ml);
+  };
+
+  const loadDealsInternal = async (categoryId?: string | null, isLoadMore = false, isConnected = false) => {
+    if (!isConnected) {
       toast.info("Conecte sua conta do Mercado Livre para ver as promoções.");
       return;
     }
@@ -145,7 +149,8 @@ export default function Afiliados() {
       const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
         body: { 
           mode: "deals", 
-          limit: 50, 
+          limit: 10, 
+
           offset: nextOffset, 
           category: finalCategory,
           site: "MLB"
@@ -311,7 +316,7 @@ export default function Afiliados() {
           q: trimmedQuery,
           query: trimmedQuery, 
           mode: "search",
-          limit: 50, 
+          limit: 10, 
           offset: nextOffset,
           site: "MLB"
         },
