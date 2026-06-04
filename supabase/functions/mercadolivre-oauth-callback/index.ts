@@ -129,6 +129,8 @@ Deno.serve(async (req) => {
 
     // NEW: Save to database as well to ensure persistence and easier lookup
     try {
+      const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
+      
       const { error: dbError } = await admin.from("affiliate_connections").upsert({
         user_id: userId,
         provider: PROVIDER,
@@ -136,48 +138,15 @@ Deno.serve(async (req) => {
         account_nickname: meData.nickname,
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,
-        expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
+        expires_at: expiresAt,
         updated_at: new Date().toISOString(),
         metadata: { source_id: sourceId }
       }, { onConflict: "user_id,provider" });
 
       if (dbError) {
         console.error("[DB] Error saving connection:", dbError);
-        if (dbError.message.includes("relation \"affiliate_connections\" does not exist")) {
-          console.log("[DB] Attempting to create table via raw SQL...");
-          await admin.rpc('exec_sql', { sql: `
-            CREATE TABLE IF NOT EXISTS public.affiliate_connections (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-                provider TEXT NOT NULL,
-                account_id TEXT,
-                account_nickname TEXT,
-                access_token TEXT NOT NULL,
-                refresh_token TEXT,
-                expires_at TIMESTAMPTZ,
-                metadata JSONB DEFAULT '{}'::jsonb,
-                created_at TIMESTAMPTZ DEFAULT NOW(),
-                updated_at TIMESTAMPTZ DEFAULT NOW(),
-                UNIQUE(user_id, provider)
-            );
-            ALTER TABLE public.affiliate_connections ENABLE ROW LEVEL SECURITY;
-            CREATE POLICY IF NOT EXISTS "Users can view their own connections" ON public.affiliate_connections FOR SELECT USING (auth.uid() = user_id);
-          `}).catch(e => console.error("[DB] SQL execution failed:", e));
-          
-          await admin.from("affiliate_connections").upsert({
-            user_id: userId,
-            provider: PROVIDER,
-            account_id: String(meData.id),
-            account_nickname: meData.nickname,
-            access_token: tokenData.access_token,
-            refresh_token: tokenData.refresh_token,
-            expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
-            updated_at: new Date().toISOString(),
-            metadata: { source_id: sourceId }
-          }, { onConflict: "user_id,provider" });
-        }
       } else {
-        console.log("[DB] Connection saved successfully");
+        console.log("[DB] Connection saved successfully to database");
       }
     } catch (err) {
       console.error("[DB] Error in database operations:", err.message);
