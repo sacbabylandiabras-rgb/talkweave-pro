@@ -378,11 +378,13 @@ Deno.serve(async (req) => {
           searchData = await searchRes.json();
           console.log(`[Auth] Success: found ${searchData?.results?.length || 0} results`);
         } else {
-          console.warn(`[Auth] Search failed: ${searchRes.status}`);
+          const errText = await searchRes.text().catch(() => "no body");
+          console.warn(`[Auth] Search failed status=${searchRes.status}: ${errText}`);
         }
       } catch (err) {
         console.error(`[Auth] Search error:`, err);
       }
+
     }
 
     // Tentativa 2: Busca Pública (Sem Token) - Caso a autenticada falhe ou não tenha token
@@ -398,11 +400,13 @@ Deno.serve(async (req) => {
           searchData = await searchRes.json();
           console.log(`[Public] Success: found ${searchData?.results?.length || 0} results`);
         } else {
-          console.warn(`[Public] Search failed: ${searchRes.status}`);
+          const errText = await searchRes.text().catch(() => "no body");
+          console.warn(`[Public] Search failed status=${searchRes.status}: ${errText}`);
         }
       } catch (err) {
         console.error(`[Public] Search error:`, err);
       }
+
     }
 
 
