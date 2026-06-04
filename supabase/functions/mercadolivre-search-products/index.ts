@@ -358,7 +358,7 @@ Deno.serve(async (req) => {
         console.log(`[Affiliate] Fetching seller-promotions...`);
         // 1. Listamos as promoções disponíveis para o vendedor
         // Buscamos tanto DEAL quanto MARKETPLACE_CAMPAIGN (co-participação)
-        const promoTypes = ["DEAL", "MARKETPLACE_CAMPAIGN", "VOLUME"];
+        const promoTypes = ["DEAL", "MARKETPLACE_CAMPAIGN", "VOLUME", "PRICE_DISCOUNT", "LIGHTNING", "SMART"];
         let allPromoItems: any[] = [];
         let totalCount = 0;
 
