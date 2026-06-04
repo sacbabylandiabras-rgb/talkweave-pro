@@ -49,42 +49,21 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     try {
       const { data: member, error } = await (supabase as any)
         .from("pipeline_members")
-        .select("user_id, allowed_instance_ids, role_id, status, team:teams(owner_id), role:team_roles(name, permissions)")
+        .select("user_id")
         .eq("user_id", user.id)
-        .eq("status", "active")
         .maybeSingle();
 
-      if (error) {
-        if (error.code === "PGRST205" || error.code === "PGRST116" || error.message?.includes("not found") || error.message?.includes("does not exist")) {
-          setState({
-            loading: false, isEmployee: false, ownerId: user.id, effectiveUserId: user.id,
-            selfUserId: user.id, permissions: {}, allowedInstanceIds: [], roleName: null,
-            refresh: load,
-          });
-          return;
-        }
-        throw error;
-      }
-
-      if (member?.team?.owner_id) {
-        setState({
-          loading: false,
-          isEmployee: true,
-          ownerId: member.team.owner_id,
-          effectiveUserId: member.team.owner_id,
-          selfUserId: user.id,
-          permissions: (member.role?.permissions as Record<string, boolean>) || {},
-          allowedInstanceIds: (member.allowed_instance_ids as string[]) || [],
-          roleName: member.role?.name || null,
-          refresh: load,
-        });
-      } else {
-        setState({
-          loading: false, isEmployee: false, ownerId: user.id, effectiveUserId: user.id,
-          selfUserId: user.id, permissions: {}, allowedInstanceIds: [], roleName: null,
-          refresh: load,
-        });
-      }
+      setState({
+        loading: false,
+        isEmployee: !!member,
+        ownerId: user.id,
+        effectiveUserId: user.id,
+        selfUserId: user.id,
+        permissions: {},
+        allowedInstanceIds: [],
+        roleName: member ? "Pipeline Member" : "Owner",
+        refresh: load,
+      });
     } catch (err) {
       console.error("Error loading team state:", err);
       setState({
