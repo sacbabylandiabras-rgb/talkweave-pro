@@ -74,7 +74,8 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const phoneRaw = String(body?.phone || "").trim();
     const instanceRef = String(body?.instanceId || "").trim();
-    const limit = Math.min(Math.max(Number(body?.limit) || 30, 1), 100);
+    const limit = Math.min(Math.max(Number(body?.limit) || 30, 1), 500);
+    const fullHistory = body?.full_history === true;
 
     if (!phoneRaw) throw new Error("phone is required");
 
@@ -121,7 +122,8 @@ Deno.serve(async (req) => {
       const zapiToken = instance.zapi_token;
       const clientToken = instance.zapi_client_token;
       const cleanId = phone.replace("-group", "").replace(/\D/g, "");
-      const url = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/chat-messages/${cleanId}?amount=${limit}`;
+      const effectiveLimit = fullHistory ? 1000 : limit;
+      const url = `https://api.z-api.io/instances/${zapiInstanceId}/token/${zapiToken}/chat-messages/${cleanId}?amount=${effectiveLimit}`;
       const resp = await fetch(url, {
         method: "GET",
         headers: { "Content-Type": "application/json", "Client-Token": clientToken },
