@@ -315,9 +315,12 @@ Deno.serve(async (req) => {
     const offset = Number(body.offset || 0);
 
     // Busca token no storage (BUCKET/user_id/provider.json)
+    const storagePath = `${user.id}/${PROVIDER}.json`;
+    console.log(`[Storage] Loading token from: ${storagePath}`);
     const { data: storageData, error: storageErr } = await admin.storage
       .from(BUCKET)
-      .download(`${user.id}/${PROVIDER}.json`);
+      .download(storagePath);
+
 
     if (storageErr || !storageData) {
       console.log("Fallback to public offers - account not connected for user (storage):", user.id);

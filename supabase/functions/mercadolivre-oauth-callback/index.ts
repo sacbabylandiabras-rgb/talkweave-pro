@@ -93,7 +93,10 @@ Deno.serve(async (req) => {
       updated_at: new Date().toISOString(),
     };
 
-    await admin.storage.from(BUCKET).upload(`${userId}/${PROVIDER}.json`, new Blob([JSON.stringify(record)], { type: "application/json" }), { upsert: true });
+    const storagePath = `${userId}/${PROVIDER}.json`;
+    console.log(`[Storage] Saving token to: ${storagePath}`);
+    await admin.storage.from(BUCKET).upload(storagePath, new Blob([JSON.stringify(record)], { type: "application/json" }), { upsert: true });
+
 
     return json({ success: true, nickname: meData.nickname });
   } catch (err) {
