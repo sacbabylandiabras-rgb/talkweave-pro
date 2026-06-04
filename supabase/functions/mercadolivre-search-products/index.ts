@@ -556,7 +556,6 @@ Deno.serve(async (req) => {
         }
       }
     }
-    }
 
     // Se ainda não tiver resultados, retorna lista vazia antes de tentar processar
     if (results.length === 0) {
