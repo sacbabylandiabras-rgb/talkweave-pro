@@ -342,6 +342,7 @@ Deno.serve(async (req) => {
     const category = body.category || null;
     const mode = body.mode || body.deals || "search";
     const siteId = body.site || "MLB"; // Default to Brazil
+    const isLocalhost = req.url.includes("localhost") || req.url.includes("127.0.0.1");
     const limit = Math.min(Number(body.limit || 10), 10); // Reduzido para 10 conforme solicitado
     const offset = Number(body.offset || 0);
 
@@ -461,12 +462,20 @@ Deno.serve(async (req) => {
       "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
     ];
 
-    const standardHeaders = {
+    const standardHeaders: Record<string, string> = {
       "User-Agent": userAgents[Math.floor(Math.random() * userAgents.length)],
       "Accept": "application/json, text/plain, */*",
       "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-      "Connection": "keep-alive"
     };
+
+    // If running in local dev or simple environment, we can't hide Supabase IP
+    // But for public search, Mercado Libre blocks heavy automated traffic.
+    // We add some common browser headers to try to look more like a legitimate request.
+    if (!isLocalhost) {
+      standardHeaders["Sec-Fetch-Dest"] = "empty";
+      standardHeaders["Sec-Fetch-Mode"] = "cors";
+      standardHeaders["Sec-Fetch-Site"] = "same-origin";
+    }
 
 
     // Modo de busca: se for "offers" ou "deals" e não tiver query, busca as promoções.
@@ -532,7 +541,7 @@ Deno.serve(async (req) => {
           
           // Delay entre tipos de promoção aumentado
           await new Promise(r => setTimeout(r, 1000 + Math.random() * 1500));
-          if (Date.now() - startTimestamp > 18000) break; // Aumentei o timeout de processamento para 18s
+          if (Date.now() - startTimestamp > 25000) break; // Aumentei o timeout de processamento para 25s
         }
 
         if (allPromoItems.length > 0) {
@@ -609,6 +618,7 @@ Deno.serve(async (req) => {
           headers: { 
             ...standardHeaders,
             Authorization: `Bearer ${accessToken}`,
+            "Referer": "https://www.mercadolivre.com.br/",
           },
         });
 
@@ -640,7 +650,12 @@ Deno.serve(async (req) => {
       if (results.length === 0) {
         try {
           console.log(`[Public] Falling back to public search for: ${q}`);
-          let pubRes = await fetch(searchUrl.toString(), { headers: standardHeaders });
+          let pubRes = await fetch(searchUrl.toString(), { 
+            headers: {
+              ...standardHeaders,
+              "Referer": "https://www.google.com/",
+            } 
+          });
           
           if (pubRes.status === 403 && category) {
             searchUrl.searchParams.delete("category");
