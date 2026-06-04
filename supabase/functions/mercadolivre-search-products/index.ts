@@ -321,6 +321,7 @@ Deno.serve(async (req) => {
       .from(BUCKET)
       .download(storagePath);
 
+    let record: any = null;
 
     if (storageErr || !storageData) {
       console.log("No connection found in storage for user:", user.id, "error:", storageErr?.message);
@@ -330,7 +331,7 @@ Deno.serve(async (req) => {
         .select("*")
         .eq("user_id", user.id)
         .eq("provider", PROVIDER)
-        .single();
+        .maybeSingle();
 
       if (!dbData) {
         console.log("Fallback to public offers - account not connected for user:", user.id);
