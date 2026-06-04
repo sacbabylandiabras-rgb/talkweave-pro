@@ -199,12 +199,24 @@ async function fetchPublicOffers(query: string, category: string | null, account
   searchUrl.searchParams.set("limit", String(limit));
   searchUrl.searchParams.set("offset", String(offset));
 
+  const userAgents = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0"
+  ];
+
   const standardHeaders = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-    "Accept": "application/json",
+    "User-Agent": userAgents[Math.floor(Math.random() * userAgents.length)],
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
     "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
     "Cache-Control": "no-cache",
     "Pragma": "no-cache",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1"
   };
 
   try {
@@ -217,7 +229,12 @@ async function fetchPublicOffers(query: string, category: string | null, account
       console.warn("[Public] 403 with category, retrying without category...");
       searchUrl.searchParams.delete("category");
       if (!searchUrl.searchParams.get("q")) searchUrl.searchParams.set("q", "ofertas");
-      res = await fetch(searchUrl.toString(), { headers: standardHeaders });
+      res = await fetch(searchUrl.toString(), { 
+        headers: {
+          ...standardHeaders,
+          "User-Agent": userAgents[Math.floor(Math.random() * userAgents.length)]
+        } 
+      });
     }
 
     if (!res.ok) {
@@ -418,12 +435,24 @@ Deno.serve(async (req) => {
     let total = 0;
     let isBlocked = false;
 
+    const userAgents = [
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0"
+    ];
+
     const standardHeaders = {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-      "Accept": "application/json",
+      "User-Agent": userAgents[Math.floor(Math.random() * userAgents.length)],
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
       "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
       "Cache-Control": "no-cache",
       "Pragma": "no-cache",
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+      "Sec-Fetch-User": "?1",
+      "Upgrade-Insecure-Requests": "1"
     };
 
 
