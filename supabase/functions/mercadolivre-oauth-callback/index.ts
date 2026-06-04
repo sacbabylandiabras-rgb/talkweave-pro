@@ -55,16 +55,41 @@ Deno.serve(async (req) => {
     const userId = payload.u;
     console.log(`[OAuth] User ID from payload: ${userId}`);
 
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    
+    // Retrieve verifier from bucket
+    let code_verifier = null;
+    try {
+      const storagePath = `${userId}/oauth_pending.json`;
+      const { data, error: downloadError } = await admin.storage
+        .from(BUCKET)
+        .download(storagePath);
+      
+      if (data) {
+        const pending = JSON.parse(await data.text());
+        if (pending.expires > Date.now()) {
+          code_verifier = pending.code_verifier;
+        }
+        // Clean up
+        await admin.storage.from(BUCKET).remove([storagePath]);
+      }
+    } catch (e) {
+      console.warn("[OAuth] Could not retrieve code_verifier from storage:", e.message);
+    }
+
     const tokenParams = new URLSearchParams({
       grant_type: "authorization_code",
       client_id: ML_CLIENT_ID,
       client_secret: ML_CLIENT_SECRET,
       code,
       redirect_uri: REDIRECT_URI,
-      code_verifier: "", // Mercado Livre requires this even if not using PKCE
     });
 
-    console.log(`[OAuth] Fetching token from ML...`);
+    if (code_verifier) {
+      tokenParams.set("code_verifier", code_verifier);
+    }
+
+    console.log(`[OAuth] Fetching token from ML... params: ${tokenParams.toString().replace(ML_CLIENT_SECRET, '***')}`);
     const tokenRes = await fetch("https://api.mercadolibre.com/oauth/token", {
       method: "POST",
       headers: { 
@@ -99,7 +124,6 @@ Deno.serve(async (req) => {
       }
     } catch {}
 
-    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const record = {
       provider: PROVIDER,
       account_id: meData.id,
