@@ -302,8 +302,8 @@ Deno.serve(async (req) => {
           
           res = await fetch(publicUrl.toString(), { 
             headers: {
-              ...commonHeaders,
-              "User-Agent": "ZapLynx/1.1 (External Search)"
+              "Accept": "application/json",
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
             } 
           });
         }
