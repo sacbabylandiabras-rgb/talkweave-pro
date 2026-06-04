@@ -129,8 +129,12 @@ export default function Afiliados() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadDeals = async (categoryId?: string | null, isLoadMore = false) => {
-    if (!connected.ml) {
+  const loadDeals = (categoryId?: string | null, isLoadMore = false) => {
+    loadDealsInternal(categoryId, isLoadMore, connected.ml);
+  };
+
+  const loadDealsInternal = async (categoryId?: string | null, isLoadMore = false, isConnected = false) => {
+    if (!isConnected) {
       toast.info("Conecte sua conta do Mercado Livre para ver as promoções.");
       return;
     }
