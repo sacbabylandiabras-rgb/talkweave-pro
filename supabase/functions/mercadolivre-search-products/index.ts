@@ -138,10 +138,10 @@ async function generateOfficialShortlinks(
 
   const generated: Array<{ original: string; short: string }> = [];
   // Reduzi para lotes menores para evitar timeouts ou limites de payload
-  for (let i = 0; i < missing.length; i += 10) {
-    const batch = missing.slice(i, i + 10);
+  for (let i = 0; i < missing.length; i += 5) {
+    const batch = missing.slice(i, i + 5);
     try {
-      console.log(`[Affiliate] Generating ${batch.length} shortlinks...`);
+      console.log(`[Affiliate] Generating ${batch.length} shortlinks for source ${sourceId}...`);
       const res = await fetch("https://api.mercadolibre.com/affiliate-program/v1/links", {
         method: "POST",
         headers: {
@@ -150,12 +150,11 @@ async function generateOfficialShortlinks(
           Accept: "application/json",
           "User-Agent": "ZapLynx/1.0"
         },
-        body: JSON.stringify({ urls: batch, source_id: sourceId }),
+        body: JSON.stringify({ urls: batch, source_id: Number(sourceId) }),
       });
       
       if (res.status === 403) {
         console.warn(`[Affiliate] Shortlink API 403 - Access forbidden for sourceId: ${sourceId}`);
-        // If 403, we stop trying this batch to avoid further rate limiting/blocking
         break; 
       }
 
@@ -167,7 +166,8 @@ async function generateOfficialShortlinks(
 
       const data: any = await res.json().catch(() => null);
       if (data) {
-        const list = Array.isArray(data) ? data : (data?.urls || data?.links || []);
+        // A API de afiliados retorna um array direto ou objeto com campo 'links'
+        const list = Array.isArray(data) ? data : (data?.links || data?.urls || []);
         list.forEach((entry: any, k: number) => {
           const original = entry?.original_url || batch[k];
           const short = entry?.short_url || entry?.url;
@@ -346,6 +346,7 @@ Deno.serve(async (req) => {
     const query = body.query || body.q || "";
     const category = body.category || null;
     const mode = body.mode || body.deals || "search";
+    const siteId = body.site || "MLB"; // Default to Brazil
     const limit = Math.min(Number(body.limit || 50), 100);
     const offset = Number(body.offset || 0);
 
@@ -556,7 +557,7 @@ Deno.serve(async (req) => {
         // Fallback para busca de ofertas gerais SE não encontrou nada específico
         if (results.length === 0) {
           console.log(`[Affiliate] No specific seller-promotions items found, searching general offers...`);
-          const searchUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search`);
+          const searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
           
           // Se for uma categoria específica, usa o termo dela, senão "ofertas"
           const q = (category && CATEGORY_KEYWORDS[category]) || "ofertas";
@@ -608,7 +609,7 @@ Deno.serve(async (req) => {
     // Se ainda não tem resultados (ou se for modo search), faz a busca padrão
     if (results.length === 0) {
       const q = query || (category && CATEGORY_KEYWORDS[category]) || "ofertas";
-      const searchUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search`);
+      const searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
       searchUrl.searchParams.set("q", q);
       if (category) searchUrl.searchParams.set("category", category);
       searchUrl.searchParams.set("limit", String(limit));
