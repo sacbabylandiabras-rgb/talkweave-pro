@@ -150,7 +150,7 @@ export default function Afiliados() {
   };
 
   const loadDealsInternal = async (categoryId?: string | null, isLoadMore = false, isConnected = false, type: "deals" | "lightning" = "deals") => {
-    if (!isConnected) {
+    if (!isConnected && !loadingProducts) {
       toast.info("Conecte sua conta do Mercado Livre para ver as promoções.");
       return;
     }
@@ -311,14 +311,14 @@ export default function Afiliados() {
   );
 
   const fetchProducts = async (isLoadMore = false) => {
-    if (!connected.ml) {
-      toast.error("Conecte ao menos um marketplace primeiro.");
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery) {
+      toast.error("Digite o que você quer buscar (nome ou código de barras/EAN).");
       return;
     }
 
-    const trimmedQuery = searchQuery.trim();
-    if (!trimmedQuery) {
-      toast.error("Digite o que você quer buscar.");
+    if (!connected.ml) {
+      toast.error("Conecte ao menos um marketplace primeiro.");
       return;
     }
     
@@ -720,13 +720,13 @@ export default function Afiliados() {
           </div>
           <div className="flex gap-2 w-full md:w-auto">
             <Input
-              placeholder="Buscar por palavra-chave..."
+              placeholder="Buscar por nome, EAN ou link do Mercado Livre..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") fetchProducts(false); }}
               className="md:w-72"
             />
-            <Button onClick={() => fetchProducts(false)} disabled={loadingProducts}>
+            <Button onClick={() => fetchProducts(false)} disabled={loadingProducts || !connected.ml}>
               {loadingProducts ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               Buscar
             </Button>

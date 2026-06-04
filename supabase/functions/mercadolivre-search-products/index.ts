@@ -42,8 +42,11 @@ function decorateAffiliateLink(permalink: string | null, accountId: string | num
   try {
     const u = new URL(permalink);
     if (accountId) {
-      u.searchParams.set("matt_tool", String(accountId));
-      u.searchParams.set("matt_word", "zaplynx");
+      // Modern affiliate links use shortened format, but if fallback is needed, 
+      // some parameters can be used depending on the specific program version.
+      // We try to use official shortener first in the main flow.
+      u.searchParams.set("utm_source", "affiliate");
+      u.searchParams.set("utm_medium", "zaplynx");
     }
     return u.toString();
   } catch {
@@ -53,6 +56,9 @@ function decorateAffiliateLink(permalink: string | null, accountId: string | num
 
 function wrapInTracker(link: string | null, userId: string | null): string | null {
   if (!link) return null;
+  // If it's already a tracker link, don't double wrap
+  if (link.includes("go.zaplynxpro.online")) return link;
+  
   try {
     const tracker = new URL("https://go.zaplynxpro.online/r");
     tracker.searchParams.set("url", link);
@@ -260,36 +266,45 @@ Deno.serve(async (req) => {
     }
 
     if ((mode === "offers" || mode === "deals" || mode === "highlights" || mode === "lightning") && !query) {
-      // Documentation: 
-      // Highlights: https://api.mercadolibre.com/sites/MLB/highlights/listing_type/gold_pro
-      // Lightning: https://api.mercadolibre.com/sites/MLB/lightning/listing_type/gold_pro
-      
-      const endpoint = mode === "lightning" ? "lightning" : "highlights";
-      // The correct resource structure uses listing_type with underscore according to common ML API patterns 
-      // when highlights/lightning fails with listing-type (dash)
-      searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/${endpoint}/listing_type/gold_pro`);
-      
-      searchUrl.searchParams.set("offset", String(offset));
+      // Standard search for offers is more reliable than campaign endpoints which often return 404 or require seller access
+      searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
+      let q = mode === "lightning" ? "oferta relampago" : "ofertas do dia";
+      searchUrl.searchParams.set("q", q);
       searchUrl.searchParams.set("limit", String(limit));
+      searchUrl.searchParams.set("offset", String(offset));
+      searchUrl.searchParams.set("sort", "relevance");
+      
+      if (category) searchUrl.searchParams.set("category", category);
     } else {
+      // If it's a URL, extract ID
+      const urlMatch = query.match(/MLB-?(\d+)/i) || query.match(/item\/(\d+)/i);
+      if (urlMatch) {
+        const itemId = `MLB${urlMatch[1]}`;
+        console.log(`[Search] Extracted Item ID: ${itemId}`);
+        const details = await getDetails([itemId], accessToken);
+        const item = details.get(itemId);
+        if (item) {
+          // Return immediately or continue with single result
+          results = [item];
+        }
+      }
+
       searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
       let q = query || (category && CATEGORY_KEYWORDS[category]) || "ofertas";
       
       // Support for Product Identifiers (GTIN/EAN)
       if (isProductIdentifier(q)) {
         console.log(`[Search] Query ${q} identified as GTIN/EAN. Searching specifically...`);
-        searchUrl.searchParams.set("q", `GTIN:${q.trim()}`);
+        // Use the products/search endpoint for better results with GTIN as requested in docs
+        searchUrl = new URL(`https://api.mercadolibre.com/products/search`);
+        searchUrl.searchParams.set("status", "active");
+        searchUrl.searchParams.set("site_id", siteId);
+        searchUrl.searchParams.set("q", q.trim());
       } else {
         searchUrl.searchParams.set("q", q);
-      }
-
-      if (category) searchUrl.searchParams.set("category", category);
-      searchUrl.searchParams.set("limit", String(limit));
-      searchUrl.searchParams.set("offset", String(offset));
-
-      // For "deals/offers" mode without specific query, we use filters or specific terms
-      if ((mode === "offers" || mode === "deals") && !query) {
-        searchUrl.searchParams.set("sort", "relevance");
+        if (category) searchUrl.searchParams.set("category", category);
+        searchUrl.searchParams.set("limit", String(limit));
+        searchUrl.searchParams.set("offset", String(offset));
       }
     }
 
@@ -301,21 +316,35 @@ Deno.serve(async (req) => {
     let total = 0;
 
     try {
-      const res = await fetch(searchUrl.toString(), { headers });
-      
-      if (res.status === 403) {
-        console.warn("[Search] Received 403 Forbidden. Likely bot detection or scope issues.");
-        isBlocked = true;
-      }
+      if (results.length === 0) {
+        const res = await fetch(searchUrl.toString(), { headers });
+        
+        if (res.status === 403) {
+          console.warn("[Search] Received 403 Forbidden. Likely bot detection or scope issues.");
+          isBlocked = true;
+        }
 
-      if (res.ok) {
-        const data = await res.json();
-        results = data.results || [];
-        total = data.paging?.total || 0;
-        console.log(`[Search] Success! Found ${results.length} items.`);
-      } else {
-        const errText = await res.text().catch(() => "N/A");
-        console.error(`[Search] API Error: ${res.status} - ${errText}`);
+        if (res.ok) {
+          const data = await res.json();
+          // The /products/search endpoint has a different structure
+          if (searchUrl.pathname.includes("/products/search")) {
+            results = data.results?.map((p: any) => ({
+              id: p.id,
+              title: p.name,
+              price: p.buy_box_item?.price || p.price,
+              permalink: p.permalink,
+              thumbnail: p.pictures?.[0]?.url || p.thumbnail,
+              currency_id: "BRL"
+            })) || [];
+          } else {
+            results = data.results || [];
+            total = data.paging?.total || 0;
+          }
+          console.log(`[Search] Success! Found ${results.length} items.`);
+        } else {
+          const errText = await res.text().catch(() => "N/A");
+          console.error(`[Search] API Error: ${res.status} - ${errText}`);
+        }
       }
     } catch (err) {
       console.error("[Search] Fetch error:", err);
@@ -418,23 +447,24 @@ Deno.serve(async (req) => {
       };
     });
 
-    // Affiliate Link & Shortlink Generation
     const sourceId = record?.affiliate_source_id || record?.metadata?.source_id;
     console.log(`[Affiliate] Applying links for sourceId: ${sourceId}, hasAccessToken: ${!!accessToken}`);
     
     if (sourceId && products.length > 0 && accessToken) {
-      const originalUrls = products.map(p => p.link);
-      const shortlinkMap = await generateOfficialShortlinks(admin, user.id, accessToken, String(sourceId), originalUrls);
-      products = products.map(p => {
-        const originalUrl = p.link;
-        const shortUrl = shortlinkMap[originalUrl];
-        if (shortUrl) {
-          console.log(`[Affiliate] Using official shortlink for ${p.id}`);
-          return { ...p, link: shortUrl };
-        }
-        console.log(`[Affiliate] Falling back to decorated link for ${p.id}`);
-        return { ...p, link: decorateAffiliateLink(originalUrl, sourceId) };
-      });
+      // Prioritize identifying if we can generate official shortlinks
+      const originalUrls = products.map(p => p.link).filter(Boolean);
+      if (originalUrls.length > 0) {
+        const shortlinkMap = await generateOfficialShortlinks(admin, user.id, accessToken, String(sourceId), originalUrls);
+        products = products.map(p => {
+          const originalUrl = p.link;
+          const shortUrl = shortlinkMap[originalUrl];
+          if (shortUrl) {
+            return { ...p, link: shortUrl, isOfficialAffiliate: true };
+          }
+          // If official fails, try the decoration as fallback
+          return { ...p, link: decorateAffiliateLink(originalUrl, sourceId) };
+        });
+      }
     } else if (sourceId) {
       console.log(`[Affiliate] No access token or no products, using decoration only for sourceId: ${sourceId}`);
       products = products.map(p => ({
