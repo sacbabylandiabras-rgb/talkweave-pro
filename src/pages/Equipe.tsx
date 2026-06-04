@@ -82,7 +82,7 @@ export default function Equipe() {
     setRoles(data || []);
   }
   async function loadMembers(tid: string) {
-    const { data } = await (supabase as any).from("team_members").select("*, role:team_roles(name)").eq("team_id", tid).order("created_at");
+    const { data } = await (supabase as any).from("team_members").select("*").eq("team_id", tid).order("created_at");
     if (!data) { setMembers([]); return; }
     const ids = data.map((m: any) => m.user_id);
     const { data: profs } = await (supabase as any).from("profiles").select("id, email, full_name").in("id", ids);
@@ -90,7 +90,7 @@ export default function Equipe() {
     setMembers(data.map((m: any) => ({ ...m, profile: map.get(m.user_id) })));
   }
   async function loadInvites(tid: string) {
-    const { data } = await (supabase as any).from("team_invites").select("*, role:team_roles(name)").eq("team_id", tid).is("accepted_at", null).order("created_at", { ascending: false });
+    const { data } = await (supabase as any).from("team_invites").select("*").eq("team_id", tid).is("accepted_at", null).order("created_at", { ascending: false });
     setInvites(data || []);
   }
 
@@ -131,13 +131,8 @@ export default function Equipe() {
     if (teamId) loadMembers(teamId);
   }
 
-  async function updateMemberInstances(id: string, ids: string[]) {
-    await (supabase as any).from("team_members").update({ allowed_instance_ids: ids }).eq("id", id);
-    if (teamId) loadMembers(teamId);
-  }
-
-  async function updateMemberRole(id: string, roleId: string | null) {
-    await (supabase as any).from("team_members").update({ role_id: roleId }).eq("id", id);
+  async function updateMemberRole(id: string, role: string) {
+    await (supabase as any).from("team_members").update({ role }).eq("id", id);
     if (teamId) loadMembers(teamId);
   }
 
@@ -252,14 +247,9 @@ export default function Equipe() {
             </div>
             <div>
               <Label>Cargo</Label>
-              <Select value={inviteRoleId || "none"} onValueChange={(v) => setInviteRoleId(v === "none" ? "" : v)}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sem cargo (acesso total)</SelectItem>
-                  {roles.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Input value={inviteRoleId} onChange={(e) => setInviteRoleId(e.target.value)} placeholder="Ex: Atendente" />
             </div>
+          </div>
             <div>
               <Label className="text-xs">Conexões permitidas (vazio = todas)</Label>
               <div className="flex flex-wrap gap-2 mt-1">
