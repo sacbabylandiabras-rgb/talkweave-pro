@@ -291,6 +291,15 @@ Deno.serve(async (req) => {
         res = await fetch(searchUrl.toString(), { headers: commonHeaders });
       }
 
+      // Final fallback for rate limiting (429) or other errors: try a very simple query without categories
+      if (!res.ok && (res.status === 429 || res.status === 403)) {
+        console.warn(`[Search] Error ${res.status}. Trying minimal query fallback.`);
+        const fallbackUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
+        fallbackUrl.searchParams.set("q", query || "ofertas");
+        fallbackUrl.searchParams.set("limit", String(limit));
+        res = await fetch(fallbackUrl.toString(), { headers: commonHeaders });
+      }
+
       if (res.ok) {
         const data = await res.json();
         results = data.results || [];
@@ -300,12 +309,14 @@ Deno.serve(async (req) => {
         const errText = await res.text().catch(() => "N/A");
         console.error(`[Search] API Error: ${res.status} - ${errText}`);
         
-        // If we still fail, return the error
+        // If we still fail, return a 200 with empty products instead of a 403/429 to avoid UI breakage
+        // but include the error message so the UI can optionally show it
         return json({ 
-          error: `Erro na API do Mercado Livre: ${res.status}. ${errText.includes("limit") ? "Limite de buscas excedido." : "Tente novamente em instantes."}`,
-          details: errText,
-          status: res.status
-        }, res.status);
+          products: [],
+          total: 0,
+          error: `API Mercado Livre: ${res.status}`,
+          details: errText.includes("limit") ? "Limite de buscas excedido." : "Tente novamente em instantes."
+        }, 200);
       }
 
     }
