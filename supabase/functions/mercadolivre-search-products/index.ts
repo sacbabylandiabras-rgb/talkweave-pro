@@ -374,7 +374,7 @@ Deno.serve(async (req) => {
         .download(storagePath);
 
       if (storageErr || !storageData) {
-        console.log("[Search] No connection found, returning public offers only");
+        console.log("[Search] No connection found in storage, but we will try public search for query/category if present.");
         const publicProducts = await fetchPublicOffers(query, category, null, limit, offset);
         return json({ products: publicProducts, total: 1000, fallback: true });
       }
