@@ -124,7 +124,6 @@ Deno.serve(async (req) => {
       }
     } catch {}
 
-    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const record = {
       provider: PROVIDER,
       account_id: meData.id,
