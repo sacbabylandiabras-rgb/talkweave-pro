@@ -1723,18 +1723,21 @@ export type Database = {
           created_at: string
           pipeline_id: string
           role: string
+          team_id: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
           pipeline_id: string
           role?: string
+          team_id?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
           pipeline_id?: string
           role?: string
+          team_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1743,6 +1746,13 @@ export type Database = {
             columns: ["pipeline_id"]
             isOneToOne: false
             referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -2337,6 +2347,71 @@ export type Database = {
           name?: string
           price?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      team_members: {
+        Row: {
+          created_at: string | null
+          id: string
+          permissions: Json | null
+          role: string | null
+          status: string | null
+          team_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          permissions?: Json | null
+          role?: string | null
+          status?: string | null
+          team_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          permissions?: Json | null
+          role?: string | null
+          status?: string | null
+          team_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
