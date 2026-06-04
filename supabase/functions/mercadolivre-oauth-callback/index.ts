@@ -129,8 +129,6 @@ Deno.serve(async (req) => {
 
     // NEW: Save to database as well to ensure persistence and easier lookup
     try {
-      // Create table if it doesn't exist (using a simple SQL query via RPC or just trying the insert)
-      // The admin client uses service role so it can do everything.
       const { error: dbError } = await admin.from("affiliate_connections").upsert({
         user_id: userId,
         provider: PROVIDER,
@@ -139,12 +137,12 @@ Deno.serve(async (req) => {
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,
         expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
         metadata: { source_id: sourceId }
       }, { onConflict: "user_id,provider" });
 
       if (dbError) {
         console.error("[DB] Error saving connection:", dbError);
-        // If table doesn't exist, we try to create it using a raw query
         if (dbError.message.includes("relation \"affiliate_connections\" does not exist")) {
           console.log("[DB] Attempting to create table via raw SQL...");
           await admin.rpc('exec_sql', { sql: `
@@ -166,7 +164,6 @@ Deno.serve(async (req) => {
             CREATE POLICY IF NOT EXISTS "Users can view their own connections" ON public.affiliate_connections FOR SELECT USING (auth.uid() = user_id);
           `}).catch(e => console.error("[DB] SQL execution failed:", e));
           
-          // Retry upsert
           await admin.from("affiliate_connections").upsert({
             user_id: userId,
             provider: PROVIDER,
@@ -175,6 +172,7 @@ Deno.serve(async (req) => {
             access_token: tokenData.access_token,
             refresh_token: tokenData.refresh_token,
             expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
+            updated_at: new Date().toISOString(),
             metadata: { source_id: sourceId }
           }, { onConflict: "user_id,provider" });
         }
