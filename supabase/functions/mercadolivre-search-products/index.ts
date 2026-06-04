@@ -137,24 +137,34 @@ async function generateOfficialShortlinks(
   if (missing.length === 0) return map;
 
   const generated: Array<{ original: string; short: string }> = [];
-  for (let i = 0; i < missing.length; i += 20) {
-    const batch = missing.slice(i, i + 20);
+  // Reduzi para lotes menores para evitar timeouts ou limites de payload
+  for (let i = 0; i < missing.length; i += 10) {
+    const batch = missing.slice(i, i + 10);
     try {
+      console.log(`[Affiliate] Generating ${batch.length} shortlinks...`);
       const res = await fetch("https://api.mercadolibre.com/affiliate-program/v1/links", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
           Accept: "application/json",
+          "User-Agent": "ZapLynx/1.0"
         },
         body: JSON.stringify({ urls: batch, source_id: sourceId }),
       });
+      
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "N/A");
+        console.warn(`[Affiliate] Shortlink API error: ${res.status} - ${errText}`);
+        continue;
+      }
+
       const data: any = await res.json().catch(() => null);
-      if (res.ok) {
-        const list = Array.isArray(data) ? data : (data?.urls ?? data?.links ?? []);
+      if (data) {
+        const list = Array.isArray(data) ? data : (data?.urls || data?.links || []);
         list.forEach((entry: any, k: number) => {
-          const original = entry?.original_url ?? batch[k];
-          const short = entry?.short_url ?? entry?.url;
+          const original = entry?.original_url || batch[k];
+          const short = entry?.short_url || entry?.url;
           if (original && short) {
             generated.push({ original: String(original), short: String(short) });
             map[String(original)] = String(short);
@@ -460,18 +470,14 @@ Deno.serve(async (req) => {
     if ((mode === "offers" || mode === "deals") && !query) {
       try {
         console.log(`[Affiliate] Fetching seller-promotions...`);
-        const promoTypes = ["MARKETPLACE_CAMPAIGN", "PRICE_DISCOUNT", "VOLUME", "DEAL", "LIGHTNING", "SMART", "PRE_NEGOTIATED", "DOD", "SELLER_CAMPAIGN"];
+        // Reduzi os tipos para os mais comuns para diminuir o número de requisições iniciais
+        const promoTypes = ["MARKETPLACE_CAMPAIGN", "PRICE_DISCOUNT", "DEAL", "LIGHTNING", "SMART", "DOD"];
         let allPromoItems: any[] = [];
         let totalCount = 0;
 
-        // Tenta buscar o user_id do vendedor (seller id) se tiver account_id
-        const sellerId = record.account_id;
-        
         for (const type of promoTypes) {
-          let promoUrl = `https://api.mercadolibre.com/seller-promotions/promotions?promotion_type=${type}&app_version=v2`;
-          
-          // Se tivermos o sellerId, podemos tentar filtrar ou usar endpoints específicos se necessário, 
-          // mas o endpoint padrão /seller-promotions/promotions já deve filtrar pelo usuário do token.
+          // Usando app_version=v2 e limitando a busca inicial
+          let promoUrl = `https://api.mercadolibre.com/seller-promotions/promotions?promotion_type=${type}&app_version=v2&status=started`;
           
           console.log(`[Affiliate] Requesting: ${promoUrl}`);
           const promoRes = await fetch(promoUrl, {
@@ -483,7 +489,6 @@ Deno.serve(async (req) => {
 
           if (promoRes.status === 403) {
             console.warn(`[Affiliate] 403 blocked for type ${type}`);
-            // Não paramos o loop inteiro, talvez outros tipos funcionem ou o fallback ajude
             continue; 
           }
 
@@ -498,7 +503,8 @@ Deno.serve(async (req) => {
             const activePromos = Array.isArray(promoData) ? promoData : (promoData.results || []);
             console.log(`[Affiliate] Type ${type}: Found ${activePromos.length} active promotions`);
 
-            for (const promo of activePromos) {
+            // Pega apenas as 3 primeiras promoções de cada tipo para não estourar rate limit
+            for (const promo of activePromos.slice(0, 3)) {
               if (allPromoItems.length >= limit) break;
               
               const itemsUrl = `https://api.mercadolibre.com/seller-promotions/promotions/${promo.id}/items?promotion_type=${promo.type || type}&app_version=v2`;
@@ -511,20 +517,16 @@ Deno.serve(async (req) => {
               });
 
               if (itemsRes.status === 403) {
-                isBlocked = true;
-                break;
+                console.warn("[Affiliate] Blocked while fetching items for promo", promo.id);
+                continue; // Tenta a próxima, talvez não seja um bloqueio global
               }
 
               if (itemsRes.ok) {
                 const itemsText = await itemsRes.text();
-                if (!itemsText) {
-                  console.log(`[Affiliate] Empty items response for promo ${promo.id}`);
-                  continue;
-                }
+                if (!itemsText) continue;
                 
                 const itemsData = JSON.parse(itemsText);
                 const promoItems = itemsData.results || [];
-                console.log(`[Affiliate] Promo ${promo.id}: Found ${promoItems.length} items`);
                 
                 const itemsWithMetadata = promoItems.map((item: any) => ({
                   ...item,
@@ -533,16 +535,10 @@ Deno.serve(async (req) => {
                 }));
                 allPromoItems = [...allPromoItems, ...itemsWithMetadata];
                 totalCount += itemsData.paging?.total || promoItems.length;
-              } else {
-                const errText = await itemsRes.text().catch(() => "N/A");
-                console.warn(`[Affiliate] Failed to fetch items for ${promo.id}: ${itemsRes.status} - ${errText}`);
               }
             }
-          } else {
-            const errText = await promoRes.text().catch(() => "N/A");
-            console.warn(`[Affiliate] Failed to fetch promotions for type ${type}: ${promoRes.status} - ${errText}`);
           }
-          if (allPromoItems.length >= limit || isBlocked) break;
+          if (allPromoItems.length >= limit) break;
         }
 
         if (allPromoItems.length > 0) {
