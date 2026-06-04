@@ -356,46 +356,57 @@ Deno.serve(async (req) => {
     if ((mode === "offers" || mode === "deals") && !query) {
       try {
         console.log(`[Affiliate] Fetching seller-promotions...`);
-        // 1. Primeiro, listamos as promoções disponíveis para o vendedor
-        const promoRes = await fetch("https://api.mercadolibre.com/seller-promotions/promotions?promotion_type=DEAL&app_version=v2", {
-          headers: { 
-            Authorization: `Bearer ${accessToken}`,
-            "User-Agent": "ZapLynx/1.0",
-          },
-        });
+        // 1. Listamos as promoções disponíveis para o vendedor
+        // Buscamos tanto DEAL quanto MARKETPLACE_CAMPAIGN (co-participação)
+        const promoTypes = ["DEAL", "MARKETPLACE_CAMPAIGN"];
+        let allPromoItems: any[] = [];
+        let totalCount = 0;
 
-        if (promoRes.ok) {
-          const promoData = await promoRes.json();
-          const activePromos = promoData.results || [];
-          console.log(`[Affiliate] Found ${activePromos.length} active promotions`);
+        for (const type of promoTypes) {
+          const promoRes = await fetch(`https://api.mercadolibre.com/seller-promotions/promotions?promotion_type=${type}&app_version=v2`, {
+            headers: { 
+              Authorization: `Bearer ${accessToken}`,
+              "User-Agent": "ZapLynx/1.0",
+            },
+          });
 
-          if (activePromos.length > 0) {
-            // Pegamos os itens da primeira promoção ativa (ou podemos iterar por várias)
-            const promoId = activePromos[0].id;
-            console.log(`[Affiliate] Fetching items for promotion: ${promoId}`);
-            
-            const itemsRes = await fetch(`https://api.mercadolibre.com/seller-promotions/promotions/${promoId}/items?promotion_type=DEAL&app_version=v2`, {
-              headers: { 
-                Authorization: `Bearer ${accessToken}`,
-                "User-Agent": "ZapLynx/1.0",
-              },
-            });
+          if (promoRes.ok) {
+            const promoData = await promoRes.json();
+            const activePromos = promoData.results || [];
+            console.log(`[Affiliate] Found ${activePromos.length} active promotions of type ${type}`);
 
-            if (itemsRes.ok) {
-              const itemsData = await itemsRes.json();
-              const promoItems = itemsData.results || [];
-              console.log(`[Affiliate] Found ${promoItems.length} items in promotion ${promoId}`);
+            for (const promo of activePromos) {
+              if (allPromoItems.length >= limit) break;
               
-              if (promoItems.length > 0) {
-                results = promoItems;
-                total = itemsData.paging?.total || promoItems.length;
+              console.log(`[Affiliate] Fetching items for promotion: ${promo.id} (${type})`);
+              const itemsRes = await fetch(`https://api.mercadolibre.com/seller-promotions/promotions/${promo.id}/items?promotion_type=${type}&app_version=v2`, {
+                headers: { 
+                  Authorization: `Bearer ${accessToken}`,
+                  "User-Agent": "ZapLynx/1.0",
+                },
+              });
+
+              if (itemsRes.ok) {
+                const itemsData = await itemsRes.json();
+                const promoItems = itemsData.results || [];
+                console.log(`[Affiliate] Found ${promoItems.length} items in promotion ${promo.id}`);
+                
+                // Em campanhas de co-participação (MARKETPLACE_CAMPAIGN), os itens podem ter campos específicos de preço
+                // mas a API costuma retornar o preço atual e original no objeto de busca/detalhes.
+                allPromoItems = [...allPromoItems, ...promoItems];
+                totalCount += itemsData.paging?.total || promoItems.length;
               }
             }
           }
+          if (allPromoItems.length >= limit) break;
         }
 
-        // Se não encontrou nada via seller-promotions (pode ser que o usuário não tenha campanhas ativas),
-        // faz o fallback para a busca de ofertas gerais mas usando o token para personalização
+        if (allPromoItems.length > 0) {
+          results = allPromoItems.slice(0, limit);
+          total = totalCount;
+        }
+
+        // Se não encontrou nada via seller-promotions, fallback para busca de ofertas gerais
         if (results.length === 0) {
           console.log(`[Affiliate] No seller-promotions found, falling back to general offers search...`);
           const searchUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search`);
