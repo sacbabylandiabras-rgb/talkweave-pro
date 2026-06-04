@@ -120,6 +120,10 @@ export default function Afiliados() {
   }, []);
 
   const loadDeals = async (categoryId?: string | null, isLoadMore = false) => {
+    if (!connected.ml) {
+      toast.info("Conecte sua conta do Mercado Livre para ver as promoções.");
+      return;
+    }
     const nextCategory = categoryId !== undefined ? categoryId : selectedNiche;
     const finalCategory = nextCategory || null;
     const nextOffset = isLoadMore ? offset + (products.length > 0 ? products.length : 0) : 0;
@@ -134,7 +138,7 @@ export default function Afiliados() {
           limit: 50, 
           offset: nextOffset, 
           category: finalCategory,
-          q: finalCategory ? undefined : "ofertas"
+          site: "MLB"
         },
       });
       if (error) throw error;
