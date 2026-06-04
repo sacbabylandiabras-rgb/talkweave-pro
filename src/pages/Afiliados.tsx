@@ -817,7 +817,7 @@ export default function Afiliados() {
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-lg border-t z-50 md:relative md:p-0 md:bg-transparent md:border-t-0">
         <Card className="max-w-7xl mx-auto shadow-lg md:shadow-none border-primary/20 md:border">
-          <CardHeader className="py-3 px-4 md:py-6 md:px-6 flex flex-row items-center justify-between">
+          <CardHeader className="py-3 px-4 md:py-6 md:px-6 flex flex-row items-center justify-between border-b md:border-b-0">
             <div className="flex items-center gap-2">
               <Send className="w-5 h-5 text-primary" />
               <CardTitle className="text-base md:text-lg">Enviar via ZapLynx</CardTitle>
@@ -828,7 +828,7 @@ export default function Afiliados() {
               </Badge>
             )}
           </CardHeader>
-          <CardContent className="py-2 px-4 md:py-6 md:px-6 space-y-4">
+          <CardContent className="py-4 px-4 md:py-6 md:px-6 space-y-4">
             <div className="hidden md:block">
               <Textarea
                 value={previewMessage}
@@ -836,42 +836,43 @@ export default function Afiliados() {
                 className="min-h-[120px] font-mono text-xs bg-muted/40"
               />
             </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Instância do WhatsApp</Label>
-              <select
-                value={selectedInstanceId}
-                onChange={(e) => setSelectedInstanceId(e.target.value)}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                {availableInstances.length === 0 ? (
-                  <option value="">Nenhuma instância encontrada</option>
-                ) : (
-                  availableInstances.map((inst) => (
-                    <option key={inst.zapi_instance_id} value={inst.zapi_instance_id}>
-                      {inst.instance_name || inst.zapi_instance_id}
-                    </option>
-                  ))
-                )}
-              </select>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs md:text-sm">Instância do WhatsApp</Label>
+                <select
+                  value={selectedInstanceId}
+                  onChange={(e) => setSelectedInstanceId(e.target.value)}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  {availableInstances.length === 0 ? (
+                    <option value="">Nenhuma instância encontrada</option>
+                  ) : (
+                    availableInstances.map((inst) => (
+                      <option key={inst.zapi_instance_id} value={inst.zapi_instance_id}>
+                        {inst.instance_name || inst.zapi_instance_id}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs md:text-sm">Número ou grupo</Label>
+                <Input
+                  placeholder="5511999999999"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                />
+              </div>
+              <div className="flex items-end">
+                <Button onClick={handleSend} disabled={sending || !selectedInstanceId || selectedIds.size === 0} className="w-full">
+                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {sending ? "Enviando..." : "Enviar Oferta"}
+                </Button>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Número ou grupo do WhatsApp</Label>
-              <Input
-                placeholder="5511999999999"
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-              />
-            </div>
-            <div className="flex items-end">
-              <Button onClick={handleSend} disabled={sending || !selectedInstanceId} className="w-full">
-                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                Enviar via ZapLynx
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
