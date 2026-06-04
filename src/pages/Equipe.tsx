@@ -249,7 +249,6 @@ export default function Equipe() {
               <Label>Cargo</Label>
               <Input value={inviteRoleId} onChange={(e) => setInviteRoleId(e.target.value)} placeholder="Ex: Atendente" />
             </div>
-          </div>
             <div>
               <Label className="text-xs">Conexões permitidas (vazio = todas)</Label>
               <div className="flex flex-wrap gap-2 mt-1">
