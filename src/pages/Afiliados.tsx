@@ -100,10 +100,12 @@ export default function Afiliados() {
           // Auto-load promotions after connection
           loadDeals(null, false);
         } else {
-          // If explicitly disconnected in the response
           setConnected((prev) => ({ ...prev, ml: false }));
           setConnectedAccount((prev) => ({ ...prev, ml: null }));
         }
+      } catch (err) {
+        console.error("Caught error checking ML connection:", err);
+      }
 
       // Carrega instâncias Z-API
       const { data: instances } = await supabase
