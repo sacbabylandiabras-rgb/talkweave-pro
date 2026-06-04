@@ -645,14 +645,17 @@ export default function Afiliados() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
+      <Card className="border-none shadow-sm overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap bg-muted/20 pb-4">
           <div>
-            <CardTitle className="text-lg">🔥 Melhores promoções</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <RefreshCw className={cn("w-5 h-5 text-primary", loadingProducts && "animate-spin")} />
+              🔥 Melhores promoções
+            </CardTitle>
             <CardDescription>
               {selectedIds.size > 0
                 ? `${selectedIds.size} produto(s) selecionado(s)`
-                : "Ofertas com desconto puxadas da sua conta conectada (links já com seu rastreio de afiliado)."}
+                : "Ofertas com desconto puxadas da sua conta (links com seu rastreio)."}
             </CardDescription>
           </div>
           <div className="flex gap-2 w-full md:w-auto">
