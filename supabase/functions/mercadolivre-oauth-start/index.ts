@@ -8,6 +8,8 @@ const corsHeaders = {
 
 const REDIRECT_URI = "https://zaplynx.com/afiliados/callback/mercadolivre";
 const PROVIDER = "mercadolivre";
+const BUCKET = "affiliate-connections";
+
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
