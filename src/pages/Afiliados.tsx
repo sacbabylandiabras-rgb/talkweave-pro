@@ -95,8 +95,8 @@ export default function Afiliados() {
             ml: (mlStatus as any).nickname || (mlStatus as any).accountId || "Conta conectada",
           }));
           
-          // Only auto-load if we don't have products yet
-          loadDeals();
+          // Auto-load promotions after connection
+          loadDeals(null, false);
         }
       } catch (err) {
         console.error("Caught error checking ML connection:", err);
@@ -120,6 +120,10 @@ export default function Afiliados() {
   }, []);
 
   const loadDeals = async (categoryId?: string | null, isLoadMore = false) => {
+    if (!connected.ml) {
+      toast.info("Conecte sua conta do Mercado Livre para ver as promoções.");
+      return;
+    }
     const nextCategory = categoryId !== undefined ? categoryId : selectedNiche;
     const finalCategory = nextCategory || null;
     const nextOffset = isLoadMore ? offset + (products.length > 0 ? products.length : 0) : 0;
@@ -134,7 +138,7 @@ export default function Afiliados() {
           limit: 50, 
           offset: nextOffset, 
           category: finalCategory,
-          q: finalCategory ? undefined : "ofertas"
+          site: "MLB"
         },
       });
       if (error) throw error;
@@ -281,7 +285,7 @@ export default function Afiliados() {
       return;
     }
     
-    const nextOffset = isLoadMore ? offset + 50 : 0;
+    const nextOffset = isLoadMore ? offset + (products.length > 0 ? products.length : 0) : 0;
     setLoadingProducts(true);
     
     try {
