@@ -350,26 +350,30 @@ Deno.serve(async (req) => {
     let results: any[] = [];
     let total = 0;
 
-    // Modo de busca: se for "offers" ou "deals" e não tiver query, busca as promoções usando a API de afiliados se possível
+    // Modo de busca: se for "offers" ou "deals" e não tiver query, busca as promoções.
+    // O Mercado Livre permite filtrar por descontos significativos ou ofertas do dia usando o parâmetro "deal_ids" 
+    // mas o mais comum para busca geral de ofertas é usar filtros de preço original e filtros de categoria.
     if ((mode === "offers" || mode === "deals") && !query) {
       try {
         console.log(`[Affiliate] Fetching deals...`);
-        // O Mercado Livre não tem um endpoint público simples de "deals". 
-        // Vamos usar a busca com o termo "ofertas" ou palavras-chave de categoria, mas garantindo que enviamos o access_token.
-        const q = (category && CATEGORY_KEYWORDS[category]) || "ofertas";
         const searchUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search`);
+        
+        // Se não houver categoria, usa um termo genérico de ofertas
+        const q = (category && CATEGORY_KEYWORDS[category]) || "ofertas";
         searchUrl.searchParams.set("q", q);
         
-        // Filtros específicos para promoções se não houver categoria
-        if (!category) {
-          searchUrl.searchParams.set("sort", "relevance");
-          // searchUrl.searchParams.set("status", "active");
+        if (category) {
+          searchUrl.searchParams.set("category", category);
         }
+        
+        // Filtros para trazer ofertas melhores:
+        // 1. Sort por maior desconto se disponível ou por relevância
+        searchUrl.searchParams.set("sort", "relevance");
         
         searchUrl.searchParams.set("limit", String(limit));
         searchUrl.searchParams.set("offset", String(offset));
-        if (category) searchUrl.searchParams.set("category", category);
 
+        // Tenta buscar com o token do usuário para melhores resultados e personalização
         const res = await fetch(searchUrl.toString(), {
           headers: { 
             Authorization: `Bearer ${accessToken}`,
@@ -380,9 +384,16 @@ Deno.serve(async (req) => {
         if (res.ok) {
           const data = await res.json();
           if (data && data.results) {
-            results = data.results;
+            // Filtra resultados que REALMENTE têm desconto (original_price > price)
+            results = data.results.filter((r: any) => r.original_price && r.original_price > r.price);
+            
+            // Se o filtro removeu muitos itens, tenta pegar os primeiros resultados mesmo sem o filtro rigoroso
+            if (results.length < 5) {
+              results = data.results;
+            }
+            
             total = data.paging?.total || 0;
-            console.log(`[Affiliate] Found ${results.length} offers via auth search for "${q}"`);
+            console.log(`[Affiliate] Found ${results.length} offers via search for "${q}"`);
           }
         } else {
           const errBody = await res.text();
