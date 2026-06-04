@@ -316,8 +316,8 @@ Deno.serve(async (req) => {
           catUrl.searchParams.set("limit", String(limit));
           res = await fetch(catUrl.toString(), { 
             headers: {
-              ...commonHeaders,
-              "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+              "Accept": "application/json",
+              "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1"
             } 
           });
         }
