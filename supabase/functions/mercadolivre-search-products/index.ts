@@ -65,6 +65,26 @@ function wrapInTracker(link: string | null, userId: string | null): string | nul
   }
 }
 
+function getVolumeLabel(item: any) {
+  if (item.promotion_type !== "VOLUME" && item.type !== "VOLUME") return null;
+  
+  const subType = item.sub_type;
+  const buyQ = item.buy_quantity;
+  const payQ = item.pay_quantity;
+  const discP = item.discount_percentage;
+
+  if (subType === "BNGM" && buyQ && payQ) {
+    return `Leve ${buyQ} Pague ${payQ}`;
+  }
+  if (subType === "BNSP" && buyQ && discP) {
+    return `Compre ${buyQ} com ${discP}% OFF`;
+  }
+  if (subType === "SPONTH" && buyQ && discP) {
+    return `${discP}% OFF na ${buyQ}ª unidade`;
+  }
+  return null;
+}
+
 async function generateOfficialShortlinks(
   admin: any,
   userId: string,
