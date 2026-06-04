@@ -261,13 +261,14 @@ Deno.serve(async (req) => {
 
     if ((mode === "offers" || mode === "deals" || mode === "highlights" || mode === "lightning") && !query) {
       // Documentation: 
-      // Highlights: https://developers.mercadolivre.com.br/pt_br/ofertas-do-dia
-      // Lightning: https://developers.mercadolivre.com.br/pt_br/ofertas-relampago
+      // Highlights: https://api.mercadolibre.com/sites/MLB/highlights/listing_type/gold_pro
+      // Lightning: https://api.mercadolibre.com/sites/MLB/lightning/listing_type/gold_pro
       
       const endpoint = mode === "lightning" ? "lightning" : "highlights";
-      searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/${endpoint}/listing-type/gold_pro`);
+      // The correct resource structure uses listing_type with underscore according to common ML API patterns 
+      // when highlights/lightning fails with listing-type (dash)
+      searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/${endpoint}/listing_type/gold_pro`);
       
-      // Both APIs support offset and limit
       searchUrl.searchParams.set("offset", String(offset));
       searchUrl.searchParams.set("limit", String(limit));
     } else {
@@ -320,10 +321,28 @@ Deno.serve(async (req) => {
       console.error("[Search] Fetch error:", err);
     }
 
-    // Fallback for public search if authenticated failed or not available (only if not already blocked)
-    // For highlights/deals, if no access token, we might need to fallback to standard search
-    if (results.length === 0 && !isBlocked) {
+    // Fallback for deals/highlights if specific endpoint fails or returns empty
+    if (results.length === 0 && (mode === "offers" || mode === "deals" || mode === "highlights" || mode === "lightning") && !query) {
+      console.log(`[Search] Mode ${mode} failed or returned empty. Falling back to standard search for 'ofertas'...`);
+      searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
+      searchUrl.searchParams.set("q", "ofertas");
+      searchUrl.searchParams.set("limit", String(limit));
+      searchUrl.searchParams.set("offset", String(offset));
+      
+      try {
+        const fallbackRes = await fetch(searchUrl.toString(), { headers });
+        if (fallbackRes.ok) {
+          const data = await fallbackRes.json();
+          results = data.results || [];
+          total = data.paging?.total || 0;
+        }
+      } catch (err) {
+        console.warn("[Search] Fallback search error:", err);
+      }
+    }
 
+    // Fallback for public search if authenticated failed or not available (only if not already blocked)
+    if (results.length === 0 && !isBlocked) {
       console.log("[Search] Retrying without token (public search)...");
       try {
         const pubRes = await fetch(searchUrl.toString(), {
