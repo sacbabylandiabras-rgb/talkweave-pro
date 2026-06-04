@@ -225,8 +225,8 @@ const GatewayIntegracoes = () => {
   }
 
   return (
-    <div className="space-y-4">
-       <h1 className="text-lg font-semibold text-foreground">Integração</h1>
+    <div className="space-y-6">
+
 
       {/* URL Card */}
       <Card>
