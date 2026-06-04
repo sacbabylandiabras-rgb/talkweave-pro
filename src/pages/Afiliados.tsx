@@ -112,7 +112,7 @@ export default function Afiliados() {
 
   const loadDeals = async (categoryId?: string | null, isLoadMore = false) => {
     const nextCategory = categoryId !== undefined ? categoryId : selectedNiche;
-    const finalCategory = nextCategory || "MLB3000";
+    const finalCategory = nextCategory || null;
     const nextOffset = isLoadMore ? offset + (products.length > 0 ? products.length : 0) : 0;
     
     setLoadingProducts(true);
@@ -120,7 +120,13 @@ export default function Afiliados() {
     
     try {
       const { data, error } = await supabase.functions.invoke("mercadolivre-search-products", {
-        body: { mode: "deals", limit: 50, offset: nextOffset, category: finalCategory },
+        body: { 
+          mode: "deals", 
+          limit: 50, 
+          offset: nextOffset, 
+          category: finalCategory,
+          q: finalCategory ? undefined : "ofertas"
+        },
       });
       if (error) throw error;
       

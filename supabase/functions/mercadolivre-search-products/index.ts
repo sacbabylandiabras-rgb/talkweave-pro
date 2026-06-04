@@ -286,26 +286,19 @@ Deno.serve(async (req) => {
     const limit = Math.min(Number(body.limit || 50), 100);
     const offset = Number(body.offset || 0);
 
-    // Busca token no banco de dados (tabela affiliate_connections)
-    const { data: connectionData, error: dbError } = await admin
-      .from("affiliate_connections")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("provider", PROVIDER)
-      .maybeSingle();
+    // Busca token no storage (BUCKET/user_id/provider.json)
+    const { data: storageData, error: storageErr } = await admin.storage
+      .from(BUCKET)
+      .download(`${user.id}/${PROVIDER}.json`);
 
-    if (dbError) {
-      console.error("Database error fetching connection:", dbError);
-    }
-
-    if (!connectionData) {
-      console.log("Fallback to public offers - account not connected for user:", user.id);
+    if (storageErr || !storageData) {
+      console.log("Fallback to public offers - account not connected for user (storage):", user.id);
       const publicProducts = await fetchPublicOffers(query, category, null, limit, offset);
       return json({ products: publicProducts, total: 1000, fallback: true });
     }
 
-    let accessToken = connectionData.access_token;
-    let record = connectionData;
+    let record = JSON.parse(await storageData.text());
+    let accessToken = record.access_token;
 
     // Refresh token check
     const expiresAt = record.expires_at ? new Date(record.expires_at).getTime() : 0;
@@ -325,18 +318,21 @@ Deno.serve(async (req) => {
         const newData = await refreshRes.json();
         accessToken = newData.access_token;
         const updatedRecord = {
+          ...record,
           access_token: accessToken,
           refresh_token: newData.refresh_token || record.refresh_token,
           expires_at: new Date(Date.now() + newData.expires_in * 1000).toISOString(),
           updated_at: new Date().toISOString(),
         };
         
-        await admin
-          .from("affiliate_connections")
-          .update(updatedRecord)
-          .eq("id", record.id);
+        await admin.storage
+          .from(BUCKET)
+          .upload(`${user.id}/${PROVIDER}.json`, JSON.stringify(updatedRecord), {
+            upsert: true,
+            contentType: "application/json",
+          });
           
-        record = { ...record, ...updatedRecord };
+        record = updatedRecord;
       } else {
         const errText = await refreshRes.text();
         console.error("Failed to refresh ML token:", refreshRes.status, errText);
