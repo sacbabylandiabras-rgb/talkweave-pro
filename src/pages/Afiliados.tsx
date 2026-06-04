@@ -145,7 +145,7 @@ export default function Afiliados() {
       if (error) throw error;
       
       if ((data as any)?.isBlocked) {
-        toast.warning("A API do Mercado Livre está limitando as buscas automáticas temporariamente. Tente novamente em alguns minutos.");
+        toast.warning("A API do Mercado Livre está limitando as buscas automáticas temporariamente. Isso acontece por excesso de requisições. Tente buscar algo específico ou aguarde alguns minutos.");
       }
 
       const list = (data?.products || []) as AffiliateProduct[];
@@ -313,7 +313,7 @@ export default function Afiliados() {
       console.log("Resposta da edge function:", data);
 
       if ((data as any)?.isBlocked) {
-        toast.warning("A API do Mercado Livre está limitando as buscas automáticas temporariamente. Tente novamente em alguns minutos.");
+        toast.warning("A API do Mercado Livre está limitando as buscas automáticas temporariamente. Isso acontece por excesso de requisições. Tente buscar algo específico ou aguarde alguns minutos.");
       }
 
       if ((data as any)?.error && !(data as any)?.products) {
