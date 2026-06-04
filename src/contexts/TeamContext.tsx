@@ -47,30 +47,47 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // We just check if the member exists without joining or querying related tables that might not exist
-      const { data: member } = await supabase
-        .from("pipeline_members")
-        .select("user_id")
+      const { data: member } = await (supabase as any)
+        .from("team_members")
+        .select("team_id, role, permissions")
         .eq("user_id", user.id)
+        .eq("status", "active")
         .maybeSingle();
 
-      setState({
-        loading: false,
-        isEmployee: !!member,
-        ownerId: user.id,
-        effectiveUserId: user.id,
-        selfUserId: user.id,
-        permissions: {},
-        allowedInstanceIds: [],
-        roleName: member ? "Pipeline Member" : "Owner",
-        refresh: load,
-      });
+      if (member) {
+        const { data: team } = await supabase
+          .from("teams")
+          .select("owner_id")
+          .eq("id", member.team_id)
+          .single();
+
+        setState({
+          loading: false,
+          isEmployee: true,
+          ownerId: team?.owner_id || null,
+          effectiveUserId: team?.owner_id || user.id,
+          selfUserId: user.id,
+          permissions: (member as any).permissions || {},
+          allowedInstanceIds: [], // To be implemented if needed
+          roleName: (member as any).role || "Funcionário",
+          refresh: load,
+        });
+      } else {
+        setState({
+          loading: false,
+          isEmployee: false,
+          ownerId: user.id,
+          effectiveUserId: user.id,
+          selfUserId: user.id,
+          permissions: {},
+          allowedInstanceIds: [],
+          roleName: "Proprietário",
+          refresh: load,
+        });
+      }
     } catch (err) {
-      // Fail silently for team state errors to prevent blocking the app
-      console.warn("Team state failed to load (expected if tables are missing), defaulting to owner mode:", err);
-      
+      console.error("Team state failed to load:", err);
       const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
-      
       setState({
         loading: false, 
         isEmployee: false, 
@@ -79,7 +96,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         selfUserId: user?.id || null, 
         permissions: {}, 
         allowedInstanceIds: [], 
-        roleName: "Owner",
+        roleName: "Proprietário",
         refresh: load,
       });
     }

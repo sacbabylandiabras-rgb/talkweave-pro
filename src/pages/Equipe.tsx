@@ -82,7 +82,7 @@ export default function Equipe() {
     setRoles(data || []);
   }
   async function loadMembers(tid: string) {
-    const { data } = await (supabase as any).from("pipeline_members").select("*, role:team_roles(name)").eq("team_id", tid).order("created_at");
+    const { data } = await (supabase as any).from("team_members").select("*").eq("team_id", tid).order("created_at");
     if (!data) { setMembers([]); return; }
     const ids = data.map((m: any) => m.user_id);
     const { data: profs } = await (supabase as any).from("profiles").select("id, email, full_name").in("id", ids);
@@ -90,7 +90,7 @@ export default function Equipe() {
     setMembers(data.map((m: any) => ({ ...m, profile: map.get(m.user_id) })));
   }
   async function loadInvites(tid: string) {
-    const { data } = await (supabase as any).from("team_invites").select("*, role:team_roles(name)").eq("team_id", tid).is("accepted_at", null).order("created_at", { ascending: false });
+    const { data } = await (supabase as any).from("team_invites").select("*").eq("team_id", tid).is("accepted_at", null).order("created_at", { ascending: false });
     setInvites(data || []);
   }
 
@@ -121,23 +121,18 @@ export default function Equipe() {
 
   async function removeMember(id: string) {
     if (!confirm("Remover funcionário?")) return;
-    await (supabase as any).from("pipeline_members").delete().eq("id", id);
+    await (supabase as any).from("team_members").delete().eq("id", id);
     if (teamId) loadMembers(teamId);
   }
 
   async function toggleMemberStatus(m: any) {
     const next = m.status === "active" ? "suspended" : "active";
-    await (supabase as any).from("pipeline_members").update({ status: next }).eq("id", m.id);
+    await (supabase as any).from("team_members").update({ status: next }).eq("id", m.id);
     if (teamId) loadMembers(teamId);
   }
 
-  async function updateMemberInstances(id: string, ids: string[]) {
-    await (supabase as any).from("pipeline_members").update({ allowed_instance_ids: ids }).eq("id", id);
-    if (teamId) loadMembers(teamId);
-  }
-
-  async function updateMemberRole(id: string, roleId: string | null) {
-    await (supabase as any).from("pipeline_members").update({ role_id: roleId }).eq("id", id);
+  async function updateMemberRole(id: string, role: string) {
+    await (supabase as any).from("team_members").update({ role }).eq("id", id);
     if (teamId) loadMembers(teamId);
   }
 
@@ -193,34 +188,13 @@ export default function Equipe() {
                   <div className="font-medium">{m.profile?.full_name || m.profile?.email || m.invited_email}</div>
                   <div className="text-xs text-muted-foreground">{m.profile?.email}</div>
                 </div>
-                <Select value={m.role_id || "none"} onValueChange={(v) => updateMemberRole(m.id, v === "none" ? null : v)}>
-                  <SelectTrigger className="w-44"><SelectValue placeholder="Cargo" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sem cargo (acesso total)</SelectItem>
-                    {roles.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <div className="text-sm font-medium border rounded px-2 py-1">{m.role || "Sem cargo"}</div>
                 <Badge variant={m.status === "active" ? "default" : "secondary"}>{m.status === "active" ? "Ativo" : "Suspenso"}</Badge>
                 <Button size="sm" variant="outline" onClick={() => toggleMemberStatus(m)}>{m.status === "active" ? "Suspender" : "Ativar"}</Button>
                 <Button size="sm" variant="ghost" onClick={() => removeMember(m.id)}><Trash2 className="w-4 h-4" /></Button>
               </CardContent>
               <CardContent className="px-4 pb-4 pt-0">
-                <Label className="text-xs">Conexões WhatsApp permitidas (vazio = todas)</Label>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {instances.map((i) => {
-                    const checked = (m.allowed_instance_ids || []).includes(i.id);
-                    return (
-                      <label key={i.id} className="flex items-center gap-1 text-xs border rounded px-2 py-1 cursor-pointer">
-                        <Checkbox checked={checked} onCheckedChange={(v) => {
-                          const cur = (m.allowed_instance_ids || []) as string[];
-                          const next = v ? [...cur, i.id] : cur.filter((x) => x !== i.id);
-                          updateMemberInstances(m.id, next);
-                        }} />
-                        {i.instance_name}
-                      </label>
-                    );
-                  })}
-                </div>
+                <Label className="text-xs">Permissões: {Object.entries(m.permissions || {}).filter(([, v]) => v).map(([k]) => PERMISSION_LABELS[k as PermissionKey] || k).join(", ") || "Nenhuma"}</Label>
               </CardContent>
             </Card>
           ))}
@@ -273,13 +247,7 @@ export default function Equipe() {
             </div>
             <div>
               <Label>Cargo</Label>
-              <Select value={inviteRoleId || "none"} onValueChange={(v) => setInviteRoleId(v === "none" ? "" : v)}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sem cargo (acesso total)</SelectItem>
-                  {roles.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Input value={inviteRoleId} onChange={(e) => setInviteRoleId(e.target.value)} placeholder="Ex: Atendente" />
             </div>
             <div>
               <Label className="text-xs">Conexões permitidas (vazio = todas)</Label>
