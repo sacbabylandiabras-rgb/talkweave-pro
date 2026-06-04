@@ -266,13 +266,24 @@ Deno.serve(async (req) => {
     }
 
     if ((mode === "offers" || mode === "deals" || mode === "highlights" || mode === "lightning") && !query) {
-      // Standard search for offers is more reliable than campaign endpoints which often return 404 or require seller access
+      // Use the proper seller promotion endpoints which are more specific for real deals
+      // or fall back to search with specific filters
+      const type = mode === "lightning" ? "lightning" : "deals";
+      console.log(`[Search] Fetching specific deals for type: ${type}`);
+      
       searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
-      let q = mode === "lightning" ? "oferta relampago" : "ofertas do dia";
-      searchUrl.searchParams.set("q", q);
       searchUrl.searchParams.set("limit", String(limit));
       searchUrl.searchParams.set("offset", String(offset));
-      searchUrl.searchParams.set("sort", "relevance");
+      
+      if (mode === "lightning") {
+        // Lightning deals often have a specific flag in the API or specific keywords
+        searchUrl.searchParams.set("q", "oferta relampago");
+      } else {
+        searchUrl.searchParams.set("q", "oferta do dia");
+      }
+      
+      // Add official "deal" filter if possible (P-...)
+      // searchUrl.searchParams.set("promotion_type", "deal_of_the_day"); 
       
       if (category) searchUrl.searchParams.set("category", category);
     } else {
@@ -284,24 +295,24 @@ Deno.serve(async (req) => {
         const details = await getDetails([itemId], accessToken);
         const item = details.get(itemId);
         if (item) {
-          // Return immediately or continue with single result
           results = [item];
         }
       }
 
-      searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
-      let q = query || (category && CATEGORY_KEYWORDS[category]) || "ofertas";
-      
-      // Support for Product Identifiers (GTIN/EAN)
-      if (isProductIdentifier(q)) {
-        console.log(`[Search] Query ${q} identified as GTIN/EAN. Searching specifically...`);
-        // Use the products/search endpoint for better results with GTIN as requested in docs
-        searchUrl = new URL(`https://api.mercadolibre.com/products/search`);
-        searchUrl.searchParams.set("status", "active");
-        searchUrl.searchParams.set("site_id", siteId);
-        searchUrl.searchParams.set("q", q.trim());
-      } else {
-        searchUrl.searchParams.set("q", q);
+      if (results.length === 0) {
+        searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
+        let q = query || (category && CATEGORY_KEYWORDS[category]) || "ofertas";
+        
+        // Support for Product Identifiers (GTIN/EAN)
+        if (isProductIdentifier(q)) {
+          console.log(`[Search] Query ${q} identified as GTIN/EAN. Searching specifically...`);
+          // Note: /products/search is restricted for many applications, 
+          // we use standard search with the identifier as query first as it's more reliable
+          searchUrl.searchParams.set("q", q.trim());
+        } else {
+          searchUrl.searchParams.set("q", q);
+        }
+        
         if (category) searchUrl.searchParams.set("category", category);
         searchUrl.searchParams.set("limit", String(limit));
         searchUrl.searchParams.set("offset", String(offset));
@@ -327,7 +338,7 @@ Deno.serve(async (req) => {
         if (res.ok) {
           const data = await res.json();
           // The /products/search endpoint has a different structure
-          if (searchUrl.pathname.includes("/products/search")) {
+          if (searchUrl && searchUrl.pathname.includes("/products/search")) {
             results = data.results?.map((p: any) => ({
               id: p.id,
               title: p.name,
@@ -344,6 +355,11 @@ Deno.serve(async (req) => {
         } else {
           const errText = await res.text().catch(() => "N/A");
           console.error(`[Search] API Error: ${res.status} - ${errText}`);
+          
+          // If 403 or 401, we might need to clear token and try public if allowed
+          if (res.status === 401 || res.status === 403) {
+            accessToken = undefined; // Force retry without token
+          }
         }
       }
     } catch (err) {
