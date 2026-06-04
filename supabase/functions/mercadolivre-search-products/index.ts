@@ -217,16 +217,16 @@ async function fetchPublicOffers(query: string, category: string | null, account
   searchUrl.searchParams.set("offset", String(offset));
 
   const userAgents = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
   ];
 
   const standardHeaders = {
     "User-Agent": userAgents[Math.floor(Math.random() * userAgents.length)],
-    "Accept": "application/json",
-    "Accept-Language": "pt-BR,pt;q=0.9",
-    "Cache-Control": "no-cache"
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Connection": "keep-alive"
   };
 
   try {
@@ -456,16 +456,16 @@ Deno.serve(async (req) => {
     let isBlocked = false;
 
     const userAgents = [
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
     ];
 
     const standardHeaders = {
       "User-Agent": userAgents[Math.floor(Math.random() * userAgents.length)],
-      "Accept": "application/json",
-      "Accept-Language": "pt-BR,pt;q=0.9",
-      "Cache-Control": "no-cache"
+      "Accept": "application/json, text/plain, */*",
+      "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+      "Connection": "keep-alive"
     };
 
 
@@ -506,8 +506,8 @@ Deno.serve(async (req) => {
               const promo = activePromos[0];
               const itemsUrl = `https://api.mercadolibre.com/seller-promotions/promotions/${promo.id}/items?promotion_type=${promo.type || type}&app_version=v2`;
               
-              // Adiciona um pequeno delay randômico
-              await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
+              // Aumentei o delay randômico para ser menos agressivo
+              await new Promise(r => setTimeout(r, 800 + Math.random() * 1200));
 
               const itemsRes = await fetch(itemsUrl, {
                 headers: { 
@@ -530,9 +530,9 @@ Deno.serve(async (req) => {
             }
           }
           
-          // Delay entre tipos de promoção
-          await new Promise(r => setTimeout(r, 300 + Math.random() * 500));
-          if (Date.now() - startTimestamp > 12000) break;
+          // Delay entre tipos de promoção aumentado
+          await new Promise(r => setTimeout(r, 1000 + Math.random() * 1500));
+          if (Date.now() - startTimestamp > 18000) break; // Aumentei o timeout de processamento para 18s
         }
 
         if (allPromoItems.length > 0) {
