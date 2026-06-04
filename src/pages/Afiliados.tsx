@@ -102,8 +102,8 @@ export default function Afiliados() {
               ml: nickname || (mlStatus as any).accountId || "Conta conectada",
             }));
             
-            // Only load deals if we're not already loading them or have products
-            loadDeals(null, false);
+            // Call loadDeals directly with the state value to avoid closure issues
+            loadDealsInternal(null, false, true);
           } else {
             setConnectedAccount((prev) => ({ ...prev, ml: null }));
           }
