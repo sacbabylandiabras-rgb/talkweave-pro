@@ -416,8 +416,12 @@ Deno.serve(async (req) => {
             },
           });
 
+
           if (promoRes.ok) {
-            const promoData = await promoRes.json();
+            const promoText = await promoRes.text();
+            if (!promoText) continue;
+            
+            const promoData = JSON.parse(promoText);
             const activePromos = promoData.results || [];
             console.log(`[Affiliate] Found ${activePromos.length} active promotions of type ${type}`);
 
@@ -433,12 +437,13 @@ Deno.serve(async (req) => {
               });
 
               if (itemsRes.ok) {
-                const itemsData = await itemsRes.json();
+                const itemsText = await itemsRes.text();
+                if (!itemsText) continue;
+                
+                const itemsData = JSON.parse(itemsText);
                 const promoItems = itemsData.results || [];
                 console.log(`[Affiliate] Found ${promoItems.length} items in promotion ${promo.id}`);
                 
-                // Em campanhas de co-participação (MARKETPLACE_CAMPAIGN), os itens podem ter campos específicos de preço
-                // mas a API costuma retornar o preço atual e original no objeto de busca/detalhes.
                 const itemsWithMetadata = promoItems.map((item: any) => ({
                   ...item,
                   promotion_id: promo.id,
