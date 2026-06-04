@@ -85,6 +85,31 @@ function getVolumeLabel(item: any) {
   return null;
 }
 
+function getPromotionLabel(item: any) {
+  const volumeLabel = getVolumeLabel(item);
+  if (volumeLabel) return volumeLabel;
+
+  switch (item.promotion_type) {
+    case "PRE_NEGOTIATED":
+      return "Desconto Exclusivo";
+    case "PRICE_DISCOUNT":
+      return "Desconto Individual";
+    case "LIGHTNING":
+      return "Oferta Relâmpago";
+    case "SMART":
+      return "Oferta Inteligente";
+    case "DEAL":
+      return "Oferta Especial";
+    case "MARKETPLACE_CAMPAIGN":
+      return "Campanha Co-participada";
+    case "DOD":
+      return "Oferta do Dia";
+    default:
+      return null;
+  }
+}
+
+
 async function generateOfficialShortlinks(
   admin: any,
   userId: string,
@@ -378,7 +403,7 @@ Deno.serve(async (req) => {
         console.log(`[Affiliate] Fetching seller-promotions...`);
         // 1. Listamos as promoções disponíveis para o vendedor
         // Buscamos tanto DEAL quanto MARKETPLACE_CAMPAIGN (co-participação)
-        const promoTypes = ["DEAL", "MARKETPLACE_CAMPAIGN", "VOLUME", "PRICE_DISCOUNT", "LIGHTNING", "SMART", "PRE_NEGOTIATED"];
+        const promoTypes = ["DEAL", "MARKETPLACE_CAMPAIGN", "VOLUME", "PRICE_DISCOUNT", "LIGHTNING", "SMART", "PRE_NEGOTIATED", "DOD", "SELLER_CAMPAIGN"];
         let allPromoItems: any[] = [];
         let totalCount = 0;
 
@@ -566,7 +591,7 @@ Deno.serve(async (req) => {
         link: item.permalink || r.permalink,
         source: "ml",
         available: item.status === "active" || !item.status,
-        promotionLabel: getVolumeLabel(r) || (r.promotion_type === "PRE_NEGOTIATED" ? "Desconto Exclusivo" : null),
+        promotionLabel: getPromotionLabel(r),
       };
     }).filter((p: any) => p.link);
 
