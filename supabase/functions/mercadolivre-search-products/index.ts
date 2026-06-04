@@ -244,7 +244,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const query = body.query || body.q || "";
     const category = body.category || null;
-    const mode = body.mode || "search";
+    const mode = body.mode || body.deals || "search";
     const limit = Math.min(Number(body.limit || 50), 100);
     const offset = Number(body.offset || 0);
 
@@ -346,19 +346,24 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Modo de busca: se for "ofertas" e não tiver query, busca as promoções do usuário
-    if (mode === "offers" && !query) {
+    let results: any[] = [];
+    let total = 0;
+
+    // Modo de busca: se for "offers" ou "deals" e não tiver query, busca as promoções usando a API de afiliados se possível
+    if ((mode === "offers" || mode === "deals") && !query) {
       try {
-        console.log(`[Seller] Fetching user items to find offers...`);
-        // Primeiro busca os itens do próprio vendedor (afiliado às vezes quer promover seus próprios ou ver ofertas da conta)
-        // Mas para AFILIADOS, o ideal é usar a API de promoções se disponível ou uma busca filtrada por descontos
-        
-        // Tentativa de buscar ofertas globais usando o token do usuário (o que permite maior limite ou bypass de alguns blocks)
+        console.log(`[Affiliate] Fetching deals...`);
+        // Tentativa 1: API de promoções para afiliados (se o usuário tiver acesso)
+        // O Mercado Livre tem um endpoint de deals em alguns mercados, mas para MLB costuma ser search com filtros
         const searchUrl = new URL(`https://api.mercadolibre.com/sites/MLB/search`);
         searchUrl.searchParams.set("q", "ofertas");
         searchUrl.searchParams.set("sort", "relevance");
         searchUrl.searchParams.set("limit", String(limit));
         searchUrl.searchParams.set("offset", String(offset));
+        
+        // Filtro de descontos se possível
+        // searchUrl.searchParams.set("discount", "5-100"); 
+
         if (category) searchUrl.searchParams.set("category", category);
 
         const res = await fetch(searchUrl.toString(), {
@@ -369,13 +374,15 @@ Deno.serve(async (req) => {
         });
         
         if (res.ok) {
-          const data = await res.json();
-          results = data.results || [];
-          total = data.paging?.total || 0;
-          console.log(`[Seller] Found ${results.length} offers via auth search`);
+          const data = await res.ok ? await res.json() : null;
+          if (data) {
+            results = data.results || [];
+            total = data.paging?.total || 0;
+            console.log(`[Affiliate] Found ${results.length} offers via auth search`);
+          }
         }
       } catch (err) {
-        console.error("[Seller] Error fetching offers:", err);
+        console.error("[Affiliate] Error fetching deals:", err);
       }
     }
 
