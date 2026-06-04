@@ -148,7 +148,7 @@ async function getDetails(ids: string[], accessToken?: string) {
     try {
       const headers: Record<string, string> = {
         "Accept": "application/json",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        "User-Agent": "ZapLynx-Affiliate/1.0 (+https://zaplynx.com)"
       };
       
       let res = await fetch(`https://api.mercadolibre.com/items?ids=${batch.join(",")}&attributes=id,title,price,original_price,currency_id,thumbnail,secure_thumbnail,pictures,status,permalink,attributes,catalog_product_id`, { 
@@ -166,9 +166,11 @@ async function getDetails(ids: string[], accessToken?: string) {
         data.forEach((item: any) => {
           if (item.code === 200) map.set(item.body.id, item.body);
         });
+      } else {
+        console.warn(`[Details] Failed to fetch items: ${res.status}`);
       }
     } catch (err) {
-      console.warn("getDetails error:", err);
+      console.error("[Details] Network error fetching items");
     }
   }
   return map;
