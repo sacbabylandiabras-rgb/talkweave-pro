@@ -148,13 +148,11 @@ async function getDetails(ids: string[], accessToken?: string) {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
       };
       
-      // Attempting details WITHOUT authentication first to avoid 403 on item details if the token has limited scopes
       let res = await fetch(`https://api.mercadolibre.com/items?ids=${batch.join(",")}&attributes=id,title,price,original_price,currency_id,thumbnail,secure_thumbnail,pictures,status,permalink,attributes,catalog_product_id`, { 
         headers
       });
 
       if (!res.ok && accessToken) {
-        console.warn(`[Details] Public details failed with ${res.status}. Retrying with auth...`);
         res = await fetch(`https://api.mercadolibre.com/items?ids=${batch.join(",")}&attributes=id,title,price,original_price,currency_id,thumbnail,secure_thumbnail,pictures,status,permalink,attributes,catalog_product_id`, { 
           headers: { ...headers, "Authorization": `Bearer ${accessToken}` }
         });
@@ -165,20 +163,12 @@ async function getDetails(ids: string[], accessToken?: string) {
         data.forEach((item: any) => {
           if (item.code === 200) map.set(item.body.id, item.body);
         });
-      } else {
-        const errBody = await res.text().catch(() => "N/A");
-        console.warn(`[Details] API Error ${res.status}: ${errBody}`);
       }
     } catch (err) {
       console.warn("getDetails error:", err);
     }
   }
   return map;
-}
-
-function isProductIdentifier(query: string): boolean {
-  const q = query.trim();
-  return /^\d{8,14}$/.test(q);
 }
 
 Deno.serve(async (req) => {
@@ -214,7 +204,6 @@ Deno.serve(async (req) => {
 
     let accessToken = record?.access_token;
     
-    // Refresh token if needed
     if (record && record.refresh_token) {
       const expiresAt = record.expires_at ? new Date(record.expires_at).getTime() : 0;
       if (expiresAt < Date.now() + 300000) {
@@ -244,24 +233,22 @@ Deno.serve(async (req) => {
       }
     }
 
+    if (!accessToken) {
+      return json({ error: "No Mercado Livre connection found. Please connect your account first." }, 400);
+    }
+
     let results: any[] = [];
     let total = 0;
-    let isBlocked = false;
-
-    // Build Search URL logic
+    
+    // Logic for deals/lightning/search
     let searchUrl = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
     searchUrl.searchParams.set("limit", String(limit));
     searchUrl.searchParams.set("offset", String(offset));
 
     if ((mode === "offers" || mode === "deals" || mode === "highlights" || mode === "lightning") && !query) {
-      if (mode === "lightning") {
-        searchUrl.searchParams.set("q", "oferta relampago");
-      } else {
-        searchUrl.searchParams.set("q", "oferta do dia");
-      }
+      searchUrl.searchParams.set("q", mode === "lightning" ? "oferta relampago" : "oferta do dia");
       if (category) searchUrl.searchParams.set("category", category);
     } else if (query) {
-      // If it's a URL, extract ID
       const urlMatch = query.match(/MLB-?(\d+)/i) || query.match(/item\/(\d+)/i);
       if (urlMatch) {
         const itemId = `MLB${urlMatch[1]}`;
@@ -272,47 +259,25 @@ Deno.serve(async (req) => {
           total = 1;
         }
       }
-
       if (results.length === 0) {
-        let q = query || (category && CATEGORY_KEYWORDS[category]) || "ofertas";
-        if (isProductIdentifier(q)) {
-          searchUrl.searchParams.set("q", q.trim());
-        } else {
-          searchUrl.searchParams.set("q", q);
-        }
+        searchUrl.searchParams.set("q", query);
         if (category) searchUrl.searchParams.set("category", category);
       }
     } else {
-       searchUrl.searchParams.set("q", "ofertas");
-       if (category) searchUrl.searchParams.set("category", category);
+      searchUrl.searchParams.set("q", "ofertas");
+      if (category) searchUrl.searchParams.set("category", category);
     }
 
-    // Execute Search if results not already populated (by ID match)
     if (results.length === 0) {
-      console.log(`[Search] Requesting: ${searchUrl.toString()}`);
+      console.log(`[Search] Forcing Authenticated Request: ${searchUrl.toString()}`);
       
-      const commonHeaders = {
-        "Accept": "application/json",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "X-Custom-Header": Math.random().toString(36).substring(7) // Cache busting
-      };
-
-      // Try authenticated search first if we have a token, as it is less likely to be blocked
-      let res;
-      if (accessToken) {
-        console.log(`[Search] Attempting authenticated search for: ${searchUrl.toString()}`);
-        res = await fetch(searchUrl.toString(), { 
-          headers: { ...commonHeaders, "Authorization": `Bearer ${accessToken}` } 
-        });
-        
-        if (!res.ok) {
-          console.warn(`[Search] Authenticated search failed with ${res.status}. Falling back to public...`);
-          res = await fetch(searchUrl.toString(), { headers: commonHeaders });
-        }
-      } else {
-        console.log(`[Search] Attempting public search for: ${searchUrl.toString()}`);
-        res = await fetch(searchUrl.toString(), { headers: commonHeaders });
-      }
+      const res = await fetch(searchUrl.toString(), { 
+        headers: { 
+          "Authorization": `Bearer ${accessToken}`,
+          "Accept": "application/json",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        } 
+      });
 
       if (res.ok) {
         const data = await res.json();
@@ -322,40 +287,20 @@ Deno.serve(async (req) => {
         const errText = await res.text().catch(() => "N/A");
         console.error(`[Search] API Error: ${res.status} - ${errText}`);
         
-        // If still blocked, attempt a search without any specific query/category as a last resort
-        if (res.status === 403 || res.status === 429) {
-          isBlocked = true;
-          console.log("[Search] Rate limited or forbidden. Attempting basic search fallback...");
-          const basicUrl = `https://api.mercadolibre.com/sites/${siteId}/search?q=ofertas&limit=${limit}`;
-          const basicRes = await fetch(basicUrl, { headers: commonHeaders });
-          if (basicRes.ok) {
-            const basicData = await basicRes.json();
-            results = basicData.results || [];
-            total = basicData.paging?.total || 0;
-          }
+        if (res.status === 403 || res.status === 401) {
+           return json({ 
+             error: "Acesso negado pela API do Mercado Livre. Verifique se sua conta de afiliado está ativa ou tente reconectar.",
+             details: errText,
+             isBlocked: true 
+           }, 403);
         }
       }
     }
 
-    // Fallback if still empty for deals
-    if (results.length === 0 && (mode === "deals" || mode === "lightning") && !isBlocked) {
-       console.log("[Search] No results for specific deals, trying general offers...");
-       searchUrl.searchParams.set("q", "ofertas");
-       const fallbackRes = await fetch(searchUrl.toString(), { 
-         headers: { "Accept": "application/json", "User-Agent": "Mozilla/5.0" } 
-       });
-       if (fallbackRes.ok) {
-         const data = await fallbackRes.json();
-         results = data.results || [];
-         total = data.paging?.total || 0;
-       }
-    }
-
     if (results.length === 0) {
-      return json({ products: [], total: 0, isBlocked });
+      return json({ products: [], total: 0 });
     }
 
-    // Enrichment and detail gathering
     const itemIds = results.map(r => r.id);
     const detailsMap = await getDetails(itemIds, accessToken);
 
@@ -378,14 +323,6 @@ Deno.serve(async (req) => {
           .replace(/-[WIGM]\.(jpg|jpeg|png|webp)$/i, "-O.$1");
       }
 
-      const identifiers: Record<string, string> = {};
-      if (item.attributes) {
-        const ean = item.attributes.find((a: any) => a.id === "GTIN" || a.id === "EAN")?.value_name;
-        if (ean) identifiers.ean = ean;
-        const brand = item.attributes.find((a: any) => a.id === "BRAND")?.value_name;
-        if (brand) identifiers.brand = brand;
-      }
-
       return {
         id: r.id,
         name: r.title,
@@ -397,21 +334,14 @@ Deno.serve(async (req) => {
         link: r.permalink,
         source: "ml",
         available: item.status === "active" || !item.status,
-        catalog_id: item.catalog_product_id,
-        identifiers
       };
     });
 
-    // Affiliate Link Generation
     let sourceId = record?.affiliate_source_id || record?.metadata?.source_id;
-    
-    // If we have an access token but no source_id, try to fetch it
     if (accessToken && !sourceId) {
-       console.log("[Affiliate] Missing sourceId, attempting to fetch from API...");
        const sources = await getAffiliateSources(accessToken);
        if (sources.length > 0) {
          sourceId = sources[0].id || sources[0].source_id;
-         console.log(`[Affiliate] Found sourceId: ${sourceId}. Saving to DB.`);
          await admin.from("affiliate_connections").update({
            affiliate_source_id: String(sourceId),
            metadata: { ...record?.metadata, source_id: sourceId }
