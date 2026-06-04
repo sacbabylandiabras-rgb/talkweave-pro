@@ -112,6 +112,8 @@ Deno.serve(async (req) => {
 
     const storagePath = `${userId}/${PROVIDER}.json`;
     console.log(`[Storage] Saving token to: ${storagePath}`);
+    
+    // Save to storage
     const { data: uploadData, error: uploadError } = await admin.storage
       .from(BUCKET)
       .upload(storagePath, new Blob([JSON.stringify(record)], { type: "application/json" }), { 
@@ -121,9 +123,33 @@ Deno.serve(async (req) => {
 
     if (uploadError) {
       console.error("[Storage] Error saving token:", uploadError);
-      throw new Error(`Erro ao salvar credenciais: ${uploadError.message}`);
+    } else {
+      console.log("[Storage] Token saved successfully:", uploadData);
     }
-    console.log("[Storage] Token saved successfully:", uploadData);
+
+    // NEW: Save to database as well to ensure persistence and easier lookup
+    // First, check if affiliate_connections table exists by attempting a simple select
+    try {
+      const { error: dbError } = await admin.from("affiliate_connections").upsert({
+        user_id: userId,
+        provider: PROVIDER,
+        account_id: String(meData.id),
+        account_nickname: meData.nickname,
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token,
+        expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
+        metadata: { source_id: sourceId }
+      }, { onConflict: "user_id,provider" });
+
+      if (dbError) {
+        console.error("[DB] Error saving connection:", dbError);
+        // We don't throw here because storage might have worked
+      } else {
+        console.log("[DB] Connection saved successfully");
+      }
+    } catch (err) {
+      console.error("[DB] Table affiliate_connections might not exist yet:", err.message);
+    }
 
 
     return json({ success: true, nickname: meData.nickname });

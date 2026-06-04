@@ -314,35 +314,42 @@ Deno.serve(async (req) => {
     const limit = Math.min(Number(body.limit || 50), 100);
     const offset = Number(body.offset || 0);
 
-    // Busca token no storage (BUCKET/user_id/provider.json)
-    const storagePath = `${user.id}/${PROVIDER}.json`;
-    console.log(`[Storage] Loading token from: ${storagePath}`);
-    const { data: storageData, error: storageErr } = await admin.storage
-      .from(BUCKET)
-      .download(storagePath);
+    // Tenta carregar do banco de dados primeiro (mais confiável)
+    console.log(`[DB] Looking for connection for user: ${user.id}`);
+    const { data: dbData, error: dbErr } = await admin
+      .from("affiliate_connections")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("provider", PROVIDER)
+      .maybeSingle();
 
     let record: any = null;
 
-    if (storageErr || !storageData) {
-      console.log("No connection found in storage for user:", user.id, "error:", storageErr?.message);
-      // Try to find in database as fallback if storage is failing for some reason
-      const { data: dbData } = await admin
-        .from("affiliate_connections")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("provider", PROVIDER)
-        .maybeSingle();
+    if (dbData) {
+      console.log("[DB] Found connection in database");
+      record = {
+        ...dbData,
+        // Map metadata back if present
+        affiliate_source_id: dbData.metadata?.source_id || dbData.affiliate_source_id
+      };
+    } else {
+      if (dbErr) console.warn("[DB] Error fetching connection:", dbErr.message);
+      
+      // Fallback para storage
+      const storagePath = `${user.id}/${PROVIDER}.json`;
+      console.log(`[Storage] Falling back to storage: ${storagePath}`);
+      const { data: storageData, error: storageErr } = await admin.storage
+        .from(BUCKET)
+        .download(storagePath);
 
-      if (!dbData) {
-        console.log("Fallback to public offers - account not connected for user:", user.id);
+      if (storageErr || !storageData) {
+        console.log("No connection found in storage or DB for user:", user.id);
         const publicProducts = await fetchPublicOffers(query, category, null, limit, offset);
         return json({ products: publicProducts, total: 1000, fallback: true });
       }
       
-      console.log("Found connection in DB, using it.");
-      record = dbData;
-    } else {
       record = JSON.parse(await storageData.text());
+      console.log("[Storage] Found connection in storage");
     }
 
     let accessToken = record.access_token;
