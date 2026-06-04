@@ -95,8 +95,8 @@ export default function Afiliados() {
             ml: (mlStatus as any).nickname || (mlStatus as any).accountId || "Conta conectada",
           }));
           
-          // Only auto-load if we don't have products yet
-          loadDeals();
+          // Auto-load promotions after connection
+          loadDeals(null, false);
         }
       } catch (err) {
         console.error("Caught error checking ML connection:", err);
