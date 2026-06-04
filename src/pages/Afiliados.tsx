@@ -692,20 +692,17 @@ export default function Afiliados() {
           <div className="flex flex-wrap gap-2 mb-4">
             {[
               { id: null, label: "Todos" },
-              { id: "MLB1574", label: "🛋️ Móveis" },
-              { id: "MLB1499", label: "🏗️ Materiais" },
-              { id: "MLB1430", label: "👕 Roupas" },
-              { id: "MLB1132", label: "🧸 Brinquedos" },
               { id: "MLB1051", label: "📱 Celulares" },
               { id: "MLB1648", label: "💻 Informática" },
-              { id: "MLB1574", label: "🛋️ Casa & Decoração" },
-              { id: "MLB5726", label: "🔌 Eletrodomésticos" },
-              { id: "MLB1276", label: "⚽ Esportes" },
+              { id: "MLB5726", label: "🔌 Eletro" },
+              { id: "MLB1430", label: "👕 Roupas" },
               { id: "MLB1246", label: "💄 Beleza" },
+              { id: "MLB1574", label: "🛋️ Casa" },
+              { id: "MLB1132", label: "🧸 Brinquedos" },
+              { id: "MLB1276", label: "⚽ Esportes" },
               { id: "MLB1196", label: "📚 Livros" },
-              { id: "MLB1743", label: "🚗 Veículos" },
               { id: "MLB1071", label: "🐶 Pets" },
-              { id: "MLB1953", label: "✨ Outros" },
+              { id: "MLB1743", label: "🚗 Veículos" },
             ].map((n) => (
               <button
                 key={n.label}
