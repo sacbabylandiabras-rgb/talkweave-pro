@@ -383,20 +383,27 @@ export default function Afiliados() {
     // Para 1 produto
     if (selectedProducts.length === 1) {
       const p = selectedProducts[0];
-      return `🛍️ *${p.name}*\n💰 ${p.price}\n\n[Botão: Ver Oferta 🚀]`;
+      const promoText = p.promotionLabel ? `\n🎁 *Promoção: ${p.promotionLabel}*` : "";
+      return `🛍️ *${p.name}*\n💰 ${p.price}${promoText}\n\n[Botão: Ver Oferta 🚀]`;
     }
 
     // Para 2 a 3 produtos
     if (selectedProducts.length > 1 && selectedProducts.length <= 3) {
       const items = selectedProducts
-        .map((p, idx) => `🛍️ *${p.name}*\n💰 ${p.price}\n[Botão: Comprar Item ${idx + 1} 🛒]`)
+        .map((p, idx) => {
+          const promoText = p.promotionLabel ? `\n🎁 *Promoção: ${p.promotionLabel}*` : "";
+          return `🛍️ *${p.name}*\n💰 ${p.price}${promoText}\n[Botão: Comprar Item ${idx + 1} 🛒]`;
+        })
         .join("\n\n");
       return `✨ *Ofertas selecionadas para você!*\n\n${items}`;
     }
 
     // Para mais de 3 produtos (limite de botões do WhatsApp)
     const items = selectedProducts
-      .map((p) => `🛍️ *${p.name}*\n💰 ${p.price}\n🔗 ${p.link}`)
+      .map((p) => {
+        const promoText = p.promotionLabel ? `\n🎁 *Promoção: ${p.promotionLabel}*` : "";
+        return `🛍️ *${p.name}*\n💰 ${p.price}${promoText}\n🔗 ${p.link}`;
+      })
       .join("\n\n");
     return `✨ *Ofertas selecionadas para você!*\n\n${items}`;
   }, [selectedProducts]);
