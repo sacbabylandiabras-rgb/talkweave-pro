@@ -784,7 +784,11 @@ export default function Afiliados() {
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-semibold text-primary text-sm">{p.price}</span>
-                        {p.discount ? (
+                        {p.promotionLabel ? (
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-[10px]">
+                            {p.promotionLabel}
+                          </Badge>
+                        ) : p.discount ? (
                           <Badge variant="secondary" className="bg-green-100 text-green-700 text-[10px]">
                             -{p.discount}%
                           </Badge>
