@@ -219,21 +219,14 @@ async function fetchPublicOffers(query: string, category: string | null, account
   const userAgents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0"
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
   ];
 
   const standardHeaders = {
     "User-Agent": userAgents[Math.floor(Math.random() * userAgents.length)],
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-    "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-    "Cache-Control": "no-cache",
-    "Pragma": "no-cache",
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "none",
-    "Sec-Fetch-User": "?1",
-    "Upgrade-Insecure-Requests": "1"
+    "Accept": "application/json",
+    "Accept-Language": "pt-BR,pt;q=0.9",
+    "Cache-Control": "no-cache"
   };
 
   try {
@@ -302,19 +295,14 @@ async function getDetails(ids: string[], accessToken: string) {
   for (let i = 0; i < ids.length; i += 20) {
     const batch = ids.slice(i, i + 20);
     try {
-      const headers: Record<string, string> = {};
+      const headers: Record<string, string> = {
+        "User-Agent": "ZapLynx/1.0",
+        "Accept": "application/json"
+      };
       if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
       
       const res = await fetch(`https://api.mercadolibre.com/items?ids=${batch.join(",")}`, { 
-        headers: {
-          ...headers,
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-          "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-          "Cache-Control": "no-cache",
-          "Pragma": "no-cache",
-
-        }
-
+        headers
       });
       if (res.ok) {
         const data = await res.json();
@@ -470,21 +458,14 @@ Deno.serve(async (req) => {
     const userAgents = [
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0"
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
     ];
 
     const standardHeaders = {
       "User-Agent": userAgents[Math.floor(Math.random() * userAgents.length)],
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-      "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-      "Cache-Control": "no-cache",
-      "Pragma": "no-cache",
-      "Sec-Fetch-Dest": "document",
-      "Sec-Fetch-Mode": "navigate",
-      "Sec-Fetch-Site": "none",
-      "Sec-Fetch-User": "?1",
-      "Upgrade-Insecure-Requests": "1"
+      "Accept": "application/json",
+      "Accept-Language": "pt-BR,pt;q=0.9",
+      "Cache-Control": "no-cache"
     };
 
 
@@ -497,11 +478,13 @@ Deno.serve(async (req) => {
         let allPromoItems: any[] = [];
         let totalCount = 0;
 
+        // Busca as promoções de forma sequencial com um pequeno delay para evitar detecção de bot
         for (const type of promoTypes) {
-          // Usando app_version=v2 e limitando a busca inicial
-          let promoUrl = `https://api.mercadolibre.com/seller-promotions/promotions?promotion_type=${type}&app_version=v2&status=started`;
+          if (allPromoItems.length >= limit) break;
           
+          let promoUrl = `https://api.mercadolibre.com/seller-promotions/promotions?promotion_type=${type}&app_version=v2&status=started`;
           console.log(`[Affiliate] Requesting: ${promoUrl}`);
+          
           const promoRes = await fetch(promoUrl, {
             headers: { 
               ...standardHeaders,
@@ -515,28 +498,17 @@ Deno.serve(async (req) => {
           }
 
           if (promoRes.ok) {
-            const promoText = await promoRes.text();
-            if (!promoText || promoText === "[]") {
-              console.log(`[Affiliate] Empty response for type ${type}`);
-              continue;
-            }
-            
-            const promoData = JSON.parse(promoText);
+            const promoData = await promoRes.json().catch(() => []);
             const activePromos = Array.isArray(promoData) ? promoData : (promoData.results || []);
-            console.log(`[Affiliate] Type ${type}: Found ${activePromos.length} active promotions`);
-
-            // Pega apenas as 3 primeiras promoções de cada tipo para não estourar rate limit
-            for (const promo of activePromos.slice(0, 1)) {
-              if (allPromoItems.length >= limit) break;
-              
-              // Se já passou 10 segundos no total, pára de buscar mais promoções
-              if (Date.now() - startTimestamp > 10000) {
-                console.warn("[Affiliate] Search timeout threshold reached, stopping promo fetch");
-                break;
-              }
-
+            
+            // Pega apenas a primeira promoção de cada tipo para ser bem conservador
+            if (activePromos.length > 0) {
+              const promo = activePromos[0];
               const itemsUrl = `https://api.mercadolibre.com/seller-promotions/promotions/${promo.id}/items?promotion_type=${promo.type || type}&app_version=v2`;
-              console.log(`[Affiliate] Fetching items: ${itemsUrl}`);
+              
+              // Adiciona um pequeno delay randômico
+              await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
+
               const itemsRes = await fetch(itemsUrl, {
                 headers: { 
                   ...standardHeaders,
@@ -544,19 +516,10 @@ Deno.serve(async (req) => {
                 },
               });
 
-              if (itemsRes.status === 403) {
-                console.warn("[Affiliate] Blocked while fetching items for promo", promo.id);
-                continue;
-              }
-
               if (itemsRes.ok) {
-                const itemsText = await itemsRes.text();
-                if (!itemsText) continue;
-                
-                const itemsData = JSON.parse(itemsText);
+                const itemsData = await itemsRes.json().catch(() => ({}));
                 const promoItems = itemsData.results || [];
-                
-                const itemsWithMetadata = promoItems.map((item: any) => ({
+                const itemsWithMetadata = promoItems.slice(0, 5).map((item: any) => ({
                   ...item,
                   promotion_id: promo.id,
                   promotion_type: type
@@ -566,7 +529,10 @@ Deno.serve(async (req) => {
               }
             }
           }
-          if (allPromoItems.length >= limit || (Date.now() - startTimestamp > 10000)) break;
+          
+          // Delay entre tipos de promoção
+          await new Promise(r => setTimeout(r, 300 + Math.random() * 500));
+          if (Date.now() - startTimestamp > 12000) break;
         }
 
         if (allPromoItems.length > 0) {
