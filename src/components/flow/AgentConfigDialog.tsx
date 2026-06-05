@@ -62,10 +62,20 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
 
   useEffect(() => {
     const triggerAutoImport = async () => {
-      if (open && autoImportUrl && !loading && urlInput === autoImportUrl && !urlLoading) {
-        const alreadyHasUrl = knowledge.some(k => k.title?.includes(autoImportUrl) || k.content?.includes(autoImportUrl));
+      if (open && autoImportUrl && !loading && !urlLoading) {
+        // Log to debug why it might not be triggering
+        console.log("[AutoImport] Checking...", { autoImportUrl, knowledgeCount: knowledge.length });
+        
+        const alreadyHasUrl = knowledge.some(k => 
+          k.title?.toLowerCase().includes(autoImportUrl.toLowerCase()) || 
+          k.content?.toLowerCase().includes(autoImportUrl.toLowerCase())
+        );
+        
         if (!alreadyHasUrl) {
+          console.log("[AutoImport] Starting import for:", autoImportUrl);
           handleImportUrl(autoImportUrl);
+        } else {
+          console.log("[AutoImport] URL already exists in knowledge base.");
         }
       }
     };
