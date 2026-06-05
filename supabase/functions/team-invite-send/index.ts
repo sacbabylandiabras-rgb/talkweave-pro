@@ -13,195 +13,103 @@ const INVITE_EMAIL_HTML = `
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zaplynx - Convite</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
-            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: #1a1a2e;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(200, 120, 255, 0.2);
-        }
-
-        .email-header {
-            background: linear-gradient(135deg, #2d1b4e 0%, #1a1a2e 100%);
-            padding: 40px 30px;
-            text-align: center;
-            border-bottom: 1px solid rgba(200, 120, 255, 0.2);
-        }
-
-        .logo {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 30px;
-        }
-
-        .logo-icon {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, #c878ff 0%, #9d4edd 100%);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 28px;
-            color: white;
-            box-shadow: 0 8px 20px rgba(200, 120, 255, 0.3);
-        }
-
-        .logo-text {
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: 2px;
-            background: linear-gradient(90deg, #ffffff 0%, #c878ff 50%, #9d4edd 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .email-content {
-            padding: 40px 30px;
-        }
-
-        .greeting {
-            font-size: 28px;
-            font-weight: 700;
-            color: #ffffff;
-            margin-bottom: 15px;
-        }
-
-        .subtitle {
-            font-size: 16px;
-            color: #b0b0b0;
-            margin-bottom: 30px;
-            line-height: 1.6;
-        }
-
-        .message-box {
-            background: rgba(200, 120, 255, 0.08);
-            border-left: 4px solid #c878ff;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-        }
-
-        .message-box p {
-            color: #e0e0e0;
-            font-size: 15px;
-            line-height: 1.6;
-            margin-bottom: 10px;
-        }
-
-        .message-box a {
-            color: #c878ff;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #c878ff 0%, #9d4edd 100%);
-            color: white !important;
-            padding: 14px 40px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 16px;
-            box-shadow: 0 8px 20px rgba(200, 120, 255, 0.3);
-            border: none;
-        }
-
-        .email-footer {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 25px 30px;
-            border-top: 1px solid rgba(200, 120, 255, 0.1);
-            text-align: center;
-        }
-
-        .footer-text {
-            font-size: 13px;
-            color: #808080;
-            line-height: 1.6;
-            margin-bottom: 15px;
-        }
-
-        .footer-text a {
-            color: #c878ff;
-            text-decoration: none;
-        }
-
-        .social-icons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-top: 15px;
-        }
-
-        .social-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: rgba(200, 120, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #c878ff;
-            text-decoration: none;
-        }
-    </style>
 </head>
-<body>
-    <div class="email-container">
-        <div class="email-header">
-            <div class="logo">
-                <div class="logo-icon">⚡</div>
-                <div class="logo-text">ZAPLYNX</div>
-            </div>
-        </div>
+<body style="margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+    
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        
+        <!-- HEADER -->
+        <tr>
+            <td style="background-color: #2d1b4e; padding: 40px 30px; text-align: center; border-bottom: 2px solid #c878ff;">
+                <!-- Logo -->
+                <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td style="text-align: center;">
+                            <img src="https://zaplynx.com.br/logo.png" alt="Zaplynx" style="width: 50px; height: 50px; margin-right: 12px; vertical-align: middle; display: inline-block;">
+                            <span style="font-size: 24px; font-weight: bold; color: #ffffff; letter-spacing: 2px; vertical-align: middle; display: inline-block;">ZAPLYNX</span>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
 
-        <div class="email-content">
-            <h1 class="greeting">Você foi convidado!</h1>
-            <p class="subtitle">
-                Você foi convidado por {{OWNER_EMAIL}} para se juntar à equipe {{TEAM_NAME}} na plataforma Zaplynx.
-            </p>
+        <!-- CONTENT -->
+        <tr>
+            <td style="background-color: #1a1a2e; padding: 40px 30px; color: #ffffff;">
+                
+                <!-- Heading -->
+                <h1 style="margin: 0 0 15px 0; font-size: 28px; font-weight: bold; color: #ffffff;">
+                    Você foi convidado!
+                </h1>
 
-            <div class="message-box">
-                <p>
-                    Clique no botão abaixo para aceitar o convite, criar sua senha e começar a usar a plataforma Zaplynx.
+                <!-- Subtitle -->
+                <p style="margin: 0 0 30px 0; font-size: 16px; color: #b0b0b0; line-height: 1.6;">
+                    Você foi convidado por {{OWNER_EMAIL}} para se juntar à equipe {{TEAM_NAME}} na plataforma Zaplynx.
                 </p>
-            </div>
 
-            <a href="{{INVITE_URL}}" class="cta-button">
-                ACEITAR CONVITE
-            </a>
-        </div>
+                <!-- Message Box -->
+                <div style="background-color: rgba(200, 120, 255, 0.08); border-left: 4px solid #c878ff; padding: 20px; margin-bottom: 30px;">
+                    <p style="margin: 0 0 15px 0; font-size: 15px; color: #e0e0e0; line-height: 1.6;">
+                        Clique no link abaixo para aceitar o convite e começar a usar a plataforma Zaplynx. Acesso rápido e seguro para suas necessidades.
+                    </p>
+                    <p style="margin: 0; font-size: 15px;">
+                        <a href="{{INVITE_URL}}" style="color: #c878ff; text-decoration: none; font-weight: bold;">Aceitar convite →</a>
+                    </p>
+                </div>
 
-        <div class="email-footer">
-            <p class="footer-text">
-                Este é um email automático da Zaplynx. Por favor, não responda diretamente a este email.<br>
-                <a href="#">Política de Privacidade</a> • <a href="#">Termos de Serviço</a>
-            </p>
-            <p class="footer-text" style="margin-top: 15px; font-size: 12px;">
-                © 2025 Zaplynx. Todos os direitos reservados.
-            </p>
-        </div>
-    </div>
+                <!-- CTA Button -->
+                <table cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                    <tr>
+                        <td style="background-color: #c878ff; padding: 14px 40px; border-radius: 8px; text-align: center;">
+                            <a href="{{INVITE_URL}}" style="color: white; text-decoration: none; font-weight: bold; font-size: 16px; display: block;">
+                                ACEITAR CONVITE
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+
+            </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+            <td style="background-color: #0a0a14; padding: 25px 30px; border-top: 1px solid rgba(200, 120, 255, 0.2); text-align: center;">
+                
+                <!-- Footer Text -->
+                <p style="margin: 0 0 10px 0; font-size: 13px; color: #808080; line-height: 1.6;">
+                    Este é um email automático da Zaplynx. Por favor, não responda diretamente a este email.<br>
+                    <a href="#" style="color: #c878ff; text-decoration: none;">Política de Privacidade</a> • 
+                    <a href="#" style="color: #c878ff; text-decoration: none;">Termos de Serviço</a>
+                </p>
+
+                <!-- Social Icons -->
+                <table cellpadding="0" cellspacing="0" style="margin: 15px auto; text-align: center;">
+                    <tr>
+                        <td style="padding: 0 8px;">
+                            <a href="#" style="display: inline-block; width: 32px; height: 32px; background-color: rgba(200, 120, 255, 0.1); border-radius: 50%; text-align: center; line-height: 32px; color: #c878ff; text-decoration: none; font-weight: bold;">f</a>
+                        </td>
+                        <td style="padding: 0 8px;">
+                            <a href="#" style="display: inline-block; width: 32px; height: 32px; background-color: rgba(200, 120, 255, 0.1); border-radius: 50%; text-align: center; line-height: 32px; color: #c878ff; text-decoration: none; font-weight: bold;">𝕏</a>
+                        </td>
+                        <td style="padding: 0 8px;">
+                            <a href="#" style="display: inline-block; width: 32px; height: 32px; background-color: rgba(200, 120, 255, 0.1); border-radius: 50%; text-align: center; line-height: 32px; color: #c878ff; text-decoration: none; font-weight: bold;">📷</a>
+                        </td>
+                        <td style="padding: 0 8px;">
+                            <a href="#" style="display: inline-block; width: 32px; height: 32px; background-color: rgba(200, 120, 255, 0.1); border-radius: 50%; text-align: center; line-height: 32px; color: #c878ff; text-decoration: none; font-weight: bold;">in</a>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Copyright -->
+                <p style="margin: 15px 0 0 0; font-size: 12px; color: #606060;">
+                    © 2025 Zaplynx. Todos os direitos reservados.
+                </p>
+
+            </td>
+        </tr>
+
+    </table>
+
 </body>
 </html>
 `;
