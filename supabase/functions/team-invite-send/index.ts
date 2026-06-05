@@ -154,16 +154,10 @@ Deno.serve(async (req) => {
     const baseUrl = origin.includes("lovable.app") ? "https://zaplynx.com.br" : origin;
     const inviteUrl = `${baseUrl}/aceitar-convite?token=${inviteToken}`;
 
-    // O usuário já existe, o Supabase não permite disparar o template de "Invite User".
-    // Então enviamos manualmente usando o template que você quer.
-    const origin = req.headers.get("origin") || "https://zaplynx.com.br";
-    const baseUrl = origin.includes("lovable.app") ? "https://zaplynx.com.br" : origin;
-    const inviteUrl = `${baseUrl}/aceitar-convite?token=${inviteToken}`;
-
     const html = INVITE_EMAIL_HTML
       .replace("{{OWNER_EMAIL}}", user.email || "sua equipe")
       .replace("{{TEAM_NAME}}", team.name || "Zaplynx")
-      .replace("{{INVITE_URL}}", inviteUrl);
+      .replace(/{{INVITE_URL}}/g, inviteUrl);
 
     // Usamos o serviço de email do próprio Supabase (ou um provedor configurado)
     // Para garantir que use o seu HTML exato e não os templates do painel Auth
