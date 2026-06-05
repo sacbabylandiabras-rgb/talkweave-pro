@@ -1141,6 +1141,9 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       })
     );
     setIsEditDialogOpen(false);
+    if (selectedNode.type === "agenteIA") {
+      setShowAgentConfig(true);
+    }
     toast.success("Bloco atualizado!");
   };
 
