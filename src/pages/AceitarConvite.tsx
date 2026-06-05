@@ -43,14 +43,20 @@ export default function AceitarConvite() {
     setSubmitting(true);
     try {
       if (needsSignup) {
-        const { error } = await supabase.auth.signUp({
-          email: invite.email,
-          password,
-          options: { data: { full_name: name }, emailRedirectTo: `${window.location.origin.includes("lovable.app") ? "https://zaplynx.com" : window.location.origin}/aceitar-convite?token=${token}` },
-        });
-        if (error) throw error;
-        // try sign-in (in case email confirmation off)
-        await supabase.auth.signInWithPassword({ email: invite.email, password });
+        // Try sign-in first (user may already exist), then fallback to sign-up
+        const { error: signInErr } = await supabase.auth.signInWithPassword({ email: invite.email, password });
+        if (signInErr) {
+          const { error: signUpErr } = await supabase.auth.signUp({
+            email: invite.email,
+            password,
+            options: { data: { full_name: name }, emailRedirectTo: `https://zaplynx.com/aceitar-convite?token=${token}` },
+          });
+          if (signUpErr) throw signUpErr;
+          const { error: secondSignIn } = await supabase.auth.signInWithPassword({ email: invite.email, password });
+          if (secondSignIn) throw new Error("Conta criada. Confirme seu email e tente novamente, ou faça login.");
+        }
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Não foi possível autenticar. Verifique a senha.");
       }
       const { data, error } = await supabase.functions.invoke("team-invite-accept", { body: { action: "accept", token } });
       if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);

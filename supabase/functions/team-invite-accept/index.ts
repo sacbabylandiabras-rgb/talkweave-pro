@@ -19,14 +19,14 @@ Deno.serve(async (req) => {
 
     const { data: inv, error: invErr } = await admin.from("team_invites").select("*, team:teams(name, owner_id)").eq("token", token).maybeSingle();
     if (invErr) console.error("invite lookup error", invErr);
-    if (!inv) return new Response(JSON.stringify({ error: "Convite não encontrado" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!inv) return new Response(JSON.stringify({ error: "Convite não encontrado" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     let ownerEmail = "";
     if (inv.team?.owner_id) {
       const { data: ownerProfile } = await admin.from("profiles").select("email").eq("id", inv.team.owner_id).maybeSingle();
       ownerEmail = ownerProfile?.email || "";
     }
-    if (inv.accepted_at) return new Response(JSON.stringify({ error: "Convite já utilizado" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    if (new Date(inv.expires_at).getTime() < Date.now()) return new Response(JSON.stringify({ error: "Convite expirado" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (inv.accepted_at) return new Response(JSON.stringify({ error: "Convite já utilizado" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (new Date(inv.expires_at).getTime() < Date.now()) return new Response(JSON.stringify({ error: "Convite expirado" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     if (action === "lookup") {
       return new Response(JSON.stringify({ invite: { email: inv.email, team_name: inv.team?.name, role_id: inv.role_id } }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -36,17 +36,17 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization") || "";
     const userToken = authHeader.replace("Bearer ", "");
     const { data: { user } } = await admin.auth.getUser(userToken);
-    if (!user) return new Response(JSON.stringify({ error: "Faça login primeiro" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!user) return new Response(JSON.stringify({ error: "Faça login primeiro" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if ((user.email || "").toLowerCase() !== inv.email.toLowerCase()) {
-      return new Response(JSON.stringify({ error: "Este convite foi para outro email" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Este convite foi para outro email" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Owner cannot accept own invite, and user cannot already be member of another team
     if (user.id === inv.team.owner_id) {
-      return new Response(JSON.stringify({ error: "Você é dono desta equipe" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Você é dono desta equipe" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const { data: existing } = await admin.from("pipeline_members").select("user_id").eq("user_id", user.id).maybeSingle();
-    if (existing) return new Response(JSON.stringify({ error: "Você já está em uma equipe" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (existing) return new Response(JSON.stringify({ error: "Você já está em uma equipe" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     // Buscar o pipeline padrão do dono da equipe
     const { data: pipeline } = await admin.from("pipelines").select("id").eq("owner_id", inv.team.owner_id).limit(1).maybeSingle();
