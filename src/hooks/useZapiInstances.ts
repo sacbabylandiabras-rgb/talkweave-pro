@@ -139,19 +139,29 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
       let queryUserId = user.id;
       let allowedInstanceIds: string[] | null = null;
       try {
-        const { data: member } = await (supabase as any)
+        const { data: member, error: memberErr } = await (supabase as any)
           .from('team_members')
           .select('permissions, status, team:teams(owner_id)')
           .eq('user_id', user.id)
           .eq('status', 'active')
           .maybeSingle();
+        
+        if (memberErr) {
+          console.error("Erro ao buscar team_member:", memberErr);
+        }
+
         if (member?.team?.owner_id) {
           queryUserId = member.team.owner_id;
           const allowedIds = member.permissions?.allowed_instance_ids;
           allowedInstanceIds = Array.isArray(allowedIds) && allowedIds.length > 0
             ? allowedIds : null;
+          console.log("Team mode active. Owner:", queryUserId, "Allowed Instances:", allowedInstanceIds);
+        } else {
+          console.log("User is not an active team member, using own data.");
         }
-      } catch { /* ignore */ }
+      } catch (e) { 
+        console.error("Erro no fluxo de time:", e);
+      }
 
       let allInstances: ZapiInstance[] = [];
       
