@@ -39,6 +39,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
   );
 
   const [maxInstances, setMaxInstances] = useState<number>(1);
+  const [maxTeamMembers, setMaxTeamMembers] = useState<number>(1);
 
   // Plans
   const [plans, setPlans] = useState<Array<{ id: string; name: string; price: number }>>([]);
@@ -83,10 +84,11 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
       setCustomPlanValue(
         user.custom_plan_value != null ? (user.custom_plan_value / 100).toFixed(2) : ''
       );
-       // Load max instances
+       // Load max instances and team members
        if (user.id) {
-         supabase.from("profiles").select("max_instances").eq("id", user.id).single().then(({ data }) => {
+         supabase.from("profiles").select("max_instances, max_team_members").eq("id", user.id).single().then(({ data }) => {
            setMaxInstances(Number((data as any)?.max_instances ?? 1));
+           setMaxTeamMembers(Number((data as any)?.max_team_members ?? 1));
          });
        }
     }
@@ -109,6 +111,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
             subscription_status: subscriptionStatus,
             subscription_expires_at: expiresAt?.toISOString() || null,
             max_instances: Number.isFinite(maxInstances) && maxInstances >= 0 ? maxInstances : 1,
+            max_team_members: Number.isFinite(maxTeamMembers) && maxTeamMembers >= 0 ? maxTeamMembers : 1,
             plan_id: (planId === 'none' || planId === 'custom') ? null : planId,
             custom_plan_value:
               planId === 'custom' && customPlanValue
@@ -320,6 +323,21 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
               />
               <p className="text-xs text-muted-foreground">
                 Define quantas instâncias de uso (Web) este usuário pode ter. Outros tipos não possuem limite.
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="max-team-members">Limite de funcionários (Equipe)</Label>
+              <Input
+                id="max-team-members"
+                type="number"
+                min={0}
+                max={100}
+                value={maxTeamMembers}
+                onChange={(e) => setMaxTeamMembers(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Define quantos funcionários este usuário pode convidar para sua equipe.
               </p>
             </div>
 
