@@ -5955,7 +5955,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           </div>
         </DialogContent>
       </Dialog>
-      <AgentConfigDialog open={showAgentConfig} onOpenChange={setShowAgentConfig} />
+      {showAgentConfig && <AgentConfigDialog open={showAgentConfig} onOpenChange={setShowAgentConfig} />}
 
       <Dialog open={showWebhookDialog} onOpenChange={setShowWebhookDialog}>
         <DialogContent className="max-w-md">
