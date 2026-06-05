@@ -47,34 +47,26 @@ Deno.serve(async (req) => {
     const origin = req.headers.get("origin") || "https://app.zaplynx.com";
     const inviteUrl = `${origin}/aceitar-convite?token=${inviteToken}`;
 
-    // Best-effort email via Resend
-    const resendKey = Deno.env.get("RESEND_API_KEY");
-    if (resendKey) {
-      const { data: ownerProfile } = await admin.from("profiles").select("full_name, email").eq("id", user.id).maybeSingle();
-      const ownerName = ownerProfile?.full_name || ownerProfile?.email || "sua equipe";
-      
-      console.log(`Sending email to ${email} via Resend...`);
-      
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${resendKey}` },
-        body: JSON.stringify({
-          from: "ZapLynx <pay@zaplynxpro.online>",
-          to: [email],
-          subject: `Você foi convidado para uma equipe`,
-          html: `<p>Olá!</p><p><strong>${ownerName}</strong> convidou você para entrar na equipe dele(a).</p><p><a href="${inviteUrl}" style="background:#111;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Aceitar convite</a></p><p>Ou copie este link: ${inviteUrl}</p>`,
-        }),
-      });
+    // Send invite via Supabase Auth invite
+    console.log(`Inviting ${email} via Supabase Auth...`);
+    const { data: inviteData, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
+      data: {
+        invite_token: inviteToken,
+        team_id: team.id,
+        owner_name: user.email || "sua equipe",
+      },
+      redirectTo: inviteUrl,
+    });
 
-      const resData = await res.json();
-      console.log("Resend response:", JSON.stringify(resData));
-      
-      if (!res.ok) {
-        throw new Error(`Resend error: ${JSON.stringify(resData)}`);
-      }
-    } else {
-      console.warn("RESEND_API_KEY not found");
+    if (inviteErr) {
+      console.error("Supabase invite error:", inviteErr);
+      // If user already exists, we might need to handle it differently 
+      // but inviteUserByEmail usually works for existing users too if they are not confirmed.
+      // If it fails because user exists, we'll return the error to the UI.
+      throw new Error(`Erro ao enviar convite via Supabase: ${inviteErr.message}`);
     }
+
+    console.log("Supabase invite sent successfully:", inviteData.user?.id);
 
     return new Response(JSON.stringify({ ok: true, inviteUrl, invite: inv }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
