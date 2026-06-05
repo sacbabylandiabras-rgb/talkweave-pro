@@ -150,11 +150,8 @@ Deno.serve(async (req) => {
     }).select().single();
     if (invErr) throw invErr;
 
-    const origin = req.headers.get("origin") || "";
-    // Se estiver em produção (zaplynx.com.br) ou se não houver origin, usamos a URL do preview do Lovable para garantir que o link funcione
-    const baseUrl = (origin.includes("zaplynx.com.br") || !origin) 
-      ? "https://9023f990-95c6-410f-8f3b-bb7c314444a5.lovableproject.com" 
-      : origin;
+    // URL fixa do projeto para evitar que o Supabase use o domínio .com.br que ainda não está ativo
+    const baseUrl = "https://9023f990-95c6-410f-8f3b-bb7c314444a5.lovableproject.com";
     const inviteUrl = `${baseUrl}/aceitar-convite?token=${inviteToken}`;
 
     const html = INVITE_EMAIL_HTML
