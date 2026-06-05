@@ -6002,7 +6002,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             <div className="space-y-2">
               <Label>Dias de Remarketing</Label>
               <Select defaultValue="3" onValueChange={(val) => {
-                setNodes(nds => nds.map(n => n.id === "2" ? { ...n, data: { ...n.data, remarketingDays: val } } : n));
+                setNodes(nds => nds.map(n => n.id === "4" ? { ...n, data: { ...n.data, delaySeconds: parseInt(val) * 86400 } } : n));
               }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
