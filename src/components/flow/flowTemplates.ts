@@ -87,7 +87,11 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2"), edge("2", "3")],
+    edges: [
+      edge("1", "4"),
+      edge("4", "2"),
+      edge("2", "3")
+    ],
   },
   // ===== CONTATOS =====
   {
