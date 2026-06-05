@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.58.0";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,203 +8,7 @@ const corsHeaders = {
 };
 
 const INVITE_EMAIL_HTML = `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zaplynx - Convite</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
-            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: #1a1a2e;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(200, 120, 255, 0.2);
-        }
-
-        .email-header {
-            background: linear-gradient(135deg, #2d1b4e 0%, #1a1a2e 100%);
-            padding: 40px 30px;
-            text-align: center;
-            border-bottom: 1px solid rgba(200, 120, 255, 0.2);
-        }
-
-        .logo {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 30px;
-        }
-
-        .logo-icon {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, #c878ff 0%, #9d4edd 100%);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 28px;
-            color: white;
-            box-shadow: 0 8px 20px rgba(200, 120, 255, 0.3);
-        }
-
-        .logo-text {
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: 2px;
-            background: linear-gradient(90deg, #ffffff 0%, #c878ff 50%, #9d4edd 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .email-content {
-            padding: 40px 30px;
-        }
-
-        .greeting {
-            font-size: 28px;
-            font-weight: 700;
-            color: #ffffff;
-            margin-bottom: 15px;
-        }
-
-        .subtitle {
-            font-size: 16px;
-            color: #b0b0b0;
-            margin-bottom: 30px;
-            line-height: 1.6;
-        }
-
-        .message-box {
-            background: rgba(200, 120, 255, 0.08);
-            border-left: 4px solid #c878ff;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-        }
-
-        .message-box p {
-            color: #e0e0e0;
-            font-size: 15px;
-            line-height: 1.6;
-            margin-bottom: 10px;
-        }
-
-        .message-box a {
-            color: #c878ff;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #c878ff 0%, #9d4edd 100%);
-            color: white !important;
-            padding: 14px 40px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 16px;
-            box-shadow: 0 8px 20px rgba(200, 120, 255, 0.3);
-            border: none;
-        }
-
-        .email-footer {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 25px 30px;
-            border-top: 1px solid rgba(200, 120, 255, 0.1);
-            text-align: center;
-        }
-
-        .footer-text {
-            font-size: 13px;
-            color: #808080;
-            line-height: 1.6;
-            margin-bottom: 15px;
-        }
-
-        .footer-text a {
-            color: #c878ff;
-            text-decoration: none;
-        }
-
-        .social-icons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-top: 15px;
-        }
-
-        .social-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: rgba(200, 120, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #c878ff;
-            text-decoration: none;
-        }
-    </style>
-</head>
-<body>
-    <div class="email-container">
-        <div class="email-header">
-            <div class="logo">
-                <div class="logo-icon">⚡</div>
-                <div class="logo-text">ZAPLYNX</div>
-            </div>
-        </div>
-
-        <div class="email-content">
-            <h1 class="greeting">Você foi convidado!</h1>
-            <p class="subtitle">
-                Você foi convidado por {{OWNER_EMAIL}} para se juntar à equipe {{TEAM_NAME}} na plataforma Zaplynx.
-            </p>
-
-            <div class="message-box">
-                <p>
-                    Clique no botão abaixo para aceitar o convite, criar sua senha e começar a usar a plataforma Zaplynx.
-                </p>
-            </div>
-
-            <a href="{{INVITE_URL}}" class="cta-button">
-                ACEITAR CONVITE
-            </a>
-        </div>
-
-        <div class="email-footer">
-            <p class="footer-text">
-                Este é um email automático da Zaplynx. Por favor, não responda diretamente a este email.<br>
-                <a href="#">Política de Privacidade</a> • <a href="#">Termos de Serviço</a>
-            </p>
-            <p class="footer-text" style="margin-top: 15px; font-size: 12px;">
-                © 2025 Zaplynx. Todos os direitos reservados.
-            </p>
-        </div>
-    </div>
-</body>
-</html>
+<!DOCTYPE html> <html lang="pt-BR"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Zaplynx - Convite</title> </head> <body style="margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #f5f5f5;"> <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;"> <!-- HEADER --> <tr> <td style="background-color: #2d1b4e; padding: 40px 30px; text-align: center; border-bottom: 2px solid #c878ff;"> <!-- Logo --> <table width="100%" cellpadding="0" cellspacing="0"> <tr> <td style="text-align: center;"> <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' width='50' height='50'%3E%3Crect x='5' y='5' width='40' height='40' rx='10' fill='%23c878ff'/%3E%3Ctext x='25' y='35' font-size='28' font-weight='bold' fill='white' text-anchor='middle'%3E⚡%3C/text%3E%3C/svg%3E" alt="Zaplynx" style="width: 50px; height: 50px; margin-right: 12px; vertical-align: middle; display: inline-block;"> <span style="font-size: 24px; font-weight: bold; color: #ffffff; letter-spacing: 2px; vertical-align: middle; display: inline-block;">ZAPLYNX</span> </td> </tr> </table> </td> </tr> <!-- CONTENT --> <tr> <td style="background-color: #1a1a2e; padding: 40px 30px; color: #ffffff;"> <!-- Heading --> <h1 style="margin: 0 0 15px 0; font-size: 28px; font-weight: bold; color: #ffffff;"> Você foi convidado! </h1> <!-- Subtitle --> <p style="margin: 0 0 30px 0; font-size: 16px; color: #b0b0b0; line-height: 1.6;"> Você foi convidado para criar uma conta na plataforma Zaplynx. </p> <!-- Message Box --> <div style="background-color: rgba(200, 120, 255, 0.08); border-left: 4px solid #c878ff; padding: 20px; margin-bottom: 30px;"> <p style="margin: 0 0 15px 0; font-size: 15px; color: #e0e0e0; line-height: 1.6;"> Clique no link abaixo para aceitar o convite e começar a usar a plataforma Zaplynx. Acesso rápido e seguro para suas necessidades. </p> <p style="margin: 0; font-size: 15px;"> <a href="{{INVITE_URL}}" style="color: #c878ff; text-decoration: none; font-weight: bold;">Aceitar convite →</a> </p> </div> <!-- CTA Button --> <table cellpadding="0" cellspacing="0" style="margin: 30px 0;"> <tr> <td style="background-color: #c878ff; padding: 14px 40px; border-radius: 8px; text-align: center;"> <a href="{{INVITE_URL}}" style="color: white; text-decoration: none; font-weight: bold; font-size: 16px; display: block;"> ACEITAR CONVITE </a> </td> </tr> </table> </td> </tr> <!-- FOOTER --> <tr> <td style="background-color: #0a0a14; padding: 25px 30px; border-top: 1px solid rgba(200, 120, 255, 0.2); text-align: center;"> <!-- Footer Text --> <p style="margin: 0 0 10px 0; font-size: 13px; color: #808080; line-height: 1.6;"> Este é um email automático da Zaplynx. Por favor, não responda diretamente a este email.<br> <a href="#" style="color: #c878ff; text-decoration: none;">Política de Privacidade</a> • <a href="#" style="color: #c878ff; text-decoration: none;">Termos de Serviço</a> </p> <!-- Social Icons --> <table cellpadding="0" cellspacing="0" style="margin: 15px auto; text-align: center;"> <tr> <td style="padding: 0 8px;"> <a href="#" style="display: inline-block; width: 32px; height: 32px; background-color: rgba(200, 120, 255, 0.1); border-radius: 50%; text-align: center; line-height: 32px; color: #c878ff; text-decoration: none; font-weight: bold;">f</a> </td> <td style="padding: 0 8px;"> <a href="#" style="display: inline-block; width: 32px; height: 32px; background-color: rgba(200, 120, 255, 0.1); border-radius: 50%; text-align: center; line-height: 32px; color: #c878ff; text-decoration: none; font-weight: bold;">𝕏</a> </td> <td style="padding: 0 8px;"> <a href="#" style="display: inline-block; width: 32px; height: 32px; background-color: rgba(200, 120, 255, 0.1); border-radius: 50%; text-align: center; line-height: 32px; color: #c878ff; text-decoration: none; font-weight: bold;">📷</a> </td> <td style="padding: 0 8px;"> <a href="#" style="display: inline-block; width: 32px; height: 32px; background-color: rgba(200, 120, 255, 0.1); border-radius: 50%; text-align: center; line-height: 32px; color: #c878ff; text-decoration: none; font-weight: bold;">in</a> </td> </tr> </table> <!-- Copyright --> <p style="margin: 15px 0 0 0; font-size: 12px; color: #606060;"> © 2025 Zaplynx. Todos os direitos reservados. </p> </td> </tr> </table> </body> </html>
 `;
 
 Deno.serve(async (req) => {
@@ -213,51 +18,40 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace("Bearer ", "");
-    const userClient = createClient(supabaseUrl, serviceKey);
-    const {
-      data: { user },
-    } = await userClient.auth.getUser(token);
-    if (!user)
+    
+    const adminClient = createClient(supabaseUrl, serviceKey);
+    
+    const { data: { user }, error: userError } = await adminClient.auth.getUser(token);
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
 
-    const admin = createClient(supabaseUrl, serviceKey);
     const body = await req.json();
-    const email = String(body.email || "")
-      .trim()
-      .toLowerCase();
+    const email = String(body.email || "").trim().toLowerCase();
     const roleId = body.roleId || null;
     const allowedInstanceIds = Array.isArray(body.allowedInstanceIds) ? body.allowedInstanceIds : [];
-    if (!email)
+
+    if (!email) {
       return new Response(JSON.stringify({ error: "Email obrigatório" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
 
-    let { data: team } = await admin.from("teams").select("*").eq("owner_id", user.id).maybeSingle();
+    // 1. Garantir que o time existe
+    let { data: team } = await adminClient.from("teams").select("*").eq("owner_id", user.id).maybeSingle();
     if (!team) {
-      const ins = await admin.from("teams").insert({ owner_id: user.id, name: "Minha equipe" }).select().single();
-      team = ins.data;
+      const { data: newTeam, error: teamErr } = await adminClient.from("teams").insert({ owner_id: user.id, name: "Minha equipe" }).select().single();
+      if (teamErr) throw teamErr;
+      team = newTeam;
     }
 
-    const { data: existingProfile } = await admin.from("profiles").select("id").eq("email", email).maybeSingle();
-    if (existingProfile) {
-      const { data: existingMember } = await admin
-        .from("pipeline_members")
-        .select("id")
-        .eq("user_id", existingProfile.id)
-        .maybeSingle();
-      if (existingMember)
-        return new Response(JSON.stringify({ error: "Este email já faz parte de uma equipe." }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-    }
-
+    // 2. Gerar Token de Convite para o banco de dados
     const inviteToken = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
-    const { data: inv, error: invErr } = await admin
+    const { data: inv, error: invErr } = await adminClient
       .from("team_invites")
       .insert({
         team_id: team.id,
@@ -270,55 +64,87 @@ Deno.serve(async (req) => {
       .single();
     if (invErr) throw invErr;
 
+    // 3. Gerar Link de Convite do Supabase Auth
     const origin = req.headers.get("origin") || "https://zaplynx.com";
-    const baseUrl = origin.includes("lovable.app") ? "https://zaplynx.com" : origin;
-    const inviteUrl = `${baseUrl}/aceitar-convite?token=${inviteToken}`;
+    const baseUrl = origin.includes("lovable.app") || origin.includes("localhost") ? "https://zaplynx.com" : origin;
+    const redirectTo = `${baseUrl}/aceitar-convite?token=${inviteToken}`;
 
-    const { data: inviteData, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
-      data: {
-        invite_token: inviteToken,
-        team_id: team.id,
-        owner_name: user.email || "sua equipe",
-      },
-      redirectTo: inviteUrl,
+    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+      type: 'invite',
+      email: email,
+      options: { redirectTo }
     });
 
-    if (inviteErr) {
-      if (
-        inviteErr.status === 422 &&
-        (inviteErr.message.includes("already registered") || inviteErr.code === "email_exists")
-      ) {
-        console.log("User already exists. Sending Magic Link using Supabase Auth...");
+    if (linkError) {
+      console.error("Erro ao gerar link:", linkError);
+      throw new Error(`Erro ao gerar link: ${linkError.message}`);
+    }
 
-        // Se o usuário já existe, o Supabase não permite "convidar" de novo.
-        // Enviamos um link de login (Magic Link) que levará para a mesma URL de aceite.
-        const { error: otpErr } = await admin.auth.signInWithOtp({
-          email: email,
-          options: {
-            emailRedirectTo: inviteUrl,
-            shouldCreateUser: false,
+    const inviteUrl = linkData.properties.action_link;
+
+    // 4. Preparar HTML do Email
+    const emailHtml = INVITE_EMAIL_HTML.replaceAll("{{INVITE_URL}}", inviteUrl);
+
+    // 5. Enviar Email via SMTP (Supabase/Hostinger)
+    const smtpHost = Deno.env.get("SMTP_HOST") || "smtp.hostinger.com";
+    const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "465");
+    const smtpUser = Deno.env.get("SMTP_USER");
+    const smtpPass = Deno.env.get("SMTP_PASS");
+
+    if (!smtpUser || !smtpPass) {
+      console.error("Configurações SMTP ausentes");
+      // Fallback para Resend se SMTP falhar e Resend estiver disponível
+      const resendApiKey = Deno.env.get("RESEND_API_KEY");
+      if (resendApiKey) {
+        console.log("Tentando enviar via Resend...");
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${resendApiKey}`,
+            "Content-Type": "application/json",
           },
-        });
-
-        if (otpErr) throw otpErr;
-
-        return new Response(
-          JSON.stringify({
-            ok: true,
-            message: "Este usuário já possui conta. Um link de acesso foi enviado.",
-            inviteUrl,
-            invite: inv,
+          body: JSON.stringify({
+            from: "Zaplynx <contato@zaplynx.com>",
+            to: email,
+            subject: "Você foi convidado para o Zaplynx",
+            html: emailHtml,
           }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(`Erro ao enviar via Resend: ${JSON.stringify(err)}`);
+        }
+      } else {
+        throw new Error("Serviço de email não configurado (SMTP ou Resend)");
       }
-      throw new Error(`Erro ao convidar: ${inviteErr.message}`);
+    } else {
+      const client = new SMTPClient({
+        connection: {
+          hostname: smtpHost,
+          port: smtpPort,
+          tls: true,
+          auth: {
+            username: smtpUser,
+            password: smtpPass,
+          },
+        },
+      });
+
+      await client.send({
+        from: `Zaplynx <${smtpUser}>`,
+        to: email,
+        subject: "Você foi convidado para o Zaplynx",
+        html: emailHtml,
+      });
+
+      await client.close();
     }
 
     return new Response(JSON.stringify({ ok: true, inviteUrl, invite: inv }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
+    console.error("Erro na função:", e);
     return new Response(JSON.stringify({ error: e.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
