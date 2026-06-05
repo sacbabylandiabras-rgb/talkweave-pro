@@ -2066,6 +2066,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          boss_email: string | null
           created_at: string
           custom_domain: string | null
           custom_plan_value: number | null
@@ -2093,6 +2094,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          boss_email?: string | null
           created_at?: string
           custom_domain?: string | null
           custom_plan_value?: number | null
@@ -2120,6 +2122,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          boss_email?: string | null
           created_at?: string
           custom_domain?: string | null
           custom_plan_value?: number | null
