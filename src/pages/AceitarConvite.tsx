@@ -40,7 +40,7 @@ export default function AceitarConvite() {
         const { error } = await supabase.auth.signUp({
           email: invite.email,
           password,
-          options: { data: { full_name: name }, emailRedirectTo: `${window.location.origin}/aceitar-convite?token=${token}` },
+          options: { data: { full_name: name }, emailRedirectTo: `${window.location.origin.includes("lovable.app") ? "https://zaplynx.com" : window.location.origin}/aceitar-convite?token=${token}` },
         });
         if (error) throw error;
         // try sign-in (in case email confirmation off)
