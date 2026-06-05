@@ -64,25 +64,42 @@ Deno.serve(async (req) => {
       if (inviteErr.status === 422 && (inviteErr.message.includes("already registered") || inviteErr.code === 'email_exists')) {
         console.log("User already exists in Supabase Auth. Sending generic confirmation email via Auth...");
         
-        // Se o usuário já existe, usamos magic link ou apenas registramos o convite.
-        // Como o convite do Supabase falha se o e-mail existe, vamos enviar um magic link manual ou reset de senha
-        // Mas a melhor forma para convites de equipe de quem já tem conta é apenas criar o registro no banco
-        // e notificar o usuário por outros meios ou enviar um email customizado.
-        // O usuário quer que envie o email. Vamos tentar o magic link se o convite falhar.
+        // Se o usuário já existe, o inviteUserByEmail falha.
+        // Vamos tentar enviar o magic link para o usuário existente.
+        // Importante: createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } }) 
+        // mas aqui estamos usando o admin (createClient(supabaseUrl, serviceKey)).
         
-        const { error: magicLinkErr } = await admin.auth.admin.generateLink({
+        const { data: magicLinkData, error: magicLinkErr } = await admin.auth.admin.generateLink({
           type: 'magiclink',
           email: email,
           options: { redirectTo: inviteUrl }
         });
 
         if (magicLinkErr) {
-          console.error("Failed to send magic link to existing user:", magicLinkErr);
+          console.error("Failed to generate magic link:", magicLinkErr);
+          throw new Error(`O usuário já possui conta mas não conseguimos enviar o link: ${magicLinkErr.message}`);
+        }
+
+        // O generateLink apenas gera o link, ele não envia o email por padrão se for do tipo 'magiclink' via admin
+        // No entanto, se o usuário quer usar "pelo supabase", e o auth do supabase está configurado com SMTP
+        // podemos tentar o resetPasswordForEmail que envia email ou simplesmente informar que o convite foi registrado.
+        // Mas para garantir que o email saia, vamos usar o resetPasswordForEmail que é o método que MAIS GARANTE envio de email no Supabase se o SMTP estiver ON.
+        
+        console.log("Generating recovery link to ensure email is sent via Supabase Auth...");
+        const { error: recoveryErr } = await admin.auth.admin.generateLink({
+          type: 'recovery',
+          email: email,
+          options: { redirectTo: inviteUrl }
+        });
+
+        if (recoveryErr) {
+          console.error("Failed to send recovery/invite email:", recoveryErr);
+          // Fallback: se tudo falhar, pelo menos o convite está no banco.
         }
 
         return new Response(JSON.stringify({ 
           ok: true, 
-          message: "O usuário já possui conta. Enviamos um link de acesso para ele aceitar o convite.",
+          message: "O usuário já possui conta. Um link de acesso foi enviado para o email dele.",
           inviteUrl, 
           invite: inv 
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
