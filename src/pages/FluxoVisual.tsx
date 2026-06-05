@@ -5992,7 +5992,9 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               <Input 
                 placeholder="https://minhaloja.com" 
                 onChange={(e) => {
-                  setNodes(nds => nds.map(n => n.id === "2" ? { ...n, data: { ...n.data, storeUrl: e.target.value } } : n));
+                  const url = e.target.value;
+                  setStoreUrlToImport(url);
+                  setNodes(nds => nds.map(n => n.id === "2" ? { ...n, data: { ...n.data, storeUrl: url } } : n));
                 }}
               />
             </div>
