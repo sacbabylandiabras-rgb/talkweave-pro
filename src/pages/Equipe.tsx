@@ -37,9 +37,7 @@ export default function Equipe() {
   const navigate = useNavigate();
   const { instances } = useZapiInstances();
   const [teamId, setTeamId] = useState<string | null>(null);
-  const [roles, setRoles] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
-  const [invites, setInvites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Dialogs
@@ -67,31 +65,23 @@ export default function Equipe() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    let { data: t } = await (supabase as any).from("teams").select("*").eq("owner_id", user.id).maybeSingle();
+    let { data: t } = await supabase.from("teams").select("*").eq("owner_id", user.id).maybeSingle();
     if (!t) {
-      const { data: created } = await (supabase as any).from("teams").insert({ owner_id: user.id, name: "Minha equipe" }).select().single();
+      const { data: created } = await supabase.from("teams").insert({ owner_id: user.id, name: "Minha equipe" }).select().single();
       t = created;
     }
     setTeamId(t.id);
-    await Promise.all([loadRoles(t.id), loadMembers(t.id), loadInvites(t.id)]);
+    await loadMembers(t.id);
     setLoading(false);
   }
 
-  async function loadRoles(tid: string) {
-    const { data } = await (supabase as any).from("team_roles").select("*").eq("team_id", tid).order("created_at");
-    setRoles(data || []);
-  }
   async function loadMembers(tid: string) {
-    const { data } = await (supabase as any).from("team_members").select("*").eq("team_id", tid).order("created_at");
+    const { data } = await supabase.from("team_members").select("*").eq("team_id", tid).order("created_at");
     if (!data) { setMembers([]); return; }
     const ids = data.map((m: any) => m.user_id);
-    const { data: profs } = await (supabase as any).from("profiles").select("id, email, full_name").in("id", ids);
+    const { data: profs } = await supabase.from("profiles").select("id, email, full_name").in("id", ids);
     const map = new Map((profs || []).map((p: any) => [p.id, p]));
     setMembers(data.map((m: any) => ({ ...m, profile: map.get(m.user_id) })));
-  }
-  async function loadInvites(tid: string) {
-    const { data } = await (supabase as any).from("team_invites").select("*").eq("team_id", tid).is("accepted_at", null).order("created_at", { ascending: false });
-    setInvites(data || []);
   }
 
   async function sendInvite() {
@@ -105,12 +95,12 @@ export default function Equipe() {
     }
     toast({ title: "Convite enviado!", description: `Link: ${(data as any).inviteUrl}` });
     setInviteOpen(false); setInviteEmail(""); setInviteRoleId(""); setInviteInstances([]);
-    if (teamId) loadInvites(teamId);
+    // if (teamId) loadInvites(teamId);
   }
 
   async function cancelInvite(id: string) {
     await (supabase as any).from("team_invites").delete().eq("id", id);
-    if (teamId) loadInvites(teamId);
+    // if (teamId) loadInvites(teamId);
   }
 
   async function resendInvite(inv: any) {
@@ -121,18 +111,18 @@ export default function Equipe() {
 
   async function removeMember(id: string) {
     if (!confirm("Remover funcionário?")) return;
-    await (supabase as any).from("team_members").delete().eq("id", id);
+    await supabase.from("team_members").delete().eq("id", id);
     if (teamId) loadMembers(teamId);
   }
 
   async function toggleMemberStatus(m: any) {
     const next = m.status === "active" ? "suspended" : "active";
-    await (supabase as any).from("team_members").update({ status: next }).eq("id", m.id);
+    await supabase.from("team_members").update({ status: next }).eq("id", m.id);
     if (teamId) loadMembers(teamId);
   }
 
   async function updateMemberRole(id: string, role: string) {
-    await (supabase as any).from("team_members").update({ role }).eq("id", id);
+    await supabase.from("team_members").update({ role }).eq("id", id);
     if (teamId) loadMembers(teamId);
   }
 
@@ -147,20 +137,20 @@ export default function Equipe() {
   async function saveRole() {
     if (!roleName.trim() || !teamId) return;
     if (editingRole) {
-      await (supabase as any).from("team_roles").update({ name: roleName, permissions: rolePerms }).eq("id", editingRole.id);
+      // await supabase.from("team_roles").update({ name: roleName, permissions: rolePerms }).eq("id", editingRole.id);
     } else {
-      await (supabase as any).from("team_roles").insert({ team_id: teamId, name: roleName, permissions: rolePerms });
+      // await supabase.from("team_roles").insert({ team_id: teamId, name: roleName, permissions: rolePerms });
     }
     setRoleOpen(false);
-    if (teamId) loadRoles(teamId);
+    // if (teamId) loadRoles(teamId);
   }
   async function deleteRole(id: string) {
     if (!confirm("Excluir cargo?")) return;
-    await (supabase as any).from("team_roles").delete().eq("id", id);
-    if (teamId) loadRoles(teamId);
+    // await supabase.from("team_roles").delete().eq("id", id);
+    // if (teamId) loadRoles(teamId);
   }
 
-  if (team.loading || loading) return <div className="p-8">Carregando...</div>;
+  if (team.loading || (loading && !teamId)) return <div className="p-8">Carregando...</div>;
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -175,8 +165,8 @@ export default function Equipe() {
       <Tabs defaultValue="members">
         <TabsList>
           <TabsTrigger value="members">Funcionários ({members.length})</TabsTrigger>
-          <TabsTrigger value="invites">Convites pendentes ({invites.length})</TabsTrigger>
-          <TabsTrigger value="roles">Cargos ({roles.length})</TabsTrigger>
+          <TabsTrigger value="invites">Convites pendentes</TabsTrigger>
+          <TabsTrigger value="roles">Cargos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="members" className="space-y-3">
@@ -201,38 +191,11 @@ export default function Equipe() {
         </TabsContent>
 
         <TabsContent value="invites" className="space-y-3">
-          {invites.length === 0 && <p className="text-sm text-muted-foreground">Nenhum convite pendente.</p>}
-          {invites.map((inv) => (
-            <Card key={inv.id}>
-              <CardContent className="p-4 flex items-center gap-3">
-                <Mail className="w-4 h-4 text-muted-foreground" />
-                <div className="flex-1">
-                  <div className="font-medium">{inv.email}</div>
-                  <div className="text-xs text-muted-foreground">Cargo: {inv.role?.name || "Sem cargo"} · expira em {new Date(inv.expires_at).toLocaleDateString()}</div>
-                </div>
-                <Button size="sm" variant="outline" onClick={() => resendInvite(inv)}><RefreshCw className="w-4 h-4 mr-1" />Copiar link</Button>
-                <Button size="sm" variant="ghost" onClick={() => cancelInvite(inv.id)}><Trash2 className="w-4 h-4" /></Button>
-              </CardContent>
-            </Card>
-          ))}
+          <p className="text-sm text-muted-foreground">O sistema de convites está em manutenção.</p>
         </TabsContent>
 
         <TabsContent value="roles" className="space-y-3">
-          <Button size="sm" onClick={openNewRole}><Plus className="w-4 h-4 mr-1" />Novo cargo</Button>
-          {roles.map((r) => (
-            <Card key={r.id}>
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="flex-1">
-                  <div className="font-medium">{r.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {Object.entries(r.permissions || {}).filter(([, v]) => v).map(([k]) => PERMISSION_LABELS[k as PermissionKey] || k).join(", ") || "Sem permissões"}
-                  </div>
-                </div>
-                <Button size="sm" variant="outline" onClick={() => openEditRole(r)}>Editar</Button>
-                <Button size="sm" variant="ghost" onClick={() => deleteRole(r.id)}><Trash2 className="w-4 h-4" /></Button>
-              </CardContent>
-            </Card>
-          ))}
+          <p className="text-sm text-muted-foreground">O gerenciamento de cargos está em manutenção.</p>
         </TabsContent>
       </Tabs>
 
@@ -240,60 +203,9 @@ export default function Equipe() {
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Convidar funcionário</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Email</Label>
-              <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="funcionario@empresa.com" />
-            </div>
-            <div>
-              <Label>Cargo</Label>
-              <Input value={inviteRoleId} onChange={(e) => setInviteRoleId(e.target.value)} placeholder="Ex: Atendente" />
-            </div>
-            <div>
-              <Label className="text-xs">Conexões permitidas (vazio = todas)</Label>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {instances.map((i) => (
-                  <label key={i.id} className="flex items-center gap-1 text-xs border rounded px-2 py-1 cursor-pointer">
-                    <Checkbox checked={inviteInstances.includes(i.id)} onCheckedChange={(v) => {
-                      setInviteInstances((cur) => v ? [...cur, i.id] : cur.filter((x) => x !== i.id));
-                    }} />
-                    {i.instance_name}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
+          <p className="text-sm text-muted-foreground">O sistema de convites está em manutenção temporária.</p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancelar</Button>
-            <Button onClick={sendInvite}>Enviar convite</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Role dialog */}
-      <Dialog open={roleOpen} onOpenChange={setRoleOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editingRole ? "Editar cargo" : "Novo cargo"}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Nome</Label>
-              <Input value={roleName} onChange={(e) => setRoleName(e.target.value)} placeholder="Ex: Atendente" />
-            </div>
-            <div>
-              <Label className="text-xs">Permissões</Label>
-              <div className="grid grid-cols-2 gap-2 mt-1">
-                {PERMISSION_KEYS.map((k) => (
-                  <label key={k} className="flex items-center gap-2 text-sm">
-                    <Checkbox checked={!!rolePerms[k]} onCheckedChange={(v) => setRolePerms((p) => ({ ...p, [k]: !!v }))} />
-                    {PERMISSION_LABELS[k]}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRoleOpen(false)}>Cancelar</Button>
-            <Button onClick={saveRole}>Salvar</Button>
+            <Button variant="outline" onClick={() => setInviteOpen(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
