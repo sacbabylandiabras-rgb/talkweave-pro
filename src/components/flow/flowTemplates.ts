@@ -50,7 +50,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     id: "recuperacao-vendas",
     name: "Recuperação de Vendas",
     description: "Modelo pronto para recuperar carrinhos e pix pendentes usando IA.",
-    icon: RefreshCw,
+    icon: LayoutTemplate,
     color: "text-green-500",
     mode: "contacts",
     isSpecial: true,
