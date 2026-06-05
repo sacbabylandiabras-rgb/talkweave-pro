@@ -8,12 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Trash2, UserPlus, Copy, RefreshCw, Check, X, Shield, Settings2 } from "lucide-react";
+import { Trash2, UserPlus, Copy, RefreshCw, Check, X } from "lucide-react";
 import { useTeam } from "@/contexts/TeamContext";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { useNavigate } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
-import { PERMISSION_KEYS, type PermissionKey } from "@/contexts/TeamContext";
 
 export default function Equipe() {
   const team = useTeam();
@@ -23,14 +22,10 @@ export default function Equipe() {
   const [members, setMembers] = useState<any[]>([]);
   const [invites, setInvites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [operationLoading, setOperationLoading] = useState<string | null>(null);
 
-  // Permissões e Edição
-  const [editOpen, setEditOpen] = useState(false);
-  const [editingMember, setEditingMember] = useState<any>(null);
-  const [editInstances, setEditInstances] = useState<string[]>([]);
-  const [editPermissions, setEditPermissions] = useState<Record<string, boolean>>({});
-  const [savingEdit, setSavingEdit] = useState(false);
+  // Estados de loading para operações individuais
+  const [loadingMemberId, setLoadingMemberId] = useState<string | null>(null);
+  const [loadingInviteId, setLoadingInviteId] = useState<string | null>(null);
 
   // Dialogs
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -43,60 +38,72 @@ export default function Equipe() {
 
   useEffect(() => {
     if (team.loading) return;
+    
+    // Se é um funcionário que não é o proprietário, redirecionar
     if (team.isEmployee && team.ownerId !== team.selfUserId) {
       navigate("/dashboard");
       return;
     }
+    
     void bootstrap();
-  }, [team.loading, team.isEmployee]);
+  }, [team.loading, team.isEmployee, team.ownerId, team.selfUserId, navigate]);
 
   async function bootstrap() {
-    try {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-      let { data: t } = await (supabase as any).from("teams").select("*").eq("owner_id", user.id).maybeSingle();
+    let { data: t } = await (supabase as any).from("teams").select("*").eq("owner_id", user.id).maybeSingle();
+    
+    if (!t) {
+      const { data: created, error } = await (supabase as any).from("teams").insert({ 
+        owner_id: user.id, 
+        name: "Minha equipe" 
+      }).select().single();
       
-      if (!t) {
-        const { data: created, error } = await (supabase as any).from("teams").insert({ 
-          owner_id: user.id, 
-          name: "Minha equipe" 
-        }).select().single();
-        
-        if (error) {
-          console.error("Erro ao criar equipe:", error);
-          setLoading(false);
-          return;
-        }
-        t = created;
+      if (error) {
+        console.error("Erro ao criar equipe:", error);
+        toast({ 
+          title: "Erro", 
+          description: "Não foi possível criar a equipe", 
+          variant: "destructive" 
+        });
+        setLoading(false);
+        return;
       }
-      
-      setTeamId(t.id);
-      await Promise.all([
-        loadMembers(t.id),
-        loadInvites(t.id)
-      ]);
-    } catch (error) {
-      console.error("Erro ao carregar equipe:", error);
-    } finally {
-      setLoading(false);
+      t = created;
     }
+    
+    setTeamId(t.id);
+    await Promise.all([
+      loadMembers(t.id),
+      loadInvites(t.id)
+    ]);
+    setLoading(false);
   }
 
   async function loadMembers(tid: string) {
     try {
-      const { data, error } = await (supabase as any).from("team_members").select(`
-        *,
-        profiles!user_id (
-          id,
-          email,
-          full_name
-        )
-      `).eq("team_id", tid).order("created_at");
+      const { data, error } = await (supabase as any)
+        .from("team_members")
+        .select(`
+          *,
+          profiles!user_id (
+            id,
+            email,
+            full_name
+          )
+        `)
+        .eq("team_id", tid)
+        .order("created_at");
 
       if (error) {
         console.error("Erro ao carregar membros:", error);
+        toast({ 
+          title: "Erro", 
+          description: "Não foi possível carregar os membros", 
+          variant: "destructive" 
+        });
         return;
       }
       setMembers(data || []);
@@ -107,7 +114,8 @@ export default function Equipe() {
 
   async function loadInvites(tid: string) {
     try {
-      const { data, error } = await (supabase as any).from("team_invites")
+      const { data, error } = await (supabase as any)
+        .from("team_invites")
         .select("*")
         .eq("team_id", tid)
         .is("accepted_at", null)
@@ -130,7 +138,6 @@ export default function Equipe() {
     }
 
     try {
-      // Obter o limite do plano do usuário
       const { data: profile } = await supabase
         .from("profiles")
         .select("max_team_members")
@@ -138,8 +145,9 @@ export default function Equipe() {
         .single();
       
       const max = Number((profile as any)?.max_team_members ?? 1);
-
-      if (members.length + invites.length >= max) {
+      
+      // Contar membros ativos + convites pendentes
+      if ((members.length + invites.length) >= max) {
         toast({ 
           title: "Limite atingido", 
           description: `Sua conta permite no máximo ${max} funcionários (incluindo convites pendentes).`,
@@ -150,7 +158,7 @@ export default function Equipe() {
 
       const email = inviteEmail.trim().toLowerCase();
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
+      
       if (!email) {
         toast({ title: "Atenção", description: "Informe o email do funcionário", variant: "destructive" });
         return;
@@ -160,13 +168,13 @@ export default function Equipe() {
         toast({ title: "Atenção", description: "O email informado é inválido", variant: "destructive" });
         return;
       }
-
+      
       setSendingInvite(true);
       const { data, error } = await supabase.functions.invoke("team-invite-send", {
         body: { 
-          email: email,
-          allowedInstanceIds: inviteInstances
-        }
+          email: email, 
+          allowedInstanceIds: inviteInstances 
+        },
       });
 
       if (error || (data as any)?.error) {
@@ -182,9 +190,9 @@ export default function Equipe() {
         title: (data as any)?.message ? "Convite registrado!" : "Convite enviado!", 
         description: (data as any)?.message || "O funcionário receberá um email com as instruções." 
       });
-
-      setInviteOpen(false);
-      setInviteEmail("");
+      
+      setInviteOpen(false); 
+      setInviteEmail(""); 
       setInviteInstances([]);
       if (teamId) await loadInvites(teamId);
     } catch (err) {
@@ -197,25 +205,25 @@ export default function Equipe() {
 
   async function cancelInvite(id: string) {
     if (!confirm("Deseja realmente cancelar este convite?")) return;
-
-    setOperationLoading(id);
+    
+    setLoadingInviteId(id);
     try {
       const { error } = await (supabase as any).from("team_invites").delete().eq("id", id);
       if (error) throw error;
-
+      
       toast({ title: "Sucesso", description: "Convite cancelado" });
       if (teamId) await loadInvites(teamId);
     } catch (err) {
       console.error(err);
       toast({ title: "Erro", description: "Não foi possível cancelar o convite", variant: "destructive" });
     } finally {
-      setOperationLoading(null);
+      setLoadingInviteId(null);
     }
   }
 
   async function copyInviteLink(inv: any) {
     try {
-      const origin = "https://zaplynx.com"; // Ajustado para o domínio do sistema
+      const origin = "https://zaplynx.com";
       const url = `${origin}/aceitar-convite?token=${inv.token}`;
       await navigator.clipboard.writeText(url);
       toast({ title: "Link copiado!", description: "Envie este link para o funcionário." });
@@ -227,91 +235,61 @@ export default function Equipe() {
 
   async function removeMember(id: string) {
     if (!isOwner) {
-      toast({ title: "Erro", description: "Apenas o proprietário pode remover membros", variant: "destructive" });
+      toast({ 
+        title: "Erro", 
+        description: "Apenas o proprietário pode remover membros", 
+        variant: "destructive" 
+      });
       return;
     }
 
     if (!confirm("Deseja remover este funcionário da sua equipe? Ele perderá acesso imediatamente.")) return;
-
-    setOperationLoading(id);
+    
+    setLoadingMemberId(id);
     try {
       const { error } = await (supabase as any).from("team_members").delete().eq("id", id);
       if (error) throw error;
-
+      
       toast({ title: "Sucesso", description: "Funcionário removido" });
       if (teamId) await loadMembers(teamId);
     } catch (err) {
       console.error(err);
       toast({ title: "Erro", description: "Não foi possível remover o funcionário", variant: "destructive" });
     } finally {
-      setOperationLoading(null);
+      setLoadingMemberId(null);
     }
   }
 
   async function toggleMemberStatus(m: any) {
     if (!isOwner) {
-      toast({ title: "Erro", description: "Apenas o proprietário pode alterar status", variant: "destructive" });
+      toast({ 
+        title: "Erro", 
+        description: "Apenas o proprietário pode alterar o status de membros", 
+        variant: "destructive" 
+      });
       return;
     }
 
     const next = m.status === "active" ? "suspended" : "active";
-    setOperationLoading(m.id);
-
+    setLoadingMemberId(m.id);
+    
     try {
-      const { error } = await (supabase as any).from("team_members").update({ status: next }).eq("id", m.id);
-
+      const { error } = await (supabase as any)
+        .from("team_members")
+        .update({ status: next })
+        .eq("id", m.id);
+      
       if (error) throw error;
-
+      
       toast({ title: "Sucesso", description: `Funcionário ${next === "active" ? "ativado" : "suspenso"}` });
       if (teamId) await loadMembers(teamId);
     } catch (err) {
       console.error(err);
       toast({ title: "Erro", description: "Não foi possível alterar o status", variant: "destructive" });
     } finally {
-      setOperationLoading(null);
+      setLoadingMemberId(null);
     }
   }
-
-  const openEditMember = (m: any) => {
-    setEditingMember(m);
-    setEditInstances(m.permissions?.allowed_instance_ids || []);
-    setEditPermissions(m.permissions || {});
-    setEditOpen(true);
-  };
-
-  const saveMemberChanges = async () => {
-    if (!editingMember) return;
-    setSavingEdit(true);
-    try {
-      const newPermissions = {
-        ...editPermissions,
-        allowed_instance_ids: editInstances
-      };
-
-      const { error } = await (supabase as any)
-        .from("team_members")
-        .update({ permissions: newPermissions })
-        .eq("id", editingMember.id);
-
-      if (error) throw error;
-
-      toast({ title: "Sucesso", description: "Permissões atualizadas com sucesso" });
-      setEditOpen(false);
-      if (teamId) await loadMembers(teamId);
-    } catch (err: any) {
-      console.error(err);
-      toast({ title: "Erro", description: err.message || "Erro ao salvar alterações", variant: "destructive" });
-    } finally {
-      setSavingEdit(false);
-    }
-  };
-
-  const togglePermission = (key: string) => {
-    setEditPermissions(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
-  };
 
   if (team.loading || (loading && !teamId)) {
     return (
@@ -365,7 +343,7 @@ export default function Equipe() {
               </CardContent>
             </Card>
           ) : (
-            members.map(m => (
+            members.map((m) => (
               <Card key={m.id} className="overflow-hidden">
                 <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-4">
                   <div className="flex-1">
@@ -379,30 +357,21 @@ export default function Equipe() {
                       {m.profiles?.email || m.invited_email}
                     </div>
                   </div>
-
+                  
                   {isOwner && (
                     <div className="flex items-center gap-2">
                       <Button 
                         size="sm" 
-                        variant="outline"
-                        onClick={() => openEditMember(m)}
-                        title="Configurar Permissões"
-                      >
-                        <Shield className="w-4 h-4 mr-2" />
-                        Permissões
-                      </Button>
-                      <Button 
-                        size="sm" 
                         variant="outline" 
                         onClick={() => toggleMemberStatus(m)}
-                        disabled={operationLoading === m.id}
+                        disabled={loadingMemberId === m.id}
                       >
-                        {operationLoading === m.id ? (
+                        {loadingMemberId === m.id ? (
                           <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        ) : m.status === "active" ? (
-                          <X className="w-4 h-4 mr-2" />
                         ) : (
-                          <Check className="w-4 h-4 mr-2" />
+                          m.status === "active" 
+                            ? <X className="w-4 h-4 mr-2" /> 
+                            : <Check className="w-4 h-4 mr-2" />
                         )}
                         {m.status === "active" ? "Suspender" : "Reativar"}
                       </Button>
@@ -411,7 +380,7 @@ export default function Equipe() {
                         variant="ghost" 
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => removeMember(m.id)}
-                        disabled={operationLoading === m.id}
+                        disabled={loadingMemberId === m.id}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -436,7 +405,7 @@ export default function Equipe() {
               </CardContent>
             </Card>
           ) : (
-            invites.map(inv => (
+            invites.map((inv) => (
               <Card key={inv.id}>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
@@ -449,9 +418,9 @@ export default function Equipe() {
                     <div className="flex items-center gap-2">
                       <Button 
                         size="sm" 
-                        variant="outline"
+                        variant="outline" 
                         onClick={() => copyInviteLink(inv)}
-                        disabled={operationLoading === inv.id}
+                        disabled={loadingInviteId === inv.id}
                       >
                         <Copy className="w-4 h-4 mr-2" />
                         Link
@@ -461,9 +430,9 @@ export default function Equipe() {
                         variant="ghost" 
                         className="text-destructive"
                         onClick={() => cancelInvite(inv.id)}
-                        disabled={operationLoading === inv.id}
+                        disabled={loadingInviteId === inv.id}
                       >
-                        {operationLoading === inv.id ? (
+                        {loadingInviteId === inv.id ? (
                           <RefreshCw className="w-4 h-4 animate-spin" />
                         ) : (
                           <Trash2 className="w-4 h-4" />
@@ -503,7 +472,7 @@ export default function Equipe() {
               <div className="space-y-3">
                 <Label>Instâncias permitidas</Label>
                 <div className="grid grid-cols-1 gap-2 border rounded-md p-3 max-h-[150px] overflow-y-auto">
-                  {instances.map(inst => (
+                  {instances.map((inst) => (
                     <div key={inst.id} className="flex items-center space-x-2">
                       <Checkbox 
                         id={`inst-${inst.id}`} 
@@ -517,8 +486,8 @@ export default function Equipe() {
                         }}
                         disabled={sendingInvite}
                       />
-                      <label
-                        htmlFor={`inst-${inst.id}`}
+                      <label 
+                        htmlFor={`inst-${inst.id}`} 
                         className="text-sm font-medium leading-none cursor-pointer"
                       >
                         {inst.instance_name}
@@ -530,93 +499,23 @@ export default function Equipe() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setInviteOpen(false)} disabled={sendingInvite}>
+            <Button 
+              variant="outline" 
+              onClick={() => setInviteOpen(false)} 
+              disabled={sendingInvite}
+            >
               Cancelar
             </Button>
-            <Button onClick={sendInvite} disabled={sendingInvite || !inviteEmail.trim()}>
+            <Button 
+              onClick={sendInvite} 
+              disabled={sendingInvite || !inviteEmail.trim()}
+            >
               {sendingInvite ? (
                 <RefreshCw className="w-4 h-4 animate-spin mr-2" />
               ) : (
                 <UserPlus className="w-4 h-4 mr-2" />
               )}
               Enviar Convite
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Permissions Dialog */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              Permissões: {editingMember?.profiles?.full_name || editingMember?.invited_email}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-6 py-4">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 font-semibold border-b pb-2">
-                <Settings2 className="w-4 h-4" />
-                Acesso a Funcionalidades
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {PERMISSION_KEYS.map((key) => (
-                  <div key={key} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                    <Label htmlFor={`perm-${key}`} className="flex-1 cursor-pointer capitalize">
-                      {key.replace(/_/g, " ")}
-                    </Label>
-                    <Checkbox
-                      id={`perm-${key}`}
-                      checked={!!editPermissions[key]}
-                      onCheckedChange={() => togglePermission(key)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {instances.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 font-semibold border-b pb-2">
-                  <RefreshCw className="w-4 h-4" />
-                  Instâncias Permitidas
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[200px] overflow-y-auto p-1">
-                  {instances.map(inst => (
-                    <div key={inst.id} className="flex items-center space-x-2 p-2 border rounded-md">
-                      <Checkbox 
-                        id={`edit-inst-${inst.id}`} 
-                        checked={editInstances.includes(inst.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setEditInstances([...editInstances, inst.id]);
-                          } else {
-                            setEditInstances(editInstances.filter(id => id !== inst.id));
-                          }
-                        }}
-                      />
-                      <label
-                        htmlFor={`edit-inst-${inst.id}`}
-                        className="text-sm font-medium leading-none cursor-pointer flex-1"
-                      >
-                        {inst.instance_name}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={savingEdit}>
-              Cancelar
-            </Button>
-            <Button onClick={saveMemberChanges} disabled={savingEdit}>
-              {savingEdit && <RefreshCw className="w-4 h-4 animate-spin mr-2" />}
-              Salvar Alterações
             </Button>
           </DialogFooter>
         </DialogContent>
