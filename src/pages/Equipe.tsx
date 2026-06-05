@@ -128,8 +128,8 @@ export default function Equipe() {
       }
 
       toast({ 
-        title: "Convite enviado!", 
-        description: "O funcionário receberá um email com as instruções." 
+        title: (data as any)?.message ? "Convite registrado!" : "Convite enviado!", 
+        description: (data as any)?.message || "O funcionário receberá um email com as instruções." 
       });
       
       setInviteOpen(false); 
