@@ -191,38 +191,11 @@ export default function Equipe() {
         </TabsContent>
 
         <TabsContent value="invites" className="space-y-3">
-          {invites.length === 0 && <p className="text-sm text-muted-foreground">Nenhum convite pendente.</p>}
-          {invites.map((inv) => (
-            <Card key={inv.id}>
-              <CardContent className="p-4 flex items-center gap-3">
-                <Mail className="w-4 h-4 text-muted-foreground" />
-                <div className="flex-1">
-                  <div className="font-medium">{inv.email}</div>
-                  <div className="text-xs text-muted-foreground">Cargo: {inv.role?.name || "Sem cargo"} · expira em {new Date(inv.expires_at).toLocaleDateString()}</div>
-                </div>
-                <Button size="sm" variant="outline" onClick={() => resendInvite(inv)}><RefreshCw className="w-4 h-4 mr-1" />Copiar link</Button>
-                <Button size="sm" variant="ghost" onClick={() => cancelInvite(inv.id)}><Trash2 className="w-4 h-4" /></Button>
-              </CardContent>
-            </Card>
-          ))}
+          <p className="text-sm text-muted-foreground">O sistema de convites está em manutenção.</p>
         </TabsContent>
 
         <TabsContent value="roles" className="space-y-3">
-          <Button size="sm" onClick={openNewRole}><Plus className="w-4 h-4 mr-1" />Novo cargo</Button>
-          {roles.map((r) => (
-            <Card key={r.id}>
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="flex-1">
-                  <div className="font-medium">{r.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {Object.entries(r.permissions || {}).filter(([, v]) => v).map(([k]) => PERMISSION_LABELS[k as PermissionKey] || k).join(", ") || "Sem permissões"}
-                  </div>
-                </div>
-                <Button size="sm" variant="outline" onClick={() => openEditRole(r)}>Editar</Button>
-                <Button size="sm" variant="ghost" onClick={() => deleteRole(r.id)}><Trash2 className="w-4 h-4" /></Button>
-              </CardContent>
-            </Card>
-          ))}
+          <p className="text-sm text-muted-foreground">O gerenciamento de cargos está em manutenção.</p>
         </TabsContent>
       </Tabs>
 
