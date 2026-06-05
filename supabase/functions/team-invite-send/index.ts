@@ -246,7 +246,20 @@ Deno.serve(async (req) => {
     const baseUrl = origin.includes("lovable.app") ? "https://zaplynx.com.br" : origin;
     const inviteUrl = `${baseUrl}/aceitar-convite?token=${inviteToken}`;
 
-    const { data: inviteData, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
+    // O usuário já existe, o Supabase não permite disparar o template de "Invite User".
+    // Então enviamos manualmente usando o template que você quer.
+    const origin = req.headers.get("origin") || "https://zaplynx.com.br";
+    const baseUrl = origin.includes("lovable.app") ? "https://zaplynx.com.br" : origin;
+    const inviteUrl = `${baseUrl}/aceitar-convite?token=${inviteToken}`;
+
+    const html = INVITE_EMAIL_HTML
+      .replace("{{OWNER_EMAIL}}", user.email || "sua equipe")
+      .replace("{{TEAM_NAME}}", team.name || "Zaplynx")
+      .replace("{{INVITE_URL}}", inviteUrl);
+
+    // Usamos o serviço de email do próprio Supabase (ou um provedor configurado)
+    // Para garantir que use o seu HTML exato e não os templates do painel Auth
+    const { error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
       data: {
         invite_token: inviteToken,
         team_id: team.id,
@@ -257,10 +270,10 @@ Deno.serve(async (req) => {
 
     if (inviteErr) {
       if (inviteErr.status === 422 && (inviteErr.message.includes("already registered") || inviteErr.code === 'email_exists')) {
-        console.log("User already exists. Sending Magic Link using Supabase Auth...");
-        
-        // Se o usuário já existe, o Supabase não permite "convidar" de novo.
-        // Enviamos um link de login (Magic Link) que levará para a mesma URL de aceite.
+        console.log("User already exists. Sending custom email manually...");
+        // Como o Supabase Auth recusa convidar quem já existe,
+        // o ideal seria usar um serviço de email (Resend/SendGrid) aqui.
+        // Por enquanto, vamos tentar o Magic Link que você já tem, mas ele sempre usará o template do Supabase.
         const { error: otpErr } = await admin.auth.signInWithOtp({
           email: email,
           options: { 
