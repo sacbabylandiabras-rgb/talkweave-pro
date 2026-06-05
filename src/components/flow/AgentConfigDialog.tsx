@@ -190,9 +190,8 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0">
-          <ScrollArea className="h-full">
-            <div className="px-6 py-4 pb-10">
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-6 py-4 pb-10">
             <Tabs defaultValue="config" className="w-full">
               <TabsList className="grid w-full grid-cols-4 mb-6">
                 <TabsTrigger value="config" className="flex items-center gap-1.5 text-xs">
