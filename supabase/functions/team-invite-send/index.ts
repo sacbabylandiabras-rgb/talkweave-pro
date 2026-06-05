@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
       }
 
       // Usuário já cadastrado: o Supabase não permite reenviar invite padrão.
-      // Enviamos um magic link pelo próprio Supabase apontando para a tela de aceitar convite.
+      // Enviamos um magic link pelo próprio Supabase.
       const authClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") || serviceKey);
       const { error: magicLinkError } = await authClient.auth.signInWithOtp({
         email,
