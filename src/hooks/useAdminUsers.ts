@@ -18,6 +18,8 @@ export interface UserProfile {
   plan_id: string | null;
   custom_plan_value: number | null;
   max_team_members: number | null;
+  is_employee?: boolean;
+  is_owner?: boolean;
 }
 
 export const useAdminUsers = () => {
@@ -44,7 +46,19 @@ export const useAdminUsers = () => {
 
       if (rolesError) throw rolesError;
 
-      // Combine profiles with roles
+      // Fetch all teams and members to identify owners and employees
+      const { data: teams, error: teamsError } = await supabase
+        .from("teams")
+        .select("owner_id");
+      
+      const { data: teamMembers, error: membersError } = await supabase
+        .from("team_members")
+        .select("user_id");
+
+      const ownersSet = new Set((teams || []).map(t => t.owner_id));
+      const employeesSet = new Set((teamMembers || []).map(m => m.user_id));
+
+      // Combine profiles with roles and team status
       const usersWithRoles: UserProfile[] = (profiles as any[] || []).map((profile: any) => ({
         id: profile.id,
         email: profile.email || "",
@@ -62,7 +76,9 @@ export const useAdminUsers = () => {
         max_team_members: (profile as any).max_team_members ?? null,
         roles: roles
           ?.filter((r) => r.user_id === profile.id)
-          .map((r) => r.role) || []
+          .map((r) => r.role) || [],
+        is_owner: ownersSet.has(profile.id),
+        is_employee: employeesSet.has(profile.id)
       }));
 
       setUsers(usersWithRoles);
