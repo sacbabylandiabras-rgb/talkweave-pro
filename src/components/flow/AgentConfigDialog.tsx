@@ -12,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
-  Bot, Sparkles, Brain, Save, Loader2, Wrench, HelpCircle, FileText, Plus, Trash2, Mic, CheckCircle2, Upload, Globe, Search
+  Bot, Sparkles, Brain, Save, Loader2, Wrench, HelpCircle, FileText, Plus, Trash2, Mic, CheckCircle2, Upload, Globe, Search, Link as LinkIcon
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AgentConfigDialogProps {
   open: boolean;
