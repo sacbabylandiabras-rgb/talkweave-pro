@@ -150,8 +150,11 @@ Deno.serve(async (req) => {
     }).select().single();
     if (invErr) throw invErr;
 
-    const origin = req.headers.get("origin") || "https://zaplynx.com.br";
-    const baseUrl = origin.includes("lovable.app") ? "https://zaplynx.com.br" : origin;
+    const origin = req.headers.get("origin") || "";
+    // Se estiver em produção (zaplynx.com.br) ou se não houver origin, usamos a URL do preview do Lovable para garantir que o link funcione
+    const baseUrl = (origin.includes("zaplynx.com.br") || !origin) 
+      ? "https://9023f990-95c6-410f-8f3b-bb7c314444a5.lovableproject.com" 
+      : origin;
     const inviteUrl = `${baseUrl}/aceitar-convite?token=${inviteToken}`;
 
     const html = INVITE_EMAIL_HTML
