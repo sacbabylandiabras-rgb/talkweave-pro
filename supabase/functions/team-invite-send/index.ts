@@ -64,42 +64,8 @@ Deno.serve(async (req) => {
       .single();
     if (invErr) throw invErr;
 
-    // 3. Gerar Link de Convite do Supabase Auth
-    const origin = req.headers.get("origin") || "https://zaplynx.com";
-    const baseUrl = origin.includes("lovable.app") || origin.includes("localhost") ? "https://zaplynx.com" : origin;
-    const redirectTo = `${baseUrl}/aceitar-convite?token=${inviteToken}`;
-
-    let inviteUrl = "";
-    
-    // Tentar gerar link de convite
-    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-      type: 'invite',
-      email: email,
-      options: { redirectTo }
-    });
-
-    if (linkError) {
-      // Se o usuário já existe, geramos um link de "magic link" (ou recovery) que aponta para o mesmo lugar
-      if (linkError.status === 422 || linkError.message.includes("already registered")) {
-        console.log("Usuário já existe, gerando magic link de acesso...");
-        const { data: otpData, error: otpError } = await adminClient.auth.admin.generateLink({
-          type: 'magiclink',
-          email: email,
-          options: { redirectTo }
-        });
-        
-        if (otpError) {
-          console.error("Erro ao gerar link alternativo:", otpError);
-          throw new Error(`Erro ao gerar link: ${otpError.message}`);
-        }
-        inviteUrl = otpData.properties.action_link;
-      } else {
-        console.error("Erro ao gerar link:", linkError);
-        throw new Error(`Erro ao gerar link: ${linkError.message}`);
-      }
-    } else {
-      inviteUrl = linkData.properties.action_link;
-    }
+    // 3. Link direto do convite no domínio correto, sem URL de verificação do Supabase
+    const inviteUrl = `https://zaplynx.com/aceitar-convite?token=${inviteToken}`;
 
     // 4. Preparar HTML do Email
     const emailHtml = INVITE_EMAIL_HTML.replaceAll("{{INVITE_URL}}", inviteUrl);
@@ -111,31 +77,7 @@ Deno.serve(async (req) => {
     const smtpPass = Deno.env.get("SMTP_PASS");
 
     if (!smtpUser || !smtpPass) {
-      console.error("Configurações SMTP ausentes");
-      // Fallback para Resend se SMTP falhar e Resend estiver disponível
-      const resendApiKey = Deno.env.get("RESEND_API_KEY");
-      if (resendApiKey) {
-        console.log("Tentando enviar via Resend...");
-        const res = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${resendApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: "Zaplynx <contato@zaplynx.com>",
-            to: email,
-            subject: "Você foi convidado para o Zaplynx",
-            html: emailHtml,
-          }),
-        });
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(`Erro ao enviar via Resend: ${JSON.stringify(err)}`);
-        }
-      } else {
-        throw new Error("Serviço de email não configurado (SMTP ou Resend)");
-      }
+      throw new Error("Serviço de email SMTP não configurado");
     } else {
       const client = new SMTPClient({
         connection: {
