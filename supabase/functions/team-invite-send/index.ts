@@ -44,8 +44,10 @@ Deno.serve(async (req) => {
     }).select().single();
     if (invErr) throw invErr;
 
-    const origin = req.headers.get("origin") || "https://app.zaplynx.com";
-    const inviteUrl = `${origin}/aceitar-convite?token=${inviteToken}`;
+    // Use zaplynx.com as the default domain as requested by the user
+    const origin = req.headers.get("origin") || "https://zaplynx.com";
+    const baseUrl = origin.includes("lovable.app") ? "https://zaplynx.com" : origin;
+    const inviteUrl = `${baseUrl}/aceitar-convite?token=${inviteToken}`;
 
     // Send invite via Supabase Auth invite
     console.log(`Inviting ${email} via Supabase Auth...`);
