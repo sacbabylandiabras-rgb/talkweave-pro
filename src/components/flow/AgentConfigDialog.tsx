@@ -12,16 +12,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
-  Bot, Sparkles, Brain, Save, Loader2, Wrench, HelpCircle, FileText, Plus, Trash2, Mic, CheckCircle2, Upload, Globe, Search
+  Bot, Sparkles, Brain, Save, Loader2, Wrench, HelpCircle, FileText, Plus, Trash2, Mic, CheckCircle2, Upload, Globe, Search, Link as LinkIcon
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AgentConfigDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  autoImportUrl?: string;
+  onImportComplete?: () => void;
 }
 
-export function AgentConfigDialog({ open, onOpenChange }: AgentConfigDialogProps) {
+export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportComplete }: AgentConfigDialogProps) {
   const { config, knowledge, loading, saving, saveConfig, addFaq, addDocument, removeKnowledge } = useAgentConfig();
   const { tools, unavailable: toolsUnavailable, toggle: toggleTool } = useAgentTools();
 
@@ -46,6 +49,67 @@ export function AgentConfigDialog({ open, onOpenChange }: AgentConfigDialogProps
   // Document form
   const [docTitle, setDocTitle] = useState("");
   const [docContent, setDocContent] = useState("");
+
+  // URL Import state
+  const [urlInput, setUrlInput] = useState("");
+  const [urlLoading, setUrlLoading] = useState(false);
+
+  useEffect(() => {
+    if (open && autoImportUrl) {
+      setUrlInput(autoImportUrl);
+    }
+  }, [open, autoImportUrl]);
+
+  useEffect(() => {
+    const triggerAutoImport = async () => {
+      if (open && autoImportUrl && !loading && urlInput === autoImportUrl && !urlLoading) {
+        const alreadyHasUrl = knowledge.some(k => k.title?.includes(autoImportUrl) || k.content?.includes(autoImportUrl));
+        if (!alreadyHasUrl) {
+          handleImportUrl(autoImportUrl);
+        }
+      }
+    };
+    triggerAutoImport();
+  }, [open, loading, knowledge, autoImportUrl, urlInput, urlLoading]);
+
+  const handleImportUrl = async (urlToImport?: string) => {
+    const url = urlToImport || urlInput;
+    if (!url.trim() || urlLoading) return;
+    
+    setUrlLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("scrape-url", {
+        body: { url: url },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const title = data.title || url;
+      const content = data.content;
+      if (!content || content.length < 10) {
+        toast.error("Conteúdo insuficiente na URL");
+        return;
+      }
+      
+      await addDocument(`🌐 ${title}`, content);
+      
+      if (autoImportUrl) {
+        const newServicePrompt = `Use as informações deste site para atender os clientes: ${title}\n\nConteúdo principal: ${content.substring(0, 800)}...`;
+        await saveConfig({
+          prompt_service: newServicePrompt,
+          active: true
+        });
+        onImportComplete?.();
+      }
+
+      setUrlInput("");
+      toast.success("Site importado com sucesso!");
+    } catch (err: any) {
+      toast.error("Erro ao importar: " + err.message);
+    } finally {
+      setUrlLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading) {

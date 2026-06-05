@@ -750,6 +750,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [showAgentConfig, setShowAgentConfig] = useState(false);
   const [showWebhookDialog, setShowWebhookDialog] = useState(false);
   const [currentWebhookUrl, setCurrentWebhookUrl] = useState("");
+  const [storeUrlToImport, setStoreUrlToImport] = useState("");
   const [isSpecialRecoveryFlow, setIsSpecialRecoveryFlow] = useState(false);
 
   // Quando true, o diálogo de seleção é apenas para escolher grupos antes
@@ -5955,7 +5956,14 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           </div>
         </DialogContent>
       </Dialog>
-      {showAgentConfig && <AgentConfigDialog open={showAgentConfig} onOpenChange={setShowAgentConfig} />}
+      {showAgentConfig && (
+        <AgentConfigDialog 
+          open={showAgentConfig} 
+          onOpenChange={setShowAgentConfig} 
+          autoImportUrl={storeUrlToImport}
+          onImportComplete={() => setStoreUrlToImport("")}
+        />
+      )}
 
       <Dialog open={showWebhookDialog} onOpenChange={setShowWebhookDialog}>
         <DialogContent className="max-w-md">
@@ -5984,7 +5992,9 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               <Input 
                 placeholder="https://minhaloja.com" 
                 onChange={(e) => {
-                  setNodes(nds => nds.map(n => n.id === "2" ? { ...n, data: { ...n.data, storeUrl: e.target.value } } : n));
+                  const url = e.target.value;
+                  setStoreUrlToImport(url);
+                  setNodes(nds => nds.map(n => n.id === "2" ? { ...n, data: { ...n.data, storeUrl: url } } : n));
                 }}
               />
             </div>
@@ -5992,7 +6002,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             <div className="space-y-2">
               <Label>Dias de Remarketing</Label>
               <Select defaultValue="3" onValueChange={(val) => {
-                setNodes(nds => nds.map(n => n.id === "2" ? { ...n, data: { ...n.data, remarketingDays: val } } : n));
+                setNodes(nds => nds.map(n => n.id === "4" ? { ...n, data: { ...n.data, delaySeconds: parseInt(val) * 86400 } } : n));
               }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
