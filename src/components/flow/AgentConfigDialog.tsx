@@ -24,7 +24,7 @@ interface AgentConfigDialogProps {
   onImportComplete?: () => void;
 }
 
-export function AgentConfigDialog({ open, onOpenChange }: AgentConfigDialogProps) {
+export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportComplete }: AgentConfigDialogProps) {
   const { config, knowledge, loading, saving, saveConfig, addFaq, addDocument, removeKnowledge } = useAgentConfig();
   const { tools, unavailable: toolsUnavailable, toggle: toggleTool } = useAgentTools();
 
