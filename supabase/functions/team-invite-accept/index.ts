@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
       user_id: user.id,
       role: inv.role_id || 'editor',
       status: 'active',
-      permissions: { allowed_instance_ids: inv.allowed_instance_ids || [] }
+      allowed_instance_ids: inv.allowed_instance_ids || []
     });
     if (teamMemErr) console.error("Erro ao inserir em team_members:", teamMemErr);
 
