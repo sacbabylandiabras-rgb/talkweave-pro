@@ -22,13 +22,19 @@ export default function AceitarConvite() {
   useEffect(() => {
     (async () => {
       if (!token) { setLoading(false); return; }
-      const { data } = await supabase.functions.invoke("team-invite-accept", { body: { action: "lookup", token } });
-      const inv = (data as any)?.invite;
-      setInvite(inv);
-      const { data: { user } } = await supabase.auth.getUser();
-      setHasSession(!!user);
-      if (inv && !user) setNeedsSignup(true);
-      setLoading(false);
+      try {
+        const { data, error } = await supabase.functions.invoke("team-invite-accept", { body: { action: "lookup", token } });
+        if (error) console.error("lookup error", error);
+        const inv = (data as any)?.invite;
+        setInvite(inv);
+        const { data: { user } } = await supabase.auth.getUser();
+        setHasSession(!!user);
+        if (inv && !user) setNeedsSignup(true);
+      } catch (e) {
+        console.error("invite lookup failed", e);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [token]);
 

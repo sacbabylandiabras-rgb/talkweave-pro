@@ -17,8 +17,14 @@ Deno.serve(async (req) => {
     const token = String(body.token || "");
     if (!token) return new Response(JSON.stringify({ error: "Token obrigatório" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { data: inv } = await admin.from("team_invites").select("*, team:teams(name, owner_id, owner:profiles!teams_owner_id_fkey(email))").eq("token", token).maybeSingle();
+    const { data: inv, error: invErr } = await admin.from("team_invites").select("*, team:teams(name, owner_id)").eq("token", token).maybeSingle();
+    if (invErr) console.error("invite lookup error", invErr);
     if (!inv) return new Response(JSON.stringify({ error: "Convite não encontrado" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    let ownerEmail = "";
+    if (inv.team?.owner_id) {
+      const { data: ownerProfile } = await admin.from("profiles").select("email").eq("id", inv.team.owner_id).maybeSingle();
+      ownerEmail = ownerProfile?.email || "";
+    }
     if (inv.accepted_at) return new Response(JSON.stringify({ error: "Convite já utilizado" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (new Date(inv.expires_at).getTime() < Date.now()) return new Response(JSON.stringify({ error: "Convite expirado" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
@@ -71,7 +77,6 @@ Deno.serve(async (req) => {
     if (teamMemErr) console.error("Erro ao inserir em team_members:", teamMemErr);
 
     // Update profile with employee tag and boss email
-    const ownerEmail = inv.team?.owner?.email || "";
     console.log(`Updating profile for user ${user.id} with tag and boss email ${ownerEmail}`);
     const { error: profileErr } = await admin.from("profiles").update({
       full_name: user.user_metadata?.full_name || user.email,
