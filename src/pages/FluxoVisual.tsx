@@ -747,6 +747,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [preselectedGroups, setPreselectedGroups] = useState<string[]>([]);
   const [preselectedInstanceIds, setPreselectedInstanceIds] = useState<string[]>([]);
   const [preselectedProvider, setPreselectedProvider] = useState<FlowSendProvider>("zapi");
+  const [showAgentConfig, setShowAgentConfig] = useState(false);
+  const [showWebhookDialog, setShowWebhookDialog] = useState(false);
+  const [currentWebhookUrl, setCurrentWebhookUrl] = useState("");
+  const [isSpecialRecoveryFlow, setIsSpecialRecoveryFlow] = useState(false);
+
   // Quando true, o diálogo de seleção é apenas para escolher grupos antes
   // de abrir o editor (não dispara envio ao confirmar).
   const [isSelectingPreGroups, setIsSelectingPreGroups] = useState(false);
