@@ -31,7 +31,7 @@ export default function Equipe() {
 
   useEffect(() => {
     if (team.loading) return;
-    if (team.isEmployee) {
+    if (team.isEmployee && team.ownerId !== team.selfUserId) {
       navigate("/dashboard");
       return;
     }
