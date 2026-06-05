@@ -246,7 +246,6 @@ Deno.serve(async (req) => {
     const baseUrl = origin.includes("lovable.app") ? "https://zaplynx.com.br" : origin;
     const inviteUrl = `${baseUrl}/aceitar-convite?token=${inviteToken}`;
 
-    console.log(`Inviting ${email} via Supabase Auth...`);
     const { data: inviteData, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
       data: {
         invite_token: inviteToken,
