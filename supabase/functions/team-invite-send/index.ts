@@ -257,17 +257,26 @@ Deno.serve(async (req) => {
 
     if (inviteErr) {
       if (inviteErr.status === 422 && (inviteErr.message.includes("already registered") || inviteErr.code === 'email_exists')) {
-        console.log("User already exists. Using invite template logic for existing user...");
+        console.log("User already exists. Sending Magic Link using Supabase Auth...");
         
-        // When user exists, inviteUserByEmail fails. 
-        // We use the same inviteUserByEmail because it's the only one that uses the "Invite User" template.
-        // However, Supabase Auth doesn't allow re-inviting an already confirmed user easily via admin.inviteUserByEmail to trigger that specific template.
-        // If the user wants the "Invite User" template specifically, we must ensure they are invited.
+        // Se o usuário já existe, o Supabase não permite "convidar" de novo.
+        // Enviamos um link de login (Magic Link) que levará para a mesma URL de aceite.
+        const { error: otpErr } = await admin.auth.signInWithOtp({
+          email: email,
+          options: { 
+            emailRedirectTo: inviteUrl,
+            shouldCreateUser: false 
+          }
+        });
         
+        if (otpErr) throw otpErr;
+
         return new Response(JSON.stringify({ 
-          ok: false, 
-          error: "Este usuário já possui uma conta no sistema e não pode ser convidado novamente como um novo usuário. Tente um e-mail que ainda não tenha conta.",
-        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          ok: true, 
+          message: "Este usuário já possui conta. Um link de acesso foi enviado.",
+          inviteUrl, 
+          invite: inv 
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       throw new Error(`Erro ao convidar: ${inviteErr.message}`);
     }
