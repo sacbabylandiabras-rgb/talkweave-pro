@@ -39,18 +39,26 @@ Deno.serve(async (req) => {
     if (user.id === inv.team.owner_id) {
       return new Response(JSON.stringify({ error: "Você é dono desta equipe" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const { data: existing } = await admin.from("pipeline_members").select("id").eq("user_id", user.id).maybeSingle();
+    const { data: existing } = await admin.from("pipeline_members").select("user_id").eq("user_id", user.id).maybeSingle();
     if (existing) return new Response(JSON.stringify({ error: "Você já está em uma equipe" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+    // Buscar o pipeline padrão do dono da equipe
+    const { data: pipeline } = await admin.from("pipelines").select("id").eq("owner_id", inv.team.owner_id).limit(1).maybeSingle();
+    if (!pipeline) throw new Error("Pipeline da equipe não encontrado");
+
+    console.log(`Inserting member: user_id=${user.id}, team_id=${inv.team_id}, pipeline_id=${pipeline.id}`);
+    
     const { error: insErr } = await admin.from("pipeline_members").insert({
       team_id: inv.team_id,
       user_id: user.id,
-      role_id: inv.role_id,
-      allowed_instance_ids: inv.allowed_instance_ids || [],
-      status: "active",
-      invited_email: inv.email,
+      pipeline_id: pipeline.id,
+      role: inv.role_id || 'member'
     });
-    if (insErr) throw insErr;
+
+    if (insErr) {
+      console.error("Erro ao inserir em pipeline_members:", insErr);
+      throw insErr;
+    }
     await admin.from("team_invites").update({ accepted_at: new Date().toISOString() }).eq("id", inv.id);
 
     return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
