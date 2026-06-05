@@ -274,6 +274,7 @@ export function AgentConfigDialog({ open, onOpenChange }: AgentConfigDialogProps
                 </Card>
               </TabsContent>
             </Tabs>
+            </div>
           </ScrollArea>
         </div>
       </DialogContent>
