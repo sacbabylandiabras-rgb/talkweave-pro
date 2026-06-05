@@ -1,41 +1,30 @@
-# Plan: Complete Overhaul of Mercado Livre Affiliate System
+I will implement a "Sales Recovery" (Recuperação de Vendas) template in the Visual Flow builder. This template will include a series of steps to guide the user: first showing the webhook for Zaplynx integration, then asking for store details and remarketing preferences, and finally opening a configuration dialog for AI Agents (mirroring the /agente-ia settings).
 
-I will completely rewrite the Mercado Livre affiliate integration to ensure it follows the official API documentation while maintaining high reliability through robust fallbacks. The current system has issues with products not appearing and potential OAuth session conflicts.
+### Changes
 
-## Technical Details
+#### 1. Visual Flow Templates
+- Add a new template "Recuperação de Vendas" to `src/components/flow/flowTemplates.ts`.
+- This template will pre-configure nodes for:
+    - **Gateway Trigger**: A webhook node configured for checkout events.
+    - **Data Capture**: Asking for the store/landing page URL.
+    - **Decision/Parameter**: Asking for remarketing days.
+    - **AI Agent**: A node to process the recovery.
 
-### 1. Edge Function Overhaul
-*   **mercadolivre-oauth-start**: Enhanced to include more aggressive session invalidation (`prompt=login`) and correct redirect URIs as per ML docs.
-*   **mercadolivre-oauth-callback**: Fixed to properly extract and store the `affiliate_source_id` (tag) which is required for official link generation.
-*   **mercadolivre-search-products**: Complete rewrite of the search logic.
-    *   Prioritize official `/sites/MLB/search` API with proper authorization.
-    *   Use `/items` multiget for enriched product data (high-quality images, accurate pricing).
-    *   **Official Link Generation**: Use the `affiliate-program/v1/links` endpoint to generate official `mercadolivre.com/sec/` shortlinks if a `source_id` is available.
-    *   **Robust Fallback**: If the API fails or returns no results, use a modernized scraping logic that mimics a real browser to fetch current deals from the public site.
-*   **mercadolivre-connection-status**: Ensure it correctly reports connection health and account details.
+#### 2. AI Agent Configuration Dialog
+- Create a new component `src/components/flow/AgentConfigDialog.tsx` that replicates the core UI from `src/pages/AgenteIA.tsx` (Personality, Knowledge, Tools).
+- This dialog will allow users to configure the AI agent directly within the Visual Flow editor.
+- Changes made here will sync with the global AI Agent configuration via the `useAgentConfig` hook patterns.
 
-### 2. Frontend Overhaul (Afiliados.tsx)
-*   **Search Engine**: Improved search logic with better category handling.
-*   **Loading States**: More granular feedback for the user during long searches or connection attempts.
-*   **Link Handling**: Ensure generated links are correctly tracked and wrapped.
-*   **UI/UX**: Refine the product grid and selection process.
+#### 3. Visual Flow Editor Integration
+- Update `src/pages/FluxoVisual.tsx` to handle the specific requirements of the Sales Recovery template.
+- When the "Recuperação de Vendas" template is selected, it will trigger a guided setup flow.
+- Add a state to show the "Zaplynx Webhook" information specifically for this template.
+- Integrate the new `AgentConfigDialog` to be accessible from the flow editor.
 
-### 3. Database Schema
-*   Verify `ml_affiliate_link_cache` exists to optimize link generation and stay within API rate limits.
+#### 4. Webhook Information
+- Update the `BlocoGatewayTriggerNode.tsx` or create a specific variant to easily show the webhook URL (likely using a project-specific identifier).
 
----
-
-## Technical section
-
-### Modified Files
-*   `supabase/functions/mercadolivre-search-products/index.ts`
-*   `supabase/functions/mercadolivre-oauth-callback/index.ts`
-*   `supabase/functions/mercadolivre-oauth-start/index.ts`
-*   `src/pages/Afiliados.tsx`
-
-### API Reference
-Using [Mercado Livre API Docs](https://developers.mercadolivre.com.br/pt_br/api-docs-pt-br) for:
-*   OAuth 2.0 flow
-*   Search API (`/sites/MLB/search`)
-*   Items API (`/items`)
-*   Affiliate Program API (`/affiliate-program/v1/links`)
+### Technical Details
+- **Syncing**: The `AgentConfigDialog` will use the same `useAgentConfig` and `useAgentTools` hooks as the `/agente-ia` page, ensuring that changes are persisted to the `agent_config` and `agent_knowledge` tables.
+- **Node Data**: Store/Remarketing parameters will be saved in the node data of the respective blocks in the flow.
+- **Webhook URL**: I will construct the webhook URL based on the Supabase project ID and a standard endpoint (e.g., `https://[project].supabase.co/functions/v1/gateway-webhook`).

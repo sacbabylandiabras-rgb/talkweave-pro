@@ -11,6 +11,8 @@ import {
   Rocket,
   CalendarDays,
   BarChart3,
+  RefreshCw,
+  LayoutTemplate,
 } from "lucide-react";
 
 export interface FlowTemplate {
@@ -23,6 +25,7 @@ export interface FlowTemplate {
   nodes: Node[];
   edges: Edge[];
   suggestedKeyword?: string;
+  isSpecial?: boolean;
 }
 
 const baseInicial: Node = {
@@ -42,6 +45,50 @@ const edge = (source: string, target: string, sourceHandle?: string): Edge => ({
 });
 
 export const FLOW_TEMPLATES: FlowTemplate[] = [
+  // ===== ESPECIAL =====
+  {
+    id: "recuperacao-vendas",
+    name: "Recuperação de Vendas",
+    description: "Modelo pronto para recuperar carrinhos e pix pendentes usando IA.",
+    icon: LayoutTemplate,
+    color: "text-green-500",
+    mode: "contacts",
+    isSpecial: true,
+    nodes: [
+      {
+        id: "1",
+        type: "blocoGatilho",
+        position: { x: 250, y: 50 },
+        data: { 
+          label: "Checkout Webhook", 
+          description: "Recebe eventos do seu checkout (Hotmart, Kiwify, etc)",
+          isWebhook: true 
+        },
+      },
+      {
+        id: "2",
+        type: "blocoConteudo",
+        position: { x: 250, y: 220 },
+        data: {
+          label: "Coletar Dados",
+          contentType: "text",
+          content: "Olá! Vi que você tentou comprar em nossa loja. Qual o seu melhor e-mail para eu te enviar um cupom?",
+          captureEmail: true,
+        },
+      },
+      {
+        id: "3",
+        type: "agenteIA",
+        position: { x: 250, y: 400 },
+        data: {
+          label: "Agente de Recuperação",
+          model: "claude-sonnet-4-5-20250929",
+          prompt: "Você é um especialista em recuperação de vendas. Seu objetivo é ajudar o cliente a concluir a compra, tirando dúvidas e oferecendo suporte.",
+        },
+      },
+    ],
+    edges: [edge("1", "2"), edge("2", "3")],
+  },
   // ===== CONTATOS =====
   {
     id: "boas-vindas",

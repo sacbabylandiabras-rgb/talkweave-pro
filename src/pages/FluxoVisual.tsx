@@ -37,6 +37,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -65,6 +66,7 @@ import { ExpertIAEditor } from "@/components/flow/ExpertIAEditor";
 import { LeaderIAEditor } from "@/components/flow/LeaderIAEditor";
 import { AtualizarLeadEditor } from "@/components/flow/AtualizarLeadEditor";
 import { CriarRegistroCrmEditor } from "@/components/flow/CriarRegistroCrmEditor";
+import { AgentConfigDialog } from "@/components/flow/AgentConfigDialog";
 import {
   PlayCircle,
   MessageSquare,
@@ -103,6 +105,8 @@ import {
   Bot,
   Globe,
   ChevronRight,
+  Webhook,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
@@ -743,6 +747,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [preselectedGroups, setPreselectedGroups] = useState<string[]>([]);
   const [preselectedInstanceIds, setPreselectedInstanceIds] = useState<string[]>([]);
   const [preselectedProvider, setPreselectedProvider] = useState<FlowSendProvider>("zapi");
+  const [showAgentConfig, setShowAgentConfig] = useState(false);
+  const [showWebhookDialog, setShowWebhookDialog] = useState(false);
+  const [currentWebhookUrl, setCurrentWebhookUrl] = useState("");
+  const [isSpecialRecoveryFlow, setIsSpecialRecoveryFlow] = useState(false);
+
   // Quando true, o diálogo de seleção é apenas para escolher grupos antes
   // de abrir o editor (não dispara envio ao confirmar).
   const [isSelectingPreGroups, setIsSelectingPreGroups] = useState(false);
@@ -896,9 +905,20 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     setKeywordFluxo(tpl.suggestedKeyword || "");
     setFluxoAtivo(true);
     setCurrentFluxoId(null);
-    setNodes(tpl.nodes);
+    
+    // Create a copy of nodes to avoid modifying the template directly
+    const nodesCopy = JSON.parse(JSON.stringify(tpl.nodes));
+    setNodes(nodesCopy);
     setEdges(tpl.edges);
     setShowTemplatesDialog(false);
+    
+    if (tpl.id === "recuperacao-vendas") {
+      setIsSpecialRecoveryFlow(true);
+      const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID || "sua-url";
+      setCurrentWebhookUrl(`https://${projectId}.supabase.co/functions/v1/gateway-webhook`);
+      setShowWebhookDialog(true);
+    }
+
     toast.success(`Modelo "${tpl.name}" carregado!`);
     proceedAfterTemplateChoice();
   };
@@ -1124,6 +1144,9 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       })
     );
     setIsEditDialogOpen(false);
+    if (selectedNode.type === "agenteIA") {
+      setShowAgentConfig(true);
+    }
     toast.success("Bloco atualizado!");
   };
 
@@ -4918,6 +4941,36 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
             {selectedNode?.type === "blocoGatilho" && (
               <>
+                {selectedNode.data?.isWebhook && (
+                  <div className="space-y-4 mb-4">
+                    <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <Webhook className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm">Integração Webhook</h4>
+                          <p className="text-xs text-muted-foreground">Conecte seu checkout ao Zaplynx</p>
+                        </div>
+                      </div>
+                      <div className="p-2 bg-muted rounded-lg border flex items-center justify-between gap-2 overflow-hidden">
+                        <code className="text-[10px] break-all truncate flex-1">
+                          {`https://${(import.meta as any).env?.VITE_SUPABASE_PROJECT_ID || "sua-url"}.supabase.co/functions/v1/gateway-webhook`}
+                        </code>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => {
+                          const url = `https://${(import.meta as any).env?.VITE_SUPABASE_PROJECT_ID || "sua-url"}.supabase.co/functions/v1/gateway-webhook`;
+                          navigator.clipboard.writeText(url);
+                          toast.success("URL copiada!");
+                        }}>
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        Cole esta URL nas configurações de Webhook do seu checkout (Hotmart, Kiwify, etc).
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {isTelegramMode && (
                   <div className="mb-3">
                     <Label className="text-xs">Tipo de Gatilho</Label>
@@ -5377,6 +5430,48 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                         })
                       }
                     />
+                  );
+                }
+                if (/agente\s*ia/i.test(label) || (selectedNode as any).type === "agenteIA") {
+                  return (
+                    <div className="space-y-4">
+                      <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <Bot className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-sm">Configuração do Agente</h4>
+                            <p className="text-xs text-muted-foreground">Personalize as respostas e o conhecimento da IA</p>
+                          </div>
+                        </div>
+                        <Button 
+                          className="w-full" 
+                          onClick={() => {
+                            setIsEditDialogOpen(false);
+                            setShowAgentConfig(true);
+                          }}
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Abrir Painel do Agente
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Missão / Prompt Específico</Label>
+                        <Textarea
+                          value={selectedNode.data.prompt || ""}
+                          onChange={(e) =>
+                            setSelectedNode({
+                              ...selectedNode,
+                              data: { ...selectedNode.data, prompt: e.target.value },
+                            })
+                          }
+                          placeholder="Instruções específicas para este bloco..."
+                          rows={4}
+                        />
+                      </div>
+                    </div>
                   );
                 }
                 if (/criar\s*registro\s*crm/.test(label)) {
@@ -5860,6 +5955,66 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           </div>
         </DialogContent>
       </Dialog>
+      <AgentConfigDialog open={showAgentConfig} onOpenChange={setShowAgentConfig} />
+
+      <Dialog open={showWebhookDialog} onOpenChange={setShowWebhookDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Webhook className="w-5 h-5 text-primary" />
+              Configurar Webhook Zaplynx
+            </DialogTitle>
+            <DialogDescription>
+              Copie a URL abaixo e cole nas configurações de Webhook do seu checkout (Hotmart, Kiwify, etc).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-muted rounded-lg border flex items-center justify-between gap-2">
+              <code className="text-xs break-all flex-1">{currentWebhookUrl}</code>
+              <Button size="icon" variant="ghost" onClick={() => {
+                navigator.clipboard.writeText(currentWebhookUrl);
+                toast.success("URL copiada!");
+              }}>
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>URL da sua Loja ou Landing Page</Label>
+              <Input 
+                placeholder="https://minhaloja.com" 
+                onChange={(e) => {
+                  setNodes(nds => nds.map(n => n.id === "2" ? { ...n, data: { ...n.data, storeUrl: e.target.value } } : n));
+                }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Dias de Remarketing</Label>
+              <Select defaultValue="3" onValueChange={(val) => {
+                setNodes(nds => nds.map(n => n.id === "2" ? { ...n, data: { ...n.data, remarketingDays: val } } : n));
+              }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 dia</SelectItem>
+                  <SelectItem value="3">3 dias</SelectItem>
+                  <SelectItem value="7">7 dias</SelectItem>
+                  <SelectItem value="15">15 dias</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => {
+              setShowWebhookDialog(false);
+              setShowAgentConfig(true);
+            }}>
+              Configurar Agente IA
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <FlowCapturedDataDialog
         open={showCapturedData}
         onOpenChange={setShowCapturedData}
