@@ -908,6 +908,14 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     setNodes(tpl.nodes);
     setEdges(tpl.edges);
     setShowTemplatesDialog(false);
+    
+    if (tpl.id === "recuperacao-vendas") {
+      setIsSpecialRecoveryFlow(true);
+      const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID || "sua-url";
+      setCurrentWebhookUrl(`https://${projectId}.supabase.co/functions/v1/gateway-webhook`);
+      setShowWebhookDialog(true);
+    }
+
     toast.success(`Modelo "${tpl.name}" carregado!`);
     proceedAfterTemplateChoice();
   };
