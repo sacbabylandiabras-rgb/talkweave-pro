@@ -61,18 +61,21 @@ export function FlowTemplatesDialog({
               </div>
             </Card>
 
-            {templates.map((tpl) => (
+            {templates.sort((a, b) => (b.isSpecial ? 1 : 0) - (a.isSpecial ? 1 : 0)).map((tpl) => (
               <Card
                 key={tpl.id}
                 onClick={() => onSelect(tpl)}
-                className="p-4 cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
+                className={`p-4 cursor-pointer hover:border-primary/50 hover:shadow-md transition-all ${tpl.isSpecial ? 'border-primary/40 bg-primary/5' : ''}`}
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <div className={`w-10 h-10 rounded-lg ${tpl.isSpecial ? 'bg-primary/20' : 'bg-primary/10'} flex items-center justify-center shrink-0`}>
                     <tpl.icon className={`h-5 w-5 ${tpl.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-sm mb-1">{tpl.name}</h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-sm">{tpl.name}</h3>
+                      {tpl.isSpecial && <span className="text-[9px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full uppercase font-bold">Novo</span>}
+                    </div>
                     <p className="text-xs text-muted-foreground line-clamp-2">
                       {tpl.description}
                     </p>
