@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
       team_id: inv.team_id,
       user_id: user.id,
       pipeline_id: pipeline.id,
-      role: inv.role_id || 'member'
+      role: inv.role_id || 'editor'
     });
 
     if (insErr) {
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     const { error: teamMemErr } = await admin.from("team_members").insert({
       team_id: inv.team_id,
       user_id: user.id,
-      role: inv.role_id || 'member',
+      role: inv.role_id || 'editor',
       status: 'active'
     });
     if (teamMemErr) console.error("Erro ao inserir em team_members:", teamMemErr);
@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    console.error("Critical error in team-invite-accept:", e);
+    return new Response(JSON.stringify({ error: e.message }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
