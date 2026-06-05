@@ -105,6 +105,7 @@ const PublicOrder = lazyWithRecovery(() => import("./pages/PublicOrder"));
 import GatewayKycGate from "./components/gateway/GatewayKycGate";
 import AdminRouteGuard from "./components/admin/AdminRouteGuard";
 import { PaidRouteGuard } from "./components/auth/PaidRouteGuard";
+import { AuthGuard } from "./components/auth/AuthGuard";
 const AutomacaoComentarios = lazyWithRecovery(() => import("./pages/instagram/AutomacaoComentarios"));
 const CampanhasInstagram = lazyWithRecovery(() => import("./pages/instagram/CampanhasInstagram"));
 const ContatosInstagram = lazyWithRecovery(() => import("./pages/instagram/ContatosInstagram"));
@@ -198,7 +199,7 @@ const App = () => (
                 <Route path="/shopify/callback" element={<ShopifyEmbedded />} />
                 <Route path="/shopify/embedded" element={<ShopifyEmbedded />} />
                 <Route path="/afiliados/callback/mercadolivre" element={<AfiliadosCallback />} />
-                <Route element={<DashboardLayout />}>
+                <Route element={<AuthGuard><DashboardLayout /></AuthGuard>}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/gateway-checkout/dashboard" element={<KycWrap><PayDashboard /></KycWrap>} />
                   <Route path="/perfil" element={<Perfil />} />
