@@ -140,15 +140,16 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
       let allowedInstanceIds: string[] | null = null;
       try {
         const { data: member } = await (supabase as any)
-          .from('pipeline_members')
-          .select('allowed_instance_ids, status, team:teams(owner_id)')
+          .from('team_members')
+          .select('permissions, status, team:teams(owner_id)')
           .eq('user_id', user.id)
           .eq('status', 'active')
           .maybeSingle();
         if (member?.team?.owner_id) {
           queryUserId = member.team.owner_id;
-          allowedInstanceIds = Array.isArray(member.allowed_instance_ids) && member.allowed_instance_ids.length > 0
-            ? member.allowed_instance_ids : null;
+          const allowedIds = member.permissions?.allowed_instance_ids;
+          allowedInstanceIds = Array.isArray(allowedIds) && allowedIds.length > 0
+            ? allowedIds : null;
         }
       } catch { /* ignore */ }
 

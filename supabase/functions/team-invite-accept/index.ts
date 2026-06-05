@@ -67,12 +67,13 @@ Deno.serve(async (req) => {
     }
 
     // Add to team_members
-    console.log(`Adding user ${user.id} to team_members for team ${inv.team_id}`);
+    console.log(`Adding user ${user.id} to team_members for team ${inv.team_id} with allowed instances:`, inv.allowed_instance_ids);
     const { error: teamMemErr } = await admin.from("team_members").insert({
       team_id: inv.team_id,
       user_id: user.id,
       role: inv.role_id || 'editor',
-      status: 'active'
+      status: 'active',
+      permissions: { allowed_instance_ids: inv.allowed_instance_ids || [] }
     });
     if (teamMemErr) console.error("Erro ao inserir em team_members:", teamMemErr);
 
