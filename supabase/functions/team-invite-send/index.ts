@@ -50,20 +50,30 @@ Deno.serve(async (req) => {
     // Best-effort email via Resend
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (resendKey) {
-      try {
-        const { data: ownerProfile } = await admin.from("profiles").select("full_name, email").eq("id", user.id).maybeSingle();
-        const ownerName = ownerProfile?.full_name || ownerProfile?.email || "sua equipe";
-        await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${resendKey}` },
-          body: JSON.stringify({
-            from: "ZapLynx <pay@zaplynxpro.online>",
-            to: [email],
-            subject: `Você foi convidado para uma equipe`,
-            html: `<p>Olá!</p><p><strong>${ownerName}</strong> convidou você para entrar na equipe dele(a).</p><p><a href="${inviteUrl}" style="background:#111;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Aceitar convite</a></p><p>Ou copie este link: ${inviteUrl}</p>`,
-          }),
-        });
-      } catch (e) { console.error("email send fail", e); }
+      const { data: ownerProfile } = await admin.from("profiles").select("full_name, email").eq("id", user.id).maybeSingle();
+      const ownerName = ownerProfile?.full_name || ownerProfile?.email || "sua equipe";
+      
+      console.log(`Sending email to ${email} via Resend...`);
+      
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${resendKey}` },
+        body: JSON.stringify({
+          from: "ZapLynx <pay@zaplynxpro.online>",
+          to: [email],
+          subject: `Você foi convidado para uma equipe`,
+          html: `<p>Olá!</p><p><strong>${ownerName}</strong> convidou você para entrar na equipe dele(a).</p><p><a href="${inviteUrl}" style="background:#111;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Aceitar convite</a></p><p>Ou copie este link: ${inviteUrl}</p>`,
+        }),
+      });
+
+      const resData = await res.json();
+      console.log("Resend response:", JSON.stringify(resData));
+      
+      if (!res.ok) {
+        throw new Error(`Resend error: ${JSON.stringify(resData)}`);
+      }
+    } else {
+      console.warn("RESEND_API_KEY not found");
     }
 
     return new Response(JSON.stringify({ ok: true, inviteUrl, invite: inv }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
