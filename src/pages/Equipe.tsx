@@ -203,60 +203,9 @@ export default function Equipe() {
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Convidar funcionário</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Email</Label>
-              <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="funcionario@empresa.com" />
-            </div>
-            <div>
-              <Label>Cargo</Label>
-              <Input value={inviteRoleId} onChange={(e) => setInviteRoleId(e.target.value)} placeholder="Ex: Atendente" />
-            </div>
-            <div>
-              <Label className="text-xs">Conexões permitidas (vazio = todas)</Label>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {instances.map((i) => (
-                  <label key={i.id} className="flex items-center gap-1 text-xs border rounded px-2 py-1 cursor-pointer">
-                    <Checkbox checked={inviteInstances.includes(i.id)} onCheckedChange={(v) => {
-                      setInviteInstances((cur) => v ? [...cur, i.id] : cur.filter((x) => x !== i.id));
-                    }} />
-                    {i.instance_name}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
+          <p className="text-sm text-muted-foreground">O sistema de convites está em manutenção temporária.</p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancelar</Button>
-            <Button onClick={sendInvite}>Enviar convite</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Role dialog */}
-      <Dialog open={roleOpen} onOpenChange={setRoleOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editingRole ? "Editar cargo" : "Novo cargo"}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Nome</Label>
-              <Input value={roleName} onChange={(e) => setRoleName(e.target.value)} placeholder="Ex: Atendente" />
-            </div>
-            <div>
-              <Label className="text-xs">Permissões</Label>
-              <div className="grid grid-cols-2 gap-2 mt-1">
-                {PERMISSION_KEYS.map((k) => (
-                  <label key={k} className="flex items-center gap-2 text-sm">
-                    <Checkbox checked={!!rolePerms[k]} onCheckedChange={(v) => setRolePerms((p) => ({ ...p, [k]: !!v }))} />
-                    {PERMISSION_LABELS[k]}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRoleOpen(false)}>Cancelar</Button>
-            <Button onClick={saveRole}>Salvar</Button>
+            <Button variant="outline" onClick={() => setInviteOpen(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
