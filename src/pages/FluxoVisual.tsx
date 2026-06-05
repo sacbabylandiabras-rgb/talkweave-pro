@@ -5429,7 +5429,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     />
                   );
                 }
-                if (/agente\s*ia/i.test(label) || selectedNode.type === "agenteIA") {
+                if (/agente\s*ia/i.test(label) || (selectedNode as any).type === "agenteIA") {
                   return (
                     <div className="space-y-4">
                       <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-3">
