@@ -69,6 +69,9 @@ Deno.serve(async (req) => {
     const baseUrl = origin.includes("lovable.app") || origin.includes("localhost") ? "https://zaplynx.com" : origin;
     const redirectTo = `${baseUrl}/aceitar-convite?token=${inviteToken}`;
 
+    let inviteUrl = "";
+    
+    // Tentar gerar link de convite
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: 'invite',
       email: email,
@@ -76,11 +79,27 @@ Deno.serve(async (req) => {
     });
 
     if (linkError) {
-      console.error("Erro ao gerar link:", linkError);
-      throw new Error(`Erro ao gerar link: ${linkError.message}`);
+      // Se o usuário já existe, geramos um link de "magic link" (ou recovery) que aponta para o mesmo lugar
+      if (linkError.status === 422 || linkError.message.includes("already registered")) {
+        console.log("Usuário já existe, gerando magic link de acesso...");
+        const { data: otpData, error: otpError } = await adminClient.auth.admin.generateLink({
+          type: 'magiclink',
+          email: email,
+          options: { redirectTo }
+        });
+        
+        if (otpError) {
+          console.error("Erro ao gerar link alternativo:", otpError);
+          throw new Error(`Erro ao gerar link: ${otpError.message}`);
+        }
+        inviteUrl = otpData.properties.action_link;
+      } else {
+        console.error("Erro ao gerar link:", linkError);
+        throw new Error(`Erro ao gerar link: ${linkError.message}`);
+      }
+    } else {
+      inviteUrl = linkData.properties.action_link;
     }
-
-    const inviteUrl = linkData.properties.action_link;
 
     // 4. Preparar HTML do Email
     const emailHtml = INVITE_EMAIL_HTML.replaceAll("{{INVITE_URL}}", inviteUrl);
