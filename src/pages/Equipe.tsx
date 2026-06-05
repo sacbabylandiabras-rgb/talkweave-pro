@@ -8,11 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Trash2, UserPlus, Copy, RefreshCw, Check, X } from "lucide-react";
+import { Trash2, UserPlus, Copy, RefreshCw, Check, X, Shield, Settings2 } from "lucide-react";
 import { useTeam } from "@/contexts/TeamContext";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { useNavigate } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
+import { PERMISSION_KEYS, type PermissionKey } from "@/contexts/TeamContext";
 
 export default function Equipe() {
   const team = useTeam();
@@ -23,6 +24,13 @@ export default function Equipe() {
   const [invites, setInvites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [operationLoading, setOperationLoading] = useState<string | null>(null);
+
+  // Permissões e Edição
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<any>(null);
+  const [editInstances, setEditInstances] = useState<string[]>([]);
+  const [editPermissions, setEditPermissions] = useState<Record<string, boolean>>({});
+  const [savingEdit, setSavingEdit] = useState(false);
 
   // Dialogs
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -264,6 +272,47 @@ export default function Equipe() {
     }
   }
 
+  const openEditMember = (m: any) => {
+    setEditingMember(m);
+    setEditInstances(m.permissions?.allowed_instance_ids || []);
+    setEditPermissions(m.permissions || {});
+    setEditOpen(true);
+  };
+
+  const saveMemberChanges = async () => {
+    if (!editingMember) return;
+    setSavingEdit(true);
+    try {
+      const newPermissions = {
+        ...editPermissions,
+        allowed_instance_ids: editInstances
+      };
+
+      const { error } = await (supabase as any)
+        .from("team_members")
+        .update({ permissions: newPermissions })
+        .eq("id", editingMember.id);
+
+      if (error) throw error;
+
+      toast({ title: "Sucesso", description: "Permissões atualizadas com sucesso" });
+      setEditOpen(false);
+      if (teamId) await loadMembers(teamId);
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: "Erro", description: err.message || "Erro ao salvar alterações", variant: "destructive" });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const togglePermission = (key: string) => {
+    setEditPermissions(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
   if (team.loading || (loading && !teamId)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -333,6 +382,15 @@ export default function Equipe() {
 
                   {isOwner && (
                     <div className="flex items-center gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => openEditMember(m)}
+                        title="Configurar Permissões"
+                      >
+                        <Shield className="w-4 h-4 mr-2" />
+                        Permissões
+                      </Button>
                       <Button 
                         size="sm" 
                         variant="outline" 
@@ -482,6 +540,83 @@ export default function Equipe() {
                 <UserPlus className="w-4 h-4 mr-2" />
               )}
               Enviar Convite
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Permissions Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              Permissões: {editingMember?.profiles?.full_name || editingMember?.invited_email}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 font-semibold border-b pb-2">
+                <Settings2 className="w-4 h-4" />
+                Acesso a Funcionalidades
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {PERMISSION_KEYS.map((key) => (
+                  <div key={key} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <Label htmlFor={`perm-${key}`} className="flex-1 cursor-pointer capitalize">
+                      {key.replace(/_/g, " ")}
+                    </Label>
+                    <Checkbox
+                      id={`perm-${key}`}
+                      checked={!!editPermissions[key]}
+                      onCheckedChange={() => togglePermission(key)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {instances.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 font-semibold border-b pb-2">
+                  <RefreshCw className="w-4 h-4" />
+                  Instâncias Permitidas
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[200px] overflow-y-auto p-1">
+                  {instances.map(inst => (
+                    <div key={inst.id} className="flex items-center space-x-2 p-2 border rounded-md">
+                      <Checkbox 
+                        id={`edit-inst-${inst.id}`} 
+                        checked={editInstances.includes(inst.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setEditInstances([...editInstances, inst.id]);
+                          } else {
+                            setEditInstances(editInstances.filter(id => id !== inst.id));
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={`edit-inst-${inst.id}`}
+                        className="text-sm font-medium leading-none cursor-pointer flex-1"
+                      >
+                        {inst.instance_name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={savingEdit}>
+              Cancelar
+            </Button>
+            <Button onClick={saveMemberChanges} disabled={savingEdit}>
+              {savingEdit && <RefreshCw className="w-4 h-4 animate-spin mr-2" />}
+              Salvar Alterações
             </Button>
           </DialogFooter>
         </DialogContent>
