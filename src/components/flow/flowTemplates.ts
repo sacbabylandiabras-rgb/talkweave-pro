@@ -86,6 +86,16 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
           prompt: "Você é um especialista em recuperação de vendas. Seu objetivo é ajudar o cliente a concluir a compra, tirando dúvidas e oferecendo suporte.",
         },
       },
+      {
+        id: "4",
+        type: "blocoAcao",
+        position: { x: 450, y: 130 },
+        data: {
+          label: "Aguardar Remarketing",
+          actionType: "delay",
+          delaySeconds: 259200, // Default 3 days
+        }
+      },
     ],
     edges: [
       edge("1", "4"),
