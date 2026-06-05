@@ -211,8 +211,6 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace("Bearer ", "");
     const userClient = createClient(supabaseUrl, serviceKey);
@@ -248,41 +246,6 @@ Deno.serve(async (req) => {
     const baseUrl = origin.includes("lovable.app") ? "https://zaplynx.com.br" : origin;
     const inviteUrl = `${baseUrl}/aceitar-convite?token=${inviteToken}`;
 
-    let resendSuccess = false;
-    if (resendApiKey) {
-      try {
-        console.log(`Sending custom HTML invite to ${email} via Resend...`);
-        const html = INVITE_EMAIL_HTML
-          .replace("{{OWNER_EMAIL}}", user.email || "")
-          .replace("{{TEAM_NAME}}", team.name || "Minha Equipe")
-          .replace("{{INVITE_URL}}", inviteUrl);
-
-        const res = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${resendApiKey}`,
-          },
-          body: JSON.stringify({
-            from: "Zaplynx <onboarding@resend.dev>",
-            to: [email],
-            subject: "Você foi convidado para o Zaplynx!",
-            html: html,
-          }),
-        });
-
-        if (!res.ok) {
-          const err = await res.text();
-          console.error("Resend error:", err);
-        } else {
-          console.log("Custom HTML invite sent successfully via Resend");
-          resendSuccess = true;
-        }
-      } catch (e) {
-        console.error("Error calling Resend:", e);
-      }
-    }
-
     console.log(`Inviting ${email} via Supabase Auth...`);
     const { data: inviteData, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
       data: {
@@ -296,17 +259,11 @@ Deno.serve(async (req) => {
     if (inviteErr) {
       if (inviteErr.status === 422 && (inviteErr.message.includes("already registered") || inviteErr.code === 'email_exists')) {
         console.log("User already exists.");
-        
-        // Se o Resend falhou e o usuário já existe, precisamos garantir que ele receba o link
-        // Vamos enviar um magic link pelo Supabase se o Resend não funcionou
-        if (!resendSuccess) {
-          console.log("Sending magic link email via Supabase Auth (OTP)...");
-          await admin.auth.signInWithOtp({
-            email: email,
-            options: { emailRedirectTo: inviteUrl }
-          });
-        }
-        
+        console.log("Sending magic link email via Supabase Auth (OTP)...");
+        await admin.auth.signInWithOtp({
+          email: email,
+          options: { emailRedirectTo: inviteUrl }
+        });
         return new Response(JSON.stringify({ 
           ok: true, 
           message: "O usuário já possui conta. Convite enviado.",
