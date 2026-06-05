@@ -84,26 +84,44 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      const title = data.title || url;
+      const title = (data.title || url).replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
       const content = data.content;
       if (!content || content.length < 10) {
         toast.error("Conteúdo insuficiente na URL");
         return;
       }
       
-      await addDocument(`🌐 ${title}`, content);
+      await addDocument(`🌐 ${data.title || url}`, content);
       
       if (autoImportUrl) {
-        const newServicePrompt = `Use as informações deste site para atender os clientes: ${title}\n\nConteúdo principal: ${content.substring(0, 800)}...`;
+        // Advanced pre-fill
+        const siteName = data.title?.split(/[|\-]/)[0]?.trim() || title;
+        setAgentName(`Assistente ${siteName}`);
+        
+        const triagePrompt = `Identifique se o cliente tem dúvidas sobre o produto, se quer saber sobre prazos de entrega ou se está com problemas no checkout do site ${siteName}.`;
+        setPromptTriage(triagePrompt);
+
+        const servicePrompt = `Você é um assistente da loja ${siteName}. Use as seguintes informações para responder: ${content.substring(0, 1000)}`;
+        setPromptService(servicePrompt);
+
+        const closingPrompt = `Sempre tente incentivar a finalização da compra no site ${url}. Se o cliente hesitar, ofereça ajuda humana.`;
+        setPromptClosing(closingPrompt);
+
+        setIsActive(true);
+
         await saveConfig({
-          prompt_service: newServicePrompt,
+          agent_name: `Assistente ${siteName}`,
+          prompt_triage: triagePrompt,
+          prompt_service: servicePrompt,
+          prompt_closing: closingPrompt,
           active: true
         });
+        
         onImportComplete?.();
       }
 
       setUrlInput("");
-      toast.success("Site importado com sucesso!");
+      toast.success("Site importado e informações preenchidas!");
     } catch (err: any) {
       toast.error("Erro ao importar: " + err.message);
     } finally {
