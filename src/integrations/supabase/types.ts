@@ -2079,6 +2079,7 @@ export type Database = {
           id: string
           is_active: boolean
           max_instances: number
+          max_team_members: number | null
           pipeline_stages: Json | null
           pix_acquirer: string | null
           plan_id: string | null
@@ -2107,6 +2108,7 @@ export type Database = {
           id: string
           is_active?: boolean
           max_instances?: number
+          max_team_members?: number | null
           pipeline_stages?: Json | null
           pix_acquirer?: string | null
           plan_id?: string | null
@@ -2135,6 +2137,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           max_instances?: number
+          max_team_members?: number | null
           pipeline_stages?: Json | null
           pix_acquirer?: string | null
           plan_id?: string | null
