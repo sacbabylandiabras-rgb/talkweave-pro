@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     const token = String(body.token || "");
     if (!token) return new Response(JSON.stringify({ error: "Token obrigatório" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { data: inv } = await admin.from("team_invites").select("*, team:teams(name, owner_id)").eq("token", token).maybeSingle();
+    const { data: inv } = await admin.from("team_invites").select("*, team:teams(name, owner_id, owner:profiles!teams_owner_id_fkey(email))").eq("token", token).maybeSingle();
     if (!inv) return new Response(JSON.stringify({ error: "Convite não encontrado" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (inv.accepted_at) return new Response(JSON.stringify({ error: "Convite já utilizado" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (new Date(inv.expires_at).getTime() < Date.now()) return new Response(JSON.stringify({ error: "Convite expirado" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -59,6 +59,21 @@ Deno.serve(async (req) => {
       console.error("Erro ao inserir em pipeline_members:", insErr);
       throw insErr;
     }
+
+    // Update profile with employee tag and boss email
+    const ownerEmail = inv.team?.owner?.email || "";
+    console.log(`Updating profile for user ${user.id} with tag and boss email ${ownerEmail}`);
+    const { error: profileErr } = await admin.from("profiles").update({
+      full_name: user.user_metadata?.full_name || user.email,
+      email: user.email,
+      subscription_status: 'funcionario',
+      email_sender_address: ownerEmail // Usando um campo existente para guardar o email do chefe
+    }).eq("id", user.id);
+
+    if (profileErr) {
+      console.error("Erro ao atualizar profile:", profileErr);
+    }
+
     await admin.from("team_invites").update({ accepted_at: new Date().toISOString() }).eq("id", inv.id);
 
     return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
