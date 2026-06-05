@@ -84,44 +84,49 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      const title = (data.title || url).replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
+      const siteTitle = data.title || url;
+      const cleanTitle = siteTitle.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
       const content = data.content;
+      
       if (!content || content.length < 10) {
         toast.error("Conteúdo insuficiente na URL");
         return;
       }
       
-      await addDocument(`🌐 ${data.title || url}`, content);
+      await addDocument(`🌐 ${siteTitle}`, content);
       
       if (autoImportUrl) {
-        // Advanced pre-fill
-        const siteName = data.title?.split(/[|\-]/)[0]?.trim() || title;
-        setAgentName(`Assistente ${siteName}`);
+        // Advanced pre-fill of all information
+        const siteName = siteTitle.split(/[|\-]/)[0]?.trim() || cleanTitle;
+        const autoName = `Assistente ${siteName}`;
+        setAgentName(autoName);
         
-        const triagePrompt = `Identifique se o cliente tem dúvidas sobre o produto, se quer saber sobre prazos de entrega ou se está com problemas no checkout do site ${siteName}.`;
+        const triagePrompt = `Você é o assistente virtual da empresa ${siteName}. Identifique se o cliente tem dúvidas sobre produtos, serviços, preços ou se precisa de suporte técnico para compras no site ${url}.`;
         setPromptTriage(triagePrompt);
 
-        const servicePrompt = `Você é um assistente da loja ${siteName}. Use as seguintes informações para responder: ${content.substring(0, 1000)}`;
+        const servicePrompt = `Atue como um especialista da ${siteName}. Use as informações extraídas do site para responder com precisão:\n\n${content.substring(0, 1500)}`;
         setPromptService(servicePrompt);
 
-        const closingPrompt = `Sempre tente incentivar a finalização da compra no site ${url}. Se o cliente hesitar, ofereça ajuda humana.`;
+        const closingPrompt = `Seu objetivo final é levar o cliente de volta ao checkout em ${url} para finalizar a compra. Seja persuasivo mas educado. Se ele não puder comprar agora, tente agendar um retorno.`;
         setPromptClosing(closingPrompt);
 
         setIsActive(true);
 
+        // Save everything automatically
         await saveConfig({
-          agent_name: `Assistente ${siteName}`,
+          agent_name: autoName,
           prompt_triage: triagePrompt,
           prompt_service: servicePrompt,
           prompt_closing: closingPrompt,
-          active: true
+          active: true,
+          model: "claude-sonnet-4-5-20250929"
         });
         
         onImportComplete?.();
       }
 
       setUrlInput("");
-      toast.success("Site importado e informações preenchidas!");
+      toast.success("Toda a configuração foi preenchida automaticamente!");
     } catch (err: any) {
       toast.error("Erro ao importar: " + err.message);
     } finally {
