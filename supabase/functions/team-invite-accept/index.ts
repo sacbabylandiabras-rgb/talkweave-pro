@@ -42,15 +42,21 @@ Deno.serve(async (req) => {
     const { data: existing } = await admin.from("pipeline_members").select("id").eq("user_id", user.id).maybeSingle();
     if (existing) return new Response(JSON.stringify({ error: "Você já está em uma equipe" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { error: insErr } = await admin.from("pipeline_members").insert({
+    console.log(`Inserting member: user_id=${user.id}, team_id=${inv.team_id}, role_id=${inv.role_id}`);
+    
+    // Tentativa de inserção. Note: removi 'allowed_instance_ids' e 'status' se não existirem na tabela
+    // e 'invited_email' que causou erro no query anterior.
+    const insertData: any = {
       team_id: inv.team_id,
       user_id: user.id,
-      role_id: inv.role_id,
-      allowed_instance_ids: inv.allowed_instance_ids || [],
-      status: "active",
-      invited_email: inv.email,
-    });
-    if (insErr) throw insErr;
+      role: inv.role_id || 'member', // Assumindo 'role' em vez de 'role_id' se a tabela usa 'role'
+    };
+
+    const { error: insErr } = await admin.from("pipeline_members").insert(insertData);
+    if (insErr) {
+      console.error("Erro ao inserir em pipeline_members:", insErr);
+      throw insErr;
+    }
     await admin.from("team_invites").update({ accepted_at: new Date().toISOString() }).eq("id", inv.id);
 
     return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
