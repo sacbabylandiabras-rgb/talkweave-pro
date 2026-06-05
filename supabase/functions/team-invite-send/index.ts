@@ -150,8 +150,8 @@ Deno.serve(async (req) => {
     }).select().single();
     if (invErr) throw invErr;
 
-    // URL fixa do projeto para evitar que o Supabase use o domínio .com.br que ainda não está ativo
-    const baseUrl = "https://9023f990-95c6-410f-8f3b-bb7c314444a5.lovableproject.com";
+    // Usando o domínio zaplynx.com conforme solicitado
+    const baseUrl = "https://zaplynx.com";
     const inviteUrl = `${baseUrl}/aceitar-convite?token=${inviteToken}`;
 
     const html = INVITE_EMAIL_HTML
