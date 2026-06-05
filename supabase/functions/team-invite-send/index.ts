@@ -61,10 +61,17 @@ Deno.serve(async (req) => {
     });
 
     if (inviteErr) {
+      if (inviteErr.status === 422 && (inviteErr.message.includes("already registered") || inviteErr.code === 'email_exists')) {
+        console.log("User already exists in Supabase Auth, skipping Auth invite email.");
+        return new Response(JSON.stringify({ 
+          ok: true, 
+          message: "Este usuário já possui conta. O convite foi registrado e ele pode aceitar pelo link.",
+          inviteUrl, 
+          invite: inv 
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      
       console.error("Supabase invite error:", inviteErr);
-      // If user already exists, we might need to handle it differently 
-      // but inviteUserByEmail usually works for existing users too if they are not confirmed.
-      // If it fails because user exists, we'll return the error to the UI.
       throw new Error(`Erro ao enviar convite via Supabase: ${inviteErr.message}`);
     }
 
