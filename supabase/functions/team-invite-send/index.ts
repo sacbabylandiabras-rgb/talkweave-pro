@@ -159,41 +159,28 @@ Deno.serve(async (req) => {
       .replace("{{TEAM_NAME}}", team.name || "Zaplynx")
       .replace(/{{INVITE_URL}}/g, inviteUrl);
 
-    // Usamos o serviço de email do próprio Supabase (ou um provedor configurado)
-    // Para garantir que use o seu HTML exato e não os templates do painel Auth
-    const { error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
-      data: {
-        invite_token: inviteToken,
-        team_id: team.id,
-        owner_name: user.email || "sua equipe",
+    // Enviar email custom via Resend (garante uso do nosso template em todos os casos)
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendKey) throw new Error("RESEND_API_KEY não configurada");
+
+    const resendResp = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${resendKey}`,
+        "Content-Type": "application/json",
       },
-      redirectTo: inviteUrl,
+      body: JSON.stringify({
+        from: "Zaplynx <noreply@zaplynx.com>",
+        to: [email],
+        subject: "Você foi convidado para a Zaplynx",
+        html,
+      }),
     });
 
-    if (inviteErr) {
-      if (inviteErr.status === 422 && (inviteErr.message.includes("already registered") || inviteErr.code === 'email_exists')) {
-        console.log("User already exists. Sending custom email manually...");
-        // Como o Supabase Auth recusa convidar quem já existe,
-        // o ideal seria usar um serviço de email (Resend/SendGrid) aqui.
-        // Por enquanto, vamos tentar o Magic Link que você já tem, mas ele sempre usará o template do Supabase.
-        const { error: otpErr } = await admin.auth.signInWithOtp({
-          email: email,
-          options: { 
-            emailRedirectTo: inviteUrl,
-            shouldCreateUser: false 
-          }
-        });
-        
-        if (otpErr) throw otpErr;
-
-        return new Response(JSON.stringify({ 
-          ok: true, 
-          message: "Este usuário já possui conta. Um link de acesso foi enviado.",
-          inviteUrl, 
-          invite: inv 
-        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-      throw new Error(`Erro ao convidar: ${inviteErr.message}`);
+    if (!resendResp.ok) {
+      const errText = await resendResp.text();
+      console.error("Resend error:", errText);
+      throw new Error(`Falha ao enviar email: ${errText}`);
     }
 
     return new Response(JSON.stringify({ ok: true, inviteUrl, invite: inv }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
