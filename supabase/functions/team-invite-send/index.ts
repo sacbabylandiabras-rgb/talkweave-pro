@@ -154,7 +154,6 @@ Deno.serve(async (req) => {
         team_id: team.id,
         invite_token: inviteToken,
       },
-      redirectTo: inviteUrl,
     });
 
     if (inviteError) {
@@ -171,7 +170,6 @@ Deno.serve(async (req) => {
         email,
         options: {
           shouldCreateUser: false,
-          emailRedirectTo: inviteUrl,
         },
       });
 
