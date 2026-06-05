@@ -54,39 +54,50 @@ Deno.serve(async (req) => {
       .replace("{{TEAM_NAME}}", team.name || "Zaplynx")
       .replace(/{{INVITE_URL}}/g, inviteUrl);
 
-    // Usar Supabase Auth para convidar o usuário, o que envia o e-mail via SMTP configurado no Supabase
-    const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-      data: {
-        team_id: team.id,
-        invite_token: inviteToken,
-      },
-    });
-
-    if (inviteError) {
-      console.error("Supabase invite error:", inviteError);
-
-      if (inviteError.code !== "email_exists") {
-        throw inviteError;
-      }
-
-      // Usuário já cadastrado: o Supabase não permite reenviar invite padrão.
-      // Enviamos um magic link pelo próprio Supabase.
-      const authClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") || serviceKey);
-      const { error: magicLinkError } = await authClient.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false,
-        },
-      });
-
-      if (magicLinkError) {
-        console.error("Supabase magic link error:", magicLinkError);
-        throw magicLinkError;
-      }
+    // Enviar e-mail via Resend usando o domínio verificado ou o padrão zaplynx.com
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    if (!RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY não configurada");
     }
 
-    return new Response(JSON.stringify({ ok: true, inviteUrl, invite: inv }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // Tentar encontrar o domínio verificado do usuário
+    const { data: domainData } = await admin
+      .from("email_domain_verifications")
+      .select("domain")
+      .eq("user_id", user.id)
+      .eq("status", "verified")
+      .maybeSingle();
+
+    const senderDomain = domainData?.domain || "zaplynx.com";
+    const fromEmail = `Zaplynx <contato@${senderDomain}>`;
+
+    console.log(`Enviando convite para ${email} de ${fromEmail}`);
+
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: email,
+        subject: "Você foi convidado para a equipe Zaplynx",
+        html: html,
+      }),
+    });
+
+    const resJson = await res.json();
+    if (!res.ok) {
+      console.error("Erro ao enviar via Resend:", resJson);
+      // Se falhar porque o domínio não está verificado no Resend, tentar usar o domínio zaplynx.com como fallback
+      // ou apenas retornar o erro para depuração
+      throw new Error(`Erro ao enviar e-mail: ${resJson.message || JSON.stringify(resJson)}`);
+    }
+
+    return new Response(JSON.stringify({ ok: true, inviteUrl, invite: inv, resendId: resJson.id }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
+    console.error("Erro na função team-invite-send:", e);
     return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
