@@ -258,15 +258,22 @@ Deno.serve(async (req) => {
 
     if (inviteErr) {
       if (inviteErr.status === 422 && (inviteErr.message.includes("already registered") || inviteErr.code === 'email_exists')) {
-        console.log("User already exists.");
-        console.log("Sending magic link email via Supabase Auth (OTP)...");
-        await admin.auth.signInWithOtp({
+        console.log("User already exists. Sending Magic Link with your custom template...");
+        
+        // Use otp with type: 'magiclink' which triggers the 'Magic Link' email template in Supabase
+        const { error: otpErr } = await admin.auth.signInWithOtp({
           email: email,
-          options: { emailRedirectTo: inviteUrl }
+          options: { 
+            emailRedirectTo: inviteUrl,
+            shouldCreateUser: false 
+          }
         });
+        
+        if (otpErr) throw otpErr;
+
         return new Response(JSON.stringify({ 
           ok: true, 
-          message: "O usuário já possui conta. Convite enviado.",
+          message: "O usuário já possui conta. Um Magic Link foi enviado usando seu template.",
           inviteUrl, 
           invite: inv 
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
