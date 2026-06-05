@@ -134,46 +134,26 @@ export function DashboardLayout() {
     }, [theme, setTheme]);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate("/auth");
-        setLoading(false);
-        return;
+      if (session) {
+        setUserId(session.user.id);
+        setWarmupConfig(readWarmupConfig(session.user.id));
       }
-
-      // Check if account is active
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("is_active")
-        .eq("id", session.user.id)
-        .single();
-
-      if (profile && !profile.is_active) {
-        await supabase.auth.signOut();
-        navigate("/auth");
-        setLoading(false);
-        return;
-      }
-
-      setUserId(session.user.id);
-      setWarmupConfig(readWarmupConfig(session.user.id));
       setLoading(false);
     };
 
-    checkAuth();
+    checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
-        navigate("/auth");
-      } else {
+      if (session) {
         setUserId(session.user.id);
         setWarmupConfig(readWarmupConfig(session.user.id));
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   useEffect(() => {
     const syncWarmupConfig = () => {
