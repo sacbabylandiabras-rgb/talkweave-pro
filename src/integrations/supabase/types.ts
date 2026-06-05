@@ -3850,6 +3850,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_is_team_owner: { Args: { t_id: string }; Returns: boolean }
       find_profile_id_by_email: { Args: { _email: string }; Returns: string }
       get_effective_user_id: { Args: { _user_id: string }; Returns: string }
       get_pipeline_member_profiles: {
