@@ -35,12 +35,6 @@ const Auth = () => {
   const [forgotLoading, setForgotLoading] = useState(false);
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-       if (session) navigate("/dashboard", { replace: true });
-    };
-    checkUser();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'USER_UPDATED') {
         toast({ title: "✅ Email confirmado!", description: "Agora você pode fazer login com suas credenciais." });
