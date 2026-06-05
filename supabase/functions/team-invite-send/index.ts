@@ -25,7 +25,7 @@ const INVITE_EMAIL_HTML = `
                 <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
                         <td style="text-align: center;">
-                            <img src="https://zaplynx.com.br/logo.png" alt="Zaplynx" style="width: 50px; height: 50px; margin-right: 12px; vertical-align: middle; display: inline-block;">
+                            <img src="https://zaplynx.com/logo.png" alt="Zaplynx" style="width: 50px; height: 50px; margin-right: 12px; vertical-align: middle; display: inline-block;">
                             <span style="font-size: 24px; font-weight: bold; color: #ffffff; letter-spacing: 2px; vertical-align: middle; display: inline-block;">ZAPLYNX</span>
                         </td>
                     </tr>
