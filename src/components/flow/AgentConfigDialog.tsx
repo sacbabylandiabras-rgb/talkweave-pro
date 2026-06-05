@@ -20,6 +20,8 @@ import { supabase } from "@/integrations/supabase/client";
 interface AgentConfigDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  autoImportUrl?: string;
+  onImportComplete?: () => void;
 }
 
 export function AgentConfigDialog({ open, onOpenChange }: AgentConfigDialogProps) {
