@@ -170,8 +170,26 @@ Deno.serve(async (req) => {
 
     if (inviteError) {
       console.error("Supabase invite error:", inviteError);
-      // Se falhar (ex: usuário já existe), ainda retornamos o token para uso manual se necessário
-      // mas o objetivo aqui é usar o fluxo oficial do Supabase
+
+      if (inviteError.code !== "email_exists") {
+        throw inviteError;
+      }
+
+      // Usuário já cadastrado: o Supabase não permite reenviar invite padrão.
+      // Enviamos um magic link pelo próprio Supabase apontando para a tela de aceitar convite.
+      const authClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") || serviceKey);
+      const { error: magicLinkError } = await authClient.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: inviteUrl,
+        },
+      });
+
+      if (magicLinkError) {
+        console.error("Supabase magic link error:", magicLinkError);
+        throw magicLinkError;
+      }
     }
 
     return new Response(JSON.stringify({ ok: true, inviteUrl, invite: inv }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
