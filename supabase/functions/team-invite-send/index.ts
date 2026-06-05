@@ -159,28 +159,19 @@ Deno.serve(async (req) => {
       .replace("{{TEAM_NAME}}", team.name || "Zaplynx")
       .replace(/{{INVITE_URL}}/g, inviteUrl);
 
-    // Enviar email custom via Resend (garante uso do nosso template em todos os casos)
-    const resendKey = Deno.env.get("RESEND_API_KEY");
-    if (!resendKey) throw new Error("RESEND_API_KEY não configurada");
-
-    const resendResp = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${resendKey}`,
-        "Content-Type": "application/json",
+    // Usar Supabase Auth para convidar o usuário, o que envia o e-mail via SMTP configurado no Supabase
+    const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+      data: {
+        team_id: team.id,
+        invite_token: inviteToken,
       },
-      body: JSON.stringify({
-        from: "Zaplynx <noreply@zaplynx.com>",
-        to: [email],
-        subject: "Você foi convidado para a Zaplynx",
-        html,
-      }),
+      redirectTo: inviteUrl,
     });
 
-    if (!resendResp.ok) {
-      const errText = await resendResp.text();
-      console.error("Resend error:", errText);
-      throw new Error(`Falha ao enviar email: ${errText}`);
+    if (inviteError) {
+      console.error("Supabase invite error:", inviteError);
+      // Se falhar (ex: usuário já existe), ainda retornamos o token para uso manual se necessário
+      // mas o objetivo aqui é usar o fluxo oficial do Supabase
     }
 
     return new Response(JSON.stringify({ ok: true, inviteUrl, invite: inv }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
