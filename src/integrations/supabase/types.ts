@@ -1100,6 +1100,7 @@ export type Database = {
           affiliate_description: string | null
           affiliate_enabled: boolean | null
           auto_approve_affiliates: boolean | null
+          buyer_data_access: boolean | null
           category: string | null
           commission_rate: number | null
           commission_type: string | null
@@ -1108,6 +1109,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          marketplace_visible: boolean | null
           name: string
           price: number
           sku: string | null
@@ -1123,6 +1125,7 @@ export type Database = {
           affiliate_description?: string | null
           affiliate_enabled?: boolean | null
           auto_approve_affiliates?: boolean | null
+          buyer_data_access?: boolean | null
           category?: string | null
           commission_rate?: number | null
           commission_type?: string | null
@@ -1131,6 +1134,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          marketplace_visible?: boolean | null
           name: string
           price?: number
           sku?: string | null
@@ -1146,6 +1150,7 @@ export type Database = {
           affiliate_description?: string | null
           affiliate_enabled?: boolean | null
           auto_approve_affiliates?: boolean | null
+          buyer_data_access?: boolean | null
           category?: string | null
           commission_rate?: number | null
           commission_type?: string | null
@@ -1154,6 +1159,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          marketplace_visible?: boolean | null
           name?: string
           price?: number
           sku?: string | null
@@ -3845,6 +3851,7 @@ export type Database = {
     }
     Functions: {
       find_profile_id_by_email: { Args: { _email: string }; Returns: string }
+      get_effective_user_id: { Args: { _user_id: string }; Returns: string }
       get_pipeline_member_profiles: {
         Args: { _pipeline_id: string }
         Returns: {
@@ -3866,6 +3873,10 @@ export type Database = {
       }
       is_pipeline_owner: {
         Args: { _pipeline_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_team_member_of_owner: {
+        Args: { _caller_id: string; _owner_id: string }
         Returns: boolean
       }
     }
