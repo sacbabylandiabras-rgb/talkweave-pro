@@ -117,10 +117,17 @@ export default function Equipe() {
       return;
     }
 
-    if (!inviteEmail.trim()) { 
+    const email = inviteEmail.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (!email) {
+      toast({ title: "Atenção", description: "Informe o email do funcionário", variant: "destructive" });
+      return;
+    }
 
-      toast({ title: "Atenção", description: "Informe o email do funcionário", variant: "destructive" }); 
-      return; 
+    if (!emailRegex.test(email)) {
+      toast({ title: "Atenção", description: "O email informado é inválido", variant: "destructive" });
+      return;
     }
     
     setSendingInvite(true);
