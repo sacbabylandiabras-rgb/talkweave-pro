@@ -5877,6 +5877,66 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           </div>
         </DialogContent>
       </Dialog>
+      <AgentConfigDialog open={showAgentConfig} onOpenChange={setShowAgentConfig} />
+
+      <Dialog open={showWebhookDialog} onOpenChange={setShowWebhookDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Webhook className="w-5 h-5 text-primary" />
+              Configurar Webhook Zaplynx
+            </DialogTitle>
+            <DialogDescription>
+              Copie a URL abaixo e cole nas configurações de Webhook do seu checkout (Hotmart, Kiwify, etc).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-muted rounded-lg border flex items-center justify-between gap-2">
+              <code className="text-xs break-all flex-1">{currentWebhookUrl}</code>
+              <Button size="icon" variant="ghost" onClick={() => {
+                navigator.clipboard.writeText(currentWebhookUrl);
+                toast.success("URL copiada!");
+              }}>
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>URL da sua Loja ou Landing Page</Label>
+              <Input 
+                placeholder="https://minhaloja.com" 
+                onChange={(e) => {
+                  setNodes(nds => nds.map(n => n.id === "2" ? { ...n, data: { ...n.data, storeUrl: e.target.value } } : n));
+                }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Dias de Remarketing</Label>
+              <Select defaultValue="3" onValueChange={(val) => {
+                setNodes(nds => nds.map(n => n.id === "2" ? { ...n, data: { ...n.data, remarketingDays: val } } : n));
+              }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 dia</SelectItem>
+                  <SelectItem value="3">3 dias</SelectItem>
+                  <SelectItem value="7">7 dias</SelectItem>
+                  <SelectItem value="15">15 dias</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => {
+              setShowWebhookDialog(false);
+              setShowAgentConfig(true);
+            }}>
+              Configurar Agente IA
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <FlowCapturedDataDialog
         open={showCapturedData}
         onOpenChange={setShowCapturedData}
