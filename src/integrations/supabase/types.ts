@@ -2593,6 +2593,57 @@ export type Database = {
         }
         Relationships: []
       }
+      team_invites: {
+        Row: {
+          accepted_at: string | null
+          allowed_instance_ids: string[]
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          role_id: string | null
+          team_id: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          allowed_instance_ids?: string[]
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          role_id?: string | null
+          team_id: string
+          token: string
+        }
+        Update: {
+          accepted_at?: string | null
+          allowed_instance_ids?: string[]
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          role_id?: string | null
+          team_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invites_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "team_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_invites_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_members: {
         Row: {
           created_at: string | null
@@ -2627,6 +2678,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_roles: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          permissions: Json
+          team_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          permissions?: Json
+          team_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          permissions?: Json
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_roles_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
