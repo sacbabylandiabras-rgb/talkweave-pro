@@ -22,12 +22,16 @@ export default function Equipe() {
   const [members, setMembers] = useState<any[]>([]);
   const [invites, setInvites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [operationLoading, setOperationLoading] = useState<string | null>(null);
 
   // Dialogs
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteInstances, setInviteInstances] = useState<string[]>([]);
   const [sendingInvite, setSendingInvite] = useState(false);
+
+  // Verificar se é o proprietário
+  const isOwner = team.selfUserId === team.ownerId;
 
   useEffect(() => {
     if (team.loading) return;
@@ -39,124 +43,151 @@ export default function Equipe() {
   }, [team.loading, team.isEmployee]);
 
   async function bootstrap() {
-    setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      setLoading(true);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
 
-    let { data: t } = await (supabase as any).from("teams").select("*").eq("owner_id", user.id).maybeSingle();
-    
-    if (!t) {
-      const { data: created, error } = await (supabase as any).from("teams").insert({ 
-        owner_id: user.id, 
-        name: "Minha equipe" 
-      }).select().single();
-      
-      if (error) {
-        console.error("Erro ao criar equipe:", error);
-        setLoading(false);
-        return;
+      let { data: t } = await (supabase as any).from("teams").select("*").eq("owner_id", user.id).maybeSingle();
+
+      if (!t) {
+        const { data: created, error } = await (supabase as any)
+          .from("teams")
+          .insert({
+            owner_id: user.id,
+            name: "Minha equipe",
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Erro ao criar equipe:", error);
+          setLoading(false);
+          return;
+        }
+        t = created;
       }
-      t = created;
+
+      setTeamId(t.id);
+      await Promise.all([loadMembers(t.id), loadInvites(t.id)]);
+    } catch (error) {
+      console.error("Erro ao carregar equipe:", error);
+    } finally {
+      setLoading(false);
     }
-    
-    setTeamId(t.id);
-    await Promise.all([
-      loadMembers(t.id),
-      loadInvites(t.id)
-    ]);
-    setLoading(false);
   }
 
   async function loadMembers(tid: string) {
-    const { data, error } = await (supabase as any)
-      .from("team_members")
-      .select(`
-        *,
-        profiles!user_id (
-          id,
-          email,
-          full_name
+    try {
+      const { data, error } = await (supabase as any)
+        .from("team_members")
+        .select(
+          `
+          *,
+          profiles!user_id (
+            id,
+            email,
+            full_name
+          )
+        `,
         )
-      `)
-      .eq("team_id", tid)
-      .order("created_at");
+        .eq("team_id", tid)
+        .order("created_at");
 
-    if (error) {
-      console.error("Erro ao carregar membros:", error);
-      return;
+      if (error) {
+        console.error("Erro ao carregar membros:", error);
+        return;
+      }
+      setMembers(data || []);
+    } catch (err) {
+      console.error("Erro ao buscar membros:", err);
     }
-    setMembers(data || []);
   }
 
   async function loadInvites(tid: string) {
-    const { data, error } = await (supabase as any)
-      .from("team_invites")
-      .select("*")
-      .eq("team_id", tid)
-      .is("accepted_at", null)
-      .order("created_at", { ascending: false });
+    try {
+      const { data, error } = await (supabase as any)
+        .from("team_invites")
+        .select("*")
+        .eq("team_id", tid)
+        .is("accepted_at", null)
+        .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Erro ao carregar convites:", error);
-      return;
+      if (error) {
+        console.error("Erro ao carregar convites:", error);
+        return;
+      }
+      setInvites(data || []);
+    } catch (err) {
+      console.error("Erro ao buscar convites:", err);
     }
-    setInvites(data || []);
   }
 
   async function sendInvite() {
-    const { data: profile } = await supabase.from("profiles").select("max_team_members").eq("id", team.selfUserId).single();
-    const max = Number((profile as any)?.max_team_members ?? 1);
-    
-    // Contar membros ativos + convites pendentes
-    if ((members.length + invites.length) >= max) {
-      toast({ 
-        title: "Limite atingido", 
-        description: `Sua conta permite no máximo ${max} funcionários (incluindo convites pendentes).`,
-        variant: "destructive"
-      });
+    if (!team.selfUserId) {
+      toast({ title: "Erro", description: "Sessão inválida", variant: "destructive" });
       return;
     }
 
-    const email = inviteEmail.trim().toLowerCase();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    
-    if (!email) {
-      toast({ title: "Atenção", description: "Informe o email do funcionário", variant: "destructive" });
-      return;
-    }
-
-    if (!emailRegex.test(email)) {
-      toast({ title: "Atenção", description: "O email informado é inválido", variant: "destructive" });
-      return;
-    }
-    
-    setSendingInvite(true);
     try {
-      const { data, error } = await supabase.functions.invoke("team-invite-send", {
-        body: { 
-          email: inviteEmail.trim().toLowerCase(), 
-          allowedInstanceIds: inviteInstances 
-        },
-      });
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("max_team_members")
+        .eq("id", team.selfUserId)
+        .single();
 
-      if (error || (data as any)?.error) {
-        toast({ 
-          title: "Erro ao enviar convite", 
-          description: (data as any)?.error || error?.message, 
-          variant: "destructive" 
+      const max = Number((profile as any)?.max_team_members ?? 1);
+
+      if (members.length + invites.length >= max) {
+        toast({
+          title: "Limite atingido",
+          description: `Sua conta permite no máximo ${max} funcionários (incluindo convites pendentes).`,
+          variant: "destructive",
         });
         return;
       }
 
-      toast({ 
-        title: (data as any)?.message ? "Convite registrado!" : "Convite enviado!", 
-        description: (data as any)?.message || "O funcionário receberá um email com as instruções." 
+      const email = inviteEmail.trim().toLowerCase();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (!email) {
+        toast({ title: "Atenção", description: "Informe o email do funcionário", variant: "destructive" });
+        return;
+      }
+
+      if (!emailRegex.test(email)) {
+        toast({ title: "Atenção", description: "O email informado é inválido", variant: "destructive" });
+        return;
+      }
+
+      setSendingInvite(true);
+      const { data, error } = await supabase.functions.invoke("team-invite-send", {
+        body: {
+          email: email,
+          allowedInstanceIds: inviteInstances,
+        },
       });
-      
-      setInviteOpen(false); 
-      setInviteEmail(""); 
+
+      if (error || (data as any)?.error) {
+        toast({
+          title: "Erro ao enviar convite",
+          description: (data as any)?.error || error?.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: (data as any)?.message ? "Convite registrado!" : "Convite enviado!",
+        description: (data as any)?.message || "O funcionário receberá um email com as instruções.",
+      });
+
+      setInviteOpen(false);
+      setInviteEmail("");
       setInviteInstances([]);
-      if (teamId) loadInvites(teamId);
+      if (teamId) await loadInvites(teamId);
     } catch (err) {
       console.error(err);
       toast({ title: "Erro", description: "Falha na comunicação com o servidor", variant: "destructive" });
@@ -167,48 +198,87 @@ export default function Equipe() {
 
   async function cancelInvite(id: string) {
     if (!confirm("Deseja realmente cancelar este convite?")) return;
-    
-    const { error } = await (supabase as any).from("team_invites").delete().eq("id", id);
-    if (error) {
+
+    setOperationLoading(id);
+    try {
+      const { error } = await (supabase as any).from("team_invites").delete().eq("id", id);
+      if (error) throw error;
+
+      toast({ title: "Sucesso", description: "Convite cancelado" });
+      if (teamId) await loadInvites(teamId);
+    } catch (err) {
+      console.error(err);
       toast({ title: "Erro", description: "Não foi possível cancelar o convite", variant: "destructive" });
-      return;
+    } finally {
+      setOperationLoading(null);
     }
-    
-    toast({ title: "Sucesso", description: "Convite cancelado" });
-    if (teamId) loadInvites(teamId);
   }
 
   async function copyInviteLink(inv: any) {
-    const origin = "https://zaplynx.com";
-    const url = `${origin}/aceitar-convite?token=${inv.token}`;
-    await navigator.clipboard.writeText(url);
-    toast({ title: "Link copiado!", description: "Envie este link para o funcionário." });
+    try {
+      const origin = "https://zaplynx.com";
+      const url = `${origin}/aceitar-convite?token=${inv.token}`;
+      await navigator.clipboard.writeText(url);
+      toast({ title: "Link copiado!", description: "Envie este link para o funcionário." });
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Erro", description: "Não foi possível copiar o link", variant: "destructive" });
+    }
   }
 
   async function removeMember(id: string) {
-    if (!confirm("Deseja remover este funcionário da sua equipe? Ele perderá acesso imediatamente.")) return;
-    
-    const { error } = await (supabase as any).from("team_members").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Erro", description: "Não foi possível remover o funcionário", variant: "destructive" });
+    if (!isOwner) {
+      toast({
+        title: "Erro",
+        description: "Apenas o proprietário pode remover membros",
+        variant: "destructive",
+      });
       return;
     }
-    
-    toast({ title: "Sucesso", description: "Funcionário removido" });
-    if (teamId) loadMembers(teamId);
+
+    if (!confirm("Deseja remover este funcionário da sua equipe? Ele perderá acesso imediatamente.")) return;
+
+    setOperationLoading(id);
+    try {
+      const { error } = await (supabase as any).from("team_members").delete().eq("id", id);
+      if (error) throw error;
+
+      toast({ title: "Sucesso", description: "Funcionário removido" });
+      if (teamId) await loadMembers(teamId);
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Erro", description: "Não foi possível remover o funcionário", variant: "destructive" });
+    } finally {
+      setOperationLoading(null);
+    }
   }
 
   async function toggleMemberStatus(m: any) {
-    const next = m.status === "active" ? "suspended" : "active";
-    const { error } = await (supabase as any).from("team_members").update({ status: next }).eq("id", m.id);
-    
-    if (error) {
-      toast({ title: "Erro", description: "Não foi possível alterar o status", variant: "destructive" });
+    if (!isOwner) {
+      toast({
+        title: "Erro",
+        description: "Apenas o proprietário pode alterar status",
+        variant: "destructive",
+      });
       return;
     }
-    
-    toast({ title: "Sucesso", description: `Funcionário ${next === "active" ? "ativado" : "suspenso"}` });
-    if (teamId) loadMembers(teamId);
+
+    const next = m.status === "active" ? "suspended" : "active";
+    setOperationLoading(m.id);
+
+    try {
+      const { error } = await (supabase as any).from("team_members").update({ status: next }).eq("id", m.id);
+
+      if (error) throw error;
+
+      toast({ title: "Sucesso", description: `Funcionário ${next === "active" ? "ativado" : "suspenso"}` });
+      if (teamId) await loadMembers(teamId);
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Erro", description: "Não foi possível alterar o status", variant: "destructive" });
+    } finally {
+      setOperationLoading(null);
+    }
   }
 
   if (team.loading || (loading && !teamId)) {
@@ -229,7 +299,7 @@ export default function Equipe() {
           <h1 className="text-2xl font-bold">Gerenciar Equipe</h1>
           <p className="text-sm text-muted-foreground">Adicione funcionários e controle o acesso deles.</p>
         </div>
-        <Button onClick={() => setInviteOpen(true)}>
+        <Button onClick={() => setInviteOpen(true)} disabled={!isOwner}>
           <UserPlus className="w-4 h-4 mr-2" />
           Novo Funcionário
         </Button>
@@ -252,7 +322,9 @@ export default function Equipe() {
                   <h3 className="font-semibold">Nenhum funcionário ativo</h3>
                   <p className="text-sm text-muted-foreground">Convide sua equipe para começar a colaborar.</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => setInviteOpen(true)}>Enviar convite</Button>
+                <Button variant="outline" size="sm" onClick={() => setInviteOpen(true)} disabled={!isOwner}>
+                  Enviar convite
+                </Button>
               </CardContent>
             </Card>
           ) : (
@@ -268,25 +340,35 @@ export default function Equipe() {
                     </div>
                     <div className="text-sm text-muted-foreground">{m.profiles?.email || m.invited_email}</div>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => toggleMemberStatus(m)}
-                    >
-                      {m.status === "active" ? <X className="w-4 h-4 mr-2" /> : <Check className="w-4 h-4 mr-2" />}
-                      {m.status === "active" ? "Suspender" : "Reativar"}
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => removeMember(m.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+
+                  {isOwner && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => toggleMemberStatus(m)}
+                        disabled={operationLoading === m.id}
+                      >
+                        {operationLoading === m.id ? (
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        ) : m.status === "active" ? (
+                          <X className="w-4 h-4 mr-2" />
+                        ) : (
+                          <Check className="w-4 h-4 mr-2" />
+                        )}
+                        {m.status === "active" ? "Suspender" : "Reativar"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => removeMember(m.id)}
+                        disabled={operationLoading === m.id}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
                 {m.allowed_instance_ids?.length > 0 && (
                   <div className="px-4 py-2 bg-muted/30 border-t text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
@@ -301,9 +383,7 @@ export default function Equipe() {
         <TabsContent value="invites" className="space-y-4">
           {invites.length === 0 ? (
             <Card>
-              <CardContent className="p-12 text-center text-muted-foreground">
-                Nenhum convite pendente.
-              </CardContent>
+              <CardContent className="p-12 text-center text-muted-foreground">Nenhum convite pendente.</CardContent>
             </Card>
           ) : (
             invites.map((inv) => (
@@ -312,18 +392,35 @@ export default function Equipe() {
                   <div>
                     <div className="font-medium">{inv.email}</div>
                     <div className="text-xs text-muted-foreground">
-                      Enviado em {new Date(inv.created_at).toLocaleDateString()}
+                      Enviado em {new Date(inv.created_at).toLocaleDateString("pt-BR")}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={() => copyInviteLink(inv)}>
-                      <Copy className="w-4 h-4 mr-2" />
-                      Link
-                    </Button>
-                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => cancelInvite(inv.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  {isOwner && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => copyInviteLink(inv)}
+                        disabled={operationLoading === inv.id}
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        Link
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive"
+                        onClick={() => cancelInvite(inv.id)}
+                        disabled={operationLoading === inv.id}
+                      >
+                        {operationLoading === inv.id ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))
@@ -340,11 +437,12 @@ export default function Equipe() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email do funcionário</Label>
-              <Input 
-                id="email" 
-                placeholder="exemplo@email.com" 
+              <Input
+                id="email"
+                placeholder="exemplo@email.com"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
+                disabled={sendingInvite}
               />
               <p className="text-[10px] text-muted-foreground">
                 O funcionário deverá criar uma conta com este mesmo email.
@@ -357,13 +455,17 @@ export default function Equipe() {
                 <div className="grid grid-cols-1 gap-2 border rounded-md p-3 max-h-[150px] overflow-y-auto">
                   {instances.map((inst) => (
                     <div key={inst.id} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`inst-${inst.id}`} 
+                      <Checkbox
+                        id={`inst-${inst.id}`}
                         checked={inviteInstances.includes(inst.id)}
                         onCheckedChange={(checked) => {
-                          if (checked) setInviteInstances([...inviteInstances, inst.id]);
-                          else setInviteInstances(inviteInstances.filter(id => id !== inst.id));
+                          if (checked) {
+                            setInviteInstances([...inviteInstances, inst.id]);
+                          } else {
+                            setInviteInstances(inviteInstances.filter((id) => id !== inst.id));
+                          }
                         }}
+                        disabled={sendingInvite}
                       />
                       <label htmlFor={`inst-${inst.id}`} className="text-sm font-medium leading-none cursor-pointer">
                         {inst.instance_name}
@@ -375,9 +477,15 @@ export default function Equipe() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setInviteOpen(false)} disabled={sendingInvite}>Cancelar</Button>
-            <Button onClick={sendInvite} disabled={sendingInvite}>
-              {sendingInvite ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
+            <Button variant="outline" onClick={() => setInviteOpen(false)} disabled={sendingInvite}>
+              Cancelar
+            </Button>
+            <Button onClick={sendInvite} disabled={sendingInvite || !inviteEmail.trim()}>
+              {sendingInvite ? (
+                <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <UserPlus className="w-4 h-4 mr-2" />
+              )}
               Enviar Convite
             </Button>
           </DialogFooter>
@@ -386,4 +494,3 @@ export default function Equipe() {
     </div>
   );
 }
-
