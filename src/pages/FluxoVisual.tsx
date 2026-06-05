@@ -4938,6 +4938,36 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
             {selectedNode?.type === "blocoGatilho" && (
               <>
+                {selectedNode.data?.isWebhook && (
+                  <div className="space-y-4 mb-4">
+                    <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <Webhook className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm">Integração Webhook</h4>
+                          <p className="text-xs text-muted-foreground">Conecte seu checkout ao Zaplynx</p>
+                        </div>
+                      </div>
+                      <div className="p-2 bg-muted rounded-lg border flex items-center justify-between gap-2 overflow-hidden">
+                        <code className="text-[10px] break-all truncate flex-1">
+                          {`https://${(import.meta as any).env?.VITE_SUPABASE_PROJECT_ID || "sua-url"}.supabase.co/functions/v1/gateway-webhook`}
+                        </code>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => {
+                          const url = `https://${(import.meta as any).env?.VITE_SUPABASE_PROJECT_ID || "sua-url"}.supabase.co/functions/v1/gateway-webhook`;
+                          navigator.clipboard.writeText(url);
+                          toast.success("URL copiada!");
+                        }}>
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        Cole esta URL nas configurações de Webhook do seu checkout (Hotmart, Kiwify, etc).
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {isTelegramMode && (
                   <div className="mb-3">
                     <Label className="text-xs">Tipo de Gatilho</Label>
