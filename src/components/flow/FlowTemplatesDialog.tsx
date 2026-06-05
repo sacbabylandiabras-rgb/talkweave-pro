@@ -41,7 +41,7 @@ export function FlowTemplatesDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-2">
+        <div className="flex-1 overflow-y-auto pr-2">
           <div className="grid gap-3 sm:grid-cols-2 pb-2">
             {/* Em branco */}
             <Card
@@ -87,7 +87,7 @@ export function FlowTemplatesDialog({
               </Card>
             ))}
           </div>
-        </ScrollArea>
+        </div>
 
         <div className="flex justify-end pt-2 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>

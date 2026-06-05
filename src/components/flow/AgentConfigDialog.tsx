@@ -84,26 +84,49 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      const title = data.title || url;
+      const siteTitle = data.title || url;
+      const cleanTitle = siteTitle.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
       const content = data.content;
+      
       if (!content || content.length < 10) {
         toast.error("Conteúdo insuficiente na URL");
         return;
       }
       
-      await addDocument(`🌐 ${title}`, content);
+      await addDocument(`🌐 ${siteTitle}`, content);
       
       if (autoImportUrl) {
-        const newServicePrompt = `Use as informações deste site para atender os clientes: ${title}\n\nConteúdo principal: ${content.substring(0, 800)}...`;
+        // Advanced pre-fill of all information
+        const siteName = siteTitle.split(/[|\-]/)[0]?.trim() || cleanTitle;
+        const autoName = `Assistente ${siteName}`;
+        setAgentName(autoName);
+        
+        const triagePrompt = `Você é o assistente virtual da empresa ${siteName}. Identifique se o cliente tem dúvidas sobre produtos, serviços, preços ou se precisa de suporte técnico para compras no site ${url}.`;
+        setPromptTriage(triagePrompt);
+
+        const servicePrompt = `Atue como um especialista da ${siteName}. Use as informações extraídas do site para responder com precisão:\n\n${content.substring(0, 1500)}`;
+        setPromptService(servicePrompt);
+
+        const closingPrompt = `Seu objetivo final é levar o cliente de volta ao checkout em ${url} para finalizar a compra. Seja persuasivo mas educado. Se ele não puder comprar agora, tente agendar um retorno.`;
+        setPromptClosing(closingPrompt);
+
+        setIsActive(true);
+
+        // Save everything automatically
         await saveConfig({
-          prompt_service: newServicePrompt,
-          active: true
+          agent_name: autoName,
+          prompt_triage: triagePrompt,
+          prompt_service: servicePrompt,
+          prompt_closing: closingPrompt,
+          active: true,
+          model: "claude-sonnet-4-5-20250929"
         });
+        
         onImportComplete?.();
       }
 
       setUrlInput("");
-      toast.success("Site importado com sucesso!");
+      toast.success("Toda a configuração foi preenchida automaticamente!");
     } catch (err: any) {
       toast.error("Erro ao importar: " + err.message);
     } finally {
@@ -172,9 +195,8 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0">
-          <ScrollArea className="h-full">
-            <div className="px-6 py-4 pb-10">
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-6 py-4 pb-10">
             <Tabs defaultValue="config" className="w-full">
               <TabsList className="grid w-full grid-cols-4 mb-6">
                 <TabsTrigger value="config" className="flex items-center gap-1.5 text-xs">
@@ -339,7 +361,6 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
               </TabsContent>
             </Tabs>
             </div>
-          </ScrollArea>
         </div>
       </DialogContent>
     </Dialog>
