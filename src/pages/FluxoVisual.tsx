@@ -5399,6 +5399,48 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     />
                   );
                 }
+                if (/agente\s*ia/i.test(label) || selectedNode.type === "agenteIA") {
+                  return (
+                    <div className="space-y-4">
+                      <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <Bot className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-sm">Configuração do Agente</h4>
+                            <p className="text-xs text-muted-foreground">Personalize as respostas e o conhecimento da IA</p>
+                          </div>
+                        </div>
+                        <Button 
+                          className="w-full" 
+                          onClick={() => {
+                            setIsEditDialogOpen(false);
+                            setShowAgentConfig(true);
+                          }}
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Abrir Painel do Agente
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Missão / Prompt Específico</Label>
+                        <Textarea
+                          value={selectedNode.data.prompt || ""}
+                          onChange={(e) =>
+                            setSelectedNode({
+                              ...selectedNode,
+                              data: { ...selectedNode.data, prompt: e.target.value },
+                            })
+                          }
+                          placeholder="Instruções específicas para este bloco..."
+                          rows={4}
+                        />
+                      </div>
+                    </div>
+                  );
+                }
                 if (/criar\s*registro\s*crm/.test(label)) {
                   return (
                     <CriarRegistroCrmEditor
