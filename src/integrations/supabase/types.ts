@@ -74,30 +74,45 @@ export type Database = {
           agent_name: string
           created_at: string
           disable_in_groups: boolean
+          elevenlabs_api_key: string | null
+          elevenlabs_voice_id: string | null
+          elevenlabs_voice_name: string | null
           id: string
+          provider: string | null
           system_prompt: string
           updated_at: string
           user_id: string
+          voice_provider: string | null
         }
         Insert: {
           active?: boolean
           agent_name?: string
           created_at?: string
           disable_in_groups?: boolean
+          elevenlabs_api_key?: string | null
+          elevenlabs_voice_id?: string | null
+          elevenlabs_voice_name?: string | null
           id?: string
+          provider?: string | null
           system_prompt?: string
           updated_at?: string
           user_id: string
+          voice_provider?: string | null
         }
         Update: {
           active?: boolean
           agent_name?: string
           created_at?: string
           disable_in_groups?: boolean
+          elevenlabs_api_key?: string | null
+          elevenlabs_voice_id?: string | null
+          elevenlabs_voice_name?: string | null
           id?: string
+          provider?: string | null
           system_prompt?: string
           updated_at?: string
           user_id?: string
+          voice_provider?: string | null
         }
         Relationships: []
       }
