@@ -2652,6 +2652,7 @@ export type Database = {
       }
       team_members: {
         Row: {
+          allowed_instance_ids: string[] | null
           created_at: string | null
           id: string
           permissions: Json | null
@@ -2662,6 +2663,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          allowed_instance_ids?: string[] | null
           created_at?: string | null
           id?: string
           permissions?: Json | null
@@ -2672,6 +2674,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          allowed_instance_ids?: string[] | null
           created_at?: string | null
           id?: string
           permissions?: Json | null

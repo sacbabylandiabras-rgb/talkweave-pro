@@ -45,23 +45,17 @@ export default function Equipe() {
   async function bootstrap() {
     try {
       setLoading(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       let { data: t } = await (supabase as any).from("teams").select("*").eq("owner_id", user.id).maybeSingle();
-
+      
       if (!t) {
-        const { data: created, error } = await (supabase as any)
-          .from("teams")
-          .insert({
-            owner_id: user.id,
-            name: "Minha equipe",
-          })
-          .select()
-          .single();
-
+        const { data: created, error } = await (supabase as any).from("teams").insert({ 
+          owner_id: user.id, 
+          name: "Minha equipe" 
+        }).select().single();
+        
         if (error) {
           console.error("Erro ao criar equipe:", error);
           setLoading(false);
@@ -69,9 +63,12 @@ export default function Equipe() {
         }
         t = created;
       }
-
+      
       setTeamId(t.id);
-      await Promise.all([loadMembers(t.id), loadInvites(t.id)]);
+      await Promise.all([
+        loadMembers(t.id),
+        loadInvites(t.id)
+      ]);
     } catch (error) {
       console.error("Erro ao carregar equipe:", error);
     } finally {
@@ -81,20 +78,14 @@ export default function Equipe() {
 
   async function loadMembers(tid: string) {
     try {
-      const { data, error } = await (supabase as any)
-        .from("team_members")
-        .select(
-          `
-          *,
-          profiles!user_id (
-            id,
-            email,
-            full_name
-          )
-        `,
+      const { data, error } = await (supabase as any).from("team_members").select(`
+        *,
+        profiles!user_id (
+          id,
+          email,
+          full_name
         )
-        .eq("team_id", tid)
-        .order("created_at");
+      `).eq("team_id", tid).order("created_at");
 
       if (error) {
         console.error("Erro ao carregar membros:", error);
@@ -108,8 +99,7 @@ export default function Equipe() {
 
   async function loadInvites(tid: string) {
     try {
-      const { data, error } = await (supabase as any)
-        .from("team_invites")
+      const { data, error } = await (supabase as any).from("team_invites")
         .select("*")
         .eq("team_id", tid)
         .is("accepted_at", null)
@@ -132,19 +122,20 @@ export default function Equipe() {
     }
 
     try {
+      // Obter o limite do plano do usuário
       const { data: profile } = await supabase
         .from("profiles")
         .select("max_team_members")
         .eq("id", team.selfUserId)
         .single();
-
+      
       const max = Number((profile as any)?.max_team_members ?? 1);
 
       if (members.length + invites.length >= max) {
-        toast({
-          title: "Limite atingido",
+        toast({ 
+          title: "Limite atingido", 
           description: `Sua conta permite no máximo ${max} funcionários (incluindo convites pendentes).`,
-          variant: "destructive",
+          variant: "destructive"
         });
         return;
       }
@@ -164,24 +155,24 @@ export default function Equipe() {
 
       setSendingInvite(true);
       const { data, error } = await supabase.functions.invoke("team-invite-send", {
-        body: {
+        body: { 
           email: email,
-          allowedInstanceIds: inviteInstances,
-        },
+          allowedInstanceIds: inviteInstances
+        }
       });
 
       if (error || (data as any)?.error) {
-        toast({
-          title: "Erro ao enviar convite",
-          description: (data as any)?.error || error?.message,
-          variant: "destructive",
+        toast({ 
+          title: "Erro ao enviar convite", 
+          description: (data as any)?.error || error?.message, 
+          variant: "destructive" 
         });
         return;
       }
 
-      toast({
-        title: (data as any)?.message ? "Convite registrado!" : "Convite enviado!",
-        description: (data as any)?.message || "O funcionário receberá um email com as instruções.",
+      toast({ 
+        title: (data as any)?.message ? "Convite registrado!" : "Convite enviado!", 
+        description: (data as any)?.message || "O funcionário receberá um email com as instruções." 
       });
 
       setInviteOpen(false);
@@ -216,7 +207,7 @@ export default function Equipe() {
 
   async function copyInviteLink(inv: any) {
     try {
-      const origin = "https://zaplynx.com";
+      const origin = "https://zaplynx.com"; // Ajustado para o domínio do sistema
       const url = `${origin}/aceitar-convite?token=${inv.token}`;
       await navigator.clipboard.writeText(url);
       toast({ title: "Link copiado!", description: "Envie este link para o funcionário." });
@@ -228,11 +219,7 @@ export default function Equipe() {
 
   async function removeMember(id: string) {
     if (!isOwner) {
-      toast({
-        title: "Erro",
-        description: "Apenas o proprietário pode remover membros",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: "Apenas o proprietário pode remover membros", variant: "destructive" });
       return;
     }
 
@@ -255,11 +242,7 @@ export default function Equipe() {
 
   async function toggleMemberStatus(m: any) {
     if (!isOwner) {
-      toast({
-        title: "Erro",
-        description: "Apenas o proprietário pode alterar status",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: "Apenas o proprietário pode alterar status", variant: "destructive" });
       return;
     }
 
@@ -322,13 +305,18 @@ export default function Equipe() {
                   <h3 className="font-semibold">Nenhum funcionário ativo</h3>
                   <p className="text-sm text-muted-foreground">Convide sua equipe para começar a colaborar.</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => setInviteOpen(true)} disabled={!isOwner}>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setInviteOpen(true)}
+                  disabled={!isOwner}
+                >
                   Enviar convite
                 </Button>
               </CardContent>
             </Card>
           ) : (
-            members.map((m) => (
+            members.map(m => (
               <Card key={m.id} className="overflow-hidden">
                 <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-4">
                   <div className="flex-1">
@@ -338,14 +326,16 @@ export default function Equipe() {
                         {m.status === "active" ? "Ativo" : "Suspenso"}
                       </Badge>
                     </div>
-                    <div className="text-sm text-muted-foreground">{m.profiles?.email || m.invited_email}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {m.profiles?.email || m.invited_email}
+                    </div>
                   </div>
 
                   {isOwner && (
                     <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
                         onClick={() => toggleMemberStatus(m)}
                         disabled={operationLoading === m.id}
                       >
@@ -358,9 +348,9 @@ export default function Equipe() {
                         )}
                         {m.status === "active" ? "Suspender" : "Reativar"}
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => removeMember(m.id)}
                         disabled={operationLoading === m.id}
@@ -383,22 +373,24 @@ export default function Equipe() {
         <TabsContent value="invites" className="space-y-4">
           {invites.length === 0 ? (
             <Card>
-              <CardContent className="p-12 text-center text-muted-foreground">Nenhum convite pendente.</CardContent>
+              <CardContent className="p-12 text-center text-muted-foreground">
+                Nenhum convite pendente.
+              </CardContent>
             </Card>
           ) : (
-            invites.map((inv) => (
+            invites.map(inv => (
               <Card key={inv.id}>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
                     <div className="font-medium">{inv.email}</div>
                     <div className="text-xs text-muted-foreground">
-                      Enviado em {new Date(inv.created_at).toLocaleDateString("pt-BR")}
+                      Enviado em {new Date(inv.created_at).toLocaleDateString('pt-BR')}
                     </div>
                   </div>
                   {isOwner && (
                     <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
+                      <Button 
+                        size="sm" 
                         variant="outline"
                         onClick={() => copyInviteLink(inv)}
                         disabled={operationLoading === inv.id}
@@ -406,9 +398,9 @@ export default function Equipe() {
                         <Copy className="w-4 h-4 mr-2" />
                         Link
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
                         className="text-destructive"
                         onClick={() => cancelInvite(inv.id)}
                         disabled={operationLoading === inv.id}
@@ -437,9 +429,9 @@ export default function Equipe() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email do funcionário</Label>
-              <Input
-                id="email"
-                placeholder="exemplo@email.com"
+              <Input 
+                id="email" 
+                placeholder="exemplo@email.com" 
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 disabled={sendingInvite}
@@ -453,21 +445,24 @@ export default function Equipe() {
               <div className="space-y-3">
                 <Label>Instâncias permitidas</Label>
                 <div className="grid grid-cols-1 gap-2 border rounded-md p-3 max-h-[150px] overflow-y-auto">
-                  {instances.map((inst) => (
+                  {instances.map(inst => (
                     <div key={inst.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`inst-${inst.id}`}
+                      <Checkbox 
+                        id={`inst-${inst.id}`} 
                         checked={inviteInstances.includes(inst.id)}
                         onCheckedChange={(checked) => {
                           if (checked) {
                             setInviteInstances([...inviteInstances, inst.id]);
                           } else {
-                            setInviteInstances(inviteInstances.filter((id) => id !== inst.id));
+                            setInviteInstances(inviteInstances.filter(id => id !== inst.id));
                           }
                         }}
                         disabled={sendingInvite}
                       />
-                      <label htmlFor={`inst-${inst.id}`} className="text-sm font-medium leading-none cursor-pointer">
+                      <label
+                        htmlFor={`inst-${inst.id}`}
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
                         {inst.instance_name}
                       </label>
                     </div>
