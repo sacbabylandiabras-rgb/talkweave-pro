@@ -905,7 +905,10 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     setKeywordFluxo(tpl.suggestedKeyword || "");
     setFluxoAtivo(true);
     setCurrentFluxoId(null);
-    setNodes(tpl.nodes);
+    
+    // Create a copy of nodes to avoid modifying the template directly
+    const nodesCopy = JSON.parse(JSON.stringify(tpl.nodes));
+    setNodes(nodesCopy);
     setEdges(tpl.edges);
     setShowTemplatesDialog(false);
     
