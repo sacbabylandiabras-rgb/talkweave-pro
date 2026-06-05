@@ -158,7 +158,8 @@ export default function Equipe() {
   }
 
   async function copyInviteLink(inv: any) {
-    const url = `${window.location.origin}/aceitar-convite?token=${inv.token}`;
+    const origin = window.location.origin.includes("lovable.app") ? "https://zaplynx.com" : window.location.origin;
+    const url = `${origin}/aceitar-convite?token=${inv.token}`;
     await navigator.clipboard.writeText(url);
     toast({ title: "Link copiado!", description: "Envie este link para o funcionário." });
   }
