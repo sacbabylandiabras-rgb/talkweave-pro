@@ -9,27 +9,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Trash2, UserPlus, Copy, RefreshCw, Check, X } from "lucide-react";
-import { useTeam, PERMISSION_KEYS, PermissionKey } from "@/contexts/TeamContext";
+import { useTeam } from "@/contexts/TeamContext";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { useNavigate } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
-
-const PERMISSION_LABELS: Record<PermissionKey, string> = {
-  chat: "Chat / Mensagens",
-  campanhas: "Campanhas",
-  contatos: "Contatos",
-  etiquetas: "Etiquetas",
-  modelos: "Modelos",
-  fluxos: "Fluxos visuais",
-  grupos: "Grupos",
-  canais: "Canais",
-  comunidades: "Comunidades",
-  agente_ia: "Agente IA",
-  relatorios: "Relatórios",
-  aquecimento: "Aquecimento",
-  disparo: "Disparo",
-  extrair_membros: "Extrair membros",
-};
 
 export default function Equipe() {
   const team = useTeam();
@@ -60,10 +43,10 @@ export default function Equipe() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    let { data: t } = await supabase.from("teams").select("*").eq("owner_id", user.id).maybeSingle();
+    let { data: t } = await (supabase as any).from("teams").select("*").eq("owner_id", user.id).maybeSingle();
     
     if (!t) {
-      const { data: created, error } = await supabase.from("teams").insert({ 
+      const { data: created, error } = await (supabase as any).from("teams").insert({ 
         owner_id: user.id, 
         name: "Minha equipe" 
       }).select().single();
@@ -85,7 +68,7 @@ export default function Equipe() {
   }
 
   async function loadMembers(tid: string) {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("team_members")
       .select(`
         *,
@@ -106,7 +89,7 @@ export default function Equipe() {
   }
 
   async function loadInvites(tid: string) {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("team_invites")
       .select("*")
       .eq("team_id", tid)
@@ -164,7 +147,7 @@ export default function Equipe() {
   async function cancelInvite(id: string) {
     if (!confirm("Deseja realmente cancelar este convite?")) return;
     
-    const { error } = await supabase.from("team_invites").delete().eq("id", id);
+    const { error } = await (supabase as any).from("team_invites").delete().eq("id", id);
     if (error) {
       toast({ title: "Erro", description: "Não foi possível cancelar o convite", variant: "destructive" });
       return;
@@ -183,7 +166,7 @@ export default function Equipe() {
   async function removeMember(id: string) {
     if (!confirm("Deseja remover este funcionário da sua equipe? Ele perderá acesso imediatamente.")) return;
     
-    const { error } = await supabase.from("team_members").delete().eq("id", id);
+    const { error } = await (supabase as any).from("team_members").delete().eq("id", id);
     if (error) {
       toast({ title: "Erro", description: "Não foi possível remover o funcionário", variant: "destructive" });
       return;
@@ -195,7 +178,7 @@ export default function Equipe() {
 
   async function toggleMemberStatus(m: any) {
     const next = m.status === "active" ? "suspended" : "active";
-    const { error } = await supabase.from("team_members").update({ status: next }).eq("id", m.id);
+    const { error } = await (supabase as any).from("team_members").update({ status: next }).eq("id", m.id);
     
     if (error) {
       toast({ title: "Erro", description: "Não foi possível alterar o status", variant: "destructive" });
@@ -361,7 +344,7 @@ export default function Equipe() {
                         }}
                       />
                       <label htmlFor={`inst-${inst.id}`} className="text-sm font-medium leading-none cursor-pointer">
-                        {inst.name}
+                        {inst.instance_name}
                       </label>
                     </div>
                   ))}
@@ -381,3 +364,4 @@ export default function Equipe() {
     </div>
   );
 }
+
