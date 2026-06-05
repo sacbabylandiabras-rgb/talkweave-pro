@@ -263,7 +263,7 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           from: "Zaplynx <onboarding@resend.dev>",
-          to: email,
+          to: [email],
           subject: "Você foi convidado para o Zaplynx!",
           html: html,
         }),
