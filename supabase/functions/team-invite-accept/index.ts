@@ -60,6 +60,16 @@ Deno.serve(async (req) => {
       throw insErr;
     }
 
+    // Add to team_members
+    console.log(`Adding user ${user.id} to team_members for team ${inv.team_id}`);
+    const { error: teamMemErr } = await admin.from("team_members").insert({
+      team_id: inv.team_id,
+      user_id: user.id,
+      role: inv.role_id || 'member',
+      status: 'active'
+    });
+    if (teamMemErr) console.error("Erro ao inserir em team_members:", teamMemErr);
+
     // Update profile with employee tag and boss email
     const ownerEmail = inv.team?.owner?.email || "";
     console.log(`Updating profile for user ${user.id} with tag and boss email ${ownerEmail}`);
@@ -67,7 +77,7 @@ Deno.serve(async (req) => {
       full_name: user.user_metadata?.full_name || user.email,
       email: user.email,
       subscription_status: 'funcionario',
-      email_sender_address: ownerEmail // Usando um campo existente para guardar o email do chefe
+      boss_email: ownerEmail
     }).eq("id", user.id);
 
     if (profileErr) {
