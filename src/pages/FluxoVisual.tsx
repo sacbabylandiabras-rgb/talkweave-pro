@@ -6016,6 +6016,10 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           </div>
           <DialogFooter>
             <Button onClick={() => {
+              if (!storeUrlToImport) {
+                toast.error("Por favor, insira a URL da sua loja antes de prosseguir.");
+                return;
+              }
               setShowWebhookDialog(false);
               setShowAgentConfig(true);
             }}>

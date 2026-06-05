@@ -62,15 +62,38 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
 
   useEffect(() => {
     const triggerAutoImport = async () => {
-      if (open && autoImportUrl && !loading && urlInput === autoImportUrl && !urlLoading) {
-        const alreadyHasUrl = knowledge.some(k => k.title?.includes(autoImportUrl) || k.content?.includes(autoImportUrl));
+      if (open && autoImportUrl && !loading && !urlLoading) {
+        console.log("[AutoImport] Checking...", { autoImportUrl, knowledgeCount: knowledge.length });
+        
+        const alreadyHasUrl = knowledge.some(k => 
+          k.title?.toLowerCase().includes(autoImportUrl.toLowerCase()) || 
+          k.content?.toLowerCase().includes(autoImportUrl.toLowerCase())
+        );
+        
         if (!alreadyHasUrl) {
-          handleImportUrl(autoImportUrl);
+          console.log("[AutoImport] Starting import for:", autoImportUrl);
+          // Pequeno delay para garantir que o estado inicial esteja pronto
+          setTimeout(() => handleImportUrl(autoImportUrl), 300);
+        } else {
+          console.log("[AutoImport] URL já existe. Forçando preenchimento dos prompts.");
+          const existing = knowledge.find(k => 
+            k.title?.toLowerCase().includes(autoImportUrl.toLowerCase()) || 
+            k.content?.toLowerCase().includes(autoImportUrl.toLowerCase())
+          );
+          if (existing && existing.content) {
+             const siteTitle = existing.title || autoImportUrl;
+             const siteName = siteTitle.replace("🌐 ", "").split(/[|\-]/)[0]?.trim() || autoImportUrl;
+             setAgentName(`Assistente ${siteName}`);
+             setPromptTriage(`Você é o assistente virtual da empresa ${siteName}. Identifique se o cliente tem dúvidas sobre produtos ou checkout.`);
+             setPromptService(`Atue como especialista da ${siteName}. Use a base de conhecimento:\n\n${existing.content.substring(0, 1500)}`);
+             setPromptClosing(`Leve o cliente de volta ao checkout em ${autoImportUrl}.`);
+             setIsActive(true);
+          }
         }
       }
     };
     triggerAutoImport();
-  }, [open, loading, knowledge, autoImportUrl, urlInput, urlLoading]);
+  }, [open, loading, autoImportUrl]);
 
   const handleImportUrl = async (urlToImport?: string) => {
     const url = urlToImport || urlInput;
