@@ -50,6 +50,67 @@ export function AgentConfigDialog({ open, onOpenChange }: AgentConfigDialogProps
   const [docTitle, setDocTitle] = useState("");
   const [docContent, setDocContent] = useState("");
 
+  // URL Import state
+  const [urlInput, setUrlInput] = useState("");
+  const [urlLoading, setUrlLoading] = useState(false);
+
+  useEffect(() => {
+    if (open && autoImportUrl) {
+      setUrlInput(autoImportUrl);
+    }
+  }, [open, autoImportUrl]);
+
+  useEffect(() => {
+    const triggerAutoImport = async () => {
+      if (open && autoImportUrl && !loading && urlInput === autoImportUrl && !urlLoading) {
+        const alreadyHasUrl = knowledge.some(k => k.title?.includes(autoImportUrl) || k.content?.includes(autoImportUrl));
+        if (!alreadyHasUrl) {
+          handleImportUrl(autoImportUrl);
+        }
+      }
+    };
+    triggerAutoImport();
+  }, [open, loading, knowledge, autoImportUrl, urlInput, urlLoading]);
+
+  const handleImportUrl = async (urlToImport?: string) => {
+    const url = urlToImport || urlInput;
+    if (!url.trim() || urlLoading) return;
+    
+    setUrlLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("scrape-url", {
+        body: { url: url },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const title = data.title || url;
+      const content = data.content;
+      if (!content || content.length < 10) {
+        toast.error("Conteúdo insuficiente na URL");
+        return;
+      }
+      
+      await addDocument(`🌐 ${title}`, content);
+      
+      if (autoImportUrl) {
+        const newServicePrompt = `Use as informações deste site para atender os clientes: ${title}\n\nConteúdo principal: ${content.substring(0, 800)}...`;
+        await saveConfig({
+          prompt_service: newServicePrompt,
+          active: true
+        });
+        onImportComplete?.();
+      }
+
+      setUrlInput("");
+      toast.success("Site importado com sucesso!");
+    } catch (err: any) {
+      toast.error("Erro ao importar: " + err.message);
+    } finally {
+      setUrlLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!loading) {
       setAgentName(config.agent_name || "Assistente");
