@@ -356,7 +356,6 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
               </TabsContent>
             </Tabs>
             </div>
-          </ScrollArea>
         </div>
       </DialogContent>
     </Dialog>
