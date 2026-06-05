@@ -750,6 +750,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [showAgentConfig, setShowAgentConfig] = useState(false);
   const [showWebhookDialog, setShowWebhookDialog] = useState(false);
   const [currentWebhookUrl, setCurrentWebhookUrl] = useState("");
+  const [storeUrlToImport, setStoreUrlToImport] = useState("");
   const [isSpecialRecoveryFlow, setIsSpecialRecoveryFlow] = useState(false);
 
   // Quando true, o diálogo de seleção é apenas para escolher grupos antes
