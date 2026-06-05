@@ -72,7 +72,7 @@ export default function Equipe() {
       .from("team_members")
       .select(`
         *,
-        profile:user_id (
+        profiles!user_id (
           id,
           email,
           full_name
@@ -261,12 +261,12 @@ export default function Equipe() {
                 <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-4">
                   <div className="flex-1">
                     <div className="font-semibold flex items-center gap-2">
-                      {m.profile?.full_name || "Sem nome"}
+                      {m.profiles?.full_name || "Sem nome"}
                       <Badge variant={m.status === "active" ? "default" : "destructive"}>
                         {m.status === "active" ? "Ativo" : "Suspenso"}
                       </Badge>
                     </div>
-                    <div className="text-sm text-muted-foreground">{m.profile?.email || m.invited_email}</div>
+                    <div className="text-sm text-muted-foreground">{m.profiles?.email || m.invited_email}</div>
                   </div>
                   
                   <div className="flex items-center gap-2">
