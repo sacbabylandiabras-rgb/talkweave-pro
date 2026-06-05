@@ -363,9 +363,13 @@ const AdminZapLynx = () => {
                 {users.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">
-                      <div className="flex flex-col">
+                      <div className="flex flex-col gap-1">
                         <span>{user.email}</span>
-                        {user.id === currentUserId && <Badge variant="outline" className="w-fit text-xs mt-1">Você</Badge>}
+                        <div className="flex flex-wrap gap-1">
+                          {user.id === currentUserId && <Badge variant="outline" className="w-fit text-[10px] px-1 h-4">Você</Badge>}
+                          {user.is_owner && <Badge variant="default" className="w-fit text-[10px] px-1 h-4 bg-blue-600 hover:bg-blue-700">Dono</Badge>}
+                          {user.is_employee && <Badge variant="secondary" className="w-fit text-[10px] px-1 h-4">Funcionário</Badge>}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>{user.full_name || "-"}</TableCell>
