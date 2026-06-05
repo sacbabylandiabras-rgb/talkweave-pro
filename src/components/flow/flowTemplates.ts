@@ -12,6 +12,7 @@ import {
   CalendarDays,
   BarChart3,
   RefreshCw,
+  LayoutTemplate,
 } from "lucide-react";
 
 export interface FlowTemplate {
