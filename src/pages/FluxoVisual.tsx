@@ -37,6 +37,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -45,7 +46,7 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
+} from "@/accordion";
 import FlowCapturedDataDialog from "@/components/flow/FlowCapturedDataDialog";
 import { MemoriaAtendimentoEditor } from "@/components/flow/MemoriaAtendimentoEditor";
 import { ResumoConversaEditor } from "@/components/flow/ResumoConversaEditor";
@@ -65,6 +66,7 @@ import { ExpertIAEditor } from "@/components/flow/ExpertIAEditor";
 import { LeaderIAEditor } from "@/components/flow/LeaderIAEditor";
 import { AtualizarLeadEditor } from "@/components/flow/AtualizarLeadEditor";
 import { CriarRegistroCrmEditor } from "@/components/flow/CriarRegistroCrmEditor";
+import { AgentConfigDialog } from "@/components/flow/AgentConfigDialog";
 import {
   PlayCircle,
   MessageSquare,
@@ -103,6 +105,8 @@ import {
   Bot,
   Globe,
   ChevronRight,
+  Webhook,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
