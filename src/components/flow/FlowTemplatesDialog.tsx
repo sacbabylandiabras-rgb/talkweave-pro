@@ -87,7 +87,7 @@ export function FlowTemplatesDialog({
               </Card>
             ))}
           </div>
-        </ScrollArea>
+        </div>
 
         <div className="flex justify-end pt-2 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
