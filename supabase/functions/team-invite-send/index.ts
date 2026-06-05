@@ -140,7 +140,6 @@ Deno.serve(async (req) => {
     }).select().single();
     if (invErr) throw invErr;
 
-    // Usando o domínio zaplynx.com conforme solicitado
     const baseUrl = "https://zaplynx.com";
     const inviteUrl = `${baseUrl}/aceitar-convite?token=${inviteToken}`;
 
@@ -155,7 +154,6 @@ Deno.serve(async (req) => {
         team_id: team.id,
         invite_token: inviteToken,
       },
-      redirectTo: inviteUrl,
     });
 
     if (inviteError) {
@@ -172,7 +170,6 @@ Deno.serve(async (req) => {
         email,
         options: {
           shouldCreateUser: false,
-          emailRedirectTo: inviteUrl,
         },
       });
 
