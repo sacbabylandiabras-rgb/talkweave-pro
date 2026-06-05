@@ -41,7 +41,7 @@ serve(async (req) => {
     const patch = body.patch || {}
     if (!/^[0-9a-f-]{36}$/i.test(userId)) throw new Error('Invalid user')
 
-    const allowed = ['is_active', 'subscription_status', 'subscription_expires_at', 'max_instances', 'plan_id', 'custom_plan_value']
+    const allowed = ['is_active', 'subscription_status', 'subscription_expires_at', 'max_instances', 'plan_id', 'custom_plan_value', 'max_team_members']
     const update: Record<string, unknown> = {}
     for (const key of allowed) {
       if (Object.prototype.hasOwnProperty.call(patch, key)) update[key] = patch[key]

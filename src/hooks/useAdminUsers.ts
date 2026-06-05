@@ -17,6 +17,7 @@ export interface UserProfile {
   zapi_client_token: string | null;
   plan_id: string | null;
   custom_plan_value: number | null;
+  max_team_members: number | null;
 }
 
 export const useAdminUsers = () => {
@@ -31,7 +32,7 @@ export const useAdminUsers = () => {
       // Fetch all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, email, full_name, whatsapp, is_active, created_at, subscription_status, subscription_expires_at, zapi_instance_id, zapi_token, zapi_client_token, plan_id, custom_plan_value" as any)
+        .select("id, email, full_name, whatsapp, is_active, created_at, subscription_status, subscription_expires_at, zapi_instance_id, zapi_token, zapi_client_token, plan_id, custom_plan_value, max_team_members" as any)
         .order("created_at", { ascending: false });
 
       if (profilesError) throw profilesError;
@@ -58,6 +59,7 @@ export const useAdminUsers = () => {
         zapi_client_token: profile.zapi_client_token,
         plan_id: (profile as any).plan_id ?? null,
         custom_plan_value: (profile as any).custom_plan_value ?? null,
+        max_team_members: (profile as any).max_team_members ?? null,
         roles: roles
           ?.filter((r) => r.user_id === profile.id)
           .map((r) => r.role) || []

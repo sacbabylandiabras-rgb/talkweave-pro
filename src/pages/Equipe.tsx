@@ -104,7 +104,21 @@ export default function Equipe() {
   }
 
   async function sendInvite() {
+    const { data: profile } = await supabase.from("profiles").select("max_team_members").eq("id", team.selfUserId).single();
+    const max = Number((profile as any)?.max_team_members ?? 1);
+    
+    // Contar membros ativos + convites pendentes
+    if ((members.length + invites.length) >= max) {
+      toast({ 
+        title: "Limite atingido", 
+        description: `Sua conta permite no máximo ${max} funcionários (incluindo convites pendentes).`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!inviteEmail.trim()) { 
+
       toast({ title: "Atenção", description: "Informe o email do funcionário", variant: "destructive" }); 
       return; 
     }
