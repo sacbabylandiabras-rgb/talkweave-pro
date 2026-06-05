@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${resendKey}` },
           body: JSON.stringify({
-            from: "ZapLynx <no-reply@zaplynx.com>",
+            from: "ZapLynx <convites@zaplynxpro.online>",
             to: [email],
             subject: `Você foi convidado para uma equipe`,
             html: `<p>Olá!</p><p><strong>${ownerName}</strong> convidou você para entrar na equipe dele(a).</p><p><a href="${inviteUrl}" style="background:#111;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Aceitar convite</a></p><p>Ou copie este link: ${inviteUrl}</p>`,
