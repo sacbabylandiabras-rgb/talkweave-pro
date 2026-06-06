@@ -375,11 +375,11 @@ serve(async (req) => {
     }
 
     const fromMe = webhook?.fromMe === true || webhook?.fromMe === "true" || webhook?.fromApi === true || webhook?.fromApi === "true";
-    const { data: instanceData } = await supabase.from("zapi_instances").select("id, user_id, zapi_instance_id, zapi_token, zapi_client_token").or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`).maybeSingle();
+    const { data: instanceData } = await supabase.from("zapi_instances").select("id, user_id, zapi_instance_id, zapi_token, zapi_client_token, updated_at").or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`).maybeSingle();
     const userId = instanceData?.user_id;
 
     if (isStatusOnlyCallback(type, webhook, messageRaw, mediaUrl)) {
-      if (instanceData) await ensureReceivedWebhook(instanceData).catch((error) => console.warn("[webhook-zapi] received webhook sync failed", error));
+      if (instanceData) await ensureReceivedWebhook(instanceData, supabase).catch((error) => console.warn("[webhook-zapi] received webhook sync failed", error));
       console.log("[webhook-zapi] ignored status-only callback", { type, status: webhook?.status, phone, messageId });
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
