@@ -23,7 +23,7 @@ import 'reactflow/dist/style.css';
 import { nodeTypes } from './nodeTypes';
 
 // ✅ IMPORTAR DADOS DE EXEMPLO
-import { EXEMPLO_BLOCOS, validarNode } from './EXEMPLOS_ESTRUTURA_BLOCOS';
+import { EXEMPLO_BLOCOS, validarNode } from './exemploBlocos';
 
 // Dados iniciais de exemplo
 const initialNodes: Node[] = [
