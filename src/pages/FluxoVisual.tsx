@@ -4783,21 +4783,73 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                     const PROOFS = [
                       { label: "Comprovante Recebido", desc: "Fluxo continua automaticamente quando qualquer mídia (foto/arquivo) for detectada", color: "bg-emerald-500" },
                     ];
+                    
+                    const handleTestPixel = async () => {
+                      try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (!session) {
+                          toast.error("Você precisa estar logado para testar o Pixel");
+                          return;
+                        }
+
+                        toast.info("Enviando evento de teste do Pixel...");
+                        
+                        const { data: response, error } = await supabase.functions.invoke('webhook-zapi', {
+                          body: {
+                            test_event: true,
+                            test_event_code: "TEST20723",
+                            instanceId: "test-instance",
+                            phone: "5511999999999",
+                            moments: ["proof_of_payment"]
+                          }
+                        });
+
+                        if (error) throw error;
+                        
+                        toast.success("Evento de teste enviado com sucesso!");
+                      } catch (error) {
+                        console.error("Erro ao testar pixel:", error);
+                        toast.error("Erro ao enviar evento de teste");
+                      }
+                    };
+
                     return (
-                      <div className="space-y-2">
+                      <div className="space-y-4">
                         <div className="rounded-md border border-primary/30 bg-primary/10 p-2 text-[11px] text-foreground/80">
                           Este bloco interrompe o fluxo e aguarda o envio de um comprovante pelo lead. Assim que uma mídia for detectada, o fluxo seguirá pela saída única.
                         </div>
-                        <Label>Saída única automática</Label>
-                        {PROOFS.map((s, idx) => (
-                          <div key={idx} className="flex items-start gap-2 rounded-md border bg-card px-3 py-2">
-                            <span className={`mt-1 inline-block w-2 h-2 rounded-full ${s.color}`} />
-                            <div className="flex-1">
-                              <div className="text-sm font-semibold">{s.label}</div>
-                              <div className="text-[11px] text-muted-foreground">{s.desc}</div>
+                        
+                        <div className="space-y-2 p-3 bg-muted/30 rounded-lg border border-border/40">
+                          <Label className="text-xs font-semibold flex items-center gap-2">
+                            <Sparkles className="w-3 h-3 text-primary" />
+                            Validação do Pixel
+                          </Label>
+                          <p className="text-[10px] text-muted-foreground leading-relaxed">
+                            Use o botão abaixo para disparar um evento de teste e validar seu Pixel no Gerenciador de Eventos do Facebook.
+                          </p>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full h-8 text-xs gap-2 bg-background hover:bg-primary/5 border-primary/20"
+                            onClick={handleTestPixel}
+                          >
+                            <TestTube className="w-3.5 h-3.5" />
+                            Testar Pixel (TEST20723)
+                          </Button>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Saída única automática</Label>
+                          {PROOFS.map((s, idx) => (
+                            <div key={idx} className="flex items-start gap-2 rounded-md border bg-card px-3 py-2">
+                              <span className={`mt-1 inline-block w-2 h-2 rounded-full ${s.color}`} />
+                              <div className="flex-1">
+                                <div className="text-sm font-semibold">{s.label}</div>
+                                <div className="text-[11px] text-muted-foreground">{s.desc}</div>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     );
                   }
