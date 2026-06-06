@@ -35,15 +35,19 @@ function normalizeForMatch(text: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .replace(/\s+/g, " ")
     .trim();
 }
 
 function isKeywordMatch(message: string, keyword: string): boolean {
+  if (!keyword || !message) return false;
   const normalizedKeyword = normalizeForMatch(keyword);
-  if (!normalizedKeyword || !message) return false;
   const normalizedMessage = normalizeForMatch(message);
+  
+  // Strict check for slash commands
+  if (keyword.startsWith("/")) {
+    return normalizedMessage === normalizedKeyword;
+  }
+  
   return normalizedMessage.includes(normalizedKeyword);
 }
 
@@ -351,8 +355,6 @@ serve(async (req) => {
       const { data: flows } = await supabase.from("flow_automations").select("*").eq("user_id", userId).eq("active", true).not("category", "in", "(telegram,meta)");
       console.log("[webhook-zapi] active flows found:", flows?.length || 0);
       for (const flow of flows || []) {
-        const normalizedMessage = normalizeForMatch(messageRaw);
-        
         // Suporte para múltiplos tipos de gatilho
         const triggerNode = flow.nodes.find((n: any) => n.type === "step" && n.data?.kind === "gatilho") || 
                            flow.nodes.find((n: any) => n.type === "blocoInicial");
@@ -360,22 +362,21 @@ serve(async (req) => {
         let isMatch = false;
         let startNodeId = triggerNode?.id;
 
-        // Se for uma automação de Telegram, pulamos no webhook de WhatsApp (ZAPI)
-        if (flow.category === "telegram" || (triggerNode?.data?.triggerType === "command" && triggerNode.data.keyword?.startsWith("/"))) {
+        const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim()).filter(Boolean);
+        
+        // Se for uma automação explicitamente de Telegram, pulamos
+        if (flow.category === "telegram") {
            console.log(`[webhook-zapi] skipping telegram flow "${flow.name}"`);
            continue;
         }
 
         if (triggerNode?.type === "step" && triggerNode.data?.triggerType === "command") {
           const command = triggerNode.data.keyword || "";
-          if (command && isKeywordMatch(normalizedMessage, command)) {
+          if (command && isKeywordMatch(messageRaw, command)) {
             isMatch = true;
           }
-        } else {
-          const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim()).filter(Boolean);
-          if (mainKeywords.some((k: string) => isKeywordMatch(normalizedMessage, k))) {
-            isMatch = true;
-          }
+        } else if (mainKeywords.some((k: string) => isKeywordMatch(messageRaw, k))) {
+          isMatch = true;
         }
 
         if (isMatch && startNodeId) {
