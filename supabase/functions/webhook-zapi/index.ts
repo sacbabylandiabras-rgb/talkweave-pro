@@ -1655,7 +1655,8 @@ async function executeFlow(
       if (actionType === "delay" || (node.type === "blocoAcao" && actionType === "delay")) {
         const seconds = Number(node.data.delaySeconds ?? node.data.actionConfig ?? 0) || 0;
         if (seconds > 0) {
-          await new Promise((resolve) => setTimeout(resolve, Math.min(seconds, 25) * 1000));
+          console.log(`[Flow] Waiting action delay of ${seconds}s (capped at 55s)`);
+          await new Promise((resolve) => setTimeout(resolve, Math.min(seconds, 55) * 1000));
         }
       } else if (node.type === "blocoAcao" && actionType === "typing") {
         const seconds = Math.min(Number(node.data.typingDuration ?? 5) || 5, 25);
