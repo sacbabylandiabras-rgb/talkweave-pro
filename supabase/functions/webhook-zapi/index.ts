@@ -1703,26 +1703,45 @@ async function executeFlow(
           }];
       
       let matchedIndex = -1;
-      for (let i = 0; i < conditions.length; i++) {
-        const cond = conditions[i];
-        const variableName = cond.variable?.replace(/[{}]/g, "") || "";
-        const variableValue = captured[variableName] || "";
-        
-        try {
-          const { data: evalData } = await supabase.functions.invoke("evaluate-condition", {
-            body: { 
-              value: variableValue, 
-              dataType: cond.dataType, 
-              operator: cond.operator, 
-              compareValue: cond.compareValue 
-            }
-          });
-          if (evalData?.result) {
-            matchedIndex = i;
-            break;
+      const isSplit = (node.data.label || "").toLowerCase().includes("split");
+      const isHorario = (node.data.label || "").toLowerCase().includes("horário") || (node.data.label || "").toLowerCase().includes("horario");
+      const isFiltroStatus = (node.data.label || "").toLowerCase().includes("filtro por status");
+
+      if (isSplit) {
+        matchedIndex = Math.floor(Math.random() * (node.data.branches?.length || 2));
+      } else if (isHorario) {
+        // Implementar lógica de horário comercial simples
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentDay = now.getDay(); // 0-6 (domingo-sábado)
+        const isBusinessHours = currentDay >= 1 && currentDay <= 5 && currentHour >= 9 && currentHour < 18;
+        matchedIndex = isBusinessHours ? 0 : 1;
+      } else {
+        for (let i = 0; i < conditions.length; i++) {
+          const cond = conditions[i];
+          const variableName = cond.variable?.replace(/[{}]/g, "") || "";
+          // Adicionado fallback para message_received caso a variável seja 'message' ou similar
+          let variableValue = captured[variableName];
+          if (!variableValue && (variableName.toLowerCase() === "mensagem" || variableName.toLowerCase() === "message" || variableName.toLowerCase() === "input")) {
+            variableValue = webhook?.text || webhook?.message?.text || "";
           }
-        } catch (e) {
-          console.error("[Flow] Error evaluating condition:", e);
+          
+          try {
+            const { data: evalData } = await supabase.functions.invoke("evaluate-condition", {
+              body: { 
+                value: variableValue || "", 
+                dataType: cond.dataType, 
+                operator: cond.operator, 
+                compareValue: cond.compareValue 
+              }
+            });
+            if (evalData?.result) {
+              matchedIndex = i;
+              break;
+            }
+          } catch (e) {
+            console.error("[Flow] Error evaluating condition:", e);
+          }
         }
       }
 
