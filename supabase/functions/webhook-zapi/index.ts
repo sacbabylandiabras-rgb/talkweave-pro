@@ -1425,7 +1425,8 @@ async function executeFlow(
     if (node.type === "blocoConteudo" || node.type === "blocoInicial") {
       const delaySeconds = Number(node.data.delaySeconds || 0);
       if (delaySeconds > 0) {
-        await new Promise((resolve) => setTimeout(resolve, Math.min(delaySeconds, 25) * 1000));
+        console.log(`[Flow] Waiting delay of ${delaySeconds}s (capped at 55s) for node ${node.id}`);
+        await new Promise((resolve) => setTimeout(resolve, Math.min(delaySeconds, 55) * 1000));
       }
 
       const isCapture =
