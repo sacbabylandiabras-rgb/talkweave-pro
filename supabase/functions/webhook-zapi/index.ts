@@ -1724,12 +1724,13 @@ async function executeFlow(
           
           let variableValue = captured[variableName];
           if (!variableValue && isMessageVar) {
-            variableValue = webhook?.text || webhook?.message?.text || "";
+            variableValue = webhook?.__agent_input_text || webhook?.text || webhook?.message?.text || "";
           }
 
           // Se a variável é a mensagem e não veio texto agora, PARAR e esperar a próxima interação
           if (isMessageVar && !variableValue) {
-            console.log(`[Flow] Node ${currentNodeId} needs message input. Stopping flow to wait for reply.`);
+            console.log(`[Flow] Node ${currentNodeId} needs message input (no content in webhook). Stopping flow to wait for reply.`);
+
             
             await supabase.from("flow_captured_data").upsert(
               {
