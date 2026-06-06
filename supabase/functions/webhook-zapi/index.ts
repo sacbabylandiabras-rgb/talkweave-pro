@@ -360,6 +360,12 @@ serve(async (req) => {
         let isMatch = false;
         let startNodeId = triggerNode?.id;
 
+        // Se for uma automação de Telegram, pulamos no webhook de WhatsApp (ZAPI)
+        if (flow.category === "telegram" || (triggerNode?.data?.triggerType === "command" && triggerNode.data.keyword?.startsWith("/"))) {
+           console.log(`[webhook-zapi] skipping telegram flow "${flow.name}"`);
+           continue;
+        }
+
         if (triggerNode?.type === "step" && triggerNode.data?.triggerType === "command") {
           const command = triggerNode.data.keyword || "";
           if (command && isKeywordMatch(normalizedMessage, command)) {
