@@ -1718,41 +1718,71 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     }
   };
 
-  const processFlow = async (currentNodeId: string, contact: string, visitedNodes: Set<string>, instanceId?: string, userId?: string, provider: FlowSendProvider = "zapi", flowIdForPending?: string) => {
+  const processFlow = async (
+    currentNodeId: string,
+    contact: string,
+    visitedNodes: Set<string>,
+    instanceId?: string,
+    userId?: string,
+    provider: FlowSendProvider = "zapi",
+    flowIdForPending?: string
+  ) => {
     if (cancelSendRef.current) return;
-    if (visitedNodes.has(currentNodeId)) return;
+    
+    // Evitar loops infinitos
+    if (visitedNodes.has(currentNodeId)) {
+      console.log(`[FluxoVisual] Já visitou nó ${currentNodeId}, parando`);
+      return;
+    }
+    
     visitedNodes.add(currentNodeId);
 
+    // Buscar nó do estado atual
     const runtimeNodes = selectedNode
       ? nodes.map((node) => node.id === selectedNode.id ? { ...node, data: selectedNode.data } : node)
       : nodes;
-    const runtimeEdges = edges;
-    const nodeMap = new Map(runtimeNodes.map((n) => [n.id, n]));
-    const outgoingEdges = runtimeEdges
-      .filter((e) => e.source === currentNodeId)
-      .sort((a, b) => {
-        const handlePriority = (handle?: string | null) => {
-          if (!handle || handle === "default") return 0;
-          if (handle.startsWith("button-")) return 2;
-          return 1;
-        };
+    
+    const currentNode = runtimeNodes.find(n => n.id === currentNodeId);
+    if (!currentNode) {
+      console.warn(`[FluxoVisual] Nó ${currentNodeId} não encontrado`);
+      return;
+    }
 
-        const priorityDiff = handlePriority(a.sourceHandle) - handlePriority(b.sourceHandle);
-        if (priorityDiff !== 0) return priorityDiff;
-
-        const aTarget = nodeMap.get(a.target);
-        const bTarget = nodeMap.get(b.target);
-        const ay = aTarget?.position?.y ?? 0;
-        const by = bTarget?.position?.y ?? 0;
-        if (ay !== by) return ay - by;
-
-        const ax = aTarget?.position?.x ?? 0;
-        const bx = bTarget?.position?.x ?? 0;
-        return ax - bx;
+    const wrapUrlWithTracking = (rawUrl: string, btnText: string, phone: string) => {
+      const finalUrl = rawUrl.match(/^https?:\/\//i) ? rawUrl : `https://${rawUrl}`;
+      const params = new URLSearchParams({
+        url: finalUrl,
+        flow: nomeFluxo,
+        btn: btnText,
+        uid: userId || '',
+        ph: phone,
       });
+      return `https://go.zaplynxpro.online/r?${params.toString()}`;
+    };
 
-    // Process source node if it has content (BlocoInicial or other message nodes)
-    const currentNode = nodeMap.get(currentNodeId);
+    const sendWithInstance = async (payload: Record<string, any>, nodeData?: any) => {
+      const finalPayload = { ...payload };
+      const isGroup = contact.includes('@g.us') || contact.includes('-group');
+      if (isGroup) {
+        const numericId = contact.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
+        finalPayload.phone = numericId ? `${numericId}-group` : contact;
+        if (nodeData?.mentionAll) finalPayload.mentionAll = true;
+      }
+
+      const body = instanceId
+        ? { ...finalPayload, instanceId, preferStandardConnection: true }
+        : { ...finalPayload, preferStandardConnection: true };
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('send-message', { body });
+        const failureMessage = await getSendFailureMessage(data, error, "Erro ao enviar fluxo");
+        if (failureMessage) throw new Error(failureMessage);
+      } catch (invokeErr) {
+        console.error("[FluxoVisual] Error invoking send-message:", invokeErr);
+        throw invokeErr;
+      }
+    };
+
     const processNode = async (node: any) => {
       if (!node) return;
       
@@ -1775,41 +1805,6 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           ...sendableButtons,
           ...flowButtons.map((b: any) => ({ ...b, type: "reply" })),
         ];
-
-        const wrapUrlWithTracking = (rawUrl: string, btnText: string, phone: string) => {
-          const finalUrl = rawUrl.match(/^https?:\/\//i) ? rawUrl : `https://${rawUrl}`;
-          const params = new URLSearchParams({
-            url: finalUrl,
-            flow: nomeFluxo,
-            btn: btnText,
-            uid: userId || '',
-            ph: phone,
-          });
-          return `https://go.zaplynxpro.online/r?${params.toString()}`;
-        };
-
-        const sendWithInstance = async (payload: Record<string, any>, nodeData?: any) => {
-          const finalPayload = { ...payload };
-          const isGroup = contact.includes('@g.us') || contact.includes('-group');
-          if (isGroup) {
-            const numericId = contact.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
-            finalPayload.phone = numericId ? `${numericId}-group` : contact;
-            if (nodeData?.mentionAll) finalPayload.mentionAll = true;
-          }
-
-          const body = instanceId
-            ? { ...finalPayload, instanceId, preferStandardConnection: true }
-            : { ...finalPayload, preferStandardConnection: true };
-          
-          try {
-            const { data, error } = await supabase.functions.invoke('send-message', { body });
-            const failureMessage = await getSendFailureMessage(data, error, "Erro ao enviar fluxo");
-            if (failureMessage) throw new Error(failureMessage);
-          } catch (invokeErr) {
-            console.error("[FluxoVisual] Error invoking send-message:", invokeErr);
-            throw invokeErr;
-          }
-        };
 
         if (allSendButtons.length > 0) {
           const mappedButtons = allSendButtons.map((btn: any, idx: number) => {
@@ -1855,16 +1850,18 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       }
     };
 
-    // Process the current node content
-    await processNode(currentNode);
-
-    if (outgoingEdges.length === 0) return;
+    // Processar conteúdo do nó atual
+    try {
+      await processNode(currentNode);
+    } catch (err) {
+      console.error(`[FluxoVisual] Erro processando nó:`, err);
+      throw err;
+    }
 
     if (currentNode?.type === "blocoCondicao") {
       const pendingFlowId = flowIdForPending || currentFluxoId;
-      console.log("[FluxoVisual] Reached condition node, saving state", { userId, pendingFlowId, contact, currentNodeId });
       if (userId && pendingFlowId) {
-        const { error: saveErr } = await supabase.from("flow_captured_data").upsert({
+        await supabase.from("flow_captured_data").upsert({
           user_id: userId,
           flow_id: pendingFlowId,
           flow_name: nomeFluxo,
@@ -1874,89 +1871,39 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           source: isGroupsMode ? "whatsapp_group" : "whatsapp",
           updated_at: new Date().toISOString()
         }, { onConflict: "user_id,flow_id,phone" });
-        if (saveErr) console.error("[FluxoVisual] Error saving condition state:", saveErr);
-        else console.log("[FluxoVisual] State saved successfully");
-      } else {
-        console.warn("[FluxoVisual] Cannot save state — missing userId or flowId");
       }
       return;
     }
 
-    // Filtrar apenas uma conexão por tipo de handle de saída para evitar duplicidade no envio
-    const uniqueOutgoingEdges = new Map();
-    outgoingEdges.forEach(edge => {
-      const handleKey = edge.sourceHandle || "default";
-      if (!uniqueOutgoingEdges.has(handleKey)) {
-        uniqueOutgoingEdges.set(handleKey, edge);
-      }
-    });
+    // Encontrar próximas conexões
+    const outgoingEdges = edges
+      .filter((e) => e.source === currentNodeId)
+      .sort((a, b) => {
+        const aTarget = runtimeNodes.find(n => n.id === a.target);
+        const bTarget = runtimeNodes.find(n => n.id === b.target);
+        const ay = aTarget?.position?.y ?? 0;
+        const by = bTarget?.position?.y ?? 0;
+        
+        if (ay !== by) return ay - by;
+        return (aTarget?.position?.x ?? 0) - (bTarget?.position?.x ?? 0);
+      });
 
-    for (const edge of uniqueOutgoingEdges.values()) {
+    if (outgoingEdges.length === 0) return;
+
+    // Processar cada saída
+    for (const edge of outgoingEdges) {
       const targetNode = runtimeNodes.find(n => n.id === edge.target);
       if (!targetNode) continue;
 
-      // Check if current handle has been "sent" via buttons that stop flow
-      const buttons = Array.isArray(currentNode?.data?.buttons) ? currentNode.data.buttons : [];
-      const hasButtonEdgesFromHandle = buttons.some((_: any, idx: number) => 
-        edge.sourceHandle === `button-${idx}` || edge.sourceHandle === `button_${idx}`
+      await processFlow(
+        targetNode.id,
+        contact,
+        visitedNodes,
+        instanceId,
+        userId,
+        provider,
+        flowIdForPending
       );
-      
-      if (hasButtonEdgesFromHandle) {
-        const pendingFlowId = flowIdForPending || currentFluxoId;
-        if (userId && pendingFlowId) {
-          await supabase.from("flow_captured_data").upsert({
-            user_id: userId,
-            flow_id: pendingFlowId,
-            phone: contact,
-            last_node_id: currentNodeId,
-            captured_data: {},
-            updated_at: new Date().toISOString()
-          }, { onConflict: "user_id,flow_id,phone" });
-        }
-        // Pause this path — webhook will resume when user clicks button
-        continue;
-      }
-
-      // Check for data collection prompts that pause flow
-      const collectAny = currentNode?.data?.collectName || currentNode?.data?.collectWhatsapp || currentNode?.data?.collectEmail || currentNode?.data?.collectCPF;
-      if (collectAny) {
-        // Flow is already paused by processNode for this node
-        return;
-      }
-       // Bloco de ação ou agendamento: aplica delay/agendamento antes de continuar o fluxo
-       if (targetNode.type === "blocoAcao" || targetNode.type === "blocoAgendamento") {
-         const actionType = targetNode.data.actionType;
-         const scheduleType = targetNode.data.scheduleType || "once";
-         const scheduledAt = targetNode.data.scheduledAt;
- 
-         if (targetNode.type === "blocoAcao" && actionType === "delay") {
-           const seconds = Number(targetNode.data.delaySeconds ?? targetNode.data.actionConfig ?? 0) || 0;
-           if (seconds > 0) {
-             await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
-           }
-         } else if (
-           (targetNode.type === "blocoAcao" && actionType === "schedule") ||
-           targetNode.type === "blocoAgendamento"
-         ) {
-           if (scheduledAt) {
-             const targetDate = new Date(scheduledAt);
-             const now = new Date();
-             const diffMs = targetDate.getTime() - now.getTime();
-             
-             if (diffMs > 0) {
-               // Only wait if it's within a reasonable limit (e.g., 2 hours) for client-side
-               // For longer ones, it might fail if tab is closed, but at least it follows the logic.
-               const maxWait = 2 * 60 * 60 * 1000; 
-               const waitTime = Math.min(diffMs, maxWait);
-               
-               console.log(`[FluxoVisual] Waiting until ${targetDate.toLocaleString()} (${waitTime}ms)`);
-               await new Promise((resolve) => setTimeout(resolve, waitTime));
-             }
-           }
-         }
-       }
-
-      await processFlow(targetNode.id, contact, visitedNodes, instanceId, userId, provider, flowIdForPending);
     }
   };
 
