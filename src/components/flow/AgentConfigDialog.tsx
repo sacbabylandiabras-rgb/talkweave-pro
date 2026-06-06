@@ -116,13 +116,16 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      const siteTitle = data.title || url;
-      // Se a IA retornar "PayPal" ou se o título for genérico demais e a URL não tiver paypal, ignoramos o título da IA
-      let cleanSiteName = siteTitle.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
-      if ((siteTitle.toLowerCase().includes("paypal") || siteTitle.toLowerCase().includes("minha loja")) && !url.toLowerCase().includes("paypal")) {
-        cleanSiteName = url.replace(/^(https?:\/\/)?(www\.)?/, "").split(/[./]/)[0];
-        cleanSiteName = cleanSiteName.charAt(0).toUpperCase() + cleanSiteName.slice(1);
-      }
+      const siteTitle = (data.title || "").toLowerCase().includes("paypal") ? "" : (data.title || "");
+      
+      // Extrair o nome da loja a partir da URL para ser mais confiável
+      const urlObj = new URL(url.startsWith("http") ? url : `https://${url}`);
+      const domainParts = urlObj.hostname.replace("www.", "").split(".");
+      const fallbackName = domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1);
+      
+      const cleanSiteName = siteTitle 
+        ? siteTitle.replace("🌐 ", "").split(/[|\-]/)[0]?.trim() 
+        : fallbackName;
 
       const content = data.content;
       
