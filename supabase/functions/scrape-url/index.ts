@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
                 content: `Analise este conteúdo e gere 10 FAQs detalhadas:\n\n${contentToUse || "Sem conteúdo disponível."}`
               }
             ],
-            model: "gpt-4o-mini",
+            model: "openai/gpt-5-mini",
             response_format: { type: "json_object" }
           }),
         });
