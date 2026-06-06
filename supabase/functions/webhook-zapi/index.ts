@@ -1734,12 +1734,35 @@ async function executeFlow(
         const isBusinessHours = currentDay >= 1 && currentDay <= 5 && currentHour >= 9 && currentHour < 18;
         matchedIndex = isBusinessHours ? 0 : 1;
       } else {
+        const waitsForMessage = conditions.some((cond: any) => {
+          const variableName = String(cond.variable || "").replace(/[{}]/g, "").toLowerCase();
+          return variableName === "" || variableName === "mensagem" || variableName === "message" || variableName === "input";
+        });
+
+        if (waitsForMessage && !webhook?.__is_resuming) {
+          console.log(`[Flow] Condition node ${currentNodeId} is waiting for the next user reply before evaluating.`);
+          await supabase.from("flow_captured_data").upsert(
+            {
+              user_id: userId,
+              flow_id: flow.id,
+              flow_name: flow.name,
+              phone,
+              captured_data: captured,
+              last_node_id: currentNodeId,
+              source: isGroup ? "whatsapp_group" : "whatsapp",
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id,flow_id,phone" }
+          );
+          return;
+        }
+
         for (let i = 0; i < conditions.length; i++) {
           const cond = conditions[i];
           const variableName = cond.variable?.replace(/[{}]/g, "") || "";
           const isMessageVar = variableName.toLowerCase() === "mensagem" || variableName.toLowerCase() === "message" || variableName.toLowerCase() === "input" || variableName === "";
           
-          let variableValue = captured[variableName];
+          let variableValue = isMessageVar && webhook?.__is_resuming ? "" : captured[variableName];
           if (!variableValue && isMessageVar) {
             variableValue = webhook?.__agent_input_text || webhook?.text || webhook?.message?.text || "";
           }
