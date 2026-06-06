@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ArrowLeft, Mail, Lock, User, Phone, TrendingUp, Zap } from "lucide-react";
@@ -22,6 +22,7 @@ const signupSchema = authSchema.extend({
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -66,7 +67,8 @@ const Auth = () => {
         }
       }
       toast({ title: "Login realizado!", description: "Bem-vindo de volta" });
-      navigate("/dashboard", { replace: true });
+      const origin = (location.state as any)?.from?.pathname || "/dashboard";
+      navigate(origin, { replace: true });
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({ title: "Dados inválidos", description: error.errors[0].message, variant: "destructive" });
