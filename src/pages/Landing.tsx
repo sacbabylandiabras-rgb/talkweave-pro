@@ -45,7 +45,12 @@ const Landing = () => {
     const syncPath = (section: string, mode: "push" | "replace" = "push") => {
       const nextPath = sectionToPath[section] || "/";
       if (window.location.pathname === nextPath) return;
+      
+      // Update the URL in the browser
       window.history[mode === "push" ? "pushState" : "replaceState"](null, "", nextPath);
+      
+      // Dispatch a custom event to notify React Router about the manual history change
+      window.dispatchEvent(new PopStateEvent("popstate"));
     };
 
     const setupFrame = () => {
