@@ -316,7 +316,9 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       const resolvedContent = content.replace(/\{\{nome\}\}/gi, captured.nome || "").replace(/\{\{whatsapp\}\}/gi, phone).replace(/\{\{email\}\}/gi, captured.email || "");
       const destination = isGroup ? chatId : phone;
       await sendZapiText(instance, destination, resolvedContent, node.data.buttons, node.id, node.data.contentType || "text", node.data.mediaUrl || "", supabase, userId, flow.name);
+      
       if (node.data.buttons?.length > 0) {
+        console.log("[webhook-zapi] node has buttons, waiting for response", node.id);
         await supabase.from("flow_captured_data").upsert({ user_id: userId, flow_id: flow.id, flow_name: flow.name, phone, captured_data: captured, last_node_id: node.id, source: isGroup ? "whatsapp_group" : "whatsapp", updated_at: new Date().toISOString() }, { onConflict: "user_id,flow_id,phone" });
         return;
       }
@@ -324,6 +326,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       let matchedIndex = -1;
       const inboundText = String(webhook?.__agent_input_text || "");
       const normalizedInbound = normalizeForMatch(inboundText);
+      console.log("[webhook-zapi] processing condition node", node.id, "inbound:", inboundText);
       
       if (node.data?.isProofBlock) {
         if (inboundText.includes("[media:")) {
@@ -349,10 +352,13 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
         }
       } else {
         const branches = node.data?.branches || [];
+        console.log("[webhook-zapi] branches:", branches.length);
         if (branches.length > 0) {
           for (let i = 0; i < branches.length; i++) {
             const branch = branches[i];
-            if (isKeywordMatch(normalizedInbound, branch.value || branch.label)) {
+            const branchValue = branch.value || branch.label || "";
+            if (isKeywordMatch(normalizedInbound, branchValue)) {
+              console.log("[webhook-zapi] branch match found at index", i, "value:", branchValue);
               matchedIndex = i;
               break;
             }
@@ -361,27 +367,49 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
         
         if (matchedIndex === -1 && node.data?.condition) {
           if (isKeywordMatch(normalizedInbound, node.data.condition)) {
+            console.log("[webhook-zapi] legacy condition match found at index 0");
             matchedIndex = 0;
           }
         }
         
         if (!webhook?.__is_resuming && matchedIndex === -1) {
+          console.log("[webhook-zapi] no match and not resuming, waiting for user input at node", currentNodeId);
           await supabase.from("flow_captured_data").upsert({ user_id: userId, flow_id: flow.id, flow_name: flow.name, phone, captured_data: captured, last_node_id: currentNodeId, source: isGroup ? "whatsapp_group" : "whatsapp", updated_at: new Date().toISOString() }, { onConflict: "user_id,flow_id,phone" });
           return;
         }
 
+        console.log("[webhook-zapi] match found or forcing branch, deleting flow state and continuing. matchedIndex:", matchedIndex);
         await supabase.from("flow_captured_data").delete().match({ user_id: userId, flow_id: flow.id, phone });
       }
       
       const handleId = matchedIndex === 0 ? "a" : matchedIndex === 1 ? "b" : matchedIndex > 1 ? `branch-${matchedIndex}` : "source-bottom";
       const nextEdge = edges.find((e: any) => String(e.source) === String(currentNodeId) && String(e.sourceHandle) === handleId);
+      
+      console.log("[webhook-zapi] next handleId:", handleId, "found edge:", !!nextEdge);
+      
+      if (!nextEdge && matchedIndex === -1) {
+        const elseEdge = edges.find((e: any) => String(e.source) === String(currentNodeId) && (String(e.sourceHandle) === "source-bottom" || String(e.sourceHandle) === "else"));
+        if (elseEdge) {
+          console.log("[webhook-zapi] no match found, following ELSE/default edge");
+          currentNodeId = elseEdge.target;
+          continue;
+        }
+      }
+
       currentNodeId = nextEdge?.target;
-      if (currentNodeId) continue;
-      else break;
+      if (currentNodeId) {
+        console.log("[webhook-zapi] moving to next node", currentNodeId);
+        continue;
+      } else {
+        console.log("[webhook-zapi] no next node found for this handle");
+        break;
+      }
     }
 
     const nextEdge = edges.find((e: any) => String(e.source) === String(currentNodeId) && (!e.sourceHandle || e.sourceHandle === "default" || e.sourceHandle === "output"));
     currentNodeId = nextEdge?.target;
+    if (currentNodeId) console.log("[webhook-zapi] auto-advancing to next node", currentNodeId);
+
   }
 }
 
