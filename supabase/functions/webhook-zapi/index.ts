@@ -741,13 +741,20 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
         await supabase.from("flow_captured_data").delete().match({ user_id: userId, flow_id: flow.id, phone });
       }
       
-      const handleId = matchedIndex === 0 ? "a" : matchedIndex === 1 ? "b" : matchedIndex > 1 ? `branch-${matchedIndex}` : "source-bottom";
-      const nextEdge = edges.find((e: any) => String(e.source) === String(currentNodeId) && String(e.sourceHandle) === handleId);
+      let handleId = matchedIndex === 0 ? "a" : matchedIndex === 1 ? "b" : matchedIndex > 1 ? `branch-${matchedIndex}` : "source-bottom";
+      
+      const nextEdge = edges.find((e: any) => 
+        String(e.source) === String(currentNodeId) && 
+        (String(e.sourceHandle) === handleId || String(e.sourceHandle) === String(matchedIndex))
+      );
       
       console.log("[webhook-zapi] next handleId:", handleId, "found edge:", !!nextEdge);
       
       if (!nextEdge && matchedIndex === -1) {
-        const elseEdge = edges.find((e: any) => String(e.source) === String(currentNodeId) && (String(e.sourceHandle) === "source-bottom" || String(e.sourceHandle) === "else"));
+        const elseEdge = edges.find((e: any) => 
+          String(e.source) === String(currentNodeId) && 
+          (String(e.sourceHandle) === "source-bottom" || String(e.sourceHandle) === "else" || String(e.sourceHandle) === "fallback" || String(e.sourceHandle) === "right")
+        );
         if (elseEdge) {
           console.log("[webhook-zapi] no match found, following ELSE/default edge");
           currentNodeId = elseEdge.target;
