@@ -2311,10 +2311,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 variant="outline"
                 className="h-8 px-2"
                 onClick={() => {
-                  const prev = undoRedo.undo();
-                  if (prev) {
-                    setNodes(prev.nodes as any);
-                    setEdges(prev.edges as any);
+                  const target = undoRedo.history[undoRedo.currentIndex - 1];
+                  if (target) {
+                    setNodes(target.nodes as any);
+                    setEdges(target.edges as any);
+                    undoRedo.undo();
                   }
                 }}
                 disabled={!undoRedo.canUndo}
@@ -2327,10 +2328,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                 variant="outline"
                 className="h-8 px-2"
                 onClick={() => {
-                  const next = undoRedo.redo();
-                  if (next) {
-                    setNodes(next.nodes as any);
-                    setEdges(next.edges as any);
+                  const target = undoRedo.history[undoRedo.currentIndex + 1];
+                  if (target) {
+                    setNodes(target.nodes as any);
+                    setEdges(target.edges as any);
+                    undoRedo.redo();
                   }
                 }}
                 disabled={!undoRedo.canRedo}
