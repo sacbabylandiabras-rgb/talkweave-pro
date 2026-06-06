@@ -190,20 +190,38 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
         throw new Error("Nenhum webhook recebido ainda. Envie um teste da sua plataforma.");
       }
 
-      // Extrair produtos únicos dos payloads
+      // Extrair produtos únicos de TODOS os payloads recebidos
       const products: string[] = [];
       logs.forEach(log => {
         const payload = log.payload as any;
-        const productName = 
-          payload?.product?.name || 
-          payload?.produto || 
-          payload?.items?.[0]?.name || 
-          payload?.data?.product?.name || 
-          payload?.product_name;
         
-        if (productName && !products.includes(productName)) {
-          products.push(productName);
-        }
+        // Função auxiliar para procurar produtos recursivamente no payload
+        const findProducts = (obj: any) => {
+          if (!obj || typeof obj !== 'object') return;
+          
+          // Nomes de campos comuns para produtos
+          const keys = ['product_name', 'produto', 'name', 'title', 'product'];
+          for (const key of keys) {
+            if (obj[key] && typeof obj[key] === 'string' && obj[key].length > 2) {
+              // Evitar nomes de clientes ou emails
+              if (!obj[key].includes('@') && !products.includes(obj[key])) {
+                products.push(obj[key]);
+              }
+            }
+          }
+          
+          // Se for array (como itens de carrinho), percorre cada item
+          if (Array.isArray(obj)) {
+            obj.forEach(findProducts);
+          } else {
+            // Se for objeto, percorre os valores (para achar em objetos aninhados como 'data', 'transaction', etc)
+            Object.values(obj).forEach(val => {
+              if (val && typeof val === 'object') findProducts(val);
+            });
+          }
+        };
+
+        findProducts(payload);
       });
 
       if (products.length === 0) {
