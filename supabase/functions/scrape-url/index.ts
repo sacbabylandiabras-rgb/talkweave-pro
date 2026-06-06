@@ -1,6 +1,8 @@
 import { corsHeaders } from "../_shared/cors.ts";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
