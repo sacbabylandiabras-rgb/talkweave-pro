@@ -701,6 +701,40 @@ interface FluxoVisualProps {
   mode?: "contacts" | "groups" | "meta" | "telegram";
 }
 
+// 🔍 Detecção de ciclos no grafo do fluxo (DFS) — utilitário puro fora do componente
+const detectCycles = (nodes: Node[], edges: Edge[]): boolean => {
+  const visited = new Set<string>();
+  const recursionStack = new Set<string>();
+
+  const dfs = (nodeId: string): boolean => {
+    visited.add(nodeId);
+    recursionStack.add(nodeId);
+
+    const neighbors = edges
+      .filter((e) => e.source === nodeId)
+      .map((e) => e.target);
+
+    for (const neighbor of neighbors) {
+      if (!visited.has(neighbor)) {
+        if (dfs(neighbor)) return true;
+      } else if (recursionStack.has(neighbor)) {
+        return true;
+      }
+    }
+
+    recursionStack.delete(nodeId);
+    return false;
+  };
+
+  for (const node of nodes) {
+    if (!visited.has(node.id)) {
+      if (dfs(node.id)) return true;
+    }
+  }
+
+  return false;
+};
+
 export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}) {
   const isGroupsMode = mode === "groups";
   const isMetaMode = mode === "meta";
