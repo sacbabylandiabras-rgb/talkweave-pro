@@ -1127,6 +1127,76 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     event.dataTransfer.dropEffect = "move";
   }, []);
 
+  // 🔍 Função de DEBUG para verificar integridade do fluxo
+  const detectCycles = (allNodes: Node[], allEdges: Edge[]): boolean => {
+    const adj = new Map<string, string[]>();
+    allEdges.forEach((e) => {
+      if (!adj.has(e.source)) adj.set(e.source, []);
+      adj.get(e.source)!.push(e.target);
+    });
+
+    const visited = new Set<string>();
+    const stack = new Set<string>();
+
+    const dfs = (id: string): boolean => {
+      if (stack.has(id)) return true;
+      if (visited.has(id)) return false;
+      visited.add(id);
+      stack.add(id);
+      const neighbors = adj.get(id) || [];
+      for (const n of neighbors) {
+        if (dfs(n)) return true;
+      }
+      stack.delete(id);
+      return false;
+    };
+
+    return allNodes.some((n) => dfs(n.id));
+  };
+
+  const testFlowIntegrity = useCallback(() => {
+    console.group('🔍 Verificação de Integridade do Fluxo');
+
+    const inicial = nodes.find((n) => n.type === 'blocoInicial');
+    console.log('✓ Bloco inicial:', inicial?.id);
+
+    const connectedNodeIds = new Set(edges.flatMap((e) => [e.source, e.target]));
+    const orphans = nodes.filter(
+      (n) => n.type !== 'blocoInicial' && !connectedNodeIds.has(n.id)
+    );
+    if (orphans.length > 0) {
+      console.warn('⚠️ Nós órfãos encontrados:', orphans.map((n) => n.data?.label));
+    } else {
+      console.log('✓ Nenhum nó órfão');
+    }
+
+    const hasCycles = detectCycles(nodes, edges);
+    console.log(hasCycles ? '⚠️ Ciclos detectados!' : '✓ Sem ciclos infinitos');
+
+    const validTypes = new Set(Object.keys(nodeTypes));
+    const invalidNodes = nodes.filter((n) => !validTypes.has(n.type as string));
+    console.log(
+      invalidNodes.length === 0
+        ? '✓ Todos os tipos válidos'
+        : `⚠️ ${invalidNodes.length} tipos inválidos`
+    );
+
+    const incompleteNodes = nodes.filter((n) => !n.data?.label);
+    console.log(
+      incompleteNodes.length === 0
+        ? '✓ Todos os nós com label'
+        : `⚠️ ${incompleteNodes.length} sem label`
+    );
+
+    console.groupEnd();
+  }, [nodes, edges]);
+
+  useEffect(() => {
+    if (nodes.length > 0 && !showFluxosList) {
+      testFlowIntegrity();
+    }
+  }, [nodes, edges, showFluxosList, testFlowIntegrity]);
+
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
