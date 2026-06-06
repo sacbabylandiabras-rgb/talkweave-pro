@@ -216,7 +216,7 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
       }
 
-      const { data: pixels } = await supabase.from("gateway_pixels").select("*").eq("user_id", userId).eq("platform", "facebook").eq("active", true);
+      const { data: pixels } = await supabase.from("gateway_pixels").select("*").eq("user_id", userId).in("platform", ["facebook", "meta"]).eq("active", true);
       const results = [];
       
       if (pixels) {
@@ -375,7 +375,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
           console.log(`[webhook-zapi] Proof received - Instance: ${instance?.zapi_instance_id || "N/A"} - Client: ${phone}`);
           matchedIndex = 0;
           try {
-            const { data: pixels } = await supabase.from("gateway_pixels").select("*").eq("user_id", userId).eq("platform", "facebook").eq("active", true);
+            const { data: pixels } = await supabase.from("gateway_pixels").select("*").eq("user_id", userId).in("platform", ["facebook", "meta"]).eq("active", true);
             if (pixels) {
               console.log(`[webhook-zapi] Found ${pixels.length} active pixels for user ${userId}`);
               for (const pixel of pixels) {
