@@ -1130,39 +1130,57 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
+      
       const type = event.dataTransfer.getData("application/reactflow");
-      if (typeof type === "undefined" || !type || !reactFlowInstance) return;
+      if (!type || !reactFlowInstance) return;
 
       const position = reactFlowInstance.screenToFlowPosition({
         x: event.clientX,
         y: event.clientY,
       });
 
+      // Validação de posição
+      if (!position || typeof position.x !== 'number' || typeof position.y !== 'number') {
+        console.error('Posição inválida para novo nó');
+        return;
+      }
+
       let extraData: Record<string, unknown> = {};
       if (type === "agentTool") {
         try {
           const raw = event.dataTransfer.getData(AGENT_TOOL_DRAG_KEY);
           if (raw) extraData = JSON.parse(raw);
-        } catch {
-          extraData = {};
+        } catch (e) {
+          console.error("Erro ao parsear extraData:", e);
         }
       }
 
       const newNode: Node = {
-        id: `${Date.now()}`,
+        id: `node_${Date.now()}`,
         type,
         position,
         data: {
-          label: `${type === "blocoConteudo" ? "Conteúdo" : type === "blocoCondicao" ? "Condição" : type === "blocoGatilho" ? "Gatilho" : type === "blocoAgendamento" ? "Agendamento" : type === "agenteIA" ? "Agente IA" : type === "agentTool" ? (extraData as any).label || "Ferramenta" : "Ação"}`,
+          label: (() => {
+            const labels: Record<string, string> = {
+              blocoConteudo: "Conteúdo",
+              blocoCondicao: "Condição",
+              blocoGatilho: "Gatilho",
+              blocoAgendamento: "Agendamento",
+              agenteIA: "Agente IA",
+              agentTool: (extraData as any).label || "Ferramenta",
+              blocoAcao: "Ação"
+            };
+            return labels[type] || type;
+          })(),
           content: "",
           ...extraData,
         },
       };
 
-      setNodes((nds) => nds.concat(newNode));
-      toast.success("Bloco adicionado ao fluxo!");
+      setNodes((nds) => [...nds, newNode]);
+      toast.success("Bloco adicionado!");
     },
-    [reactFlowInstance, setNodes]
+    [reactFlowInstance]
   );
 
   const onDragStart = (event: React.DragEvent, nodeType: string) => {
