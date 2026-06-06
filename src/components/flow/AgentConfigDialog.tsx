@@ -483,8 +483,18 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
 
               <TabsContent value="faq" className="space-y-4">
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-base">Base de FAQ</CardTitle>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleGenerateFaqs} 
+                      disabled={urlLoading}
+                      className="gap-2 text-xs h-8"
+                    >
+                      <Wand2 className={`w-3.5 h-3.5 ${urlLoading ? 'animate-spin' : ''}`} />
+                      Gerar 10 FAQs via IA
+                    </Button>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid gap-3">
