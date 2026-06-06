@@ -205,6 +205,48 @@ serve(async (req) => {
   try {
     const webhook = await req.json();
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    if (webhook?.test_event) {
+      console.log("[webhook-zapi] Received test event", webhook);
+      const testPhone = webhook.phone || "5511999999999";
+      const testCode = webhook.test_event_code || "";
+      const userId = (await supabase.auth.getUser(req.headers.get("Authorization")?.split(" ")[1] || "")).data.user?.id;
+
+      if (!userId) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+      }
+
+      const { data: pixels } = await supabase.from("gateway_pixels").select("*").eq("user_id", userId).eq("platform", "facebook").eq("active", true);
+      const results = [];
+      
+      if (pixels) {
+        for (const pixel of pixels) {
+          if (!pixel.pixel_id || !pixel.api_token) continue;
+          const fbUrl = `https://graph.facebook.com/v17.0/${pixel.pixel_id}/events?access_token=${pixel.api_token}`;
+          const hashedPhone = await hashValue(testPhone.replace(/\D/g, ""));
+          const eventData = { 
+            data: [{ 
+              event_name: "Purchase", 
+              event_time: Math.floor(Date.now() / 1000), 
+              action_source: "chat", 
+              user_data: { ph: [hashedPhone] }, 
+              custom_data: { currency: "BRL", value: 0.0, status: "test_event" } 
+            }],
+            test_event_code: testCode
+          };
+          
+          const fbRes = await fetch(fbUrl, { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify(eventData) 
+          });
+          const fbResult = await fbRes.json();
+          results.push({ pixel_id: pixel.pixel_id, result: fbResult });
+        }
+      }
+      return new Response(JSON.stringify({ success: true, results }), { status: 200, headers: corsHeaders });
+    }
+
     const isGroup = webhook?.isGroup === true || webhook?.isGroup === "true";
     const participantPhone = webhook?.participantPhone || webhook?.participant || webhook?.senderPhone || webhook?.sender?.phone || "";
     let chatId = webhook?.phone || webhook?.chatPhone || "";
