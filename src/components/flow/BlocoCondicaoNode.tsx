@@ -227,28 +227,6 @@ export function BlocoCondicaoNode({ data }: any) {
                           <span className="text-muted-foreground mr-1">Aguardando mídia</span>
                           <span className="font-medium">→ Próximo passo</span>
                         </div>
-                        <div className="pt-1 mt-1 border-t border-border/20 space-y-2">
-                          <div className="space-y-1">
-                            <label className="text-[9px] uppercase font-bold text-muted-foreground">Código de Teste do Facebook</label>
-                            <input
-                              type="text"
-                              value={data.testEventCode || ""}
-                              onChange={(e) => {
-                                data.testEventCode = e.target.value;
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                              placeholder="Ex: TEST12345"
-                              className="w-full px-2 py-1 bg-secondary/50 border border-border/50 rounded text-[10px] focus:outline-none focus:border-primary/50"
-                            />
-                          </div>
-                          <button
-                            onClick={handleTestPixel}
-                            className="w-full flex items-center justify-center gap-1 px-2 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded border border-primary/20 transition-colors text-[10px] font-medium"
-                          >
-                            <TestTube className="h-3 w-3" />
-                            Disparar Evento de Teste
-                          </button>
-                        </div>
                       </div>
                     ) : (
                   <>
