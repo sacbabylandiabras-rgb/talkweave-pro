@@ -401,8 +401,8 @@ serve(async (req) => {
       console.log("[webhook-zapi] active flows found:", flows?.length || 0);
       
       for (const flow of flows || []) {
-        if (flow.category === "telegram") {
-           console.log(`[webhook-zapi] skipping telegram flow "${flow.name}"`);
+        if (!isZapiFlowCategory(flow.category)) {
+           console.log(`[webhook-zapi] skipping non-whatsapp flow "${flow.name}" (${flow.category})`);
            continue;
         }
 
@@ -410,17 +410,21 @@ serve(async (req) => {
                            flow.nodes.find((n: any) => n.type === "blocoInicial");
         
         let isMatch = false;
-        const startNodeId = triggerNode?.id;
+        const startNodeId = resolveFlowStartNodeId(flow, triggerNode);
 
-        const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim().toLowerCase()).filter(Boolean);
-        const normalizedMsg = normalizeForMatch(messageRaw);
+        const mainKeywords = splitKeywords(flow.keyword || flow.trigger_keywords);
+        const normalizedMsg = normalizeForMatch(agentInboundText || messageRaw);
+        if (!normalizedMsg) {
+          console.log(`[webhook-zapi] skipping flow "${flow.name}" because inbound message is empty`);
+          continue;
+        }
         
         // Also check if any node has keywords (the user might have configured keywords inside a "Gatilho" block)
         const nodeKeywords = flow.nodes
-          .filter((n: any) => n.data?.keyword || n.data?.trigger_keywords)
+          .filter((n: any) => n.data?.keyword || n.data?.keywords || n.data?.trigger_keywords || n.data?.triggerKeywords)
           .flatMap((n: any) => {
-            const k = n.data?.keyword || n.data?.trigger_keywords;
-            return Array.isArray(k) ? k : String(k).split(",").map((s: string) => s.trim().toLowerCase()).filter(Boolean);
+            const k = n.data?.keyword || n.data?.keywords || n.data?.trigger_keywords || n.data?.triggerKeywords;
+            return splitKeywords(k);
           });
 
         const allKeywords = Array.from(new Set([...mainKeywords, ...nodeKeywords]));
@@ -445,7 +449,7 @@ serve(async (req) => {
         else if (allKeywords.some((k: string) => {
           if (k.length < 2) return false;
           // Check if message contains keyword OR keyword contains message (for very short inputs)
-          return normalizedMsg.includes(k) || k.includes(normalizedMsg);
+          return normalizedMsg.includes(k) || (normalizedMsg.length >= 2 && k.includes(normalizedMsg));
         })) {
           isMatch = true;
           console.log(`[webhook-zapi] Partial/Included keyword match for flow "${flow.name}"`);
