@@ -239,7 +239,8 @@ serve(async (req) => {
             data: [{ 
               event_name: "Purchase", 
               event_time: Math.floor(Date.now() / 1000), 
-              action_source: "chat", 
+              action_source: "website", 
+              event_source_url: "https://app.lovable.io",
               user_data: { 
                 ph: [hashedPhone],
                 external_id: [await hashValue(userId)]
@@ -411,7 +412,8 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
                   data: [{ 
                     event_name: "Purchase", 
                     event_time: Math.floor(Date.now() / 1000), 
-                    action_source: "chat", 
+                    action_source: "website", 
+                    event_source_url: "https://app.lovable.io",
                     user_data: { 
                       ph: [hashedPhone],
                       external_id: [await hashValue(userId)]
@@ -419,7 +421,6 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
                     custom_data: { 
                       currency: "BRL", 
                       value: 0.01, 
-                      status: "proof_received",
                       content_name: "Comprovante de Pagamento"
                     } 
                   }] 
