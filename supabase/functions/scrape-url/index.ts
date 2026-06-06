@@ -57,9 +57,16 @@ Deno.serve(async (req) => {
         }),
       });
 
-      if (!aiResponse.ok) throw new Error("Erro na chamada da IA");
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text();
+        console.error("AI API Error:", errorText);
+        return new Response(JSON.stringify({ error: `Erro na IA: ${aiResponse.status}` }), { status: aiResponse.status, headers: corsHeaders });
+      }
+      
       const aiData = await aiResponse.json();
-      return new Response(aiData.choices[0].message.content, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const aiContent = aiData.choices[0].message.content;
+      
+      return new Response(aiContent, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     if (!url || typeof url !== "string") {
