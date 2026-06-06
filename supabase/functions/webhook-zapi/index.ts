@@ -886,7 +886,7 @@ serve(async (req) => {
               instanceData,
               chatId,
               isGroup,
-              { ...webhook, __agent_input_text: agentInboundText },
+              { ...webhook, __agent_input_text: agentInboundText, __is_resuming: true },
             );
             return new Response("agent_flow_resumed", { status: 200, headers: corsHeaders });
           } else if (lastNode.type === "blocoCondicao") {
