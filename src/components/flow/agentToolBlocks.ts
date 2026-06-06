@@ -13,20 +13,28 @@ import {
   Shield,
 } from "lucide-react";
 
-interface AgentToolBlock {
+export interface AgentToolBlock {
   id: string;
   name: string;
+  /** Alias for `name` used by drag-and-drop and node data */
+  toolName: string;
   label: string;
   description: string;
   category: string;
   icon: any;
+  /** Optional default instructions injected when this tool is added */
+  instructions?: string;
 }
+
+/** dataTransfer key used when dragging an agent tool block onto the canvas */
+export const AGENT_TOOL_DRAG_KEY = "application/x-agent-tool-block";
+
+const RAW_AGENT_TOOL_BLOCKS: Omit<AgentToolBlock, "toolName">[] = [
 
 /**
  * Catálogo de ferramentas disponíveis para o Agente IA
  * Adicione novas ferramentas aqui
  */
-export const AGENT_TOOL_BLOCKS: AgentToolBlock[] = [
   // Ferramentas de Busca
   {
     id: "web-search",
@@ -139,6 +147,17 @@ export const AGENT_TOOL_BLOCKS: AgentToolBlock[] = [
     icon: Shield,
   },
 ];
+
+/** Public catalogue with `toolName` derived from `name` */
+export const AGENT_TOOL_BLOCKS: AgentToolBlock[] = RAW_AGENT_TOOL_BLOCKS.map((b) => ({
+  ...b,
+  toolName: b.name,
+}));
+
+/** All distinct categories, in declaration order */
+export const AGENT_TOOL_CATEGORIES: string[] = Array.from(
+  new Set(AGENT_TOOL_BLOCKS.map((b) => b.category)),
+);
 
 /**
  * Encontra um bloco de ferramenta pelo nome
