@@ -1756,7 +1756,7 @@ async function executeFlow(
         const waitsForMessage = conditions.some((cond: any) => {
           const variableName = String(cond.variable || "").replace(/[{}]/g, "").toLowerCase();
           return variableName === "" || variableName === "mensagem" || variableName === "message" || variableName === "input";
-        }) || branches.length > 0;
+        }) || branches.length > 0 || !!node.data?.isProofBlock;
 
         if (waitsForMessage && !webhook?.__is_resuming) {
           console.log(`[Flow] Condition node ${currentNodeId} is waiting for the next user reply before evaluating.`);
