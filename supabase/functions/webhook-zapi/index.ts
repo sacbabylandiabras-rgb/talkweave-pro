@@ -1425,7 +1425,8 @@ async function executeFlow(
     if (node.type === "blocoConteudo" || node.type === "blocoInicial") {
       const delaySeconds = Number(node.data.delaySeconds || 0);
       if (delaySeconds > 0) {
-        await new Promise((resolve) => setTimeout(resolve, Math.min(delaySeconds, 25) * 1000));
+        console.log(`[Flow] Waiting delay of ${delaySeconds}s (capped at 55s) for node ${node.id}`);
+        await new Promise((resolve) => setTimeout(resolve, Math.min(delaySeconds, 55) * 1000));
       }
 
       const isCapture =
@@ -1497,7 +1498,8 @@ async function executeFlow(
       } else {
       const delaySeconds = Number(node.data.delaySeconds || 0);
       if (delaySeconds > 0) {
-        await new Promise((resolve) => setTimeout(resolve, Math.min(delaySeconds, 25) * 1000));
+        console.log(`[Flow] Waiting delay of ${delaySeconds}s (capped at 55s) for agent node ${node.id}`);
+        await new Promise((resolve) => setTimeout(resolve, Math.min(delaySeconds, 55) * 1000));
       }
 
       const prompt = node.data.prompt || "Você é um assistente virtual prestativo.";
@@ -1653,7 +1655,8 @@ async function executeFlow(
       if (actionType === "delay" || (node.type === "blocoAcao" && actionType === "delay")) {
         const seconds = Number(node.data.delaySeconds ?? node.data.actionConfig ?? 0) || 0;
         if (seconds > 0) {
-          await new Promise((resolve) => setTimeout(resolve, Math.min(seconds, 25) * 1000));
+          console.log(`[Flow] Waiting action delay of ${seconds}s (capped at 55s)`);
+          await new Promise((resolve) => setTimeout(resolve, Math.min(seconds, 55) * 1000));
         }
       } else if (node.type === "blocoAcao" && actionType === "typing") {
         const seconds = Math.min(Number(node.data.typingDuration ?? 5) || 5, 25);
