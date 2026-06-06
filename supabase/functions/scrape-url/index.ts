@@ -8,7 +8,41 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { url } = await req.json();
+    const body = await req.json();
+    const { url, action, content } = body;
+
+    // Handle FAQ generation action
+    if (action === "generate-faqs" && content) {
+      if (!LOVABLE_API_KEY) {
+        return new Response(JSON.stringify({ error: "API Key não configurada" }), { status: 500, headers: corsHeaders });
+      }
+
+      const aiResponse = await fetch("https://api.lovable.dev/v1/ai/chat", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "system",
+              content: "Você é um especialista em suporte ao cliente. Com base no conteúdo fornecido, gere exatamente 10 perguntas e respostas frequentes (FAQ) que os clientes costumam ter sobre esta loja/empresa. Retorne APENAS um JSON no formato: {\"faqs\": [{\"question\": \"...\", \"answer\": \"...\"}, ...]}"
+            },
+            {
+              role: "user",
+              content: `Gere 10 FAQs para este conteúdo:\n\n${content}`
+            }
+          ],
+          model: "gpt-4o-mini",
+          response_format: { type: "json_object" }
+        }),
+      });
+
+      if (!aiResponse.ok) throw new Error("Erro na chamada da IA");
+      const aiData = await aiResponse.json();
+      return new Response(aiData.choices[0].message.content, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     if (!url || typeof url !== "string") {
       return new Response(

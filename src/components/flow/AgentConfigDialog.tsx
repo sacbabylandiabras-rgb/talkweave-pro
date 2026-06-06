@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
-  Bot, Sparkles, Brain, Save, Loader2, Wrench, HelpCircle, FileText, Plus, Trash2, Mic, CheckCircle2, Upload, Globe, Search, Link as LinkIcon, RefreshCw
+  Bot, Sparkles, Brain, Save, Loader2, Wrench, HelpCircle, FileText, Plus, Trash2, Mic, CheckCircle2, Upload, Globe, Search, Link as LinkIcon, RefreshCw, Wand2
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -274,6 +274,46 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
     }
   }, [loading, config, urlLoading]);
 
+  const handleGenerateFaqs = async () => {
+    if (knowledge.length === 0) {
+      toast.error("Adicione documentos ou importe um site primeiro para gerar FAQs.");
+      return;
+    }
+
+    setUrlLoading(true);
+    const loadingToast = toast.loading("Gerando 10 FAQs baseadas no seu site...");
+    try {
+      const allContent = knowledge
+        .filter(k => k.type === "document")
+        .map(k => k.content)
+        .join("\n\n");
+
+      const { data, error } = await supabase.functions.invoke("scrape-url", {
+        body: { 
+          action: "generate-faqs",
+          content: allContent.substring(0, 7000)
+        },
+      });
+
+      if (error) throw error;
+      
+      const faqs = data.faqs;
+      if (!faqs || !Array.isArray(faqs)) throw new Error("Falha ao gerar FAQs");
+
+      for (const faq of faqs) {
+        await addFaq(faq.question, faq.answer);
+      }
+
+      toast.dismiss(loadingToast);
+      toast.success("10 FAQs geradas e adicionadas com sucesso!");
+    } catch (err: any) {
+      toast.dismiss(loadingToast);
+      toast.error("Erro ao gerar FAQs: " + err.message);
+    } finally {
+      setUrlLoading(false);
+    }
+  };
+
   const handleSaveConfig = async () => {
     await saveConfig({ 
       agent_name: agentName, 
@@ -443,8 +483,18 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
 
               <TabsContent value="faq" className="space-y-4">
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-base">Base de FAQ</CardTitle>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleGenerateFaqs} 
+                      disabled={urlLoading}
+                      className="gap-2 text-xs h-8"
+                    >
+                      <Wand2 className={`w-3.5 h-3.5 ${urlLoading ? 'animate-spin' : ''}`} />
+                      Gerar 10 FAQs via IA
+                    </Button>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid gap-3">
