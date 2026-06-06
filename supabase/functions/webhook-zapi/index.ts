@@ -403,17 +403,24 @@ serve(async (req) => {
     let messageRaw = webhook?.buttonsResponseMessage?.message || webhook?.buttonsResponseMessage?.buttonText || webhook?.buttonsResponseMessage?.buttonId || webhook?.buttonResponseMessage?.message || webhook?.buttonResponseMessage?.buttonText || webhook?.buttonResponseMessage?.selectedButtonId || webhook?.buttonReply?.text || webhook?.buttonReply?.buttonId || webhook?.listResponseMessage?.singleSelectReply?.selectedRowId || webhook?.listResponseMessage?.title || webhook?.listResponseMessage?.actionLabel || webhook?.listResponseMessage?.description || webhook?.text?.message || webhook?.message?.text || webhook?.text || webhook?.interactiveResponseMessage?.body || "";
 
     const incomingAudioUrl = getIncomingAudioUrl(webhook);
-    const mediaUrl = webhook?.image?.url || webhook?.video?.url || incomingAudioUrl || webhook?.sticker?.url || webhook?.document?.url;
+    const mediaUrl =
+      webhook?.image?.url || webhook?.image?.imageUrl || webhook?.image?.mediaUrl || webhook?.image?.downloadUrl ||
+      webhook?.video?.url || webhook?.video?.videoUrl || webhook?.video?.mediaUrl || webhook?.video?.downloadUrl ||
+      incomingAudioUrl ||
+      webhook?.sticker?.url || webhook?.sticker?.stickerUrl || webhook?.sticker?.mediaUrl ||
+      webhook?.document?.url || webhook?.document?.documentUrl || webhook?.document?.mediaUrl || webhook?.document?.downloadUrl ||
+      webhook?.imageMessage?.url || webhook?.documentMessage?.url || "";
     if (mediaUrl) {
       let mediaType = "";
-      if (webhook.image) mediaType = "image";
-      else if (webhook.video) mediaType = "video";
+      if (webhook.image || webhook.imageMessage) mediaType = "image";
+      else if (webhook.video || webhook.videoMessage) mediaType = "video";
       else if (webhook.audio || incomingAudioUrl) mediaType = "audio";
       else if (webhook.sticker) mediaType = "sticker";
-      else if (webhook.document) mediaType = "document";
+      else if (webhook.document || webhook.documentMessage) mediaType = "document";
       if (mediaType) {
         const mediaTag = `[media:${mediaType}:${mediaUrl}]`;
         messageRaw = messageRaw ? `${mediaTag}\n${messageRaw}` : mediaTag;
+        console.log("[webhook-zapi] media detected", { mediaType, mediaUrl: mediaUrl.slice(0, 80) });
       }
     }
 
