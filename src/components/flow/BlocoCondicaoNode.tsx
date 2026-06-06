@@ -222,10 +222,19 @@ export function BlocoCondicaoNode({ data }: any) {
                     <span className="font-medium">{b.label}</span>
                   </>
                 ) : isProofBlock ? (
-                  <>
-                    <span className="text-muted-foreground mr-1">Aguardando mídia</span>
-                    <span className="font-medium">→ Próximo passo</span>
-                  </>
+                  <div className="flex flex-col gap-2 w-full py-2 pr-1">
+                    <div className="flex items-center">
+                      <span className="text-muted-foreground mr-1">Aguardando mídia</span>
+                      <span className="font-medium">→ Próximo passo</span>
+                    </div>
+                    <button 
+                      onClick={handleTestPixel}
+                      className="flex items-center justify-center gap-1.5 px-2 py-1 bg-primary/20 hover:bg-primary/30 text-primary rounded text-[10px] font-medium transition-colors border border-primary/30 w-full mt-1"
+                    >
+                      <TestTube className="h-3 w-3" />
+                      Testar Pixel (TEST20723)
+                    </button>
+                  </div>
                 ) : (
                   <>
                     <span className="text-muted-foreground mr-1">se =</span>
