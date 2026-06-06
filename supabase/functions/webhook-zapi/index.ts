@@ -210,39 +210,62 @@ serve(async (req) => {
       console.log("[webhook-zapi] Received test event", webhook);
       const testPhone = webhook.phone || "5511999999999";
       const testCode = webhook.test_event_code || "";
-      const userId = (await supabase.auth.getUser(req.headers.get("Authorization")?.split(" ")[1] || "")).data.user?.id;
+      const authHeader = req.headers.get("Authorization")?.split(" ")[1] || "";
+      const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader);
+      const userId = user?.id;
 
       if (!userId) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+        console.error("[webhook-zapi] Auth error:", authError);
+        return new Response(JSON.stringify({ error: "Unauthorized", details: authError }), { status: 401, headers: corsHeaders });
       }
 
+      console.log("[webhook-zapi] Testing pixels for user:", userId);
       const { data: pixels } = await supabase.from("gateway_pixels").select("*").eq("user_id", userId).in("platform", ["facebook", "meta"]).eq("active", true);
+      
       const results = [];
       
-      if (pixels) {
+      if (pixels && pixels.length > 0) {
+        console.log(`[webhook-zapi] Found ${pixels.length} active pixels`);
         for (const pixel of pixels) {
-          if (!pixel.pixel_id || !pixel.api_token) continue;
+          if (!pixel.pixel_id || !pixel.api_token) {
+            console.log(`[webhook-zapi] Pixel ${pixel.id} missing configuration`);
+            continue;
+          }
+          
           const fbUrl = `https://graph.facebook.com/v17.0/${pixel.pixel_id}/events?access_token=${pixel.api_token}`;
           const hashedPhone = await hashValue(testPhone.replace(/\D/g, ""));
+          
           const eventData = { 
             data: [{ 
               event_name: "Purchase", 
               event_time: Math.floor(Date.now() / 1000), 
               action_source: "chat", 
-              user_data: { ph: [hashedPhone] }, 
-              custom_data: { currency: "BRL", value: 0.0, status: "test_event" } 
+              user_data: { 
+                ph: [hashedPhone],
+                external_id: [await hashValue(userId)]
+              }, 
+              custom_data: { 
+                currency: "BRL", 
+                value: 1.0, 
+                status: "test_event",
+                content_name: "Comprovante de Pagamento"
+              } 
             }],
             test_event_code: testCode
           };
           
+          console.log(`[webhook-zapi] Sending event to FB Pixel ${pixel.pixel_id} with code ${testCode}`);
           const fbRes = await fetch(fbUrl, { 
             method: "POST", 
             headers: { "Content-Type": "application/json" }, 
             body: JSON.stringify(eventData) 
           });
           const fbResult = await fbRes.json();
+          console.log(`[webhook-zapi] FB Response for ${pixel.pixel_id}:`, fbResult);
           results.push({ pixel_id: pixel.pixel_id, result: fbResult });
         }
+      } else {
+        console.log("[webhook-zapi] No active pixels found");
       }
       return new Response(JSON.stringify({ success: true, results }), { status: 200, headers: corsHeaders });
     }
@@ -390,8 +413,16 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
                     event_name: "Purchase", 
                     event_time: Math.floor(Date.now() / 1000), 
                     action_source: "chat", 
-                    user_data: { ph: [hashedPhone] }, 
-                    custom_data: { currency: "BRL", value: 0.0, status: "proof_received" } 
+                    user_data: { 
+                      ph: [hashedPhone],
+                      external_id: [await hashValue(userId)]
+                    }, 
+                    custom_data: { 
+                      currency: "BRL", 
+                      value: 0.01, 
+                      status: "proof_received",
+                      content_name: "Comprovante de Pagamento"
+                    } 
                   }] 
                 };
                 
