@@ -451,14 +451,24 @@ serve(async (req) => {
 
     console.log("[webhook-zapi] processing inbound:", { userId, phone, fromMe, isButtonResponse, msg: messageRaw.slice(0, 50) });
 
-    if (fromMe && !isButtonResponse) {
-      console.log("[webhook-zapi] ignored own outbound message for trigger matching", { phone, messageId });
-      return new Response("ok", { status: 200, headers: corsHeaders });
-    }
-
     if (!fromMe || isButtonResponse) {
+      // Log inbound message
+      const logPayload = {
+        user_id: userId,
+        phone: phone,
+        message_received: agentInboundText || messageRaw,
+        instance_id: instanceId,
+        message_id: messageId,
+        sender_name: senderName,
+        sender_phone: senderPhone,
+        sender_photo: senderPhoto,
+        timestamp: new Date().toISOString()
+      };
+      await supabase.from("message_logs").insert(logPayload).catch((err: any) => console.warn("[webhook-zapi] failed to log inbound message", err));
+      
       console.log("[webhook-zapi] inbound payload:", JSON.stringify(webhook).slice(0, 500));
       console.log("[webhook-zapi] inbound detail:", { userId, phone, chatId, isGroup, msg: messageRaw.slice(0, 80) });
+
       
       const { data: activeFlowStates, error: activeErr } = await supabase.from("flow_captured_data").select("*").eq("user_id", userId).eq("phone", phone).not("last_node_id", "is", null);
       console.log("[webhook-zapi] activeFlows check:", { count: activeFlowStates?.length || 0, error: activeErr?.message, userId, phone });
@@ -573,7 +583,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       const content = node.data.content || "";
       const resolvedContent = content.replace(/\{\{nome\}\}/gi, captured.nome || "").replace(/\{\{whatsapp\}\}/gi, phone).replace(/\{\{email\}\}/gi, captured.email || "");
       const destination = isGroup ? chatId : phone;
-      await sendZapiText(instance, destination, resolvedContent, node.data.buttons, node.id, node.data.contentType || "text", node.data.mediaUrl || "", supabase, userId, flow.name);
+      await sendZapiText(instance, destination, resolvedContent, node.data.buttons, node.id, node.data.contentType || "text", node.data.mediaUrl || "", supabase, userId, flow.name, instanceId);
       
       if (node.data.buttons?.length > 0) {
         console.log("[webhook-zapi] node has buttons, waiting for response", node.id);
@@ -707,7 +717,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
   }
 }
 
-async function sendZapiText(instance: any, phone: string, message: string, buttons?: any[], nodeId?: string, contentType = "text", mediaUrl = "", supabase?: any, userId?: string, flowName?: string) {
+async function sendZapiText(instance: any, phone: string, message: string, buttons?: any[], nodeId?: string, contentType = "text", mediaUrl = "", supabase?: any, userId?: string, flowName?: string, instanceId?: string) {
   const zapiId = instance.zapi_instance_id;
   const zapiToken = instance.zapi_token;
   const clientToken = instance.zapi_client_token;
@@ -717,5 +727,16 @@ async function sendZapiText(instance: any, phone: string, message: string, butto
     url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-button-actions`;
     body = { phone, message, buttonActions: buttons.map((btn, idx) => ({ id: btn.id || `node:${nodeId}:button:${idx}`, type: "REPLY", label: btn.text })) };
   }
-  await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "Client-Token": clientToken || "" }, body: JSON.stringify(body) });
+  const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "Client-Token": clientToken || "" }, body: JSON.stringify(body) });
+  
+  if (response.ok && supabase && userId) {
+    await supabase.from("message_logs").insert({
+      user_id: userId,
+      phone: phone,
+      response_sent: message,
+      instance_id: instanceId || instance.zapi_instance_id,
+      keyword_matched: "__flow_content__",
+      timestamp: new Date().toISOString()
+    }).catch((err: any) => console.warn("[webhook-zapi] failed to log outbound message", err));
+  }
 }
