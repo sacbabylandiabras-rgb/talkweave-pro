@@ -1609,7 +1609,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     setShowContactsDialog(true);
   };
 
-  const handleConfirmSend = async (selectedContacts: string[], instanceIds?: string[], provider?: FlowSendProvider) => {
+  const handleConfirmSend = async (
+    selectedContacts: string[],
+    instanceIds?: string[],
+    provider?: FlowSendProvider
+  ) => {
     // Se for apenas pré-seleção de grupos antes do editor, não envia: salva e abre editor
     if (isSelectingPreGroups) {
       setPreselectedGroups(selectedContacts);
@@ -1621,18 +1625,20 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       toast.success(`${selectedContacts.length} grupo(s) selecionado(s). Monte seu fluxo e clique em Enviar.`);
       return;
     }
-    const recipientLabel = isGroupsMode ? "grupo" : "contato";
-    toast.success(`Iniciando envio para ${selectedContacts.length} ${recipientLabel}(s)...`);
 
+    const recipientLabel = isGroupsMode ? "grupo" : "contato";
+    
     try {
       cancelSendRef.current = false;
       setIsSending(true);
+      
       const { data: { user } } = await supabase.auth.getUser();
       const currentUserId = user?.id || '';
 
       const savedFlowId = await handleSaveFluxo();
       if (!savedFlowId) {
         setIsSending(false);
+        toast.error("Erro ao salvar fluxo antes do envio");
         return;
       }
 
@@ -1643,53 +1649,69 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         return;
       }
 
-      // Round-robin counter for instance rotation
-      let sendCounter = 0;
+      // Validar que existem conexões
+      const initialEdges = edges.filter(e => e.source === initialNode.id);
+      if (initialEdges.length === 0) {
+        toast.error("Conecte algo ao bloco inicial para enviar!");
+        setIsSending(false);
+        return;
+      }
 
-        const sendToContacts = async () => {
-          const promises = selectedContacts.map(async (contact, index) => {
-            if (cancelSendRef.current) return;
+      let successCount = 0;
+      let errorCount = 0;
 
-            // Pequeno escalonamento para não disparar todos exatamente no mesmo milisegundo
-            // mas permitir que os delays e agendamentos internos de cada fluxo rodem em paralelo
-            await new Promise(resolve => setTimeout(resolve, index * 200));
-            
-            if (cancelSendRef.current) return;
+      const sendToContacts = async () => {
+        // Agora rodando em série com pequeno delay entre contatos para melhor rastreamento
+        for (let index = 0; index < selectedContacts.length; index++) {
+          if (cancelSendRef.current) break;
 
+          const contact = selectedContacts[index];
+          
+          // Pequeno delay para não sobrecarregar
+          await new Promise(resolve => setTimeout(resolve, index * 200));
+
+          if (cancelSendRef.current) break;
+
+          try {
             const visitedNodes = new Set<string>();
-            let currentInstanceId = instanceIds && instanceIds.length > 0
-              ? instanceIds[index % instanceIds.length]
-              : undefined;
+            const effectiveInstanceId = 
+              instanceIds?.[index % instanceIds.length] ||
+              (isMetaMode && metaCreds?.phone_number_id 
+                ? `meta:${metaCreds.phone_number_id}` 
+                : undefined);
+
+            await processFlow(
+              initialNode.id,
+              contact,
+              visitedNodes,
+              effectiveInstanceId,
+              currentUserId,
+              provider || (isMetaMode ? "meta" : "zapi"),
+              savedFlowId
+            );
             
-            try {
-        const effectiveInstanceId = currentInstanceId || (isMetaMode && metaCreds?.phone_number_id ? `meta:${metaCreds.phone_number_id}` : undefined);
-        if (isMetaMode && effectiveInstanceId) {
-          console.log("[FluxoVisual] Envio Meta detectado:", effectiveInstanceId);
+            successCount++;
+          } catch (err) {
+            console.error(`Erro enviando para ${contact}:`, err);
+            errorCount++;
+          }
         }
-        await processFlow(initialNode.id, contact, visitedNodes, effectiveInstanceId, currentUserId, provider || (isMetaMode ? "meta" : "zapi"), savedFlowId);
-              sendCounter++;
-            } catch (err) {
-              console.error(`[FluxoVisual] Error sending to ${contact}:`, err);
-            }
-          });
+      };
 
-          await Promise.all(promises);
-        };
-
-        await sendToContacts();
+      await sendToContacts();
 
       if (cancelSendRef.current) {
         toast.info("Envio cancelado", {
-          description: `Processados ${sendCounter} de ${selectedContacts.length} ${recipientLabel}(s)`,
+          description: `Processados: ${successCount} / Erros: ${errorCount}`,
         });
       } else {
         toast.success("Fluxo enviado com sucesso!", {
-          description: `Mensagens enviadas para ${selectedContacts.length} ${recipientLabel}(s)`,
+          description: `✓ ${successCount} enviados${errorCount > 0 ? ` | ✗ ${errorCount} erros` : ""}`,
         });
       }
     } catch (error) {
       console.error("Erro ao enviar fluxo:", error);
-      toast.error(await getInvokeErrorMessage(error, "Erro ao enviar fluxo"));
+      toast.error("Erro ao enviar fluxo");
     } finally {
       setIsSending(false);
       cancelSendRef.current = false;
