@@ -108,6 +108,7 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
     if (!url.trim() || urlLoading) return;
     
     setUrlLoading(true);
+    const loadingToast = toast.loading("Lendo site e configurando agente...");
     try {
       const { data, error } = await supabase.functions.invoke("scrape-url", {
         body: { url: url },
@@ -157,10 +158,13 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
       }
 
       setUrlInput("");
+      toast.dismiss(loadingToast);
       toast.success("Toda a configuração foi preenchida automaticamente!");
     } catch (err: any) {
+      toast.dismiss(loadingToast);
       toast.error("Erro ao importar: " + err.message);
     } finally {
+      toast.dismiss(loadingToast);
       setUrlLoading(false);
     }
   };
