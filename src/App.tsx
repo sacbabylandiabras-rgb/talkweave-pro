@@ -109,6 +109,8 @@ import { AuthGuard } from "./components/auth/AuthGuard";
 const AutomacaoComentarios = lazyWithRecovery(() => import("./pages/instagram/AutomacaoComentarios"));
 const CampanhasInstagram = lazyWithRecovery(() => import("./pages/instagram/CampanhasInstagram"));
 const ContatosInstagram = lazyWithRecovery(() => import("./pages/instagram/ContatosInstagram"));
+const FluxoInstagram = lazyWithRecovery(() => import("./pages/FluxoInstagram"));
+const FluxoContatos = lazyWithRecovery(() => import("./pages/FluxoContatos"));
 const ConfiguracaoInstagram = lazyWithRecovery(() => import("./pages/instagram/ConfiguracaoInstagram"));
 const TelegramPlaceholder = lazyWithRecovery(() => import("./pages/telegram/TelegramPlaceholder"));
 const TelegramPlanos = lazyWithRecovery(() => import("./pages/telegram/TelegramPlanos"));
@@ -215,6 +217,7 @@ const App = () => (
                   <Route path="/campanhas-grupo" element={<Campanhas mode="groups" />} />
                   <Route path="/campanhas-grupo/nova" element={<CampanhaGrupoFluxo />} />
                   <Route path="/contatos" element={<Contatos />} />
+                  <Route path="/fluxo-contatos" element={<FluxoContatos />} />
                   <Route path="/relatorio" element={<Relatorio />} />
                   <Route path="/gateway" element={<GatewayIntegracoes />} />
                   <Route path="/admin" element={<AdminRouteGuard><Admin /></AdminRouteGuard>} />
@@ -251,7 +254,8 @@ const App = () => (
                    <Route path="/meta/relatorio" element={<Relatorio />} />
                    <Route path="/meta/gateway" element={<GatewayIntegracoes />} />
                    <Route path="/instagram/dashboard" element={<DashboardInstagram />} />
-                   <Route path="/instagram/enviar" element={<EnviarInstagram />} />
+                    <Route path="/instagram/enviar" element={<EnviarInstagram />} />
+                    <Route path="/instagram/fluxo" element={<FluxoInstagram />} />
                    <Route path="/instagram/mensagens" element={<InstagramMessages />} />
                    <Route path="/instagram/modelos" element={<ModelosInstagram />} />
                    <Route path="/instagram/automacao" element={<AutomacaoComentarios />} />

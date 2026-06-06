@@ -57,6 +57,7 @@ import { FlowTemplatesDialog } from "@/components/flow/FlowTemplatesDialog";
 import type { FlowTemplate } from "@/components/flow/flowTemplates";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { BLOCKS_AVAILABLE } from "./blocksAvailable";
 
 const nodeTypes: NodeTypes = {
   blocoInicial: BlocoInicialNode,
@@ -92,8 +93,8 @@ interface FlowAutomation {
   user_id: string;
   name: string;
   keyword: string;
-  nodes: any[];
-  edges: any[];
+  nodes: any;
+  edges: any;
   active: boolean;
   category: string;
   created_at: string;
@@ -139,7 +140,7 @@ export default function FluxoVisualBase({
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
-      setFluxosSalvos(data || []);
+      setFluxosSalvos((data || []) as any[]);
     } catch (error) {
       console.error("Erro ao carregar fluxos:", error);
       toast.error("Erro ao carregar fluxos");
@@ -184,8 +185,8 @@ export default function FluxoVisualBase({
     setKeywordFluxo(fluxo.keyword || "");
     setFluxoAtivo(fluxo.active);
     setCurrentFluxoId(fluxo.id);
-    setNodes(fluxo.nodes || initialNodes);
-    setEdges(fluxo.edges || initialEdges);
+    setNodes((fluxo.nodes || initialNodes) as Node[]);
+    setEdges((fluxo.edges || initialEdges) as Edge[]);
     setShowFluxosList(false);
     toast.success(`Fluxo "${fluxo.name}" carregado!`);
   };
@@ -208,8 +209,8 @@ export default function FluxoVisualBase({
         user_id: user.id,
         name: nomeFluxo,
         keyword: keywordFluxo,
-        nodes,
-        edges,
+        nodes: nodes as any,
+        edges: edges as any,
         active: fluxoAtivo,
         category,
       };
@@ -217,14 +218,14 @@ export default function FluxoVisualBase({
       if (currentFluxoId) {
         const { error } = await supabase
           .from('flow_automations')
-          .update(flowData)
+          .update(flowData as any)
           .eq('id', currentFluxoId);
         if (error) throw error;
         toast.success("Fluxo atualizado com sucesso!");
       } else {
         const { data, error } = await supabase
           .from('flow_automations')
-          .insert(flowData)
+          .insert(flowData as any)
           .select()
           .single();
         if (error) throw error;
@@ -251,6 +252,12 @@ export default function FluxoVisualBase({
   );
 
   const onInit = (instance: ReactFlowInstance) => setReactFlowInstance(instance);
+
+  const flowTemplatesMode = useMemo(() => {
+    if (category === "meta" || category === "instagram") return "meta";
+    if (category === "groups") return "groups";
+    return "contacts";
+  }, [category]);
 
   if (showFluxosList) {
     return (
@@ -308,7 +315,8 @@ export default function FluxoVisualBase({
         <FlowTemplatesDialog
           open={showTemplatesDialog}
           onOpenChange={setShowTemplatesDialog}
-          onSelectTemplate={handleSelectTemplate}
+          mode={flowTemplatesMode}
+          onSelect={handleSelectTemplate}
           onStartBlank={handleStartBlank}
         />
       </div>
@@ -386,8 +394,8 @@ export default function FluxoVisualBase({
       <AddBlockDialog
         open={showAddBlockDialog}
         onOpenChange={setShowAddBlockDialog}
+        baseBlocks={availableBlocks || BLOCKS_AVAILABLE}
         onSelect={(selection) => {
-          // Logic to add node at center or relative to viewport
           const newNode: Node = {
             id: `n_${Math.random().toString(36).slice(2, 9)}`,
             type: selection.type,
