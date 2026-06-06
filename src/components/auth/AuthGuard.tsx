@@ -11,8 +11,14 @@ export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
     // Initial session check
     const checkSession = async () => {
       try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        setSession(currentSession);
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          // If session is invalid or expired, clear it
+          await supabase.auth.signOut();
+          setSession(null);
+        } else {
+          setSession(currentSession);
+        }
       } catch (error) {
         console.error("AuthGuard session check error:", error);
       } finally {
