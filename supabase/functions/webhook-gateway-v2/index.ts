@@ -65,9 +65,8 @@ function onlyDigits(value: unknown): string {
   return String(value || "").replace(/\D/g, "");
 }
 
-function isZapiWhatsAppFlow(flow: any): boolean {
-  const category = String(flow?.category || "contacts").toLowerCase();
-  return !["meta", "instagram", "telegram"].includes(category);
+function isGatewayFlow(flow: any): boolean {
+  return String(flow?.category || "contacts").toLowerCase() === "gateway";
 }
 
 function flowMatchesChatType(flow: any, isGroup: boolean): boolean {
@@ -511,8 +510,8 @@ serve(async (req) => {
       console.log("[webhook-zapi] active flows found:", flows?.length || 0);
       
       for (const flow of flows || []) {
-        if (!isZapiWhatsAppFlow(flow)) {
-           console.log(`[webhook-zapi] skipping non-whatsapp flow "${flow.name}"`, { category: flow.category });
+        if (!isGatewayFlow(flow)) {
+           console.log(`[webhook-gateway-v2] skipping non-gateway flow "${flow.name}"`, { category: flow.category });
            continue;
         }
         if (!flowMatchesChatType(flow, isGroup)) {
