@@ -170,6 +170,66 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
     }
   };
 
+  const handleFetchWebhookProducts = async () => {
+    setUrlLoading(true);
+    const loadingToast = toast.loading("Buscando produtos do último webhook...");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Não autenticado");
+
+      // Buscar os logs de webhook mais recentes para este usuário
+      const { data: logs, error } = await supabase
+        .from("gateway_webhook_logs")
+        .select("payload")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      if (!logs || logs.length === 0) {
+        throw new Error("Nenhum webhook recebido ainda. Envie um teste da sua plataforma.");
+      }
+
+      // Extrair produtos únicos dos payloads
+      const products: string[] = [];
+      logs.forEach(log => {
+        const payload = log.payload as any;
+        const productName = 
+          payload?.product?.name || 
+          payload?.produto || 
+          payload?.items?.[0]?.name || 
+          payload?.data?.product?.name || 
+          payload?.product_name;
+        
+        if (productName && !products.includes(productName)) {
+          products.push(productName);
+        }
+      });
+
+      if (products.length === 0) {
+        throw new Error("Nenhum produto encontrado nos webhooks recebidos.");
+      }
+
+      const productsList = products.join(", ");
+      const docTitle = "📦 Produtos via Webhook";
+      const docContent = `Produtos identificados automaticamente via integração de checkout:\n\n${products.map(p => `- ${p}`).join("\n")}`;
+
+      await addDocument(docTitle, docContent);
+      
+      // Atualizar o prompt de atendimento para incluir os novos produtos
+      const newServicePrompt = `${promptService}\n\nProdutos integrados via Webhook: ${productsList}`;
+      setPromptService(newServicePrompt);
+      
+      toast.dismiss(loadingToast);
+      toast.success(`${products.length} produtos importados com sucesso!`);
+    } catch (err: any) {
+      toast.dismiss(loadingToast);
+      toast.error(err.message);
+    } finally {
+      setUrlLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!loading && !urlLoading) {
       setAgentName(config.agent_name || "Assistente");
