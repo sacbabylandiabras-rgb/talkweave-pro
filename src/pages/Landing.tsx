@@ -61,7 +61,10 @@ const Landing = () => {
         .map((id) => doc.getElementById(id))
         .filter(Boolean) as HTMLElement[];
 
-      const observer = new frameWindow.IntersectionObserver(
+      const FrameIntersectionObserver = (frameWindow as unknown as { IntersectionObserver: typeof IntersectionObserver })
+        .IntersectionObserver;
+
+      const observer = new FrameIntersectionObserver(
         (entries) => {
           const visible = entries
             .filter((entry) => entry.isIntersecting)

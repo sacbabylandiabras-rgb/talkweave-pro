@@ -186,6 +186,12 @@ const App = () => (
                ) : (
                  <Routes>
                 <Route path="/" element={<Landing />} />
+                <Route path="/recursos" element={<Landing />} />
+                <Route path="/plataforma" element={<Landing />} />
+                <Route path="/comparativo" element={<Landing />} />
+                <Route path="/precos" element={<Landing />} />
+                <Route path="/depoimentos" element={<Landing />} />
+                <Route path="/faq" element={<Landing />} />
                 <Route path="/whatsapp" element={<LandingWhatsApp />} />
                 <Route path="/auth" element={<Auth />} />
                  <Route path="/reset-password" element={<ResetPassword />} />
