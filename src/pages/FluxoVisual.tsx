@@ -1895,6 +1895,11 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     } finally {
       setIsSending(false);
       cancelSendRef.current = false;
+      const m = flowMetricsRef.current;
+      console.log(
+        `[FluxoVisual] Fluxo concluído em ${Date.now() - m.startTime}ms`,
+        m
+      );
     }
   };
 
