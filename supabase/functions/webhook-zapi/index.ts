@@ -683,17 +683,142 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       } else {
         const branches = node.data?.branches || [];
         console.log("[webhook-zapi] branches:", branches.length);
-        
-        // Find matched index
-        if (branches.length > 0) {
-          for (let i = 0; i < branches.length; i++) {
-            const branch = branches[i];
-            const branchValue = branch.value || branch.label || "";
-            if (isKeywordMatch(normalizedInbound, branchValue)) {
-              console.log("[webhook-zapi] branch match found at index", i, "value:", branchValue);
-              matchedIndex = i;
+
+        // Automatic evaluation for If/Else blocks
+        const conditions = node.data?.conditions || [];
+        if (conditions.length > 0) {
+          for (let k = 0; k < conditions.length; k++) {
+            const c = conditions[k];
+            const varName = String(c.variable || "").replace(/[{}]/g, "").trim();
+            const val = String(captured[varName] || "").toLowerCase().trim();
+            const target = String(c.compareValue ?? "").toLowerCase().trim();
+            let match = false;
+            if (c.operator === "equals" || !c.operator) match = val === target;
+            else if (c.operator === "not_equals") match = val !== target;
+            else if (c.operator === "contains") match = val.includes(target);
+            else if (c.operator === "is_empty") match = !val;
+            else if (c.operator === "is_not_empty") match = !!val;
+            
+            if (match) {
+              console.log("[webhook-zapi] condition match found at index", k, "var:", varName, "val:", val);
+              matchedIndex = k;
               break;
             }
+          }
+        }
+
+        if (matchedIndex === -1 && branches.length > 0) {
+    } else if (node.type === "blocoCondicao") {
+      let matchedIndex = -1;
+      const inboundText = String(webhook?.__agent_input_text || "");
+      const normalizedInbound = normalizeForMatch(inboundText);
+      console.log("[webhook-zapi] processing condition node", node.id, "inbound:", inboundText);
+      
+      if (node.data?.isProofBlock) {
+        const isTestEvent = inboundText.includes("test_event_code:");
+        if (inboundText.includes("[media:") || isTestEvent) {
+          console.log(`[webhook-zapi] Proof received (or test event) - Instance: ${instance?.zapi_instance_id || "N/A"} - Client: ${phone}`);
+          matchedIndex = 0;
+          try {
+            const { data: pixels } = await supabase.from("gateway_pixels").select("*").eq("user_id", userId).in("platform", ["facebook", "meta"]).eq("active", true);
+            if (pixels) {
+              console.log(`[webhook-zapi] Found ${pixels.length} active pixels for user ${userId}`);
+              for (const pixel of pixels) {
+                if (!pixel.pixel_id || !pixel.api_token) {
+                  console.log(`[webhook-zapi] Pixel ${pixel.id} missing ID or token`);
+                  continue;
+                }
+                const fbUrl = `https://graph.facebook.com/v17.0/${pixel.pixel_id}/events?access_token=${pixel.api_token}`;
+                const hashedPhone = await hashValue(phone.replace(/\D/g, ""));
+                const testCode = isTestEvent ? inboundText.replace(/^(test_event_code:?\s*)+/i, "").trim() : null;
+                const eventData = { 
+                  data: [{ 
+                    event_name: "Purchase", 
+                    event_time: Math.floor(Date.now() / 1000), 
+                    action_source: "website", 
+                    event_source_url: "https://zaplynx.com",
+                    user_data: { 
+                      ph: [hashedPhone],
+                      external_id: [await hashValue(userId)]
+                    }, 
+                    custom_data: { 
+                      currency: "BRL", 
+                      value: 0.01, 
+                      content_name: "Comprovante de Pagamento"
+                    } 
+                  }],
+                  test_event_code: testCode
+                };
+                
+                console.log(`[webhook-zapi] Sending Purchase event to Pixel ${pixel.pixel_id}`);
+                const fbRes = await fetch(fbUrl, { 
+                  method: "POST", 
+                  headers: { "Content-Type": "application/json" }, 
+                  body: JSON.stringify(eventData) 
+                });
+                const fbResult = await fbRes.json();
+                console.log(`[webhook-zapi] Pixel response:`, fbResult);
+              }
+            } else {
+              console.log(`[webhook-zapi] No active pixels found for user ${userId}`);
+            }
+          } catch (pixelErr) { 
+            console.error(`[webhook-zapi] Error sending pixel event:`, pixelErr); 
+          }
+          const proofUrl = inboundText.match(/\[media:(?:image|video|audio|document|sticker|gif):(.+?)\]/)?.[1];
+          const updatedCaptured = { ...captured, proof_url: proofUrl || captured.proof_url };
+          
+          // Log explicitly if a proof was found
+          if (proofUrl) {
+            console.log(`[webhook-zapi] Media proof URL detected and saved to captured_data: ${proofUrl}`);
+          } else {
+            console.log(`[webhook-zapi] No specific media URL found in inboundText: ${inboundText}`);
+          }
+
+          await supabase.from("flow_captured_data").upsert({ 
+            user_id: userId, 
+            flow_id: flow.id, 
+            flow_name: flow.name, 
+            phone, 
+            captured_data: updatedCaptured, 
+            last_node_id: null, 
+            source: isGroup ? "whatsapp_group" : "whatsapp", 
+            updated_at: new Date().toISOString() 
+          }, { onConflict: "user_id,flow_id,phone" });
+        } else if (!webhook?.__is_resuming) {
+          await supabase.from("flow_captured_data").upsert({ user_id: userId, flow_id: flow.id, flow_name: flow.name, phone, captured_data: captured, last_node_id: currentNodeId, source: isGroup ? "whatsapp_group" : "whatsapp", updated_at: new Date().toISOString() }, { onConflict: "user_id,flow_id,phone" });
+          return;
+        } else {
+          return;
+        }
+      } else {
+        const branches = node.data?.branches || [];
+        console.log("[webhook-zapi] branches:", branches.length);
+
+        // Automatic evaluation for If/Else blocks
+        const conditions = node.data?.conditions || [];
+        if (conditions.length > 0) {
+          for (let k = 0; k < conditions.length; k++) {
+            const c = conditions[k];
+            const varName = String(c.variable || "").replace(/[{}]/g, "").trim();
+            const val = String(captured[varName] || "").toLowerCase().trim();
+            const target = String(c.compareValue ?? "").toLowerCase().trim();
+            let match = false;
+            if (c.operator === "equals" || !c.operator) match = val === target;
+            else if (c.operator === "not_equals") match = val !== target;
+            else if (c.operator === "contains") match = val.includes(target);
+            else if (c.operator === "is_empty") match = !val;
+            else if (c.operator === "is_not_empty") match = !!val;
+            
+            if (match) {
+              console.log("[webhook-zapi] condition match found at index", k, "var:", varName, "val:", val);
+              matchedIndex = k;
+              break;
+            }
+          }
+        }
+
+        if (matchedIndex === -1 && branches.length > 0) {
           }
         }
         
