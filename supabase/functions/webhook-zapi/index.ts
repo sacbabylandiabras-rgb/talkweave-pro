@@ -29,6 +29,7 @@ interface FlowEdge {
 
 const FLOW_CAPTURE_PREFIX = "__flow_capture__:";
 const FLOW_BUTTON_PREFIX = "__flow_button__:";
+const receivedWebhookSyncAt = new Map<string, number>();
 
 function normalizeForMatch(text: string): string {
   return (text || "")
@@ -87,6 +88,10 @@ async function ensureReceivedWebhook(instance: any) {
   const zapiToken = instance?.zapi_token;
   const clientToken = instance?.zapi_client_token;
   if (!zapiId || !zapiToken || !clientToken) return;
+
+  const lastSync = receivedWebhookSyncAt.get(zapiId) || 0;
+  if (Date.now() - lastSync < 10 * 60 * 1000) return;
+  receivedWebhookSyncAt.set(zapiId, Date.now());
 
   const webhookUrl = `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/webhook-zapi`;
   const url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/update-webhook-received`;
