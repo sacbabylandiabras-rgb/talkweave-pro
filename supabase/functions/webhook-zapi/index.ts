@@ -83,13 +83,14 @@ function resolveFlowStartNodeId(flow: any, triggerNode: any): string | undefined
   return triggerNode.id;
 }
 
-async function ensureReceivedWebhook(instance: any) {
+async function ensureReceivedWebhook(instance: any, supabase: any) {
   const zapiId = instance?.zapi_instance_id;
   const zapiToken = instance?.zapi_token;
   const clientToken = instance?.zapi_client_token;
   if (!zapiId || !zapiToken || !clientToken) return;
 
-  const lastSync = receivedWebhookSyncAt.get(zapiId) || 0;
+  const persistedSyncAt = instance?.updated_at ? new Date(instance.updated_at).getTime() : 0;
+  const lastSync = Math.max(receivedWebhookSyncAt.get(zapiId) || 0, Number.isFinite(persistedSyncAt) ? persistedSyncAt : 0);
   if (Date.now() - lastSync < 10 * 60 * 1000) return;
   receivedWebhookSyncAt.set(zapiId, Date.now());
 
@@ -101,6 +102,9 @@ async function ensureReceivedWebhook(instance: any) {
     body: JSON.stringify({ value: webhookUrl }),
   });
   console.log("[webhook-zapi] received webhook sync", { ok: response.ok, status: response.status, instanceId: zapiId });
+  if (response.ok && instance?.id) {
+    await supabase.from("zapi_instances").update({ updated_at: new Date().toISOString() }).eq("id", instance.id);
+  }
 }
 
 async function hashValue(value: string): Promise<string> {
