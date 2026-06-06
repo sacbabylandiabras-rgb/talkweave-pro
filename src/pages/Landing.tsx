@@ -18,6 +18,7 @@ const sectionToPath = Object.fromEntries(
 const Landing = () => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const location = useLocation();
+  const lastSyncedPath = useRef(window.location.pathname);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -44,12 +45,10 @@ const Landing = () => {
 
     const syncPath = (section: string, mode: "push" | "replace" = "push") => {
       const nextPath = sectionToPath[section] || "/";
-      if (window.location.pathname === nextPath) return;
+      if (lastSyncedPath.current === nextPath) return;
       
-      // Update the URL in the browser
+      lastSyncedPath.current = nextPath;
       window.history[mode === "push" ? "pushState" : "replaceState"](null, "", nextPath);
-      
-      // Dispatch a custom event to notify React Router about the manual history change
       window.dispatchEvent(new PopStateEvent("popstate"));
     };
 
