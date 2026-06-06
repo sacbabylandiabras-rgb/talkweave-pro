@@ -2068,6 +2068,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       const targetNode = runtimeNodes.find(n => n.id === edge.target);
       if (!targetNode) continue;
 
+      flowMetricsRef.current.edgesFollowed++;
       await processFlow(
         targetNode.id,
         contact,
