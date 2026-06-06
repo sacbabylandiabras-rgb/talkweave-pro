@@ -82,6 +82,22 @@ function resolveFlowStartNodeId(flow: any, triggerNode: any): string | undefined
   return triggerNode.id;
 }
 
+async function ensureReceivedWebhook(instance: any) {
+  const zapiId = instance?.zapi_instance_id;
+  const zapiToken = instance?.zapi_token;
+  const clientToken = instance?.zapi_client_token;
+  if (!zapiId || !zapiToken || !clientToken) return;
+
+  const webhookUrl = `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/webhook-zapi`;
+  const url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/update-webhook-received`;
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "Client-Token": clientToken },
+    body: JSON.stringify({ value: webhookUrl }),
+  });
+  console.log("[webhook-zapi] received webhook sync", { ok: response.ok, status: response.status, instanceId: zapiId });
+}
+
 async function hashValue(value: string): Promise<string> {
   if (!value) return "";
   const msgUint8 = new TextEncoder().encode(value.trim().toLowerCase());
