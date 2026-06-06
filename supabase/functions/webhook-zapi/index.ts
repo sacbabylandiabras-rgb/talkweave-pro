@@ -47,6 +47,14 @@ function isKeywordMatch(message: string, keyword: string): boolean {
   return normalizedMessage.includes(normalizedKeyword);
 }
 
+async function hashValue(value: string): Promise<string> {
+  if (!value) return "";
+  const msgUint8 = new TextEncoder().encode(value.trim().toLowerCase());
+  const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
 function getCaptureHandle(field: string) {
   if (field === "nome") return "collect-name";
   if (field === "email") return "collect-email";
