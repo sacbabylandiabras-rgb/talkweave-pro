@@ -78,10 +78,12 @@ export type Database = {
           elevenlabs_voice_id: string | null
           elevenlabs_voice_name: string | null
           id: string
+          model: string | null
           provider: string | null
           system_prompt: string
           updated_at: string
           user_id: string
+          voice: string | null
           voice_provider: string | null
         }
         Insert: {
@@ -93,10 +95,12 @@ export type Database = {
           elevenlabs_voice_id?: string | null
           elevenlabs_voice_name?: string | null
           id?: string
+          model?: string | null
           provider?: string | null
           system_prompt?: string
           updated_at?: string
           user_id: string
+          voice?: string | null
           voice_provider?: string | null
         }
         Update: {
@@ -108,10 +112,12 @@ export type Database = {
           elevenlabs_voice_id?: string | null
           elevenlabs_voice_name?: string | null
           id?: string
+          model?: string | null
           provider?: string | null
           system_prompt?: string
           updated_at?: string
           user_id?: string
+          voice?: string | null
           voice_provider?: string | null
         }
         Relationships: []
