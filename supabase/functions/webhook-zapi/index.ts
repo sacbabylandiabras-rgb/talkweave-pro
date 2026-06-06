@@ -29,6 +29,7 @@ interface FlowEdge {
 
 const FLOW_CAPTURE_PREFIX = "__flow_capture__:";
 const FLOW_BUTTON_PREFIX = "__flow_button__:";
+const receivedWebhookSyncAt = new Map<string, number>();
 
 function normalizeForMatch(text: string): string {
   return (text || "")
@@ -42,13 +43,68 @@ function isKeywordMatch(message: string, keyword: string): boolean {
   if (!keyword || !message) return false;
   const normalizedKeyword = normalizeForMatch(keyword);
   const normalizedMessage = normalizeForMatch(message);
+  if (!normalizedKeyword || !normalizedMessage) return false;
   
   // Strict check for slash commands
-  if (keyword.startsWith("/")) {
+  if (normalizedKeyword.startsWith("/")) {
     return normalizedMessage === normalizedKeyword;
   }
   
   return normalizedMessage.includes(normalizedKeyword);
+}
+
+function splitKeywords(value: unknown): string[] {
+  if (Array.isArray(value)) return value.flatMap(splitKeywords);
+  return String(value || "")
+    .split(/[\n,;]/)
+    .map((keyword) => normalizeForMatch(keyword))
+    .filter(Boolean);
+}
+
+function isStatusOnlyCallback(type: string, webhook: any, messageRaw: string, mediaUrl: string): boolean {
+  const statusOnlyTypes = new Set(["DeliveryCallback", "MessageStatusCallback", "StatusCallback", "MessageStatus"]);
+  if (statusOnlyTypes.has(type)) return true;
+  const hasInboundContent = Boolean(normalizeForMatch(messageRaw) || mediaUrl);
+  return !hasInboundContent && (Array.isArray(webhook?.ids) || Boolean(webhook?.messageId && webhook?.zaapId));
+}
+
+function isZapiFlowCategory(category: unknown): boolean {
+  const normalized = String(category || "contacts").toLowerCase().trim();
+  return !["telegram", "meta", "instagram", "facebook"].includes(normalized);
+}
+
+function resolveFlowStartNodeId(flow: any, triggerNode: any): string | undefined {
+  if (!triggerNode?.id) return undefined;
+  if (triggerNode?.type === "step" && triggerNode?.data?.kind === "gatilho") {
+    const edges = Array.isArray(flow?.edges) ? flow.edges : [];
+    const nextEdge = edges.find((edge: any) => String(edge.source) === String(triggerNode.id));
+    return nextEdge?.target || triggerNode.id;
+  }
+  return triggerNode.id;
+}
+
+async function ensureReceivedWebhook(instance: any, supabase: any) {
+  const zapiId = instance?.zapi_instance_id;
+  const zapiToken = instance?.zapi_token;
+  const clientToken = instance?.zapi_client_token;
+  if (!zapiId || !zapiToken || !clientToken) return;
+
+  const persistedSyncAt = instance?.updated_at ? new Date(instance.updated_at).getTime() : 0;
+  const lastSync = Math.max(receivedWebhookSyncAt.get(zapiId) || 0, Number.isFinite(persistedSyncAt) ? persistedSyncAt : 0);
+  if (Date.now() - lastSync < 10 * 60 * 1000) return;
+  receivedWebhookSyncAt.set(zapiId, Date.now());
+
+  const webhookUrl = `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/webhook-zapi`;
+  const url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/update-webhook-received`;
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "Client-Token": clientToken },
+    body: JSON.stringify({ value: webhookUrl }),
+  });
+  console.log("[webhook-zapi] received webhook sync", { ok: response.ok, status: response.status, instanceId: zapiId });
+  if (response.ok && instance?.id) {
+    await supabase.from("zapi_instances").update({ updated_at: new Date().toISOString() }).eq("id", instance.id);
+  }
 }
 
 async function hashValue(value: string): Promise<string> {
@@ -319,8 +375,19 @@ serve(async (req) => {
     }
 
     const fromMe = webhook?.fromMe === true || webhook?.fromMe === "true" || webhook?.fromApi === true || webhook?.fromApi === "true";
-    const { data: instanceData } = await supabase.from("zapi_instances").select("id, user_id, zapi_instance_id, zapi_token, zapi_client_token").or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`).maybeSingle();
+    const { data: instanceData } = await supabase.from("zapi_instances").select("id, user_id, zapi_instance_id, zapi_token, zapi_client_token, updated_at").or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`).maybeSingle();
     const userId = instanceData?.user_id;
+
+    if (isStatusOnlyCallback(type, webhook, messageRaw, mediaUrl)) {
+      if (instanceData) await ensureReceivedWebhook(instanceData, supabase).catch((error) => console.warn("[webhook-zapi] received webhook sync failed", error));
+      console.log("[webhook-zapi] ignored status-only callback", { type, status: webhook?.status, phone, messageId });
+      return new Response("ok", { status: 200, headers: corsHeaders });
+    }
+
+    if (!userId) {
+      console.log("[webhook-zapi] ignored callback without linked instance", { instanceId, type, phone });
+      return new Response("ok", { status: 200, headers: corsHeaders });
+    }
 
     if (userId && !fromMe && (webhook?.text || webhook?.message?.text || messageRaw.trim().length > 0)) {
       const contactPhone = isGroup ? senderPhone : sanitizeSenderPhone(phone || senderPhone);
@@ -360,8 +427,8 @@ serve(async (req) => {
       console.log("[webhook-zapi] active flows found:", flows?.length || 0);
       
       for (const flow of flows || []) {
-        if (flow.category === "telegram") {
-           console.log(`[webhook-zapi] skipping telegram flow "${flow.name}"`);
+        if (!isZapiFlowCategory(flow.category)) {
+           console.log(`[webhook-zapi] skipping non-whatsapp flow "${flow.name}" (${flow.category})`);
            continue;
         }
 
@@ -369,17 +436,21 @@ serve(async (req) => {
                            flow.nodes.find((n: any) => n.type === "blocoInicial");
         
         let isMatch = false;
-        const startNodeId = triggerNode?.id;
+        const startNodeId = resolveFlowStartNodeId(flow, triggerNode);
 
-        const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim().toLowerCase()).filter(Boolean);
-        const normalizedMsg = normalizeForMatch(messageRaw);
+        const mainKeywords = splitKeywords(flow.keyword || flow.trigger_keywords);
+        const normalizedMsg = normalizeForMatch(agentInboundText || messageRaw);
+        if (!normalizedMsg) {
+          console.log(`[webhook-zapi] skipping flow "${flow.name}" because inbound message is empty`);
+          continue;
+        }
         
         // Also check if any node has keywords (the user might have configured keywords inside a "Gatilho" block)
         const nodeKeywords = flow.nodes
-          .filter((n: any) => n.data?.keyword || n.data?.trigger_keywords)
+          .filter((n: any) => n.data?.keyword || n.data?.keywords || n.data?.trigger_keywords || n.data?.triggerKeywords)
           .flatMap((n: any) => {
-            const k = n.data?.keyword || n.data?.trigger_keywords;
-            return Array.isArray(k) ? k : String(k).split(",").map((s: string) => s.trim().toLowerCase()).filter(Boolean);
+            const k = n.data?.keyword || n.data?.keywords || n.data?.trigger_keywords || n.data?.triggerKeywords;
+            return splitKeywords(k);
           });
 
         const allKeywords = Array.from(new Set([...mainKeywords, ...nodeKeywords]));
@@ -404,7 +475,7 @@ serve(async (req) => {
         else if (allKeywords.some((k: string) => {
           if (k.length < 2) return false;
           // Check if message contains keyword OR keyword contains message (for very short inputs)
-          return normalizedMsg.includes(k) || k.includes(normalizedMsg);
+          return normalizedMsg.includes(k) || (normalizedMsg.length >= 2 && k.includes(normalizedMsg));
         })) {
           isMatch = true;
           console.log(`[webhook-zapi] Partial/Included keyword match for flow "${flow.name}"`);
