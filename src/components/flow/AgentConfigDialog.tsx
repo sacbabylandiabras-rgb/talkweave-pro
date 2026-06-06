@@ -378,7 +378,7 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
                       <Input value={docTitle} onChange={e => setDocTitle(e.target.value)} placeholder="Título do documento" />
                       <Textarea value={docContent} onChange={e => setDocContent(e.target.value)} placeholder="Conteúdo..." rows={3} />
                       <Button onClick={handleAddDoc} size="sm"><Plus className="w-4 h-4 mr-1" /> Importar</Button>
-        </ScrollArea>
+                    </div>
                     <div className="space-y-2">
                       {knowledge.filter(k => k.type === "document").map(item => (
                         <div key={item.id} className="flex items-start justify-between p-3 rounded bg-muted/20 border">
@@ -395,8 +395,8 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
                 </Card>
               </TabsContent>
             </Tabs>
-            </div>
-        </div>
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
