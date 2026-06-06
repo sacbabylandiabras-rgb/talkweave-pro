@@ -2309,6 +2309,59 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               <Button
                 size="sm"
                 variant="outline"
+                className="h-8 px-2"
+                onClick={() => {
+                  const prev = undoRedo.undo();
+                  if (prev) {
+                    setNodes(prev.nodes as any);
+                    setEdges(prev.edges as any);
+                  }
+                }}
+                disabled={!undoRedo.canUndo}
+                title="Desfazer"
+              >
+                <Undo2 className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-2"
+                onClick={() => {
+                  const next = undoRedo.redo();
+                  if (next) {
+                    setNodes(next.nodes as any);
+                    setEdges(next.edges as any);
+                  }
+                }}
+                disabled={!undoRedo.canRedo}
+                title="Refazer"
+              >
+                <Redo2 className="h-4 w-4" />
+              </Button>
+              {!isOnline && (
+                <Badge variant="destructive" className="h-8 gap-1.5 px-2">
+                  <WifiOff className="h-3.5 w-3.5" />
+                  Offline
+                </Badge>
+              )}
+              {hasUnsavedChanges && (
+                <Badge variant="outline" className="h-8 gap-1.5 px-2">
+                  <CircleAlert className="h-3.5 w-3.5" />
+                  Não salvo
+                </Badge>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1.5"
+                onClick={() => setShowAnalytics(true)}
+              >
+                <BarChart3 className="h-4 w-4" />
+                Analytics
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={() => {
                   testFlowIntegrity();
                   toast.info("Verificação concluída - veja o console");
