@@ -4368,7 +4368,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   const isFiltroStatus = (selectedNode.data?.label || "").toLowerCase().includes("filtro por status do atendimento") || (selectedNode.data?.label || "").toLowerCase().includes("status do atendimento");
                   const isFiltroSessao = (selectedNode.data?.label || "").toLowerCase().includes("filtro por sessão") || (selectedNode.data?.label || "").toLowerCase().includes("filtro por sessao");
                   const isFiltroFollowUp = (selectedNode.data?.label || "").toLowerCase().includes("follow up") || (selectedNode.data?.label || "").toLowerCase().includes("followup");
-                  if (isSplit || isTags || isHorario || isFiltroCadastro || isFiltroMensagem || isFiltroStatus || isFiltroSessao || isFiltroFollowUp) return null;
+                  const isProofBlock = !!selectedNode.data?.isProofBlock;
+                  if (isSplit || isTags || isHorario || isFiltroCadastro || isFiltroMensagem || isFiltroStatus || isFiltroSessao || isFiltroFollowUp || isProofBlock) return null;
                   return (
                 <div>
                   <Label>Variável a verificar</Label>
@@ -4428,6 +4429,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                   const isFiltroStatus = (selectedNode.data?.label || "").toLowerCase().includes("filtro por status do atendimento") || (selectedNode.data?.label || "").toLowerCase().includes("status do atendimento");
                   const isFiltroSessao = (selectedNode.data?.label || "").toLowerCase().includes("filtro por sessão") || (selectedNode.data?.label || "").toLowerCase().includes("filtro por sessao");
                   const isFiltroFollowUp = (selectedNode.data?.label || "").toLowerCase().includes("follow up") || (selectedNode.data?.label || "").toLowerCase().includes("followup");
+                  const isProofBlock = !!selectedNode.data?.isProofBlock;
                   if (isHorario) {
                     const rules: any[] = Array.isArray(selectedNode.data.scheduleRules) ? selectedNode.data.scheduleRules : [];
                     const updateRules = (next: any[]) => {
@@ -4745,6 +4747,28 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                         <Label>Saídas fixas</Label>
                         {FOLLOWS.map((s) => (
                           <div key={s.value} className="flex items-start gap-2 rounded-md border bg-card px-3 py-2">
+                            <span className={`mt-1 inline-block w-2 h-2 rounded-full ${s.color}`} />
+                            <div className="flex-1">
+                              <div className="text-sm font-semibold">{s.label}</div>
+                              <div className="text-[11px] text-muted-foreground">{s.desc}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  if (isProofBlock) {
+                    const PROOFS = [
+                      { label: "Comprovante Recebido", desc: "Fluxo continua automaticamente quando qualquer mídia (foto/arquivo) for detectada", color: "bg-emerald-500" },
+                    ];
+                    return (
+                      <div className="space-y-2">
+                        <div className="rounded-md border border-primary/30 bg-primary/10 p-2 text-[11px] text-foreground/80">
+                          Este bloco interrompe o fluxo e aguarda o envio de um comprovante pelo lead. Assim que uma mídia for detectada, o fluxo seguirá pela saída única.
+                        </div>
+                        <Label>Saída única automática</Label>
+                        {PROOFS.map((s, idx) => (
+                          <div key={idx} className="flex items-start gap-2 rounded-md border bg-card px-3 py-2">
                             <span className={`mt-1 inline-block w-2 h-2 rounded-full ${s.color}`} />
                             <div className="flex-1">
                               <div className="text-sm font-semibold">{s.label}</div>
