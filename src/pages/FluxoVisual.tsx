@@ -825,6 +825,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [showTemplatesDialog, setShowTemplatesDialog] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const cancelSendRef = useRef(false);
+  const flowMetricsRef = useRef({
+    startTime: 0,
+    nodesProcessed: 0,
+    edgesFollowed: 0,
+    errorsEncountered: 0,
+  });
 
   // Fetch button click stats for the current flow
   const fetchButtonStats = useCallback(async (flowName: string) => {
