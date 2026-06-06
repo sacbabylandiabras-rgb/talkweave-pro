@@ -742,15 +742,18 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       }
       
       let handleId = matchedIndex === 0 ? "a" : matchedIndex === 1 ? "b" : matchedIndex > 1 ? `branch-${matchedIndex}` : "source-bottom";
+      let altHandleId = matchedIndex > 1 ? `if-${matchedIndex}` : handleId;
       
       const nextEdge = edges.find((e: any) => 
         String(e.source) === String(currentNodeId) && 
-        (String(e.sourceHandle) === handleId || String(e.sourceHandle) === String(matchedIndex))
+        (String(e.sourceHandle) === handleId || 
+         String(e.sourceHandle) === altHandleId || 
+         String(e.sourceHandle) === String(matchedIndex))
       );
       
       console.log("[webhook-zapi] next handleId:", handleId, "found edge:", !!nextEdge);
       
-      if (!nextEdge && matchedIndex === -1) {
+          (String(e.sourceHandle) === "source-bottom" || String(e.sourceHandle) === "else" || String(e.sourceHandle) === "fallback" || String(e.sourceHandle) === "right" || String(e.sourceHandle) === "b" || String(e.sourceHandle) === "branch-1" || String(e.sourceHandle) === "if-1")
         const elseEdge = edges.find((e: any) => 
           String(e.source) === String(currentNodeId) && 
           (String(e.sourceHandle) === "source-bottom" || String(e.sourceHandle) === "else" || String(e.sourceHandle) === "fallback" || String(e.sourceHandle) === "right")
