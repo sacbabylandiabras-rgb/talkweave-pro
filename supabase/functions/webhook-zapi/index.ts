@@ -399,6 +399,11 @@ serve(async (req) => {
 
     console.log("[webhook-zapi] processing inbound:", { userId, phone, fromMe, isButtonResponse, msg: messageRaw.slice(0, 50) });
 
+    if (fromMe && !isButtonResponse) {
+      console.log("[webhook-zapi] ignored own outbound message for trigger matching", { phone, messageId });
+      return new Response("ok", { status: 200, headers: corsHeaders });
+    }
+
     if (!fromMe || isButtonResponse) {
       console.log("[webhook-zapi] inbound payload:", JSON.stringify(webhook).slice(0, 500));
       console.log("[webhook-zapi] inbound detail:", { userId, phone, chatId, isGroup, msg: messageRaw.slice(0, 80) });
