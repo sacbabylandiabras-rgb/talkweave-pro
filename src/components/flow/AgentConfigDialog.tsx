@@ -230,7 +230,7 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto">
+        <ScrollArea className="flex-1">
           <div className="px-6 py-4 pb-10">
             <Tabs defaultValue="config" className="w-full">
               <TabsList className="grid w-full grid-cols-4 mb-6">
@@ -378,7 +378,7 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
                       <Input value={docTitle} onChange={e => setDocTitle(e.target.value)} placeholder="Título do documento" />
                       <Textarea value={docContent} onChange={e => setDocContent(e.target.value)} placeholder="Conteúdo..." rows={3} />
                       <Button onClick={handleAddDoc} size="sm"><Plus className="w-4 h-4 mr-1" /> Importar</Button>
-                    </div>
+        </ScrollArea>
                     <div className="space-y-2">
                       {knowledge.filter(k => k.type === "document").map(item => (
                         <div key={item.id} className="flex items-start justify-between p-3 rounded bg-muted/20 border">
