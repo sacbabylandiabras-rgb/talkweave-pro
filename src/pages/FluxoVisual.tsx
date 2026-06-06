@@ -109,6 +109,11 @@ import {
   Copy,
   PackageCheck,
   TestTube,
+  Undo2,
+  Redo2,
+  WifiOff,
+  CircleAlert,
+  BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
