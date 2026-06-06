@@ -5,6 +5,36 @@ import { supabase } from "@/integrations/supabase/client";
 
 
 export function BlocoCondicaoNode({ data }: any) {
+  const handleTestPixel = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Você precisa estar logado para testar o Pixel");
+        return;
+      }
+
+      toast.info("Enviando evento de teste do Pixel...");
+      
+      const { data: response, error } = await supabase.functions.invoke('webhook-zapi', {
+        body: {
+          test_event: true,
+          test_event_code: "TEST20723",
+          instanceId: "test-instance",
+          phone: "5511999999999",
+          moments: ["proof_of_payment"]
+        }
+      });
+
+      if (error) throw error;
+      
+      toast.success("Evento de teste enviado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao testar pixel:", error);
+      toast.error("Erro ao enviar evento de teste");
+    }
+  };
+
   const operatorShort: Record<string, string> = {
     equals: "=",
     not_equals: "≠",
