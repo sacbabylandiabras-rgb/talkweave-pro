@@ -1799,7 +1799,9 @@ serve(async (req) => {
     }
 
     // ============ PROVIDER SELECTION ============
-    const isAnthropicKey = ANTHROPIC_API_KEY && ANTHROPIC_API_KEY.startsWith("sk-ant-");
+    const isAnthropicKey = ANTHROPIC_API_KEY && (ANTHROPIC_API_KEY.startsWith("sk-ant-") || ANTHROPIC_API_KEY.startsWith("sk-"));
+    console.log(`AgentChat AI Provider: ${isAnthropicKey ? 'Anthropic Direct' : 'Lovable Gateway'}. Model: ${rawModel}. Key Prefix: ${ANTHROPIC_API_KEY?.substring(0, 7)}`);
+
 
     // ✅ MODELO ATUALIZADO: claude-3-5-sonnet-latest foi removido (não existe mais)
     // Use sempre strings de modelo válidas da Anthropic
