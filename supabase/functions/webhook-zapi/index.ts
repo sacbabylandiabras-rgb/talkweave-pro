@@ -889,8 +889,25 @@ serve(async (req) => {
               { ...webhook, __agent_input_text: agentInboundText },
             );
             return new Response("agent_flow_resumed", { status: 200, headers: corsHeaders });
+          } else if (lastNode.type === "blocoCondicao") {
+            flowStateHandled = true;
+            console.log(`[Flow] Resuming flow from condition node ${lastNodeId} with message: "${agentInboundText || normalizedMessage}"`);
+            await executeFlow(
+              supabase,
+              userId,
+              phone,
+              flow,
+              lastNodeId,
+              flowState.captured_data || {},
+              instanceData,
+              chatId,
+              isGroup,
+              { ...webhook, __agent_input_text: agentInboundText },
+            );
+            return new Response("condition_flow_resumed", { status: 200, headers: corsHeaders });
           } else {
             const buttonMatch = findButtonMatch(nodes, edges, lastNodeId, normalizedMessage, webhook);
+
             console.log("Button match result:", JSON.stringify(buttonMatch));
             if (buttonMatch) {
               flowStateHandled = true;
