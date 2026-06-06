@@ -70,6 +70,12 @@ function isZapiWhatsAppFlow(flow: any): boolean {
   return !["meta", "instagram", "telegram"].includes(category);
 }
 
+function flowMatchesChatType(flow: any, isGroup: boolean): boolean {
+  const category = String(flow?.category || "contacts").toLowerCase();
+  if (isGroup) return category === "groups";
+  return category !== "groups";
+}
+
 function getConnectedPhone(webhook: any): string {
   return onlyDigits(webhook?.connectedPhone || webhook?.connected_phone || webhook?.ownerPhone || webhook?.me?.phone || webhook?.phoneConnected);
 }
@@ -490,7 +496,7 @@ serve(async (req) => {
         for (const flowState of activeFlowStates) {
           console.log("[webhook-zapi] resuming flow", flowState.flow_id, "at node", flowState.last_node_id);
           const { data: flow } = await supabase.from("flow_automations").select("*").eq("id", flowState.flow_id).single();
-          if (flow && flow.active === true && isZapiWhatsAppFlow(flow)) {
+          if (flow && flow.active === true && isZapiWhatsAppFlow(flow) && flowMatchesChatType(flow, isGroup)) {
             await executeFlow(supabase, userId, phone, flow, flowState.last_node_id, flowState.captured_data || {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText, __is_resuming: true });
             return new Response("ok", { status: 200, headers: corsHeaders });
           } else {
@@ -508,6 +514,10 @@ serve(async (req) => {
         if (!isZapiWhatsAppFlow(flow)) {
            console.log(`[webhook-zapi] skipping non-whatsapp flow "${flow.name}"`, { category: flow.category });
            continue;
+        }
+        if (!flowMatchesChatType(flow, isGroup)) {
+          console.log(`[webhook-zapi] skipping flow "${flow.name}" — category ${flow.category} does not match chat type (isGroup=${isGroup})`);
+          continue;
         }
 
         const triggerNode = flow.nodes.find((n: any) => n.type === "blocoGatilho" || n.type === "gatilho" || n.type === "trigger" || (n.type === "step" && n.data?.kind === "gatilho")) || 
