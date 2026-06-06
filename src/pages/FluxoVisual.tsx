@@ -1781,6 +1781,14 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       cancelSendRef.current = false;
       setIsSending(true);
 
+      // 📊 Telemetria do fluxo
+      flowMetricsRef.current = {
+        startTime: Date.now(),
+        nodesProcessed: 0,
+        edgesFollowed: 0,
+        errorsEncountered: 0,
+      };
+
       // Toast de progresso persistente
       const toastId = toast.loading(
         `Preparando envio para ${selectedContacts.length} ${recipientLabel}(s)...`
