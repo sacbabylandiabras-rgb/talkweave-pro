@@ -109,6 +109,11 @@ import {
   Copy,
   PackageCheck,
   TestTube,
+  Undo2,
+  Redo2,
+  WifiOff,
+  CircleAlert,
+  BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
@@ -132,6 +137,12 @@ import { useMetaCredentials } from "@/hooks/useMetaCredentials";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { useUndoRedo } from "@/hooks/useUndoRedo";
+import { useAutoBackup } from "@/hooks/useAutoBackup";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
+import { useFlowExecutionHistory } from "@/hooks/useFlowExecutionHistory";
+import { useBlockAnalytics } from "@/hooks/useBlockAnalytics";
+import { FlowAnalyticsPanel } from "@/components/flow/FlowAnalyticsPanel";
 
 async function getInvokeErrorMessage(error: unknown, fallback: string) {
   if (!error) return fallback;
@@ -766,6 +777,14 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [telegramBots, setTelegramBots] = useState<TelegramBot[]>([]);
   const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
   const leadPositions = useFlowLeadPositions(currentFluxoId);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const undoRedo = useUndoRedo();
+  const { hasUnsavedChanges } = useAutoBackup(nodes, edges, currentFluxoId, nomeFluxo, {
+    interval: 30000,
+    enabled: true,
+    maxBackups: 10,
+  });
+  const { isOnline } = useOfflineSync(currentFluxoId);
   const [showFluxosList, setShowFluxosList] = useState(true);
   const [loading, setLoading] = useState(false);
   const [savingFluxo, setSavingFluxo] = useState(false);
@@ -2286,6 +2305,61 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               <Button size="sm" variant="outline" onClick={handleSaveFluxo} className="h-8" disabled={savingFluxo}>
                 <Save className="h-4 w-4 mr-1.5" />
                 {savingFluxo ? "..." : "Salvar"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-2"
+                onClick={() => {
+                  const target = undoRedo.history[undoRedo.currentIndex - 1];
+                  if (target) {
+                    setNodes(target.nodes as any);
+                    setEdges(target.edges as any);
+                    undoRedo.undo();
+                  }
+                }}
+                disabled={!undoRedo.canUndo}
+                title="Desfazer"
+              >
+                <Undo2 className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-2"
+                onClick={() => {
+                  const target = undoRedo.history[undoRedo.currentIndex + 1];
+                  if (target) {
+                    setNodes(target.nodes as any);
+                    setEdges(target.edges as any);
+                    undoRedo.redo();
+                  }
+                }}
+                disabled={!undoRedo.canRedo}
+                title="Refazer"
+              >
+                <Redo2 className="h-4 w-4" />
+              </Button>
+              {!isOnline && (
+                <Badge variant="destructive" className="h-8 gap-1.5 px-2">
+                  <WifiOff className="h-3.5 w-3.5" />
+                  Offline
+                </Badge>
+              )}
+              {hasUnsavedChanges && (
+                <Badge variant="outline" className="h-8 gap-1.5 px-2">
+                  <CircleAlert className="h-3.5 w-3.5" />
+                  Não salvo
+                </Badge>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1.5"
+                onClick={() => setShowAnalytics(true)}
+              >
+                <BarChart3 className="h-4 w-4" />
+                Analytics
               </Button>
               <Button
                 size="sm"
@@ -6446,6 +6520,13 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           }
           toast.success("Bloco adicionado ao fluxo!");
         }}
+      />
+      <FlowAnalyticsPanel
+        open={showAnalytics}
+        onOpenChange={setShowAnalytics}
+        flowId={currentFluxoId}
+        flowName={nomeFluxo}
+        nodes={nodes}
       />
     </>
   );
