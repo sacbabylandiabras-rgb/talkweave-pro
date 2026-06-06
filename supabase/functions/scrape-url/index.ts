@@ -46,8 +46,13 @@ Deno.serve(async (req) => {
       .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
       .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
       .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+      .replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, "")
       .replace(/<a\s[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_, href, linkText) => {
         const cleanText = linkText.replace(/<[^>]+>/g, "").trim();
+        // Skip common navigation/utility links to avoid noise
+        const noiseTerms = ["login", "entrar", "conta", "carrinho", "cart", "ajuda", "suporte"];
+        if (noiseTerms.some(term => cleanText.toLowerCase().includes(term))) return "";
+        
         if (href && cleanText && !href.startsWith("#") && !href.startsWith("javascript:")) {
           let fullUrl = href;
           try { fullUrl = new URL(href, formattedUrl).href; } catch {}
