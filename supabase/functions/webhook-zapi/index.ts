@@ -904,6 +904,13 @@ serve(async (req) => {
               isGroup,
               { ...webhook, __agent_input_text: agentInboundText, __is_resuming: true },
             );
+            if (!flowStateIsSharedGroup) {
+              await supabase
+                .from("flow_captured_data")
+                .update({ last_node_id: null, updated_at: new Date().toISOString() })
+                .eq("id", flowState.id)
+                .eq("last_node_id", lastNodeId);
+            }
             return new Response("condition_flow_resumed", { status: 200, headers: corsHeaders });
           } else {
             const buttonMatch = findButtonMatch(nodes, edges, lastNodeId, normalizedMessage, webhook);
@@ -1723,6 +1730,18 @@ async function executeFlow(
       const isSplit = (node.data.label || "").toLowerCase().includes("split");
       const isHorario = (node.data.label || "").toLowerCase().includes("horário") || (node.data.label || "").toLowerCase().includes("horario");
       const isFiltroStatus = (node.data.label || "").toLowerCase().includes("filtro por status");
+      const branches = Array.isArray(node.data.branches) ? node.data.branches : [];
+      const inboundText = String(webhook?.__agent_input_text || webhook?.text?.message || webhook?.message?.text || (typeof webhook?.text === "string" ? webhook.text : "") || "");
+
+      const matchesTextBranch = (value: string, operator = "contains") => {
+        const normalizedInbound = normalizeForMatch(inboundText);
+        const normalizedValue = normalizeForMatch(value);
+        if (!normalizedValue) return false;
+        if (operator === "equals") return normalizedInbound === normalizedValue;
+        if (operator === "starts_with") return normalizedInbound.startsWith(normalizedValue);
+        if (operator === "ends_with") return normalizedInbound.endsWith(normalizedValue);
+        return normalizedInbound.includes(normalizedValue);
+      };
 
       if (isSplit) {
         matchedIndex = Math.floor(Math.random() * (node.data.branches?.length || 2));
@@ -1737,7 +1756,7 @@ async function executeFlow(
         const waitsForMessage = conditions.some((cond: any) => {
           const variableName = String(cond.variable || "").replace(/[{}]/g, "").toLowerCase();
           return variableName === "" || variableName === "mensagem" || variableName === "message" || variableName === "input";
-        });
+        }) || branches.length > 0;
 
         if (waitsForMessage && !webhook?.__is_resuming) {
           console.log(`[Flow] Condition node ${currentNodeId} is waiting for the next user reply before evaluating.`);
@@ -1757,14 +1776,28 @@ async function executeFlow(
           return;
         }
 
-        for (let i = 0; i < conditions.length; i++) {
+        if (branches.length > 0 && inboundText.trim()) {
+          for (let i = 0; i < branches.length; i++) {
+            const branch = branches[i] || {};
+            const branchValue = String(branch.value ?? branch.label ?? "");
+            if (matchesTextBranch(branchValue, String(branch.operator || "contains"))) {
+              matchedIndex = i;
+              break;
+            }
+          }
+        } else if (branches.length > 0 && webhook?.__is_resuming) {
+          console.log(`[Flow] Condition node ${currentNodeId} resumed without inbound text. Stopping.`);
+          return;
+        }
+
+        for (let i = 0; matchedIndex === -1 && i < conditions.length; i++) {
           const cond = conditions[i];
           const variableName = cond.variable?.replace(/[{}]/g, "") || "";
           const isMessageVar = variableName.toLowerCase() === "mensagem" || variableName.toLowerCase() === "message" || variableName.toLowerCase() === "input" || variableName === "";
           
-          let variableValue = isMessageVar && webhook?.__is_resuming ? "" : captured[variableName];
+          let variableValue = isMessageVar ? inboundText : captured[variableName];
           if (!variableValue && isMessageVar) {
-            variableValue = webhook?.__agent_input_text || webhook?.text || webhook?.message?.text || "";
+            variableValue = inboundText;
           }
 
           // Se a variável é a mensagem e não veio texto agora, PARAR e esperar a próxima interação
