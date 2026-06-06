@@ -1,5 +1,8 @@
 import { Handle, Position } from "reactflow";
-import { GitBranch } from "lucide-react";
+import { GitBranch, TestTube } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
 
 export function BlocoCondicaoNode({ data }: any) {
   const operatorShort: Record<string, string> = {
