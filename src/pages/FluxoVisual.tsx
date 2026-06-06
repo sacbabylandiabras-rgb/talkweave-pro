@@ -1748,66 +1748,41 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       return;
     }
 
-    // Processar conteúdo do nó atual se for um bloco de conteúdo
-    if (currentNode.type === "blocoConteudo" || currentNode.type === "blocoInicial") {
-      try {
-        await processNode(currentNode);
-        // Delay entre mensagens
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } catch (err) {
-        console.error(`[FluxoVisual] Erro processando nó:`, err);
-        throw err;
-      }
-    }
-
-    // Encontrar próximas conexões
-    const outgoingEdges = edges
-      .filter((e) => e.source === currentNodeId)
-      .sort((a, b) => {
-        const aTarget = runtimeNodes.find(n => n.id === a.target);
-        const bTarget = runtimeNodes.find(n => n.id === b.target);
-        const ay = aTarget?.position?.y ?? 0;
-        const by = bTarget?.position?.y ?? 0;
-        
-        if (ay !== by) return ay - by;
-        return (aTarget?.position?.x ?? 0) - (bTarget?.position?.x ?? 0);
+    const wrapUrlWithTracking = (rawUrl: string, btnText: string, phone: string) => {
+      const finalUrl = rawUrl.match(/^https?:\/\//i) ? rawUrl : `https://${rawUrl}`;
+      const params = new URLSearchParams({
+        url: finalUrl,
+        flow: nomeFluxo,
+        btn: btnText,
+        uid: userId || '',
+        ph: phone,
       });
+      return `https://go.zaplynxpro.online/r?${params.toString()}`;
+    };
 
-    if (outgoingEdges.length === 0) {
-      console.log(`[FluxoVisual] Fim do fluxo - nó ${currentNodeId} sem saídas`);
-      return;
-    }
+    const sendWithInstance = async (payload: Record<string, any>, nodeData?: any) => {
+      const finalPayload = { ...payload };
+      const isGroup = contact.includes('@g.us') || contact.includes('-group');
+      if (isGroup) {
+        const numericId = contact.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
+        finalPayload.phone = numericId ? `${numericId}-group` : contact;
+        if (nodeData?.mentionAll) finalPayload.mentionAll = true;
+      }
 
-    // Processar cada saída
-    for (const edge of outgoingEdges) {
-      const targetNode = runtimeNodes.find(n => n.id === edge.target);
-      if (!targetNode) continue;
+      const body = instanceId
+        ? { ...finalPayload, instanceId, preferStandardConnection: true }
+        : { ...finalPayload, preferStandardConnection: true };
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('send-message', { body });
+        const failureMessage = await getSendFailureMessage(data, error, "Erro ao enviar fluxo");
+        if (failureMessage) throw new Error(failureMessage);
+      } catch (invokeErr) {
+        console.error("[FluxoVisual] Error invoking send-message:", invokeErr);
+        throw invokeErr;
+      }
+    };
 
-      // Recursivamente processar próximo nó
-      await processFlow(
-        targetNode.id,
-        contact,
-        visitedNodes,
-        instanceId,
-        userId,
-        provider,
-        flowIdForPending
-      );
-    }
-  };
-
-  // Mantendo processNode dentro do escopo se necessário, mas as alterações acima 
-  // já redefiniram a lógica principal do processFlow. 
-  // Vou apenas remover o código antigo que ficou "pendurado" após a substituição.
-  
-  const processNodePlaceholder = async (node: any) => {
-    // Esta função será substituída ou movida conforme necessário
-    // mas a lógica principal agora reside no processFlow atualizado
-  };
-
-
-    // Process source node if it has content (BlocoInicial or other message nodes)
-    const currentNode = nodeMap.get(currentNodeId);
     const processNode = async (node: any) => {
       if (!node) return;
       
@@ -1830,41 +1805,6 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           ...sendableButtons,
           ...flowButtons.map((b: any) => ({ ...b, type: "reply" })),
         ];
-
-        const wrapUrlWithTracking = (rawUrl: string, btnText: string, phone: string) => {
-          const finalUrl = rawUrl.match(/^https?:\/\//i) ? rawUrl : `https://${rawUrl}`;
-          const params = new URLSearchParams({
-            url: finalUrl,
-            flow: nomeFluxo,
-            btn: btnText,
-            uid: userId || '',
-            ph: phone,
-          });
-          return `https://go.zaplynxpro.online/r?${params.toString()}`;
-        };
-
-        const sendWithInstance = async (payload: Record<string, any>, nodeData?: any) => {
-          const finalPayload = { ...payload };
-          const isGroup = contact.includes('@g.us') || contact.includes('-group');
-          if (isGroup) {
-            const numericId = contact.replace(/@g\.us$/i, '').replace(/-group$/i, '').replace(/\D/g, '');
-            finalPayload.phone = numericId ? `${numericId}-group` : contact;
-            if (nodeData?.mentionAll) finalPayload.mentionAll = true;
-          }
-
-          const body = instanceId
-            ? { ...finalPayload, instanceId, preferStandardConnection: true }
-            : { ...finalPayload, preferStandardConnection: true };
-          
-          try {
-            const { data, error } = await supabase.functions.invoke('send-message', { body });
-            const failureMessage = await getSendFailureMessage(data, error, "Erro ao enviar fluxo");
-            if (failureMessage) throw new Error(failureMessage);
-          } catch (invokeErr) {
-            console.error("[FluxoVisual] Error invoking send-message:", invokeErr);
-            throw invokeErr;
-          }
-        };
 
         if (allSendButtons.length > 0) {
           const mappedButtons = allSendButtons.map((btn: any, idx: number) => {
@@ -1910,16 +1850,18 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       }
     };
 
-    // Process the current node content
-    await processNode(currentNode);
-
-    if (outgoingEdges.length === 0) return;
+    // Processar conteúdo do nó atual
+    try {
+      await processNode(currentNode);
+    } catch (err) {
+      console.error(`[FluxoVisual] Erro processando nó:`, err);
+      throw err;
+    }
 
     if (currentNode?.type === "blocoCondicao") {
       const pendingFlowId = flowIdForPending || currentFluxoId;
-      console.log("[FluxoVisual] Reached condition node, saving state", { userId, pendingFlowId, contact, currentNodeId });
       if (userId && pendingFlowId) {
-        const { error: saveErr } = await supabase.from("flow_captured_data").upsert({
+        await supabase.from("flow_captured_data").upsert({
           user_id: userId,
           flow_id: pendingFlowId,
           flow_name: nomeFluxo,
@@ -1929,25 +1871,41 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           source: isGroupsMode ? "whatsapp_group" : "whatsapp",
           updated_at: new Date().toISOString()
         }, { onConflict: "user_id,flow_id,phone" });
-        if (saveErr) console.error("[FluxoVisual] Error saving condition state:", saveErr);
-        else console.log("[FluxoVisual] State saved successfully");
-      } else {
-        console.warn("[FluxoVisual] Cannot save state — missing userId or flowId");
       }
       return;
     }
 
-    // Filtrar apenas uma conexão por tipo de handle de saída para evitar duplicidade no envio
-    const uniqueOutgoingEdges = new Map();
-    outgoingEdges.forEach(edge => {
-      const handleKey = edge.sourceHandle || "default";
-      if (!uniqueOutgoingEdges.has(handleKey)) {
-        uniqueOutgoingEdges.set(handleKey, edge);
-      }
-    });
+    // Encontrar próximas conexões
+    const outgoingEdges = edges
+      .filter((e) => e.source === currentNodeId)
+      .sort((a, b) => {
+        const aTarget = runtimeNodes.find(n => n.id === a.target);
+        const bTarget = runtimeNodes.find(n => n.id === b.target);
+        const ay = aTarget?.position?.y ?? 0;
+        const by = bTarget?.position?.y ?? 0;
+        
+        if (ay !== by) return ay - by;
+        return (aTarget?.position?.x ?? 0) - (bTarget?.position?.x ?? 0);
+      });
 
-    for (const edge of uniqueOutgoingEdges.values()) {
+    if (outgoingEdges.length === 0) return;
+
+    // Processar cada saída
+    for (const edge of outgoingEdges) {
       const targetNode = runtimeNodes.find(n => n.id === edge.target);
+      if (!targetNode) continue;
+
+      await processFlow(
+        targetNode.id,
+        contact,
+        visitedNodes,
+        instanceId,
+        userId,
+        provider,
+        flowIdForPending
+      );
+    }
+  };
       if (!targetNode) continue;
 
       // Check if current handle has been "sent" via buttons that stop flow
