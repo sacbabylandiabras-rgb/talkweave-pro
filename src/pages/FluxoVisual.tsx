@@ -701,6 +701,40 @@ interface FluxoVisualProps {
   mode?: "contacts" | "groups" | "meta" | "telegram";
 }
 
+// 🔍 Detecção de ciclos no grafo do fluxo (DFS) — utilitário puro fora do componente
+const detectCycles = (nodes: Node[], edges: Edge[]): boolean => {
+  const visited = new Set<string>();
+  const recursionStack = new Set<string>();
+
+  const dfs = (nodeId: string): boolean => {
+    visited.add(nodeId);
+    recursionStack.add(nodeId);
+
+    const neighbors = edges
+      .filter((e) => e.source === nodeId)
+      .map((e) => e.target);
+
+    for (const neighbor of neighbors) {
+      if (!visited.has(neighbor)) {
+        if (dfs(neighbor)) return true;
+      } else if (recursionStack.has(neighbor)) {
+        return true;
+      }
+    }
+
+    recursionStack.delete(nodeId);
+    return false;
+  };
+
+  for (const node of nodes) {
+    if (!visited.has(node.id)) {
+      if (dfs(node.id)) return true;
+    }
+  }
+
+  return false;
+};
+
 export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}) {
   const isGroupsMode = mode === "groups";
   const isMetaMode = mode === "meta";
@@ -1128,32 +1162,6 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   }, []);
 
   // 🔍 Função de DEBUG para verificar integridade do fluxo
-  const detectCycles = (allNodes: Node[], allEdges: Edge[]): boolean => {
-    const adj = new Map<string, string[]>();
-    allEdges.forEach((e) => {
-      if (!adj.has(e.source)) adj.set(e.source, []);
-      adj.get(e.source)!.push(e.target);
-    });
-
-    const visited = new Set<string>();
-    const stack = new Set<string>();
-
-    const dfs = (id: string): boolean => {
-      if (stack.has(id)) return true;
-      if (visited.has(id)) return false;
-      visited.add(id);
-      stack.add(id);
-      const neighbors = adj.get(id) || [];
-      for (const n of neighbors) {
-        if (dfs(n)) return true;
-      }
-      stack.delete(id);
-      return false;
-    };
-
-    return allNodes.some((n) => dfs(n.id));
-  };
-
   const testFlowIntegrity = useCallback(() => {
     console.group('🔍 Verificação de Integridade do Fluxo');
 
