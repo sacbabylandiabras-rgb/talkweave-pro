@@ -523,9 +523,6 @@ export default function IntegrationFlowEditor({ onBack }: IntegrationFlowEditorP
                     }
                   />
                 </div>
-              </div>
-            )}
-              <>
                 <div>
                   <Label>Tipo de Condição</Label>
                   <Select
@@ -610,7 +607,7 @@ export default function IntegrationFlowEditor({ onBack }: IntegrationFlowEditorP
                     </Button>
                   </div>
                 )}
-              </>
+              </div>
             )}
 
             {selectedNode?.type === "blocoAcao" && (
