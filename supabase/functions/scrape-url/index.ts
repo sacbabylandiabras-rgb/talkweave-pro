@@ -39,7 +39,9 @@ Deno.serve(async (req) => {
       }
 
       let aiResponse;
-      const isAnthropic = ANTHROPIC_API_KEY && ANTHROPIC_API_KEY.startsWith("sk-ant-");
+      const isAnthropic = ANTHROPIC_API_KEY && (ANTHROPIC_API_KEY.startsWith("sk-ant-") || ANTHROPIC_API_KEY.startsWith("sk-"));
+      console.log(`AI Provider decision: ${isAnthropic ? 'Anthropic' : 'Lovable/Gateway'}. Key available: ${!!ANTHROPIC_API_KEY}. Prefix: ${ANTHROPIC_API_KEY?.substring(0, 7)}`);
+
 
       if (isAnthropic) {
         aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
