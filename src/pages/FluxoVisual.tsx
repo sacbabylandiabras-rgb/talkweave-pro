@@ -6521,6 +6521,13 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           toast.success("Bloco adicionado ao fluxo!");
         }}
       />
+      <FlowAnalyticsPanel
+        open={showAnalytics}
+        onOpenChange={setShowAnalytics}
+        flowId={currentFluxoId}
+        flowName={nomeFluxo}
+        nodes={nodes}
+      />
     </>
   );
 }
