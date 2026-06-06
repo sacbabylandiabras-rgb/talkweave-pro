@@ -683,6 +683,8 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       } else {
         const branches = node.data?.branches || [];
         console.log("[webhook-zapi] branches:", branches.length);
+        
+        // Find matched index
         if (branches.length > 0) {
           for (let i = 0; i < branches.length; i++) {
             const branch = branches[i];
@@ -701,14 +703,41 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
             matchedIndex = 0;
           }
         }
-        
-        if (!webhook?.__is_resuming && matchedIndex === -1) {
-          console.log("[webhook-zapi] no match and not resuming, waiting for user input at node", currentNodeId);
-          await supabase.from("flow_captured_data").upsert({ user_id: userId, flow_id: flow.id, flow_name: flow.name, phone, captured_data: captured, last_node_id: currentNodeId, source: isGroup ? "whatsapp_group" : "whatsapp", updated_at: new Date().toISOString() }, { onConflict: "user_id,flow_id,phone" });
-          return;
+
+        // Logic for handling "No match"
+        if (matchedIndex === -1) {
+          // If we are NOT resuming, it means this is the first time the user reaches this block or is sending something while waiting
+          // We save the state and WAIT for the user input (or just wait if it's already saved)
+          if (!webhook?.__is_resuming) {
+             console.log("[webhook-zapi] first time at condition node or no match, saving state and waiting:", currentNodeId);
+             await supabase.from("flow_captured_data").upsert({ 
+               user_id: userId, 
+               flow_id: flow.id, 
+               flow_name: flow.name, 
+               phone, 
+               captured_data: captured, 
+               last_node_id: currentNodeId, 
+               source: isGroup ? "whatsapp_group" : "whatsapp", 
+               updated_at: new Date().toISOString() 
+             }, { onConflict: "user_id,flow_id,phone" });
+             return;
+          } 
+          
+          // If we ARE resuming and still have no match, check if there is an "Else" path
+          const elseEdge = edges.find((e: any) => 
+            String(e.source) === String(currentNodeId) && 
+            (String(e.sourceHandle) === "source-bottom" || String(e.sourceHandle) === "else" || String(e.sourceHandle) === "fallback")
+          );
+
+          if (!elseEdge) {
+            console.log("[webhook-zapi] resuming, no match, and no ELSE path. Staying at node:", currentNodeId);
+            return; // Keep waiting at this node
+          }
+          
+          console.log("[webhook-zapi] resuming, no match, following ELSE path.");
         }
 
-        console.log("[webhook-zapi] match found or forcing branch, deleting flow state and continuing. matchedIndex:", matchedIndex);
+        console.log("[webhook-zapi] match found (or else), deleting flow state and continuing. matchedIndex:", matchedIndex);
         await supabase.from("flow_captured_data").delete().match({ user_id: userId, flow_id: flow.id, phone });
       }
       
