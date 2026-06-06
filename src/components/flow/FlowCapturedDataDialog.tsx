@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Download, Search, Trash2, RefreshCw, Database } from "lucide-react";
+import { Download, Search, Trash2, RefreshCw, Database, FileText } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
@@ -34,6 +34,7 @@ interface CapturedRow {
   source: string | null;
   created_at: string;
   updated_at: string;
+  captured_data?: any;
 }
 
 interface Props {
@@ -174,6 +175,7 @@ export default function FlowCapturedDataDialog({ open, onOpenChange, flowId, flo
                 <TableHead>WhatsApp</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>CPF</TableHead>
+                <TableHead>Comprovante</TableHead>
                 <TableHead>Telefone Origem</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead className="w-12"></TableHead>
@@ -196,6 +198,20 @@ export default function FlowCapturedDataDialog({ open, onOpenChange, flowId, flo
                     <TableCell>{r.whatsapp || <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell>{r.email || <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell>{r.cpf || <span className="text-muted-foreground">—</span>}</TableCell>
+                    <TableCell>
+                      {r.captured_data?.proof_url ? (
+                        <a 
+                          href={r.captured_data.proof_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline flex items-center gap-1"
+                        >
+                          <FileText className="h-3 w-3" /> Ver
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{r.phone}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {new Date(r.updated_at).toLocaleString("pt-BR")}
