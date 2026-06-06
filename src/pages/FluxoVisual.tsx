@@ -1863,6 +1863,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           } catch (err: any) {
             console.error(`Erro enviando para ${contact}:`, err);
             errorCount++;
+            flowMetricsRef.current.errorsEncountered++;
             errors.push({ contact, error: err?.message || "Erro desconhecido" });
           }
         }
