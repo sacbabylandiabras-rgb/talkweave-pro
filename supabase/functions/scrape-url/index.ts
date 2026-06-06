@@ -237,7 +237,7 @@ Deno.serve(async (req) => {
 
         if (aiResponse.ok) {
           const aiData = await aiResponse.json();
-          const aiText = isAnthropic ? aiData.content[0].text : aiData.choices[0].message.content;
+          const aiText = isAnthropic ? cleanJson(aiData.content[0].text) : cleanJson(aiData.choices[0].message.content);
           
           if (aiText && aiText.length > 50) {
             const titleMatch = aiText.match(/TITULO:\s*(.*)/i);
