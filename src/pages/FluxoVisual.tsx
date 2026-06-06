@@ -124,6 +124,7 @@ import { BlocoGatilhoNode } from "@/components/flow/BlocoGatilhoNode";
 import { BlocoAgendamentoNode } from "@/components/flow/BlocoAgendamentoNode";
 import { BlocoAgenteIANode } from "@/components/flow/BlocoAgenteIANode";
 import { BlocoAgentToolNode } from "@/components/flow/BlocoAgentToolNode";
+import { BlocoGatewayTriggerNode } from "@/components/flow/BlocoGatewayTriggerNode";
 import { AGENT_TOOL_DRAG_KEY } from "@/components/flow/agentToolBlocks";
 import { AgentToolConfigPanel } from "@/components/flow/AgentToolConfigPanel";
 import { AddBlockDialog, type AddBlockSelection } from "@/components/flow/AddBlockDialog";
@@ -210,6 +211,15 @@ const nodeTypes: NodeTypes = {
   blocoAgendamento: BlocoAgendamentoNode,
   agenteIA: BlocoAgenteIANode,
   agentTool: BlocoAgentToolNode,
+  // Aliases (chaves curtas) — mantêm compatibilidade com fluxos novos
+  inicio: BlocoInicialNode,
+  conteudo: BlocoConteudoNode,
+  condicao: BlocoCondicaoNode,
+  acao: BlocoAcaoNode,
+  gatilho: BlocoGatilhoNode,
+  agendamento: BlocoAgendamentoNode,
+  agenteTool: BlocoAgentToolNode,
+  gateway: BlocoGatewayTriggerNode,
 };
 
 const initialNodes: Node[] = [
