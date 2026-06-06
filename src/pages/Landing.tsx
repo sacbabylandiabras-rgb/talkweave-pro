@@ -67,7 +67,6 @@ const Landing = () => {
       
       lastSyncedPath.current = nextPath;
       window.history[mode === "push" ? "pushState" : "replaceState"](null, "", nextPath);
-      window.dispatchEvent(new PopStateEvent("popstate"));
     };
 
     const setupFrame = () => {

@@ -3,6 +3,7 @@ import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 const CHUNK_RELOAD_KEY = "lovable:chunk-reload-attempts";
 const MAX_RELOADS = 3;
 const RELOAD_WINDOW_MS = 60_000;
+const AUTO_RELOAD_ON_CHUNK_ERROR = false;
 
 function getErrorMessage(error: unknown) {
   if (typeof error === "string") return error;
@@ -30,13 +31,18 @@ function isChunkLoadError(error: unknown) {
 }
 
 function reloadOnce() {
+  if (!AUTO_RELOAD_ON_CHUNK_ERROR) {
+    console.warn("Atualização automática desativada; recarregue a página manualmente se necessário.");
+    return false;
+  }
+
   try {
     const raw = sessionStorage.getItem(CHUNK_RELOAD_KEY);
     const parsed = raw ? JSON.parse(raw) : { count: 0, ts: 0 };
     const now = Date.now();
     const within = now - (parsed.ts || 0) < RELOAD_WINDOW_MS;
     const count = within ? parsed.count + 1 : 1;
-    if (count > MAX_RELOADS) return;
+    if (count > MAX_RELOADS) return false;
     sessionStorage.setItem(CHUNK_RELOAD_KEY, JSON.stringify({ count, ts: now }));
   } catch {
     /* ignore */
@@ -45,12 +51,12 @@ function reloadOnce() {
   const url = new URL(window.location.href);
   url.searchParams.set("__lovable_sha", Date.now().toString(36));
   window.location.replace(url.toString());
+  return true;
 }
 
 export function installChunkLoadRecovery() {
   window.addEventListener("vite:preloadError", (event) => {
-    event.preventDefault?.();
-    reloadOnce();
+    if (reloadOnce()) event.preventDefault?.();
   });
 
   window.addEventListener("error", (event) => {
@@ -61,9 +67,8 @@ export function installChunkLoadRecovery() {
   });
 
   window.addEventListener("unhandledrejection", (event) => {
-    if (isChunkLoadError(event.reason)) {
+    if (isChunkLoadError(event.reason) && reloadOnce()) {
       event.preventDefault();
-      reloadOnce();
     }
   });
 }
@@ -92,8 +97,7 @@ export function scheduleChunkRecoveryStateClear(delayMs = 15_000) {
 
 export function recoverFromChunkLoadError(error: unknown) {
   if (!isChunkLoadError(error)) return false;
-  reloadOnce();
-  return true;
+  return reloadOnce();
 }
 
 /**
@@ -112,12 +116,11 @@ export function lazyWithRecovery<P extends object = Record<string, unknown>>(
         return mod as { default: ComponentType<P> };
       }
       // Module loaded but has no default export — stale chunk.
-      reloadOnce();
+      if (!reloadOnce()) throw new Error("Falha ao carregar módulo da aplicação.");
       // Return a placeholder so React doesn't crash before reload kicks in.
       return { default: (() => null) as ComponentType<P> };
     } catch (err) {
-      if (isChunkLoadError(err)) {
-        reloadOnce();
+      if (isChunkLoadError(err) && reloadOnce()) {
         return { default: (() => null) as ComponentType<P> };
       }
       throw err;

@@ -25,9 +25,7 @@ export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
       setChecking(false);
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
-      applySession(currentSession);
-    });
+    let subscription: { unsubscribe: () => void } | undefined;
 
     supabase.auth.getSession()
       .then(({ data: { session: currentSession }, error }) => {
@@ -37,23 +35,21 @@ export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
           return;
         }
         applySession(currentSession);
+
+        if (!cancelled) {
+          subscription = supabase.auth.onAuthStateChange((_event, nextSession) => {
+            applySession(nextSession);
+          }).data.subscription;
+        }
       })
       .catch((error) => {
         console.error("AuthGuard session check error:", error);
         applySession(null);
       });
 
-    const fallback = window.setTimeout(() => {
-      if (!cancelled) {
-        setSession(null);
-        setChecking(false);
-      }
-    }, 3000);
-
     return () => {
       cancelled = true;
-      window.clearTimeout(fallback);
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, []);
 
