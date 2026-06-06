@@ -21,9 +21,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -42,6 +44,20 @@ import {
   Key,
   CalendarClock,
   Bot,
+  Undo2,
+  Redo2,
+  WifiOff,
+  CircleAlert,
+  BarChart3,
+  TestTube,
+  Download,
+  FileUp,
+  X,
+  Send,
+  Workflow,
+  MessageCircle,
+  Mic,
+  Video,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
@@ -118,6 +134,8 @@ export default function FluxoVisualBase({
 }: FluxoVisualBaseProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [nomeFluxo, setNomeFluxo] = useState("Novo Fluxo");
   const [keywordFluxo, setKeywordFluxo] = useState("");
   const [fluxoAtivo, setFluxoAtivo] = useState(true);
@@ -129,6 +147,7 @@ export default function FluxoVisualBase({
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [showAddBlockDialog, setShowAddBlockDialog] = useState(false);
   const [showTemplatesDialog, setShowTemplatesDialog] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const fetchFluxos = useCallback(async () => {
     try {
@@ -253,6 +272,26 @@ export default function FluxoVisualBase({
 
   const onInit = (instance: ReactFlowInstance) => setReactFlowInstance(instance);
 
+  const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    setSelectedNode({ ...node });
+    setIsEditDialogOpen(true);
+  }, []);
+
+  const handleSaveNode = () => {
+    if (!selectedNode) return;
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id === selectedNode.id) {
+          return { ...node, data: { ...selectedNode.data } };
+        }
+        return node;
+      })
+    );
+    setIsEditDialogOpen(false);
+    setSelectedNode(null);
+    toast.success("Bloco atualizado!");
+  };
+
   const flowTemplatesMode = useMemo(() => {
     if (category === "meta" || category === "instagram") return "meta";
     if (category === "groups") return "groups";
@@ -355,7 +394,12 @@ export default function FluxoVisualBase({
             <span className="text-xs font-medium text-muted-foreground">Ativo</span>
             <Switch checked={fluxoAtivo} onCheckedChange={setFluxoAtivo} />
           </div>
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button 
+            variant={showPreview ? "default" : "outline"} 
+            size="sm" 
+            className="gap-2"
+            onClick={() => setShowPreview(!showPreview)}
+          >
             <Eye className="h-4 w-4" /> Prévia
           </Button>
           <Button onClick={handleSalvarFluxo} disabled={savingFluxo} className="gap-2">
@@ -366,29 +410,62 @@ export default function FluxoVisualBase({
       </div>
 
       {/* Editor Body */}
-      <div className="flex-1 relative">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onInit={onInit}
-          nodeTypes={nodeTypes}
-          fitView
-          snapToGrid
-          snapGrid={[15, 15]}
-        >
-          <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
-          <Controls />
-          <MiniMap />
-        </ReactFlow>
+      <div className="flex-1 flex relative overflow-hidden">
+        <div className="flex-1 relative">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onInit={onInit}
+            onNodeClick={onNodeClick}
+            nodeTypes={nodeTypes}
+            fitView
+            snapToGrid
+            snapGrid={[15, 15]}
+          >
+            <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+            <Controls />
+            <MiniMap />
+          </ReactFlow>
 
-        <div className="absolute top-4 right-4 z-10">
-          <Button onClick={() => setShowAddBlockDialog(true)} className="rounded-full h-12 w-12 shadow-xl">
-            <Plus className="h-6 w-6" />
-          </Button>
+          <div className="absolute top-4 right-4 z-10">
+            <Button onClick={() => setShowAddBlockDialog(true)} className="rounded-full h-12 w-12 shadow-xl">
+              <Plus className="h-6 w-6" />
+            </Button>
+          </div>
         </div>
+
+        {/* Mobile Preview Panel */}
+        {showPreview && (
+          <div className="w-[400px] border-l bg-muted/30 p-6 flex flex-col items-center justify-center shrink-0">
+            <div className="w-[320px] h-[640px] bg-[#111] rounded-[40px] p-3 shadow-2xl relative">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[100px] h-[20px] bg-[#111] rounded-b-[10px] z-20" />
+              <div className="w-full h-full rounded-[30px] overflow-hidden bg-[#ECE5DD] flex flex-col">
+                <div className="bg-[#075E54] px-4 py-3 flex items-center gap-2 text-white">
+                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                    <Bot className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Visualização</p>
+                    <p className="text-[10px] opacity-70">online</p>
+                  </div>
+                </div>
+                <div className="flex-1 p-4 space-y-2 overflow-y-auto">
+                  <div className="bg-white rounded-lg p-3 shadow-sm text-sm max-w-[85%] self-start relative">
+                    <p>Esta é uma prévia do seu fluxo.</p>
+                  </div>
+                  {nodes.filter(n => n.type === "blocoConteudo").map((n, i) => (
+                    <div key={i} className="bg-white rounded-lg p-3 shadow-sm text-sm max-w-[85%] self-start relative">
+                      <p>{n.data.content || "Sem conteúdo"}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <AddBlockDialog
@@ -406,6 +483,52 @@ export default function FluxoVisualBase({
           setShowAddBlockDialog(false);
         }}
       />
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Editar Bloco: {selectedNode?.data?.label}</DialogTitle>
+            <DialogDescription>Ajuste o conteúdo e comportamento do bloco.</DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nome do Bloco</Label>
+              <Input 
+                value={selectedNode?.data?.label || ""} 
+                onChange={(e) => setSelectedNode(prev => prev ? { ...prev, data: { ...prev.data, label: e.target.value } } : null)}
+              />
+            </div>
+            
+            {(selectedNode?.type === "blocoConteudo" || selectedNode?.type === "conteudo") && (
+              <div className="space-y-2">
+                <Label>Conteúdo da Mensagem</Label>
+                <Textarea 
+                  value={selectedNode?.data?.content || ""} 
+                  onChange={(e) => setSelectedNode(prev => prev ? { ...prev, data: { ...prev.data, content: e.target.value } } : null)}
+                  rows={6}
+                />
+              </div>
+            )}
+
+            {(selectedNode?.type === "agenteIA" || selectedNode?.type === "agente") && (
+              <div className="space-y-2">
+                <Label>Prompt / Instruções</Label>
+                <Textarea 
+                  value={selectedNode?.data?.prompt || ""} 
+                  onChange={(e) => setSelectedNode(prev => prev ? { ...prev, data: { ...prev.data, prompt: e.target.value } } : null)}
+                  rows={6}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveNode}>Salvar Alterações</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -756,7 +756,49 @@ const detectCycles = (nodes: Node[], edges: Edge[]): boolean => {
   return false;
 };
 
+import FluxoVisualBase from "@/components/flow/FluxoVisualBase";
+
 export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}) {
+  const categoryMap: Record<string, "contacts" | "groups" | "meta" | "telegram"> = {
+    contacts: "contacts",
+    groups: "groups",
+    meta: "meta",
+    telegram: "telegram"
+  };
+
+  const titles: Record<string, string> = {
+    contacts: "Fluxos Visuais",
+    groups: "Fluxo Grupos",
+    meta: "Fluxo Meta",
+    telegram: "Fluxo Telegram"
+  };
+
+  const subtitles: Record<string, string> = {
+    contacts: "Crie automações visuais disparadas por palavra-chave",
+    groups: "Crie automações visuais para grupos do WhatsApp",
+    meta: "Crie automações visuais para sua conta da Meta API",
+    telegram: "Crie automações visuais para bots do Telegram"
+  };
+
+  const emptyHelps: Record<string, string> = {
+    contacts: "Crie seu primeiro fluxo visual para automatizar conversas no WhatsApp",
+    groups: "Crie seu primeiro fluxo visual para grupos",
+    meta: "Crie seu primeiro fluxo visual para a API Oficial da Meta",
+    telegram: "Crie seu primeiro fluxo visual para o Telegram"
+  };
+
+  return (
+    <FluxoVisualBase
+      category={categoryMap[mode] || "contacts"}
+      title={titles[mode] || titles.contacts}
+      subtitle={subtitles[mode] || subtitles.contacts}
+      emptyHelp={emptyHelps[mode] || emptyHelps.contacts}
+    />
+  );
+}
+
+// Keeping old implementation for reference or until fully migrated
+export function FluxoVisualOld({ mode = "contacts" }: FluxoVisualProps = {}) {
   const isGroupsMode = mode === "groups";
   const isMetaMode = mode === "meta";
   const isTelegramMode = mode === "telegram";
