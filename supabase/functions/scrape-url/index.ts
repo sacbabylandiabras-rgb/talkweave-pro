@@ -40,7 +40,10 @@ Deno.serve(async (req) => {
 
       let aiResponse;
       const isAnthropic = ANTHROPIC_API_KEY && (ANTHROPIC_API_KEY.startsWith("sk-ant-") || ANTHROPIC_API_KEY.startsWith("sk-"));
-      console.log(`AI Provider decision: ${isAnthropic ? 'Anthropic' : 'Lovable/Gateway'}. Key available: ${!!ANTHROPIC_API_KEY}. Prefix: ${ANTHROPIC_API_KEY?.substring(0, 7)}`);
+      const isLovable = !!LOVABLE_API_KEY;
+      
+      console.log(`AI Provider decision: Anthropic=${!!ANTHROPIC_API_KEY}, Lovable=${isLovable}. Prefix: ${ANTHROPIC_API_KEY?.substring(0, 7)}`);
+
 
 
       if (isAnthropic) {
