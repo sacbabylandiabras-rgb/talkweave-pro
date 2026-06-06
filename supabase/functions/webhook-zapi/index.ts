@@ -353,6 +353,16 @@ serve(async (req) => {
     const { data: instanceData } = await supabase.from("zapi_instances").select("id, user_id, zapi_instance_id, zapi_token, zapi_client_token").or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`).maybeSingle();
     const userId = instanceData?.user_id;
 
+    if (isStatusOnlyCallback(type, webhook, messageRaw, mediaUrl)) {
+      console.log("[webhook-zapi] ignored status-only callback", { type, status: webhook?.status, phone, messageId });
+      return new Response("ok", { status: 200, headers: corsHeaders });
+    }
+
+    if (!userId) {
+      console.log("[webhook-zapi] ignored callback without linked instance", { instanceId, type, phone });
+      return new Response("ok", { status: 200, headers: corsHeaders });
+    }
+
     if (userId && !fromMe && (webhook?.text || webhook?.message?.text || messageRaw.trim().length > 0)) {
       const contactPhone = isGroup ? senderPhone : sanitizeSenderPhone(phone || senderPhone);
       if (contactPhone) {
