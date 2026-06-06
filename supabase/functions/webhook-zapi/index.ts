@@ -61,6 +61,26 @@ function splitKeywords(value: unknown): string[] {
     .filter(Boolean);
 }
 
+function onlyDigits(value: unknown): string {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function isZapiWhatsAppFlow(flow: any): boolean {
+  const category = String(flow?.category || "contacts").toLowerCase();
+  return !["meta", "instagram", "telegram"].includes(category);
+}
+
+function getConnectedPhone(webhook: any): string {
+  return onlyDigits(webhook?.connectedPhone || webhook?.connected_phone || webhook?.ownerPhone || webhook?.me?.phone || webhook?.phoneConnected);
+}
+
+function isOwnConnectedChat(webhook: any, phone: string, chatId: string, senderPhone: string): boolean {
+  const connectedPhone = getConnectedPhone(webhook);
+  if (!connectedPhone) return false;
+  const candidates = [phone, chatId, senderPhone, webhook?.phone, webhook?.chatPhone].map(onlyDigits).filter(Boolean);
+  return candidates.some((candidate) => candidate === connectedPhone);
+}
+
 function isStatusOnlyCallback(type: string, webhook: any, messageRaw: string, mediaUrl: string): boolean {
   const statusOnlyTypes = new Set(["DeliveryCallback", "MessageStatusCallback", "StatusCallback", "MessageStatus"]);
   if (statusOnlyTypes.has(type)) return true;
@@ -111,6 +131,21 @@ async function ensureReceivedWebhook(instance: any, supabase: any) {
   if (response.ok && instance?.id) {
     await supabase.from("zapi_instances").update({ updated_at: new Date().toISOString() }).eq("id", instance.id);
   }
+}
+
+async function disableNotifySentByMe(instance: any) {
+  const zapiId = instance?.zapi_instance_id;
+  const zapiToken = instance?.zapi_token;
+  const clientToken = instance?.zapi_client_token;
+  if (!zapiId || !zapiToken || !clientToken) return;
+
+  const url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/update-notify-sent-by-me`;
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "Client-Token": clientToken },
+    body: JSON.stringify({ notifySentByMe: false }),
+  });
+  console.log("[webhook-zapi] notify-sent-by-me disabled", { ok: response.ok, status: response.status, instanceId: zapiId });
 }
 
 async function hashValue(value: string): Promise<string> {
