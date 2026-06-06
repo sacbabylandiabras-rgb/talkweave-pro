@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,11 +36,11 @@ const Auth = () => {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
 
-  const getRedirectPath = () => {
-    const from = (location.state as any)?.from;
+  const getRedirectPath = useCallback(() => {
+    const from = (location.state as { from?: { pathname?: string; search?: string; hash?: string } } | null)?.from;
     const statePath = from ? `${from.pathname || ""}${from.search || ""}${from.hash || ""}` : null;
     return normalizeProtectedPath(statePath || localStorage.getItem(LAST_PROTECTED_PATH_KEY));
-  };
+  }, [location.state]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -54,7 +54,7 @@ const Auth = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, toast]);
+  }, [getRedirectPath, navigate, toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,8 +141,8 @@ const Auth = () => {
       });
       setShowForgot(false);
       setForgotEmail("");
-    } catch (error: any) {
-      toast({ title: "Erro ao enviar email", description: error?.message || "Tente novamente", variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Erro ao enviar email", description: error instanceof Error ? error.message : "Tente novamente", variant: "destructive" });
     } finally {
       setForgotLoading(false);
     }
