@@ -2,11 +2,19 @@ import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
+import { LAST_PROTECTED_PATH_KEY } from "@/lib/auth-route";
 
 export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
   const [checking, setChecking] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const location = useLocation();
+
+  useEffect(() => {
+    const nextPath = `${location.pathname}${location.search}${location.hash}`;
+    if (location.pathname !== "/auth") {
+      localStorage.setItem(LAST_PROTECTED_PATH_KEY, nextPath);
+    }
+  }, [location.hash, location.pathname, location.search]);
 
   useEffect(() => {
     let cancelled = false;
