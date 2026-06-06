@@ -191,10 +191,13 @@ export function BlocoCondicaoNode({ data }: any) {
                     <span className="font-medium">{b.label}</span>
                   </>
                     ) : isProofBlock ? (
-                      <div className="flex flex-col gap-2 w-full py-2 pr-1">
-                        <div className="flex items-center">
-                          <span className="text-muted-foreground mr-1">Aguardando mídia</span>
+                      <div className="flex flex-col gap-1 w-full py-1 pr-1">
+                        <div className="flex items-center gap-1">
+                          <span className="text-muted-foreground">Aguardando mídia</span>
                           <span className="font-medium">→ Próximo passo</span>
+                        </div>
+                        <div className="text-[10px] text-primary/70 italic leading-tight">
+                          Teste enviando "test_event_code: SEU_CODIGO" e anexe uma imagem
                         </div>
                       </div>
                     ) : (

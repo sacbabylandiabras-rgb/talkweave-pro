@@ -498,7 +498,31 @@ export default function IntegrationFlowEditor({ onBack }: IntegrationFlowEditorP
             )}
 
             {selectedNode?.type === "blocoCondicao" && (
-              <>
+              <div className="space-y-4">
+                {selectedNode.data?.isProofBlock && (
+                  <div className="p-3 bg-primary/5 border border-primary/20 rounded-md">
+                    <p className="text-sm font-medium text-primary mb-1">Como testar este evento:</p>
+                    <ol className="text-xs text-muted-foreground list-decimal list-inside space-y-1">
+                      <li>Acesse o <strong>Gerenciador de Eventos</strong> do Facebook</li>
+                      <li>Vá em <strong>Eventos de Teste</strong> e copie o código</li>
+                      <li>No WhatsApp, envie uma mensagem com: <br/><code className="bg-muted p-0.5 rounded select-all">test_event_code: COPIE_O_CODIGO_AQUI</code></li>
+                      <li>Em seguida, <strong>anexe uma imagem (comprovante)</strong> na mesma conversa</li>
+                      <li>O evento "Purchase" aparecerá no Facebook em tempo real</li>
+                    </ol>
+                  </div>
+                )}
+                <div>
+                  <Label>Nome do Bloco</Label>
+                  <Input
+                    value={selectedNode.data.label || ""}
+                    onChange={(e) =>
+                      setSelectedNode({
+                        ...selectedNode,
+                        data: { ...selectedNode.data, label: e.target.value },
+                      })
+                    }
+                  />
+                </div>
                 <div>
                   <Label>Tipo de Condição</Label>
                   <Select
@@ -583,7 +607,7 @@ export default function IntegrationFlowEditor({ onBack }: IntegrationFlowEditorP
                     </Button>
                   </div>
                 )}
-              </>
+              </div>
             )}
 
             {selectedNode?.type === "blocoAcao" && (
