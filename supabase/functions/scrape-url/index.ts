@@ -83,8 +83,56 @@ Deno.serve(async (req) => {
 
     console.log(`Scraped ${text.length} chars from ${formattedUrl}`);
 
+    // Use AI to extract clean information if we have a key
+    let finalContent = text;
+    let finalTitle = title;
+    
+    if (LOVABLE_API_KEY && text.length > 100) {
+      try {
+        console.log("Using AI to refine extracted content...");
+        const aiResponse = await fetch("https://api.lovable.dev/v1/ai/chat", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messages: [
+              {
+                role: "system",
+                content: "Você é um especialista em extração de dados. Seu objetivo é pegar um texto bruto de um site e transformá-lo em uma descrição clara e organizada dos produtos, serviços, preços e políticas da empresa. Ignore menus de navegação, botões de login e textos genéricos de sistema. Responda APENAS com o conteúdo extraído e organizado. No início da resposta, coloque 'TITULO: [Nome da Loja]'."
+              },
+              {
+                role: "user",
+                content: `Extraia as informações principais deste site:\n\nURL: ${formattedUrl}\n\nTexto Bruto:\n${text.substring(0, 7000)}`
+              }
+            ],
+            model: "gpt-4o-mini"
+          }),
+        });
+
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          const aiText = aiData.choices[0].message.content;
+          
+          if (aiText && aiText.length > 50) {
+            const titleMatch = aiText.match(/TITULO:\s*(.*)/i);
+            if (titleMatch) {
+              finalTitle = titleMatch[1].trim();
+              finalContent = aiText.replace(/TITULO:.*\n?/, "").trim();
+            } else {
+              finalContent = aiText;
+            }
+            console.log("AI refinement successful");
+          }
+        }
+      } catch (aiErr) {
+        console.error("AI refinement error:", aiErr);
+      }
+    }
+
     return new Response(
-      JSON.stringify({ title, content: text, url: formattedUrl }),
+      JSON.stringify({ title: finalTitle, content: finalContent, url: formattedUrl }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
