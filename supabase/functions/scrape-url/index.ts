@@ -15,9 +15,10 @@ Deno.serve(async (req) => {
 
     // Handle FAQ generation action
     if (action === "generate-faqs") {
-      if (!LOVABLE_API_KEY) {
-        return new Response(JSON.stringify({ error: "API Key não configurada" }), { status: 500, headers: corsHeaders });
+      if (!LOVABLE_API_KEY && !ANTHROPIC_API_KEY) {
+        return new Response(JSON.stringify({ error: "API Key não configurada (LOVABLE ou ANTHROPIC)" }), { status: 500, headers: corsHeaders });
       }
+
 
       let contentToUse = content;
 
