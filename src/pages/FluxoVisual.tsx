@@ -108,6 +108,7 @@ import {
   Webhook,
   Copy,
   PackageCheck,
+  TestTube,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
