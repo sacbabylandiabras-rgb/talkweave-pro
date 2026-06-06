@@ -65,29 +65,37 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
       if (open && autoImportUrl && !loading && !urlLoading) {
         console.log("[AutoImport] Checking...", { autoImportUrl, knowledgeCount: knowledge.length });
         
-        const alreadyHasUrl = knowledge.some(k => 
+        const alreadyHasUrl = knowledge.find(k => 
           k.title?.toLowerCase().includes(autoImportUrl.toLowerCase()) || 
           k.content?.toLowerCase().includes(autoImportUrl.toLowerCase())
         );
         
         if (!alreadyHasUrl) {
           console.log("[AutoImport] Starting import for:", autoImportUrl);
-          // Pequeno delay para garantir que o estado inicial esteja pronto
           setTimeout(() => handleImportUrl(autoImportUrl), 300);
         } else {
           console.log("[AutoImport] URL já existe. Forçando preenchimento dos prompts.");
-          const existing = knowledge.find(k => 
-            k.title?.toLowerCase().includes(autoImportUrl.toLowerCase()) || 
-            k.content?.toLowerCase().includes(autoImportUrl.toLowerCase())
-          );
+          const existing = alreadyHasUrl;
           if (existing && existing.content) {
              const siteTitle = existing.title || autoImportUrl;
              const siteName = siteTitle.replace("🌐 ", "").split(/[|\-]/)[0]?.trim() || autoImportUrl;
+             
+             // Update local states immediately
              setAgentName(`Assistente ${siteName}`);
              setPromptTriage(`Você é o assistente virtual da empresa ${siteName}. Identifique se o cliente tem dúvidas sobre produtos ou checkout.`);
              setPromptService(`Atue como especialista da ${siteName}. Use a base de conhecimento:\n\n${existing.content.substring(0, 1500)}`);
              setPromptClosing(`Leve o cliente de volta ao checkout em ${autoImportUrl}.`);
              setIsActive(true);
+             
+             // Save immediately to ensure it's not lost on re-renders
+             saveConfig({
+               agent_name: `Assistente ${siteName}`,
+               prompt_triage: `Você é o assistente virtual da empresa ${siteName}. Identifique se o cliente tem dúvidas sobre produtos ou checkout.`,
+               prompt_service: `Atue como especialista da ${siteName}. Use a base de conhecimento:\n\n${existing.content.substring(0, 1500)}`,
+               prompt_closing: `Leve o cliente de volta ao checkout em ${autoImportUrl}.`,
+               active: true,
+               model: "claude-sonnet-4-5-20250929"
+             });
           }
         }
       }
@@ -158,7 +166,7 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
   };
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && !urlLoading) {
       setAgentName(config.agent_name || "Assistente");
       setPromptTriage(config.prompt_triage || "");
       setPromptService(config.prompt_service || "");
@@ -172,7 +180,7 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
       setElevenVoiceId(config.elevenlabs_voice_id || "");
       setElevenVoiceName(config.elevenlabs_voice_name || "");
     }
-  }, [loading, config]);
+  }, [loading, config, urlLoading]);
 
   const handleSaveConfig = async () => {
     await saveConfig({ 
@@ -207,7 +215,7 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+      <DialogContent className="max-w-4xl max-h-[95vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="flex items-center gap-2">
             <Bot className="w-6 h-6 text-primary" />
