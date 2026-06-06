@@ -855,7 +855,7 @@ serve(async (req) => {
                 instanceData,
                 chatId,
                 isGroup,
-                { ...webhook, __agent_input_text: agentInboundText },
+                { ...webhook, __agent_input_text: agentInboundText, __is_resuming: true },
               );
             }
             return new Response("capture_resumed", { status: 200, headers: corsHeaders });
@@ -886,7 +886,7 @@ serve(async (req) => {
               instanceData,
               chatId,
               isGroup,
-              { ...webhook, __agent_input_text: agentInboundText },
+              { ...webhook, __agent_input_text: agentInboundText, __is_resuming: true },
             );
             return new Response("agent_flow_resumed", { status: 200, headers: corsHeaders });
           } else if (lastNode.type === "blocoCondicao") {
@@ -902,7 +902,7 @@ serve(async (req) => {
               instanceData,
               chatId,
               isGroup,
-              { ...webhook, __agent_input_text: agentInboundText },
+              { ...webhook, __agent_input_text: agentInboundText, __is_resuming: true },
             );
             return new Response("condition_flow_resumed", { status: 200, headers: corsHeaders });
           } else {
@@ -1737,7 +1737,7 @@ async function executeFlow(
         for (let i = 0; i < conditions.length; i++) {
           const cond = conditions[i];
           const variableName = cond.variable?.replace(/[{}]/g, "") || "";
-          const isMessageVar = variableName.toLowerCase() === "mensagem" || variableName.toLowerCase() === "message" || variableName.toLowerCase() === "input";
+          const isMessageVar = variableName.toLowerCase() === "mensagem" || variableName.toLowerCase() === "message" || variableName.toLowerCase() === "input" || variableName === "";
           
           let variableValue = captured[variableName];
           if (!variableValue && isMessageVar) {
@@ -1745,7 +1745,8 @@ async function executeFlow(
           }
 
           // Se a variável é a mensagem e não veio texto agora, PARAR e esperar a próxima interação
-          if (isMessageVar && !variableValue) {
+          if (isMessageVar && !variableValue && !webhook?.__is_resuming) {
+
             console.log(`[Flow] Node ${currentNodeId} needs message input (no content in webhook). Stopping flow to wait for reply.`);
 
             
