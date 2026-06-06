@@ -267,8 +267,11 @@ serve(async (req) => {
     const isButtonResponse = type === "ButtonsResponseMessage" || type === "ButtonReply" || type === "ListResponseMessage" || !!webhook?.buttonsResponseMessage || !!webhook?.buttonResponseMessage || !!webhook?.buttonReply || !!webhook?.listResponseMessage;
 
     if (!fromMe || isButtonResponse) {
-      const { data: activeFlows } = await supabase.from("flow_captured_data").select("*").eq("user_id", userId).eq("phone", phone).not("last_node_id", "is", null);
+      console.log("[webhook-zapi] inbound", { userId, phone, chatId, isGroup, msg: messageRaw.slice(0, 80) });
+      const { data: activeFlows, error: activeErr } = await supabase.from("flow_captured_data").select("*").eq("user_id", userId).eq("phone", phone).not("last_node_id", "is", null);
+      console.log("[webhook-zapi] activeFlows", { count: activeFlows?.length || 0, error: activeErr?.message });
       for (const flowState of activeFlows || []) {
+        console.log("[webhook-zapi] resuming flow", flowState.flow_id, "at node", flowState.last_node_id);
         const { data: flow } = await supabase.from("flow_automations").select("*").eq("id", flowState.flow_id).single();
         if (flow) {
           await executeFlow(supabase, userId, phone, flow, flowState.last_node_id, flowState.captured_data || {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText, __is_resuming: true });
@@ -292,6 +295,7 @@ serve(async (req) => {
 
     return new Response("ok", { status: 200, headers: corsHeaders });
   } catch (err) {
+    console.error("[webhook-zapi] error:", err);
     return new Response("error", { status: 200, headers: corsHeaders });
   }
 });
