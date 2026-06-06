@@ -1734,6 +1734,29 @@ async function executeFlow(
         const isBusinessHours = currentDay >= 1 && currentDay <= 5 && currentHour >= 9 && currentHour < 18;
         matchedIndex = isBusinessHours ? 0 : 1;
       } else {
+        const waitsForMessage = conditions.some((cond: any) => {
+          const variableName = String(cond.variable || "").replace(/[{}]/g, "").toLowerCase();
+          return variableName === "" || variableName === "mensagem" || variableName === "message" || variableName === "input";
+        });
+
+        if (waitsForMessage && !webhook?.__is_resuming) {
+          console.log(`[Flow] Condition node ${currentNodeId} is waiting for the next user reply before evaluating.`);
+          await supabase.from("flow_captured_data").upsert(
+            {
+              user_id: userId,
+              flow_id: flow.id,
+              flow_name: flow.name,
+              phone,
+              captured_data: captured,
+              last_node_id: currentNodeId,
+              source: isGroup ? "whatsapp_group" : "whatsapp",
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id,flow_id,phone" }
+          );
+          return;
+        }
+
         for (let i = 0; i < conditions.length; i++) {
           const cond = conditions[i];
           const variableName = cond.variable?.replace(/[{}]/g, "") || "";
