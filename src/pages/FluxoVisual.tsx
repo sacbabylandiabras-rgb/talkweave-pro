@@ -1907,6 +1907,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     }
     
     visitedNodes.add(currentNodeId);
+    flowMetricsRef.current.nodesProcessed++;
 
     // Buscar nó do estado atual
     const runtimeNodes = selectedNode
@@ -1916,6 +1917,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     const currentNode = runtimeNodes.find(n => n.id === currentNodeId);
     if (!currentNode) {
       console.warn(`[FluxoVisual] Nó ${currentNodeId} não encontrado`);
+      flowMetricsRef.current.errorsEncountered++;
       return;
     }
 
