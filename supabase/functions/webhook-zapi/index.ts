@@ -70,6 +70,12 @@ function isZapiWhatsAppFlow(flow: any): boolean {
   return !["meta", "instagram", "telegram"].includes(category);
 }
 
+function flowMatchesChatType(flow: any, isGroup: boolean): boolean {
+  const category = String(flow?.category || "contacts").toLowerCase();
+  if (isGroup) return category === "groups";
+  return category !== "groups";
+}
+
 function getConnectedPhone(webhook: any): string {
   return onlyDigits(webhook?.connectedPhone || webhook?.connected_phone || webhook?.ownerPhone || webhook?.me?.phone || webhook?.phoneConnected);
 }
