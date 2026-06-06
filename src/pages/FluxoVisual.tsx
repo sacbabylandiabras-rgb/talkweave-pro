@@ -2261,6 +2261,19 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               <Button
                 size="sm"
                 variant="outline"
+                onClick={() => {
+                  testFlowIntegrity();
+                  toast.info("Verificação concluída - veja o console");
+                }}
+                className="h-8 gap-1.5"
+                title="Abrir console para ver detalhes"
+              >
+                <TestTube className="h-4 w-4" />
+                Validar
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
                 className="h-8"
                 onClick={() => setShowTemplatesDialog(true)}
               >
