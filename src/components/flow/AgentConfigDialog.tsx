@@ -274,6 +274,46 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
     }
   }, [loading, config, urlLoading]);
 
+  const handleGenerateFaqs = async () => {
+    if (knowledge.length === 0) {
+      toast.error("Adicione documentos ou importe um site primeiro para gerar FAQs.");
+      return;
+    }
+
+    setUrlLoading(true);
+    const loadingToast = toast.loading("Gerando 10 FAQs baseadas no seu site...");
+    try {
+      const allContent = knowledge
+        .filter(k => k.type === "document")
+        .map(k => k.content)
+        .join("\n\n");
+
+      const { data, error } = await supabase.functions.invoke("scrape-url", {
+        body: { 
+          action: "generate-faqs",
+          content: allContent.substring(0, 7000)
+        },
+      });
+
+      if (error) throw error;
+      
+      const faqs = data.faqs;
+      if (!faqs || !Array.isArray(faqs)) throw new Error("Falha ao gerar FAQs");
+
+      for (const faq of faqs) {
+        await addFaq(faq.question, faq.answer);
+      }
+
+      toast.dismiss(loadingToast);
+      toast.success("10 FAQs geradas e adicionadas com sucesso!");
+    } catch (err: any) {
+      toast.dismiss(loadingToast);
+      toast.error("Erro ao gerar FAQs: " + err.message);
+    } finally {
+      setUrlLoading(false);
+    }
+  };
+
   const handleSaveConfig = async () => {
     await saveConfig({ 
       agent_name: agentName, 
