@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
-  Bot, Sparkles, Brain, Save, Loader2, Wrench, HelpCircle, FileText, Plus, Trash2, Mic, CheckCircle2, Upload, Globe, Search, Link as LinkIcon
+  Bot, Sparkles, Brain, Save, Loader2, Wrench, HelpCircle, FileText, Plus, Trash2, Mic, CheckCircle2, Upload, Globe, Search, Link as LinkIcon, RefreshCw
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -170,6 +170,66 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
     }
   };
 
+  const handleFetchWebhookProducts = async () => {
+    setUrlLoading(true);
+    const loadingToast = toast.loading("Buscando produtos do último webhook...");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Não autenticado");
+
+      // Buscar os logs de webhook mais recentes para este usuário
+      const { data: logs, error } = await supabase
+        .from("gateway_webhook_logs")
+        .select("payload")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      if (!logs || logs.length === 0) {
+        throw new Error("Nenhum webhook recebido ainda. Envie um teste da sua plataforma.");
+      }
+
+      // Extrair produtos únicos dos payloads
+      const products: string[] = [];
+      logs.forEach(log => {
+        const payload = log.payload as any;
+        const productName = 
+          payload?.product?.name || 
+          payload?.produto || 
+          payload?.items?.[0]?.name || 
+          payload?.data?.product?.name || 
+          payload?.product_name;
+        
+        if (productName && !products.includes(productName)) {
+          products.push(productName);
+        }
+      });
+
+      if (products.length === 0) {
+        throw new Error("Nenhum produto encontrado nos webhooks recebidos.");
+      }
+
+      const productsList = products.join(", ");
+      const docTitle = "📦 Produtos via Webhook";
+      const docContent = `Produtos identificados automaticamente via integração de checkout:\n\n${products.map(p => `- ${p}`).join("\n")}`;
+
+      await addDocument(docTitle, docContent);
+      
+      // Atualizar o prompt de atendimento para incluir os novos produtos
+      const newServicePrompt = `${promptService}\n\nProdutos integrados via Webhook: ${productsList}`;
+      setPromptService(newServicePrompt);
+      
+      toast.dismiss(loadingToast);
+      toast.success(`${products.length} produtos importados com sucesso!`);
+    } catch (err: any) {
+      toast.dismiss(loadingToast);
+      toast.error(err.message);
+    } finally {
+      setUrlLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!loading && !urlLoading) {
       setAgentName(config.agent_name || "Assistente");
@@ -299,6 +359,19 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
                     </div>
 
                     <div className="space-y-4 pt-4 border-t">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Configuração Inteligente</Label>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={handleFetchWebhookProducts} 
+                          disabled={urlLoading}
+                          className="h-8 gap-2 text-xs"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${urlLoading ? 'animate-spin' : ''}`} />
+                          Sincronizar Produtos via Webhook
+                        </Button>
+                      </div>
                       <div className="space-y-2">
                         <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Etapa 1: Triagem</Label>
                         <Textarea value={promptTriage} onChange={e => setPromptTriage(e.target.value)} rows={2} />
