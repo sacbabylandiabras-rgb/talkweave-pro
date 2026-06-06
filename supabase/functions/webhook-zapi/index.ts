@@ -373,17 +373,18 @@ serve(async (req) => {
 
         const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim()).filter(Boolean);
         
-        if (triggerNode?.type === "step" && triggerNode.data?.triggerType === "command") {
+        // Always check main keywords first as they are global triggers
+        if (mainKeywords.some((k: string) => isKeywordMatch(messageRaw, k))) {
+          isMatch = true;
+        } else if (triggerNode?.type === "step" && triggerNode.data?.triggerType === "command") {
           const command = triggerNode.data.keyword || "";
           if (command && isKeywordMatch(messageRaw, command)) {
             isMatch = true;
           }
-        } else if (mainKeywords.some((k: string) => isKeywordMatch(messageRaw, k))) {
-          isMatch = true;
         }
 
         if (isMatch && startNodeId) {
-          console.log(`[webhook-zapi] keyword match found for flow "${flow.name}" (id: ${flow.id})`);
+          console.log(`[webhook-zapi] trigger match found for flow "${flow.name}" (id: ${flow.id})`);
           await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText });
           return new Response("ok", { status: 200, headers: corsHeaders });
         }
