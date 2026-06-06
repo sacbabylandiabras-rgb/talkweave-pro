@@ -68,11 +68,6 @@ function isStatusOnlyCallback(type: string, webhook: any, messageRaw: string, me
   return !hasInboundContent && (Array.isArray(webhook?.ids) || Boolean(webhook?.messageId && webhook?.zaapId));
 }
 
-function isZapiFlowCategory(category: unknown): boolean {
-  const normalized = String(category || "contacts").toLowerCase().trim();
-  return !["telegram", "meta", "instagram", "facebook"].includes(normalized);
-}
-
 function resolveFlowStartNodeId(flow: any, triggerNode: any): string | undefined {
   if (!triggerNode?.id) return undefined;
   if (triggerNode?.type === "step" && triggerNode?.data?.kind === "gatilho") {
@@ -404,6 +399,11 @@ serve(async (req) => {
 
     console.log("[webhook-zapi] processing inbound:", { userId, phone, fromMe, isButtonResponse, msg: messageRaw.slice(0, 50) });
 
+    if (fromMe && !isButtonResponse) {
+      console.log("[webhook-zapi] ignored own outbound message for trigger matching", { phone, messageId });
+      return new Response("ok", { status: 200, headers: corsHeaders });
+    }
+
     if (!fromMe || isButtonResponse) {
       console.log("[webhook-zapi] inbound payload:", JSON.stringify(webhook).slice(0, 500));
       console.log("[webhook-zapi] inbound detail:", { userId, phone, chatId, isGroup, msg: messageRaw.slice(0, 80) });
@@ -427,8 +427,8 @@ serve(async (req) => {
       console.log("[webhook-zapi] active flows found:", flows?.length || 0);
       
       for (const flow of flows || []) {
-        if (!isZapiFlowCategory(flow.category)) {
-           console.log(`[webhook-zapi] skipping non-whatsapp flow "${flow.name}" (${flow.category})`);
+        if (flow.category === "telegram") {
+           console.log(`[webhook-zapi] skipping telegram flow "${flow.name}"`);
            continue;
         }
 
