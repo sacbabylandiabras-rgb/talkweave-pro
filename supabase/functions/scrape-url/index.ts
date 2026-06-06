@@ -38,39 +38,69 @@ Deno.serve(async (req) => {
         } catch (e) { console.error("Internal scrape failed:", e); }
       }
 
-      const aiResponse = await fetch("https://api.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: "system",
-              content: "Você é um especialista em e-commerce e infoprodutos. Analise minuciosamente o conteúdo. Identifique: nicho, horário de atendimento, prazos de entrega, reembolso, rastreio e garantia. Gere EXATAMENTE 10 FAQs realistas. Retorne APENAS um JSON: {\"faqs\": [{\"question\": \"...\", \"answer\": \"...\"}, ...]}"
-            },
-            {
-              role: "user",
-              content: `Analise este conteúdo e gere 10 FAQs detalhadas:\n\n${contentToUse || "Sem conteúdo disponível."}`
-            }
-          ],
-          model: "gpt-4o-mini",
-          response_format: { type: "json_object" }
-        }),
-      });
+      let aiResponse;
+      const isAnthropic = ANTHROPIC_API_KEY && ANTHROPIC_API_KEY.startsWith("sk-ant-");
+
+      if (isAnthropic) {
+        aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "x-api-key": ANTHROPIC_API_KEY!,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "claude-3-5-sonnet-20241022",
+            max_tokens: 2048,
+            messages: [
+              {
+                role: "user",
+                content: `Você é um especialista em e-commerce e infoprodutos. Analise minuciosamente o conteúdo abaixo. Identifique: nicho, horário de atendimento, prazos de entrega, reembolso, rastreio e garantia. Gere EXATAMENTE 10 FAQs realistas.\n\nCONTEÚDO:\n${contentToUse || "Sem conteúdo disponível."}\n\nRetorne APENAS um JSON puro (sem markdown) no formato: {"faqs": [{"question": "...", "answer": "..."}, ...]}`
+              }
+            ],
+          }),
+        });
+      } else {
+        aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messages: [
+              {
+                role: "system",
+                content: "Você é um especialista em e-commerce e infoprodutos. Analise minuciosamente o conteúdo. Identifique: nicho, horário de atendimento, prazos de entrega, reembolso, rastreio e garantia. Gere EXATAMENTE 10 FAQs realistas. Retorne APENAS um JSON: {\"faqs\": [{\"question\": \"...\", \"answer\": \"...\"}, ...]}"
+              },
+              {
+                role: "user",
+                content: `Analise este conteúdo e gere 10 FAQs detalhadas:\n\n${contentToUse || "Sem conteúdo disponível."}`
+              }
+            ],
+            model: "gpt-4o-mini",
+            response_format: { type: "json_object" }
+          }),
+        });
+      }
 
       if (!aiResponse.ok) {
         const errorText = await aiResponse.text();
         console.error("AI API Error:", errorText);
-        return new Response(JSON.stringify({ error: `Erro na IA: ${aiResponse.status}` }), { status: aiResponse.status, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: `Erro na IA (${isAnthropic ? 'Anthropic' : 'Lovable'}): ${aiResponse.status}` }), { status: aiResponse.status, headers: corsHeaders });
       }
       
       const aiData = await aiResponse.json();
-      const aiContent = aiData.choices[0].message.content;
+      let aiContent;
+      if (isAnthropic) {
+        aiContent = aiData.content[0].text;
+      } else {
+        aiContent = aiData.choices[0].message.content;
+      }
       
       return new Response(aiContent, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+
 
     if (!url || typeof url !== "string") {
       return new Response(
