@@ -41,7 +41,8 @@ import {
   Save,
   ArrowLeft,
    Trash2,
-   RefreshCw,
+    RefreshCw,
+   TestTube,
 } from "lucide-react";
  import { toast } from "sonner";
  import { supabase } from "@/integrations/supabase/client";
@@ -530,6 +531,58 @@ export default function IntegrationFlowEditor({ onBack }: IntegrationFlowEditorP
                     placeholder="Ex: Se status = aprovado"
                   />
                 </div>
+                {selectedNode.data.isProofBlock && (
+                  <div className="pt-4 border-t mt-4 space-y-3">
+                    <h4 className="text-sm font-semibold flex items-center gap-2">
+                      <TestTube className="h-4 w-4" />
+                      Teste do Facebook Pixel
+                    </h4>
+                    <div className="space-y-1">
+                      <Label className="text-xs uppercase font-bold text-muted-foreground">Código de Teste do Gerenciador de Eventos</Label>
+                      <Input
+                        value={selectedNode.data.testEventCode || ""}
+                        onChange={(e) =>
+                          setSelectedNode({
+                            ...selectedNode,
+                            data: { ...selectedNode.data, testEventCode: e.target.value },
+                          })
+                        }
+                        placeholder="Ex: TEST12345"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <Button
+                      onClick={async () => {
+                        try {
+                          const { data: { session } } = await supabase.auth.getSession();
+                          if (!session) {
+                            toast.error("Você precisa estar logado para testar o Pixel");
+                            return;
+                          }
+                          toast.info("Enviando evento de teste...");
+                          const { error } = await supabase.functions.invoke('webhook-zapi', {
+                            body: {
+                              test_event: true,
+                              test_event_code: selectedNode.data.testEventCode || "TEST20723",
+                              instanceId: "test-instance",
+                              phone: "5511999999999",
+                              moments: ["proof_of_payment"]
+                            }
+                          });
+                          if (error) throw error;
+                          toast.success("Evento de teste enviado com sucesso!");
+                        } catch (error) {
+                          console.error("Erro ao testar pixel:", error);
+                          toast.error("Erro ao enviar evento de teste");
+                        }
+                      }}
+                      className="w-full h-8 text-xs"
+                      variant="outline"
+                    >
+                      Disparar Evento de Teste
+                    </Button>
+                  </div>
+                )}
               </>
             )}
 
