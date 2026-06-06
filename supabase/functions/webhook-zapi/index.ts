@@ -372,9 +372,13 @@ serve(async (req) => {
         const startNodeId = triggerNode?.id;
 
         const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim().toLowerCase()).filter(Boolean);
+        const normalizedMsg = normalizeForMatch(messageRaw);
         
-        // Match if the message exactly matches any keyword (case-insensitive)
-        if (mainKeywords.some((k: string) => normalizeForMatch(messageRaw) === k)) {
+        // Match if the message exactly matches any keyword OR is contained in a list of keywords
+        if (mainKeywords.some((k: string) => normalizedMsg === k)) {
+          isMatch = true;
+        } else if (mainKeywords.some((k: string) => k.length > 2 && normalizedMsg.includes(k))) {
+          // Fallback to partial match only for longer keywords to avoid "a" or "oi" matching everything
           isMatch = true;
         } else if (triggerNode?.type === "step" && triggerNode.data?.triggerType === "command") {
           const command = (triggerNode.data.keyword || "").toLowerCase();
