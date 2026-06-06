@@ -4830,6 +4830,24 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                         <div className="rounded-md border border-primary/30 bg-primary/10 p-2 text-[11px] text-foreground/80">
                           Este bloco interrompe o fluxo e aguarda o envio de um comprovante pelo lead. Assim que uma mídia for detectada, o fluxo seguirá pela saída única.
                         </div>
+
+                        <div className="space-y-3 p-3 bg-blue-500/5 rounded-lg border border-blue-500/20">
+                          <Label className="text-xs font-semibold flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                            <Info className="w-3.5 h-3.5" />
+                            Como o lead anexa a imagem?
+                          </Label>
+                          <div className="text-[11px] space-y-2 text-muted-foreground leading-relaxed">
+                            <p>
+                              O lead deve simplesmente <strong className="text-foreground">enviar a foto ou o arquivo</strong> do comprovante diretamente na conversa do WhatsApp.
+                            </p>
+                            <p>
+                              Assim que o sistema detectar o recebimento de uma mídia, ele marcará o evento de compra no seu Pixel e continuará o fluxo automaticamente.
+                            </p>
+                            <div className="p-2 bg-background/50 rounded border border-border/50 text-[10px] italic">
+                              Dica: Use um bloco de <strong>Conteúdo</strong> antes deste para pedir explicitamente o comprovante (ex: "Por favor, envie uma foto do seu comprovante abaixo").
+                            </div>
+                          </div>
+                        </div>
                         
                         <div className="space-y-3 p-3 bg-muted/30 rounded-lg border border-border/40">
                           <Label className="text-xs font-semibold flex items-center gap-2">
@@ -4862,6 +4880,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                             <TestTube className="w-3.5 h-3.5" />
                             Disparar Evento de Teste
                           </Button>
+
+                          <div className="p-2 bg-primary/5 rounded border border-primary/10">
+                            <p className="text-[9px] text-primary font-medium leading-tight">
+                              Para testar o fluxo completo: Envie <code className="bg-primary/10 px-1 rounded">test_event_code: {selectedNode.data.test_event_code || "CODIGO"}</code> no WhatsApp e em seguida anexe uma imagem.
+                            </p>
+                          </div>
                         </div>
 
                         <div className="space-y-2">
