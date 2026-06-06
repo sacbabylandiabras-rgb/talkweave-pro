@@ -371,14 +371,14 @@ serve(async (req) => {
         let isMatch = false;
         const startNodeId = triggerNode?.id;
 
-        const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim()).filter(Boolean);
+        const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim().toLowerCase()).filter(Boolean);
         
-        // Always check main keywords first as they are global triggers
-        if (mainKeywords.some((k: string) => isKeywordMatch(messageRaw, k))) {
+        // Match if the message exactly matches any keyword (case-insensitive)
+        if (mainKeywords.some((k: string) => normalizeForMatch(messageRaw) === k)) {
           isMatch = true;
         } else if (triggerNode?.type === "step" && triggerNode.data?.triggerType === "command") {
-          const command = triggerNode.data.keyword || "";
-          if (command && isKeywordMatch(messageRaw, command)) {
+          const command = (triggerNode.data.keyword || "").toLowerCase();
+          if (command && normalizeForMatch(messageRaw) === command) {
             isMatch = true;
           }
         }
