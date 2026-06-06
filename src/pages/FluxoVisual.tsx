@@ -456,6 +456,20 @@ const blocosDisponiveis = [
     description: "Direciona se a task veio de mensagem follow up (status 11)",
     category: "Decisões e Condicionais",
   },
+  {
+    type: "blocoCondicao",
+    label: "Comprovante de Pagamento",
+    icon: Upload,
+    description: "Para o fluxo e aguarda envio de comprovante (imagem/PDF)",
+    category: "Decisões e Condicionais",
+    extraData: { 
+      variable: "comprovante", 
+      dataType: "string", 
+      operator: "contains",
+      compareValue: "[media:", // Tags de mídia injetadas pelo webhook
+      isProofBlock: true
+    },
+  },
 
   // FERRAMENTAS DE INTEGRAÇÃO
   {
