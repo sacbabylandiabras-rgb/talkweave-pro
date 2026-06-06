@@ -59,14 +59,14 @@ serve(async (req) => {
     const token = url.searchParams.get('hub.verify_token')
     const challenge = url.searchParams.get('hub.challenge')
 
-    console.log('[webhook-meta] Verification request:', { mode, token, challenge })
+    console.log('[webhook-meta-v2] Verification request:', { mode, token, challenge })
 
     if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-      console.log('[webhook-meta] ✅ Verification successful')
+      console.log('[webhook-meta-v2] ✅ Verification successful')
       return new Response(challenge || '', { status: 200 })
     }
 
-    console.log('[webhook-meta] ❌ Verification failed - token mismatch')
+    console.log('[webhook-meta-v2] ❌ Verification failed - token mismatch')
     return new Response('Forbidden', { status: 403 })
   }
 
