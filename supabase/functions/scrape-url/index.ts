@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
     if (LOVABLE_API_KEY && text.length > 100) {
       try {
         console.log("Using AI to refine extracted content...");
-        const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        const aiResponse = await fetch("https://api.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${LOVABLE_API_KEY}`,
