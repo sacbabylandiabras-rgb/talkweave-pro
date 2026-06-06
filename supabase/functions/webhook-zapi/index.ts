@@ -374,16 +374,32 @@ serve(async (req) => {
         const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim().toLowerCase()).filter(Boolean);
         const normalizedMsg = normalizeForMatch(messageRaw);
         
-        // Match if the message exactly matches any keyword OR is contained in a list of keywords
+        console.log(`[webhook-zapi] Checking flow "${flow.name}" triggers. Msg: "${normalizedMsg}", Keywords: ${JSON.stringify(mainKeywords)}`);
+
+        // Prioritize exact match
         if (mainKeywords.some((k: string) => normalizedMsg === k)) {
           isMatch = true;
-        } else if (mainKeywords.some((k: string) => k.length > 2 && normalizedMsg.includes(k))) {
-          // Fallback to partial match only for longer keywords to avoid "a" or "oi" matching everything
+          console.log(`[webhook-zapi] Exact keyword match for flow "${flow.name}"`);
+        } 
+        // Then partial match for keywords with at least 3 characters
+        else if (mainKeywords.some((k: string) => k.length >= 3 && normalizedMsg.includes(k))) {
           isMatch = true;
-        } else if (triggerNode?.type === "step" && triggerNode.data?.triggerType === "command") {
-          const command = (triggerNode.data.keyword || "").toLowerCase();
-          if (command && normalizeForMatch(messageRaw) === command) {
+          console.log(`[webhook-zapi] Partial keyword match for flow "${flow.name}"`);
+        } 
+        // Then check if the node itself has a keyword (fallback)
+        else if (triggerNode?.data?.keyword) {
+          const nodeKeyword = normalizeForMatch(triggerNode.data.keyword);
+          if (normalizedMsg === nodeKeyword || (nodeKeyword.length >= 3 && normalizedMsg.includes(nodeKeyword))) {
             isMatch = true;
+            console.log(`[webhook-zapi] Trigger node keyword match for flow "${flow.name}"`);
+          }
+        }
+        // Then command match
+        else if (triggerNode?.type === "step" && triggerNode.data?.triggerType === "command") {
+          const command = normalizeForMatch(triggerNode.data.keyword || "");
+          if (command && normalizedMsg === command) {
+            isMatch = true;
+            console.log(`[webhook-zapi] Command match for flow "${flow.name}"`);
           }
         }
 
@@ -392,6 +408,7 @@ serve(async (req) => {
           await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText });
           return new Response("ok", { status: 200, headers: corsHeaders });
         }
+
       }
     }
 
