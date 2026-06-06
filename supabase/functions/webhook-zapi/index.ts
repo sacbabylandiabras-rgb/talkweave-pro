@@ -904,6 +904,13 @@ serve(async (req) => {
               isGroup,
               { ...webhook, __agent_input_text: agentInboundText, __is_resuming: true },
             );
+            if (!flowStateIsSharedGroup) {
+              await supabase
+                .from("flow_captured_data")
+                .update({ last_node_id: null, updated_at: new Date().toISOString() })
+                .eq("id", flowState.id)
+                .eq("last_node_id", lastNodeId);
+            }
             return new Response("condition_flow_resumed", { status: 200, headers: corsHeaders });
           } else {
             const buttonMatch = findButtonMatch(nodes, edges, lastNodeId, normalizedMessage, webhook);
