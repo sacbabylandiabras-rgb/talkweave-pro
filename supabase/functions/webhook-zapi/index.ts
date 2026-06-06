@@ -1720,11 +1720,33 @@ async function executeFlow(
         for (let i = 0; i < conditions.length; i++) {
           const cond = conditions[i];
           const variableName = cond.variable?.replace(/[{}]/g, "") || "";
-          // Adicionado fallback para message_received caso a variável seja 'message' ou similar
+          const isMessageVar = variableName.toLowerCase() === "mensagem" || variableName.toLowerCase() === "message" || variableName.toLowerCase() === "input";
+          
           let variableValue = captured[variableName];
-          if (!variableValue && (variableName.toLowerCase() === "mensagem" || variableName.toLowerCase() === "message" || variableName.toLowerCase() === "input")) {
+          if (!variableValue && isMessageVar) {
             variableValue = webhook?.text || webhook?.message?.text || "";
           }
+
+          // Se a variável é a mensagem e não veio texto agora, PARAR e esperar a próxima interação
+          if (isMessageVar && !variableValue) {
+            console.log(`[Flow] Node ${currentNodeId} needs message input. Stopping flow to wait for reply.`);
+            
+            await supabase.from("flow_captured_data").upsert(
+              {
+                user_id: userId,
+                flow_id: flow.id,
+                flow_name: flow.name,
+                phone,
+                captured_data: captured,
+                last_node_id: currentNodeId, // Salva o nó de condição como o último visitado
+                source: isGroup ? "whatsapp_group" : "whatsapp",
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "user_id,flow_id,phone" }
+            );
+            return;
+          }
+
           
           try {
             const { data: evalData } = await supabase.functions.invoke("evaluate-condition", {
