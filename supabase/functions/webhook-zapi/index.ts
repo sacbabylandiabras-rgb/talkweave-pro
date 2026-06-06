@@ -352,15 +352,30 @@ serve(async (req) => {
       console.log("[webhook-zapi] active flows found:", flows?.length || 0);
       for (const flow of flows || []) {
         const normalizedMessage = normalizeForMatch(messageRaw);
-        const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim()).filter(Boolean);
-        console.log(`[webhook-zapi] checking flow "${flow.name}" keywords:`, mainKeywords, "against:", normalizedMessage);
-        if (mainKeywords.some((k: string) => isKeywordMatch(normalizedMessage, k))) {
-          console.log(`[webhook-zapi] keyword match found for flow "${flow.name}"`);
-          const initialNode = flow.nodes.find((n: any) => n.type === "blocoInicial");
-          if (initialNode) {
-            await executeFlow(supabase, userId, phone, flow, initialNode.id, {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText });
-            return new Response("ok", { status: 200, headers: corsHeaders });
+        
+        // Suporte para múltiplos tipos de gatilho
+        const triggerNode = flow.nodes.find((n: any) => n.type === "step" && n.data?.kind === "gatilho") || 
+                           flow.nodes.find((n: any) => n.type === "blocoInicial");
+        
+        let isMatch = false;
+        let startNodeId = triggerNode?.id;
+
+        if (triggerNode?.type === "step" && triggerNode.data?.triggerType === "command") {
+          const command = triggerNode.data.keyword || "";
+          if (command && isKeywordMatch(normalizedMessage, command)) {
+            isMatch = true;
           }
+        } else {
+          const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim()).filter(Boolean);
+          if (mainKeywords.some((k: string) => isKeywordMatch(normalizedMessage, k))) {
+            isMatch = true;
+          }
+        }
+
+        if (isMatch && startNodeId) {
+          console.log(`[webhook-zapi] keyword match found for flow "${flow.name}"`);
+          await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText });
+          return new Response("ok", { status: 200, headers: corsHeaders });
         }
       }
     }
