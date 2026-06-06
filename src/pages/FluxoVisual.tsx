@@ -1827,8 +1827,9 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
     if (currentNode?.type === "blocoCondicao") {
       const pendingFlowId = flowIdForPending || currentFluxoId;
+      console.log("[FluxoVisual] Reached condition node, saving state", { userId, pendingFlowId, contact, currentNodeId });
       if (userId && pendingFlowId) {
-        await supabase.from("flow_captured_data").upsert({
+        const { error: saveErr } = await supabase.from("flow_captured_data").upsert({
           user_id: userId,
           flow_id: pendingFlowId,
           flow_name: nomeFluxo,
@@ -1838,6 +1839,10 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           source: isGroupsMode ? "whatsapp_group" : "whatsapp",
           updated_at: new Date().toISOString()
         }, { onConflict: "user_id,flow_id,phone" });
+        if (saveErr) console.error("[FluxoVisual] Error saving condition state:", saveErr);
+        else console.log("[FluxoVisual] State saved successfully");
+      } else {
+        console.warn("[FluxoVisual] Cannot save state — missing userId or flowId");
       }
       return;
     }
