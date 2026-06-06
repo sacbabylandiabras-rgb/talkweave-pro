@@ -796,14 +796,19 @@ async function sendZapiText(instance: any, phone: string, message: string, butto
   console.log("[webhook-zapi] send message result", { ok: response.ok, status: response.status, phone, contentType, hasMedia: !!mediaUrl });
 
   if (response.ok && supabase && userId) {
-    await supabase.from("message_logs").insert({
-      user_id: userId,
-      phone,
-      response_sent: message,
-      instance_id: instanceId || zapiId,
-      keyword_matched: "__flow_content__",
-      timestamp: new Date().toISOString(),
-    }).catch((err: any) => console.warn("[webhook-zapi] failed to log outbound message", err));
+    try {
+      const { error } = await supabase.from("message_logs").insert({
+        user_id: userId,
+        phone,
+        response_sent: message,
+        instance_id: instanceId || zapiId,
+        keyword_matched: "__flow_content__",
+        timestamp: new Date().toISOString(),
+      });
+      if (error) console.warn("[webhook-zapi] failed to log outbound message", error);
+    } catch (err) {
+      console.warn("[webhook-zapi] failed to log outbound message", err);
+    }
   }
 }
 
