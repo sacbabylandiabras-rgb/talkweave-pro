@@ -129,17 +129,18 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
       
       if (autoImportUrl) {
         // Advanced pre-fill of all information
-        const siteName = siteTitle.split(/[|\-]/)[0]?.trim() || cleanTitle;
+        const siteName = siteTitle.replace("🌐 ", "").split(/[|\-]/)[0]?.trim() || cleanTitle;
         const autoName = `Assistente ${siteName}`;
         setAgentName(autoName);
         
-        const triagePrompt = `Você é o assistente virtual da empresa ${siteName}. Identifique se o cliente tem dúvidas sobre produtos, serviços, preços ou se precisa de suporte técnico para compras no site ${url}.`;
+        // Use full content for better context in prompts
+        const triagePrompt = `Você é o assistente virtual da empresa ${siteName}. Sua missão é identificar se o lead tem dúvidas sobre os produtos ou se está enfrentando problemas no checkout da loja ${url}.`;
         setPromptTriage(triagePrompt);
 
-        const servicePrompt = `Atue como um especialista da ${siteName}. Use as informações extraídas do site para responder com precisão:\n\n${content.substring(0, 1500)}`;
+        const servicePrompt = `Atue como um especialista da ${siteName}. Responda as dúvidas do cliente usando estas informações reais da loja:\n\n${content.substring(0, 3000)}`;
         setPromptService(servicePrompt);
 
-        const closingPrompt = `Seu objetivo final é levar o cliente de volta ao checkout em ${url} para finalizar a compra. Seja persuasivo mas educado. Se ele não puder comprar agora, tente agendar um retorno.`;
+        const closingPrompt = `Seu objetivo é converter a dúvida em venda. Se o cliente estiver pronto, envie-o de volta para finalizar a compra em ${url}.`;
         setPromptClosing(closingPrompt);
 
         setIsActive(true);
