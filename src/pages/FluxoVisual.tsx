@@ -5991,6 +5991,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
               <Label>URL da sua Loja ou Landing Page</Label>
               <Input 
                 placeholder="https://minhaloja.com" 
+                value={storeUrlToImport}
                 onChange={(e) => {
                   const url = e.target.value;
                   setStoreUrlToImport(url);
