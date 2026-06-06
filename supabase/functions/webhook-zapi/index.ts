@@ -319,26 +319,36 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
     } else if (node.type === "blocoCondicao") {
       let matchedIndex = -1;
       const inboundText = String(webhook?.__agent_input_text || "");
-      if (node.data?.isProofBlock && inboundText.includes("[media:")) {
-        matchedIndex = 0;
-        try {
-          const { data: pixels } = await supabase.from("gateway_pixels").select("*").eq("user_id", userId).eq("platform", "facebook").eq("active", true);
-          if (pixels) {
-            for (const pixel of pixels) {
-              if (!pixel.pixel_id || !pixel.api_token) continue;
-              const fbUrl = `https://graph.facebook.com/v17.0/${pixel.pixel_id}/events?access_token=${pixel.api_token}`;
-              const hashedPhone = await hashValue(phone.replace(/\D/g, ""));
-              const eventData = { data: [{ event_name: "Purchase", event_time: Math.floor(Date.now() / 1000), action_source: "chat", user_data: { ph: [hashedPhone] }, custom_data: { currency: "BRL", value: 0.0, status: "proof_received" } }] };
-              fetch(fbUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(eventData) }).catch(() => {});
+      
+      if (node.data?.isProofBlock) {
+        if (inboundText.includes("[media:")) {
+          matchedIndex = 0;
+          try {
+            const { data: pixels } = await supabase.from("gateway_pixels").select("*").eq("user_id", userId).eq("platform", "facebook").eq("active", true);
+            if (pixels) {
+              for (const pixel of pixels) {
+                if (!pixel.pixel_id || !pixel.api_token) continue;
+                const fbUrl = `https://graph.facebook.com/v17.0/${pixel.pixel_id}/events?access_token=${pixel.api_token}`;
+                const hashedPhone = await hashValue(phone.replace(/\D/g, ""));
+                const eventData = { data: [{ event_name: "Purchase", event_time: Math.floor(Date.now() / 1000), action_source: "chat", user_data: { ph: [hashedPhone] }, custom_data: { currency: "BRL", value: 0.0, status: "proof_received" } }] };
+                fetch(fbUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(eventData) }).catch(() => {});
+              }
             }
-          }
-        } catch (pixelErr) { console.error(pixelErr); }
-      } else if (node.data?.isProofBlock && !webhook?.__is_resuming) {
-        await supabase.from("flow_captured_data").upsert({ user_id: userId, flow_id: flow.id, flow_name: flow.name, phone, captured_data: captured, last_node_id: currentNodeId, source: isGroup ? "whatsapp_group" : "whatsapp", updated_at: new Date().toISOString() }, { onConflict: "user_id,flow_id,phone" });
-        return;
+          } catch (pixelErr) { console.error(pixelErr); }
+        } else if (!webhook?.__is_resuming) {
+          // If not media and not resuming, we wait for the proof
+          await supabase.from("flow_captured_data").upsert({ user_id: userId, flow_id: flow.id, flow_name: flow.name, phone, captured_data: captured, last_node_id: currentNodeId, source: isGroup ? "whatsapp_group" : "whatsapp", updated_at: new Date().toISOString() }, { onConflict: "user_id,flow_id,phone" });
+          return;
+        }
+      } else {
+        // Standard condition logic (if/else or specific filters)
+        // Here we can implement the logic for multi-conditions if needed, 
+        // but the current issue is reported as "stopped working" which usually means proof/flow logic
+        // For now, let's ensure proof block is solid.
       }
+      
       const handleId = matchedIndex === 0 ? "a" : "source-bottom";
-      const nextEdge = edges.find((e: any) => String(e.source) === String(currentNodeId) && String(e.sourceHandle) === handleId);
+      const nextEdge = edges.find((e: any) => String(e.source) === String(currentNodeId) && String(e.sourceHandle) === (matchedIndex === 0 ? "a" : (e.sourceHandle || "source-bottom")));
       currentNodeId = nextEdge?.target;
       if (currentNodeId) continue;
       else break;
