@@ -1762,7 +1762,7 @@ async function executeFlow(
           const variableName = cond.variable?.replace(/[{}]/g, "") || "";
           const isMessageVar = variableName.toLowerCase() === "mensagem" || variableName.toLowerCase() === "message" || variableName.toLowerCase() === "input" || variableName === "";
           
-          let variableValue = captured[variableName];
+          let variableValue = isMessageVar && webhook?.__is_resuming ? "" : captured[variableName];
           if (!variableValue && isMessageVar) {
             variableValue = webhook?.__agent_input_text || webhook?.text || webhook?.message?.text || "";
           }
