@@ -1785,6 +1785,9 @@ async function executeFlow(
               break;
             }
           }
+        } else if (node.data?.isProofBlock && inboundText.includes("[media:")) {
+          // Se for bloco de comprovante e recebeu mídia, segue pelo primeiro caminho disponível (default/success)
+          matchedIndex = 0;
         } else if (branches.length > 0 && webhook?.__is_resuming) {
           console.log(`[Flow] Condition node ${currentNodeId} resumed without inbound text. Stopping.`);
           return;

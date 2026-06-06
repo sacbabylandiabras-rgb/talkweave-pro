@@ -460,13 +460,13 @@ const blocosDisponiveis = [
     type: "blocoCondicao",
     label: "Comprovante de Pagamento",
     icon: Upload,
-    description: "Para o fluxo e aguarda envio de comprovante (imagem/PDF)",
+    description: "Aguarda o envio de qualquer comprovante (foto/arquivo) para continuar",
     category: "Decisões e Condicionais",
     extraData: { 
-      variable: "comprovante", 
+      variable: "mensagem", 
       dataType: "string", 
       operator: "contains",
-      compareValue: "[media:", // Tags de mídia injetadas pelo webhook
+      compareValue: "[media:", 
       isProofBlock: true
     },
   },
