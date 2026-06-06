@@ -95,10 +95,11 @@ Deno.serve(async (req) => {
       const aiData = await aiResponse.json();
       let aiContent;
       if (isAnthropic) {
-        aiContent = aiData.content[0].text;
+        aiContent = cleanJson(aiData.content[0].text);
       } else {
-        aiContent = aiData.choices[0].message.content;
+        aiContent = cleanJson(aiData.choices[0].message.content);
       }
+
       
       return new Response(aiContent, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
