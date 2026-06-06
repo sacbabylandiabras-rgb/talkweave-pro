@@ -95,10 +95,11 @@ Deno.serve(async (req) => {
       const aiData = await aiResponse.json();
       let aiContent;
       if (isAnthropic) {
-        aiContent = aiData.content[0].text;
+        aiContent = cleanJson(aiData.content[0].text);
       } else {
-        aiContent = aiData.choices[0].message.content;
+        aiContent = cleanJson(aiData.choices[0].message.content);
       }
+
       
       return new Response(aiContent, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -186,7 +187,10 @@ Deno.serve(async (req) => {
         console.log("Using AI to refine extracted content...");
         let aiResponse;
         const isAnthropic = ANTHROPIC_API_KEY && (ANTHROPIC_API_KEY.startsWith("sk-ant-") || ANTHROPIC_API_KEY.startsWith("sk-"));
+        // Remove markdown tags if AI returns it wrapped in ```json ... ```
+        const cleanJson = (text: string) => text.replace(/```json/g, "").replace(/```/g, "").trim();
         console.log(`Refinement Provider decision: ${isAnthropic ? 'Anthropic' : 'Lovable/Gateway'}. Prefix: ${ANTHROPIC_API_KEY?.substring(0, 7)}`);
+
 
 
         if (isAnthropic) {
@@ -233,7 +237,7 @@ Deno.serve(async (req) => {
 
         if (aiResponse.ok) {
           const aiData = await aiResponse.json();
-          const aiText = isAnthropic ? aiData.content[0].text : aiData.choices[0].message.content;
+          const aiText = isAnthropic ? cleanJson(aiData.content[0].text) : cleanJson(aiData.choices[0].message.content);
           
           if (aiText && aiText.length > 50) {
             const titleMatch = aiText.match(/TITULO:\s*(.*)/i);
