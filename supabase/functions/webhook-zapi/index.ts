@@ -61,6 +61,26 @@ function splitKeywords(value: unknown): string[] {
     .filter(Boolean);
 }
 
+function onlyDigits(value: unknown): string {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function isZapiWhatsAppFlow(flow: any): boolean {
+  const category = String(flow?.category || "contacts").toLowerCase();
+  return !["meta", "instagram", "telegram"].includes(category);
+}
+
+function getConnectedPhone(webhook: any): string {
+  return onlyDigits(webhook?.connectedPhone || webhook?.connected_phone || webhook?.ownerPhone || webhook?.me?.phone || webhook?.phoneConnected);
+}
+
+function isOwnConnectedChat(webhook: any, phone: string, chatId: string, senderPhone: string): boolean {
+  const connectedPhone = getConnectedPhone(webhook);
+  if (!connectedPhone) return false;
+  const candidates = [phone, chatId, senderPhone, webhook?.phone, webhook?.chatPhone].map(onlyDigits).filter(Boolean);
+  return candidates.some((candidate) => candidate === connectedPhone);
+}
+
 function isStatusOnlyCallback(type: string, webhook: any, messageRaw: string, mediaUrl: string): boolean {
   const statusOnlyTypes = new Set(["DeliveryCallback", "MessageStatusCallback", "StatusCallback", "MessageStatus"]);
   if (statusOnlyTypes.has(type)) return true;
@@ -111,6 +131,21 @@ async function ensureReceivedWebhook(instance: any, supabase: any) {
   if (response.ok && instance?.id) {
     await supabase.from("zapi_instances").update({ updated_at: new Date().toISOString() }).eq("id", instance.id);
   }
+}
+
+async function disableNotifySentByMe(instance: any) {
+  const zapiId = instance?.zapi_instance_id;
+  const zapiToken = instance?.zapi_token;
+  const clientToken = instance?.zapi_client_token;
+  if (!zapiId || !zapiToken || !clientToken) return;
+
+  const url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/update-notify-sent-by-me`;
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "Client-Token": clientToken },
+    body: JSON.stringify({ notifySentByMe: false }),
+  });
+  console.log("[webhook-zapi] notify-sent-by-me disabled", { ok: response.ok, status: response.status, instanceId: zapiId });
 }
 
 async function hashValue(value: string): Promise<string> {
@@ -395,6 +430,12 @@ serve(async (req) => {
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
+    if (isOwnConnectedChat(webhook, phone, chatId, senderPhone)) {
+      await disableNotifySentByMe(instanceData).catch((error) => console.warn("[webhook-zapi] disable notify-sent-by-me failed", error));
+      console.log("[webhook-zapi] ignored own connected number chat", { phone, chatId, senderPhone, connectedPhone: getConnectedPhone(webhook), messageId });
+      return new Response("ok", { status: 200, headers: corsHeaders });
+    }
+
     if (userId && !fromMe && (webhook?.text || webhook?.message?.text || messageRaw.trim().length > 0)) {
       const contactPhone = isGroup ? senderPhone : sanitizeSenderPhone(phone || senderPhone);
       if (contactPhone) {
@@ -426,9 +467,12 @@ serve(async (req) => {
         for (const flowState of activeFlowStates) {
           console.log("[webhook-zapi] resuming flow", flowState.flow_id, "at node", flowState.last_node_id);
           const { data: flow } = await supabase.from("flow_automations").select("*").eq("id", flowState.flow_id).single();
-          if (flow) {
+          if (flow && flow.active === true && isZapiWhatsAppFlow(flow)) {
             await executeFlow(supabase, userId, phone, flow, flowState.last_node_id, flowState.captured_data || {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText, __is_resuming: true });
             return new Response("ok", { status: 200, headers: corsHeaders });
+          } else {
+            await supabase.from("flow_captured_data").delete().match({ user_id: userId, flow_id: flowState.flow_id, phone });
+            console.log("[webhook-zapi] removed stale/non-whatsapp flow state", { flowId: flowState.flow_id, phone });
           }
         }
       }
@@ -438,8 +482,8 @@ serve(async (req) => {
       console.log("[webhook-zapi] active flows found:", flows?.length || 0);
       
       for (const flow of flows || []) {
-        if (flow.category === "telegram") {
-           console.log(`[webhook-zapi] skipping telegram flow "${flow.name}"`);
+        if (!isZapiWhatsAppFlow(flow)) {
+           console.log(`[webhook-zapi] skipping non-whatsapp flow "${flow.name}"`, { category: flow.category });
            continue;
         }
 
