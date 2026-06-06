@@ -360,6 +360,12 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
             matchedIndex = 0;
           }
         }
+        
+        if (!webhook?.__is_resuming && matchedIndex === -1) {
+          await supabase.from("flow_captured_data").upsert({ user_id: userId, flow_id: flow.id, flow_name: flow.name, phone, captured_data: captured, last_node_id: currentNodeId, source: isGroup ? "whatsapp_group" : "whatsapp", updated_at: new Date().toISOString() }, { onConflict: "user_id,flow_id,phone" });
+          return;
+        }
+
         await supabase.from("flow_captured_data").delete().match({ user_id: userId, flow_id: flow.id, phone });
       }
       
