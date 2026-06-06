@@ -1498,7 +1498,8 @@ async function executeFlow(
       } else {
       const delaySeconds = Number(node.data.delaySeconds || 0);
       if (delaySeconds > 0) {
-        await new Promise((resolve) => setTimeout(resolve, Math.min(delaySeconds, 25) * 1000));
+        console.log(`[Flow] Waiting delay of ${delaySeconds}s (capped at 55s) for agent node ${node.id}`);
+        await new Promise((resolve) => setTimeout(resolve, Math.min(delaySeconds, 55) * 1000));
       }
 
       const prompt = node.data.prompt || "Você é um assistente virtual prestativo.";
