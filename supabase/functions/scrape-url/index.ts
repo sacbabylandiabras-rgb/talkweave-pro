@@ -40,10 +40,13 @@ Deno.serve(async (req) => {
 
       let aiResponse;
       const isAnthropic = ANTHROPIC_API_KEY && (ANTHROPIC_API_KEY.startsWith("sk-ant-") || ANTHROPIC_API_KEY.startsWith("sk-"));
-      console.log(`AI Provider decision: ${isAnthropic ? 'Anthropic' : 'Lovable/Gateway'}. Key available: ${!!ANTHROPIC_API_KEY}. Prefix: ${ANTHROPIC_API_KEY?.substring(0, 7)}`);
+      const isLovable = !!LOVABLE_API_KEY;
+      
+      console.log(`AI Provider decision: Anthropic=${!!ANTHROPIC_API_KEY}, Lovable=${isLovable}. Prefix: ${ANTHROPIC_API_KEY?.substring(0, 7)}`);
 
 
-      if (isAnthropic) {
+
+      if (isAnthropic && !isLovable) {
         aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: {
@@ -52,7 +55,7 @@ Deno.serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "claude-3-5-sonnet-20240620",
+            model: "claude-3-5-sonnet-20241022",
             max_tokens: 2048,
             messages: [
               {
@@ -187,13 +190,16 @@ Deno.serve(async (req) => {
         console.log("Using AI to refine extracted content...");
         let aiResponse;
         const isAnthropic = ANTHROPIC_API_KEY && (ANTHROPIC_API_KEY.startsWith("sk-ant-") || ANTHROPIC_API_KEY.startsWith("sk-"));
+        const isLovable = !!LOVABLE_API_KEY;
+        
         // Remove markdown tags if AI returns it wrapped in ```json ... ```
         const cleanJson = (text: string) => text.replace(/```json/g, "").replace(/```/g, "").trim();
-        console.log(`Refinement Provider decision: ${isAnthropic ? 'Anthropic' : 'Lovable/Gateway'}. Prefix: ${ANTHROPIC_API_KEY?.substring(0, 7)}`);
+        console.log(`Refinement Provider decision: Anthropic=${!!ANTHROPIC_API_KEY}, Lovable=${isLovable}. Prefix: ${ANTHROPIC_API_KEY?.substring(0, 7)}`);
 
 
 
-        if (isAnthropic) {
+
+        if (isAnthropic && !isLovable) {
           aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: {
@@ -202,7 +208,7 @@ Deno.serve(async (req) => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "claude-3-5-sonnet-20240620",
+              model: "claude-3-5-sonnet-20241022",
               max_tokens: 2048,
               messages: [
                 {
