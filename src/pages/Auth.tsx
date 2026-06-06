@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { LAST_PROTECTED_PATH_KEY, normalizeProtectedPath } from "@/lib/auth-route";
 import { Loader2, ArrowLeft, Mail, Lock, User, Phone, TrendingUp, Zap } from "lucide-react";
 import { z } from "zod";
 import "./Landing.css";
@@ -35,14 +36,25 @@ const Auth = () => {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
 
+  const getRedirectPath = useCallback(() => {
+    const from = (location.state as { from?: { pathname?: string; search?: string; hash?: string } } | null)?.from;
+    const statePath = from ? `${from.pathname || ""}${from.search || ""}${from.hash || ""}` : null;
+    return normalizeProtectedPath(statePath || localStorage.getItem(LAST_PROTECTED_PATH_KEY));
+  }, [location.state]);
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'USER_UPDATED') {
         toast({ title: "✅ Email confirmado!", description: "Agora você pode fazer login com suas credenciais." });
       }
     });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) navigate(getRedirectPath(), { replace: true });
+    });
+
     return () => subscription.unsubscribe();
-  }, [navigate, toast]);
+  }, [getRedirectPath, navigate, toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,8 +79,7 @@ const Auth = () => {
         }
       }
       toast({ title: "Login realizado!", description: "Bem-vindo de volta" });
-      const origin = (location.state as any)?.from?.pathname || "/dashboard";
-      navigate(origin, { replace: true });
+      navigate(getRedirectPath(), { replace: true });
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({ title: "Dados inválidos", description: error.errors[0].message, variant: "destructive" });
@@ -130,8 +141,8 @@ const Auth = () => {
       });
       setShowForgot(false);
       setForgotEmail("");
-    } catch (error: any) {
-      toast({ title: "Erro ao enviar email", description: error?.message || "Tente novamente", variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Erro ao enviar email", description: error instanceof Error ? error.message : "Tente novamente", variant: "destructive" });
     } finally {
       setForgotLoading(false);
     }
