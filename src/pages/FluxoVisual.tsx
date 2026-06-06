@@ -1768,20 +1768,25 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     try {
       cancelSendRef.current = false;
       setIsSending(true);
-      
+
+      // Toast de progresso persistente
+      const toastId = toast.loading(
+        `Preparando envio para ${selectedContacts.length} ${recipientLabel}(s)...`
+      );
+
       const { data: { user } } = await supabase.auth.getUser();
       const currentUserId = user?.id || '';
 
       const savedFlowId = await handleSaveFluxo();
       if (!savedFlowId) {
         setIsSending(false);
-        toast.error("Erro ao salvar fluxo antes do envio");
+        toast.error("Erro ao salvar fluxo antes do envio", { id: toastId });
         return;
       }
 
       const initialNode = nodes.find(n => n.type === "blocoInicial");
       if (!initialNode) {
-        toast.error("Bloco inicial não encontrado!");
+        toast.error("Bloco inicial não encontrado!", { id: toastId });
         setIsSending(false);
         return;
       }
@@ -1789,13 +1794,14 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
       // Validar que existem conexões
       const initialEdges = edges.filter(e => e.source === initialNode.id);
       if (initialEdges.length === 0) {
-        toast.error("Conecte algo ao bloco inicial para enviar!");
+        toast.error("Conecte algo ao bloco inicial para enviar!", { id: toastId });
         setIsSending(false);
         return;
       }
 
       let successCount = 0;
       let errorCount = 0;
+      const errors: { contact: string; error: string }[] = [];
 
       const sendToContacts = async () => {
         // Agora rodando em série com pequeno delay entre contatos para melhor rastreamento
@@ -1803,9 +1809,15 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           if (cancelSendRef.current) break;
 
           const contact = selectedContacts[index];
-          
+          const progress = Math.round(((index + 1) / selectedContacts.length) * 100);
+
+          toast.loading(
+            `Processando ${index + 1}/${selectedContacts.length} (${progress}%)`,
+            { id: toastId }
+          );
+
           // Pequeno delay para não sobrecarregar
-          await new Promise(resolve => setTimeout(resolve, index * 200));
+          await new Promise(resolve => setTimeout(resolve, 200));
 
           if (cancelSendRef.current) break;
 
@@ -1828,9 +1840,10 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             );
             
             successCount++;
-          } catch (err) {
+          } catch (err: any) {
             console.error(`Erro enviando para ${contact}:`, err);
             errorCount++;
+            errors.push({ contact, error: err?.message || "Erro desconhecido" });
           }
         }
       };
@@ -1839,12 +1852,21 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
       if (cancelSendRef.current) {
         toast.info("Envio cancelado", {
+          id: toastId,
           description: `Processados: ${successCount} / Erros: ${errorCount}`,
         });
       } else {
-        toast.success("Fluxo enviado com sucesso!", {
-          description: `✓ ${successCount} enviados${errorCount > 0 ? ` | ✗ ${errorCount} erros` : ""}`,
-        });
+        const message =
+          errorCount === 0
+            ? `Todos os ${successCount} ${recipientLabel}(s) processados! 🎉`
+            : `${successCount} sucesso | ${errorCount} erro(s)`;
+        toast.success(message, { id: toastId });
+
+        if (errors.length > 0 && errors.length <= 5) {
+          console.group("Erros no envio:");
+          errors.forEach((e) => console.error(`${e.contact}: ${e.error}`));
+          console.groupEnd();
+        }
       }
     } catch (error) {
       console.error("Erro ao enviar fluxo:", error);
