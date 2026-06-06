@@ -18,6 +18,7 @@ const sectionToPath = Object.fromEntries(
 const Landing = () => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const location = useLocation();
+  const lastSyncedPath = useRef(window.location.pathname);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -44,8 +45,11 @@ const Landing = () => {
 
     const syncPath = (section: string, mode: "push" | "replace" = "push") => {
       const nextPath = sectionToPath[section] || "/";
-      if (window.location.pathname === nextPath) return;
+      if (lastSyncedPath.current === nextPath) return;
+      
+      lastSyncedPath.current = nextPath;
       window.history[mode === "push" ? "pushState" : "replaceState"](null, "", nextPath);
+      window.dispatchEvent(new PopStateEvent("popstate"));
     };
 
     const setupFrame = () => {
