@@ -340,8 +340,10 @@ serve(async (req) => {
     if (!fromMe || isButtonResponse) {
       console.log("[webhook-zapi] inbound payload:", JSON.stringify(webhook).slice(0, 500));
       console.log("[webhook-zapi] inbound detail:", { userId, phone, chatId, isGroup, msg: messageRaw.slice(0, 80) });
+      
       const { data: activeFlows, error: activeErr } = await supabase.from("flow_captured_data").select("*").eq("user_id", userId).eq("phone", phone).not("last_node_id", "is", null);
       console.log("[webhook-zapi] activeFlows check:", { count: activeFlows?.length || 0, error: activeErr?.message, userId, phone });
+      
       for (const flowState of activeFlows || []) {
         console.log("[webhook-zapi] resuming flow", flowState.flow_id, "at node", flowState.last_node_id);
         const { data: flow } = await supabase.from("flow_automations").select("*").eq("id", flowState.flow_id).single();
@@ -352,7 +354,7 @@ serve(async (req) => {
       }
 
       console.log("[webhook-zapi] checking global keywords for", { flowsCount: activeFlows?.length || 0 });
-      const { data: flows } = await supabase.from("flow_automations").select("*").eq("user_id", userId).eq("active", true).not("category", "in", "(telegram,meta)");
+      const { data: flows } = await supabase.from("flow_automations").select("*").eq("user_id", userId).eq("active", true);
       console.log("[webhook-zapi] active flows found:", flows?.length || 0);
       for (const flow of flows || []) {
         // Suporte para múltiplos tipos de gatilho
