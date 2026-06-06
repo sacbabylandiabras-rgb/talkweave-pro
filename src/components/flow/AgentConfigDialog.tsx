@@ -135,7 +135,7 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
       
       if (autoImportUrl) {
         // Advanced pre-fill of all information
-        const siteName = siteTitle.replace("🌐 ", "").split(/[|\-]/)[0]?.trim() || cleanTitle;
+        const siteName = siteTitle.replace("🌐 ", "").split(/[|\-]/)[0]?.trim() || cleanSiteName;
         const autoName = `Assistente ${siteName}`;
         setAgentName(autoName);
         
