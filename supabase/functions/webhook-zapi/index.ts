@@ -209,7 +209,7 @@ serve(async (req) => {
     if (webhook?.test_event) {
       console.log("[webhook-zapi] Received test event", webhook);
       const testPhone = webhook.phone || "5511999999999";
-      const testCode = webhook.test_event_code || "";
+      const testCode = String(webhook.test_event_code || "").replace(/^test_event_code:\s*/i, "").trim();
       const authHeader = req.headers.get("Authorization")?.split(" ")[1] || "";
       const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader);
       const userId = user?.id;
