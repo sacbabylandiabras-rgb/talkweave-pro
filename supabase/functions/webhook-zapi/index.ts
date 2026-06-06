@@ -42,13 +42,44 @@ function isKeywordMatch(message: string, keyword: string): boolean {
   if (!keyword || !message) return false;
   const normalizedKeyword = normalizeForMatch(keyword);
   const normalizedMessage = normalizeForMatch(message);
+  if (!normalizedKeyword || !normalizedMessage) return false;
   
   // Strict check for slash commands
-  if (keyword.startsWith("/")) {
+  if (normalizedKeyword.startsWith("/")) {
     return normalizedMessage === normalizedKeyword;
   }
   
   return normalizedMessage.includes(normalizedKeyword);
+}
+
+function splitKeywords(value: unknown): string[] {
+  if (Array.isArray(value)) return value.flatMap(splitKeywords);
+  return String(value || "")
+    .split(/[\n,;]/)
+    .map((keyword) => normalizeForMatch(keyword))
+    .filter(Boolean);
+}
+
+function isStatusOnlyCallback(type: string, webhook: any, messageRaw: string, mediaUrl: string): boolean {
+  const statusOnlyTypes = new Set(["DeliveryCallback", "MessageStatusCallback", "StatusCallback", "MessageStatus"]);
+  if (statusOnlyTypes.has(type)) return true;
+  const hasInboundContent = Boolean(normalizeForMatch(messageRaw) || mediaUrl);
+  return !hasInboundContent && (Array.isArray(webhook?.ids) || Boolean(webhook?.messageId && webhook?.zaapId));
+}
+
+function isZapiFlowCategory(category: unknown): boolean {
+  const normalized = String(category || "contacts").toLowerCase().trim();
+  return !["telegram", "meta", "instagram", "facebook"].includes(normalized);
+}
+
+function resolveFlowStartNodeId(flow: any, triggerNode: any): string | undefined {
+  if (!triggerNode?.id) return undefined;
+  if (triggerNode?.type === "step" && triggerNode?.data?.kind === "gatilho") {
+    const edges = Array.isArray(flow?.edges) ? flow.edges : [];
+    const nextEdge = edges.find((edge: any) => String(edge.source) === String(triggerNode.id));
+    return nextEdge?.target || triggerNode.id;
+  }
+  return triggerNode.id;
 }
 
 async function hashValue(value: string): Promise<string> {
