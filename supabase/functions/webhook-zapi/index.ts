@@ -370,6 +370,7 @@ serve(async (req) => {
     const userId = instanceData?.user_id;
 
     if (isStatusOnlyCallback(type, webhook, messageRaw, mediaUrl)) {
+      if (instanceData) await ensureReceivedWebhook(instanceData).catch((error) => console.warn("[webhook-zapi] received webhook sync failed", error));
       console.log("[webhook-zapi] ignored status-only callback", { type, status: webhook?.status, phone, messageId });
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
