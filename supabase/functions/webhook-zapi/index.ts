@@ -1692,6 +1692,48 @@ async function executeFlow(
           }
         }
       }
+    } else if (node.type === "blocoCondicao") {
+      const conditions = Array.isArray(node.data.conditions)
+        ? node.data.conditions
+        : [{
+            variable: node.data.variable || "",
+            dataType: node.data.dataType || "string",
+            operator: node.data.operator || "equals",
+            compareValue: node.data.compareValue ?? node.data.condition ?? "",
+          }];
+      
+      let matchedIndex = -1;
+      for (let i = 0; i < conditions.length; i++) {
+        const cond = conditions[i];
+        const variableName = cond.variable?.replace(/[{}]/g, "") || "";
+        const variableValue = captured[variableName] || "";
+        
+        try {
+          const { data: evalData } = await supabase.functions.invoke("evaluate-condition", {
+            body: { 
+              value: variableValue, 
+              dataType: cond.dataType, 
+              operator: cond.operator, 
+              compareValue: cond.compareValue 
+            }
+          });
+          if (evalData?.result) {
+            matchedIndex = i;
+            break;
+          }
+        } catch (e) {
+          console.error("[Flow] Error evaluating condition:", e);
+        }
+      }
+
+      const handleId = matchedIndex === -1 ? "source-bottom" : (matchedIndex === 0 ? "a" : (matchedIndex === 1 ? "b" : `if-${matchedIndex}`));
+      const nextEdge = edges.find(
+        (e: any) =>
+          String(e.source) === String(currentNodeId) &&
+          String(e.sourceHandle) === handleId
+      );
+      currentNodeId = nextEdge?.target;
+      continue;
     }
 
     const nextEdge = edges.find(
