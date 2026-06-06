@@ -331,11 +331,13 @@ serve(async (req) => {
     const agentInboundText = await resolveAgentInboundText(messageRaw, incomingAudioUrl);
     const isButtonResponse = type === "ButtonsResponseMessage" || type === "ButtonReply" || type === "ListResponseMessage" || !!webhook?.buttonsResponseMessage || !!webhook?.buttonResponseMessage || !!webhook?.buttonReply || !!webhook?.listResponseMessage;
 
+    console.log("[webhook-zapi] processing inbound:", { userId, phone, fromMe, isButtonResponse, msg: messageRaw.slice(0, 50) });
+
     if (!fromMe || isButtonResponse) {
       console.log("[webhook-zapi] inbound payload:", JSON.stringify(webhook).slice(0, 500));
       console.log("[webhook-zapi] inbound detail:", { userId, phone, chatId, isGroup, msg: messageRaw.slice(0, 80) });
       const { data: activeFlows, error: activeErr } = await supabase.from("flow_captured_data").select("*").eq("user_id", userId).eq("phone", phone).not("last_node_id", "is", null);
-      console.log("[webhook-zapi] activeFlows", { count: activeFlows?.length || 0, error: activeErr?.message });
+      console.log("[webhook-zapi] activeFlows check:", { count: activeFlows?.length || 0, error: activeErr?.message, userId, phone });
       for (const flowState of activeFlows || []) {
         console.log("[webhook-zapi] resuming flow", flowState.flow_id, "at node", flowState.last_node_id);
         const { data: flow } = await supabase.from("flow_automations").select("*").eq("id", flowState.flow_id).single();
