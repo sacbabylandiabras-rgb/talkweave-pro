@@ -341,37 +341,38 @@ serve(async (req) => {
       console.log("[webhook-zapi] inbound payload:", JSON.stringify(webhook).slice(0, 500));
       console.log("[webhook-zapi] inbound detail:", { userId, phone, chatId, isGroup, msg: messageRaw.slice(0, 80) });
       
-      const { data: activeFlows, error: activeErr } = await supabase.from("flow_captured_data").select("*").eq("user_id", userId).eq("phone", phone).not("last_node_id", "is", null);
-      console.log("[webhook-zapi] activeFlows check:", { count: activeFlows?.length || 0, error: activeErr?.message, userId, phone });
+      const { data: activeFlowStates, error: activeErr } = await supabase.from("flow_captured_data").select("*").eq("user_id", userId).eq("phone", phone).not("last_node_id", "is", null);
+      console.log("[webhook-zapi] activeFlows check:", { count: activeFlowStates?.length || 0, error: activeErr?.message, userId, phone });
       
-      for (const flowState of activeFlows || []) {
-        console.log("[webhook-zapi] resuming flow", flowState.flow_id, "at node", flowState.last_node_id);
-        const { data: flow } = await supabase.from("flow_automations").select("*").eq("id", flowState.flow_id).single();
-        if (flow) {
-          await executeFlow(supabase, userId, phone, flow, flowState.last_node_id, flowState.captured_data || {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText, __is_resuming: true });
-          return new Response("ok", { status: 200, headers: corsHeaders });
+      if (activeFlowStates && activeFlowStates.length > 0) {
+        for (const flowState of activeFlowStates) {
+          console.log("[webhook-zapi] resuming flow", flowState.flow_id, "at node", flowState.last_node_id);
+          const { data: flow } = await supabase.from("flow_automations").select("*").eq("id", flowState.flow_id).single();
+          if (flow) {
+            await executeFlow(supabase, userId, phone, flow, flowState.last_node_id, flowState.captured_data || {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText, __is_resuming: true });
+            return new Response("ok", { status: 200, headers: corsHeaders });
+          }
         }
       }
 
-      console.log("[webhook-zapi] checking global keywords for", { flowsCount: activeFlows?.length || 0 });
+      console.log("[webhook-zapi] no active flow, checking global keywords for", { flowsCount: 0 });
       const { data: flows } = await supabase.from("flow_automations").select("*").eq("user_id", userId).eq("active", true);
       console.log("[webhook-zapi] active flows found:", flows?.length || 0);
+      
       for (const flow of flows || []) {
-        // Suporte para múltiplos tipos de gatilho
-        const triggerNode = flow.nodes.find((n: any) => n.type === "step" && n.data?.kind === "gatilho") || 
-                           flow.nodes.find((n: any) => n.type === "blocoInicial");
-        
-        let isMatch = false;
-        let startNodeId = triggerNode?.id;
-
-        const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim()).filter(Boolean);
-        
-        // Se for uma automação explicitamente de Telegram, pulamos
         if (flow.category === "telegram") {
            console.log(`[webhook-zapi] skipping telegram flow "${flow.name}"`);
            continue;
         }
 
+        const triggerNode = flow.nodes.find((n: any) => n.type === "step" && n.data?.kind === "gatilho") || 
+                           flow.nodes.find((n: any) => n.type === "blocoInicial");
+        
+        let isMatch = false;
+        const startNodeId = triggerNode?.id;
+
+        const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim()).filter(Boolean);
+        
         if (triggerNode?.type === "step" && triggerNode.data?.triggerType === "command") {
           const command = triggerNode.data.keyword || "";
           if (command && isKeywordMatch(messageRaw, command)) {
@@ -382,7 +383,7 @@ serve(async (req) => {
         }
 
         if (isMatch && startNodeId) {
-          console.log(`[webhook-zapi] keyword match found for flow "${flow.name}"`);
+          console.log(`[webhook-zapi] keyword match found for flow "${flow.name}" (id: ${flow.id})`);
           await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText });
           return new Response("ok", { status: 200, headers: corsHeaders });
         }
