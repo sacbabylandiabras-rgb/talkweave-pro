@@ -246,8 +246,7 @@ serve(async (req) => {
               }, 
               custom_data: { 
                 currency: "BRL", 
-                value: 1.0, 
-                status: "test_event",
+                value: 0.01, 
                 content_name: "Comprovante de Pagamento"
               } 
             }],
