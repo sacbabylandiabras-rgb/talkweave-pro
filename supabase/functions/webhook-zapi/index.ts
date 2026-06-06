@@ -240,7 +240,7 @@ serve(async (req) => {
               event_name: "Purchase", 
               event_time: Math.floor(Date.now() / 1000), 
               action_source: "website", 
-              event_source_url: "https://app.lovable.io",
+              event_source_url: "https://zaplynx.com",
               user_data: { 
                 ph: [hashedPhone],
                 external_id: [await hashValue(userId)]
