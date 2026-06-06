@@ -1463,6 +1463,16 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
         return false;
       }
 
+      // Validar antes de salvar
+      if (nodes.length <= 1) {
+        toast.error("Adicione blocos ao fluxo antes de salvar");
+        return false;
+      }
+
+      if (edges.length === 0 && nodes.some((n) => n.type !== "blocoInicial")) {
+        toast.warning("Fluxo sem conexões será salvo como está");
+      }
+
       const normalizedName = (nomeFluxo || "").trim() || "Novo Fluxo";
       const nodesToPersist = selectedNode
         ? nodes.map((node) => node.id === selectedNode.id ? { ...node, data: selectedNode.data } : node)
@@ -1495,11 +1505,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           .eq('user_id', user.id)
           .select('id');
 
-        if (error) {
-          console.error("Erro ao atualizar fluxo:", error);
-          toast.error(`Erro ao atualizar: ${error.message}`);
-          return false;
-        }
+        if (error) throw error;
 
         if (!updatedRows || updatedRows.length === 0) {
           const { data: createdFlow, error: insertError } = await (supabase as any)
@@ -1508,17 +1514,15 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
             .select('id')
             .single();
 
-          if (insertError) {
-            console.error("Erro ao recriar fluxo:", insertError);
-            toast.error(`Erro ao salvar: ${insertError.message}`);
-            return false;
-          }
+          if (insertError) throw insertError;
 
           setCurrentFluxoId(createdFlow.id);
           setNodes(nodesToPersist);
           setNomeFluxo(normalizedName);
           await fetchFluxos();
-          toast.success("Fluxo salvo com sucesso!");
+          toast.success("✓ Fluxo salvo com sucesso!", {
+            description: `${nodes.length} blocos, ${edges.length} conexões`,
+          });
           return createdFlow.id;
         }
       } else {
@@ -1528,28 +1532,30 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
           .select('id')
           .single();
 
-        if (error) {
-          console.error("Erro ao inserir fluxo:", error);
-          toast.error(`Erro ao salvar: ${error.message}`);
-          return false;
-        }
+        if (error) throw error;
 
         setCurrentFluxoId(data.id);
         setNodes(nodesToPersist);
         setNomeFluxo(normalizedName);
         await fetchFluxos();
-        toast.success("Fluxo salvo com sucesso!");
+        toast.success("✓ Fluxo salvo com sucesso!", {
+          description: `${nodes.length} blocos, ${edges.length} conexões`,
+        });
         return data.id;
       }
 
       setNodes(nodesToPersist);
       setNomeFluxo(normalizedName);
       await fetchFluxos();
-      toast.success("Fluxo salvo com sucesso!");
+      toast.success("✓ Fluxo salvo com sucesso!", {
+        description: `${nodes.length} blocos, ${edges.length} conexões`,
+      });
       return currentFluxoId || false;
     } catch (error: any) {
       console.error("Erro ao salvar fluxo:", error);
-      toast.error(`Erro ao salvar fluxo: ${error?.message || 'Erro desconhecido'}`);
+      toast.error("Erro ao salvar fluxo", {
+        description: error?.message || "Tente novamente",
+      });
       return false;
     } finally {
       setSavingFluxo(false);
