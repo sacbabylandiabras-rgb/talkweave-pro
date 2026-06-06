@@ -413,8 +413,16 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
                     event_name: "Purchase", 
                     event_time: Math.floor(Date.now() / 1000), 
                     action_source: "chat", 
-                    user_data: { ph: [hashedPhone] }, 
-                    custom_data: { currency: "BRL", value: 0.0, status: "proof_received" } 
+                    user_data: { 
+                      ph: [hashedPhone],
+                      external_id: [await hashValue(userId)]
+                    }, 
+                    custom_data: { 
+                      currency: "BRL", 
+                      value: 0.01, 
+                      status: "proof_received",
+                      content_name: "Comprovante de Pagamento"
+                    } 
                   }] 
                 };
                 
