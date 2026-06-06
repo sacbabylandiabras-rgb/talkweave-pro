@@ -117,7 +117,13 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
       if (data?.error) throw new Error(data.error);
 
       const siteTitle = data.title || url;
-      const cleanTitle = siteTitle.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
+      // Se a IA retornar "PayPal" ou se o título for genérico demais e a URL não tiver paypal, ignoramos o título da IA
+      let cleanSiteName = siteTitle.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
+      if ((siteTitle.toLowerCase().includes("paypal") || siteTitle.toLowerCase().includes("minha loja")) && !url.toLowerCase().includes("paypal")) {
+        cleanSiteName = url.replace(/^(https?:\/\/)?(www\.)?/, "").split(/[./]/)[0];
+        cleanSiteName = cleanSiteName.charAt(0).toUpperCase() + cleanSiteName.slice(1);
+      }
+
       const content = data.content;
       
       if (!content || content.length < 10) {
@@ -129,7 +135,7 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
       
       if (autoImportUrl) {
         // Advanced pre-fill of all information
-        const siteName = siteTitle.replace("🌐 ", "").split(/[|\-]/)[0]?.trim() || cleanTitle;
+        const siteName = siteTitle.replace("🌐 ", "").split(/[|\-]/)[0]?.trim() || cleanSiteName;
         const autoName = `Assistente ${siteName}`;
         setAgentName(autoName);
         
