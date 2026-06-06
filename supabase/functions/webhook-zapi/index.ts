@@ -374,26 +374,28 @@ serve(async (req) => {
         const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim().toLowerCase()).filter(Boolean);
         const normalizedMsg = normalizeForMatch(messageRaw);
         
-        console.log(`[webhook-zapi] Checking flow "${flow.name}" triggers. Msg: "${normalizedMsg}", Keywords: ${JSON.stringify(mainKeywords)}`);
+        // Also check if any node has keywords (the user might have configured keywords inside a "Gatilho" block)
+        const nodeKeywords = flow.nodes
+          .filter((n: any) => n.data?.keyword || n.data?.trigger_keywords)
+          .flatMap((n: any) => {
+            const k = n.data?.keyword || n.data?.trigger_keywords;
+            return Array.isArray(k) ? k : String(k).split(",").map((s: string) => s.trim().toLowerCase()).filter(Boolean);
+          });
+
+        const allKeywords = Array.from(new Set([...mainKeywords, ...nodeKeywords]));
+        
+        console.log(`[webhook-zapi] Checking flow "${flow.name}" triggers. Msg: "${normalizedMsg}", All Keywords: ${JSON.stringify(allKeywords)}`);
 
         // Prioritize exact match
-        if (mainKeywords.some((k: string) => normalizedMsg === k)) {
+        if (allKeywords.some((k: string) => normalizedMsg === k)) {
           isMatch = true;
           console.log(`[webhook-zapi] Exact keyword match for flow "${flow.name}"`);
         } 
         // Then partial match for keywords with at least 3 characters
-        else if (mainKeywords.some((k: string) => k.length >= 3 && normalizedMsg.includes(k))) {
+        else if (allKeywords.some((k: string) => k.length >= 3 && normalizedMsg.includes(k))) {
           isMatch = true;
           console.log(`[webhook-zapi] Partial keyword match for flow "${flow.name}"`);
         } 
-        // Then check if the node itself has a keyword (fallback)
-        else if (triggerNode?.data?.keyword) {
-          const nodeKeyword = normalizeForMatch(triggerNode.data.keyword);
-          if (normalizedMsg === nodeKeyword || (nodeKeyword.length >= 3 && normalizedMsg.includes(nodeKeyword))) {
-            isMatch = true;
-            console.log(`[webhook-zapi] Trigger node keyword match for flow "${flow.name}"`);
-          }
-        }
         // Then command match
         else if (triggerNode?.type === "step" && triggerNode.data?.triggerType === "command") {
           const command = normalizeForMatch(triggerNode.data.keyword || "");
