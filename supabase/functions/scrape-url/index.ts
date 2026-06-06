@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
 
 
 
-      if (isAnthropic) {
+      if (isAnthropic && !isLovable) {
         aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: {
