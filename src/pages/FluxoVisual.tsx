@@ -1110,13 +1110,17 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   }, [nodes, setNodes, setEdges]);
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
-    const normalizedNode =
-      isMensagemAudioBlock(node)
-        ? { ...node, data: { ...node.data, contentType: "audio" } }
-        : node;
-    setSelectedNode(normalizedNode);
+    // Buscar o nó ATUAL do estado, não do evento
+    const currentNode = nodes.find(n => n.id === node.id);
+    if (!currentNode) return;
+    
+    const normalizedNode = isMensagemAudioBlock(currentNode)
+      ? { ...currentNode, data: { ...currentNode.data, contentType: "audio" } }
+      : currentNode;
+      
+    setSelectedNode({ ...normalizedNode }); // Criar cópia nova
     setIsEditDialogOpen(true);
-  }, []);
+  }, [nodes]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
