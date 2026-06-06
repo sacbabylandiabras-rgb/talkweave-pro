@@ -335,20 +335,22 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
               }
             }
           } catch (pixelErr) { console.error(pixelErr); }
+          // If we matched the proof, we should clear the state so we don't loop
+          await supabase.from("flow_captured_data").delete().match({ user_id: userId, flow_id: flow.id, phone });
         } else if (!webhook?.__is_resuming) {
           // If not media and not resuming, we wait for the proof
           await supabase.from("flow_captured_data").upsert({ user_id: userId, flow_id: flow.id, flow_name: flow.name, phone, captured_data: captured, last_node_id: currentNodeId, source: isGroup ? "whatsapp_group" : "whatsapp", updated_at: new Date().toISOString() }, { onConflict: "user_id,flow_id,phone" });
           return;
+        } else if (webhook?.__is_resuming && !inboundText.includes("[media:")) {
+          // If resuming but still no media, keep waiting (don't break)
+          return;
         }
       } else {
         // Standard condition logic (if/else or specific filters)
-        // Here we can implement the logic for multi-conditions if needed, 
-        // but the current issue is reported as "stopped working" which usually means proof/flow logic
-        // For now, let's ensure proof block is solid.
+        // ...
       }
       
-      const handleId = matchedIndex === 0 ? "a" : "source-bottom";
-      const nextEdge = edges.find((e: any) => String(e.source) === String(currentNodeId) && String(e.sourceHandle) === (matchedIndex === 0 ? "a" : (e.sourceHandle || "source-bottom")));
+      const nextEdge = edges.find((e: any) => String(e.source) === String(currentNodeId) && String(e.sourceHandle) === (matchedIndex === 0 ? "a" : "source-bottom"));
       currentNodeId = nextEdge?.target;
       if (currentNodeId) continue;
       else break;
