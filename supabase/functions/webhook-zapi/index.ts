@@ -330,6 +330,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       
       if (node.data?.isProofBlock) {
         if (inboundText.includes("[media:")) {
+          console.log(`[webhook-zapi] Proof received from ${phone} on instance ${instanceId}`);
           matchedIndex = 0;
           try {
             const { data: pixels } = await supabase.from("gateway_pixels").select("*").eq("user_id", userId).eq("platform", "facebook").eq("active", true);
@@ -339,7 +340,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
                 const fbUrl = `https://graph.facebook.com/v17.0/${pixel.pixel_id}/events?access_token=${pixel.api_token}`;
                 const hashedPhone = await hashValue(phone.replace(/\D/g, ""));
                 const eventData = { data: [{ event_name: "Purchase", event_time: Math.floor(Date.now() / 1000), action_source: "chat", user_data: { ph: [hashedPhone] }, custom_data: { currency: "BRL", value: 0.0, status: "proof_received" } }] };
-                fetch(fbUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(eventData) }).catch(() => {});
+                fetch(fbUrl, { method: "POST", headers: { "Content-Type": "application/json", "Client-Token": clientToken || "" }, body: JSON.stringify(eventData) }).catch(() => {});
               }
             }
           } catch (pixelErr) { console.error(pixelErr); }
