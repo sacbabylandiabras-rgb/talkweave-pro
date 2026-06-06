@@ -587,7 +587,8 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       const content = node.data.content || "";
       const resolvedContent = content.replace(/\{\{nome\}\}/gi, captured.nome || "").replace(/\{\{whatsapp\}\}/gi, phone).replace(/\{\{email\}\}/gi, captured.email || "");
       const destination = isGroup ? chatId : phone;
-      await sendZapiText(instance, destination, resolvedContent, node.data.buttons, node.id, node.data.contentType || "text", node.data.mediaUrl || "", supabase, userId, flow.name, instanceId);
+      const sentInstanceId = instanceId || instance?.zapi_instance_id;
+      await sendZapiText(instance, destination, resolvedContent, node.data.buttons, node.id, node.data.contentType || "text", node.data.mediaUrl || "", supabase, userId, flow.name, sentInstanceId);
       
       if (node.data.buttons?.length > 0) {
         console.log("[webhook-zapi] node has buttons, waiting for response", node.id);
