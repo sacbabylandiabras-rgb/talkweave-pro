@@ -430,6 +430,12 @@ serve(async (req) => {
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
+    if (isOwnConnectedChat(webhook, phone, chatId, senderPhone)) {
+      await disableNotifySentByMe(instanceData).catch((error) => console.warn("[webhook-zapi] disable notify-sent-by-me failed", error));
+      console.log("[webhook-zapi] ignored own connected number chat", { phone, chatId, senderPhone, connectedPhone: getConnectedPhone(webhook), messageId });
+      return new Response("ok", { status: 200, headers: corsHeaders });
+    }
+
     if (userId && !fromMe && (webhook?.text || webhook?.message?.text || messageRaw.trim().length > 0)) {
       const contactPhone = isGroup ? senderPhone : sanitizeSenderPhone(phone || senderPhone);
       if (contactPhone) {
@@ -461,9 +467,12 @@ serve(async (req) => {
         for (const flowState of activeFlowStates) {
           console.log("[webhook-zapi] resuming flow", flowState.flow_id, "at node", flowState.last_node_id);
           const { data: flow } = await supabase.from("flow_automations").select("*").eq("id", flowState.flow_id).single();
-          if (flow) {
+          if (flow && flow.active === true && isZapiWhatsAppFlow(flow)) {
             await executeFlow(supabase, userId, phone, flow, flowState.last_node_id, flowState.captured_data || {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText, __is_resuming: true });
             return new Response("ok", { status: 200, headers: corsHeaders });
+          } else {
+            await supabase.from("flow_captured_data").delete().match({ user_id: userId, flow_id: flowState.flow_id, phone });
+            console.log("[webhook-zapi] removed stale/non-whatsapp flow state", { flowId: flowState.flow_id, phone });
           }
         }
       }
@@ -473,8 +482,8 @@ serve(async (req) => {
       console.log("[webhook-zapi] active flows found:", flows?.length || 0);
       
       for (const flow of flows || []) {
-        if (flow.category === "telegram") {
-           console.log(`[webhook-zapi] skipping telegram flow "${flow.name}"`);
+        if (!isZapiWhatsAppFlow(flow)) {
+           console.log(`[webhook-zapi] skipping non-whatsapp flow "${flow.name}"`, { category: flow.category });
            continue;
         }
 
