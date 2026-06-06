@@ -1078,20 +1078,61 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
   const onConnect = useCallback(
     (params: Connection) => {
-      console.log("Connecting:", params);
-      return setEdges((eds) => addEdge({
+      // 1. Validação básica
+      if (!params.source || !params.target) {
+        toast.error("Conexão inválida");
+        return;
+      }
+
+      // 2. Prevenir auto-conexão
+      if (params.source === params.target) {
+        toast.error("Não é possível conectar um bloco a si mesmo");
+        return;
+      }
+
+      // 3. Verificar se já existe conexão
+      const existe = edges.some(
+        (e) =>
+          e.source === params.source &&
+          e.target === params.target &&
+          e.sourceHandle === params.sourceHandle
+      );
+      if (existe) {
+        toast.warning("Esta conexão já existe");
+        return;
+      }
+
+      // 4. Simular adição e verificar ciclos
+      const newEdge = {
         ...params,
-        animated: true,
-        style: { stroke: '#2563EB', strokeWidth: 3, zIndex: 1000 },
-        markerEnd: { 
-          type: MarkerType.ArrowClosed, 
-          color: '#2563EB',
-          width: 20,
-          height: 20
-        },
-      }, eds));
+        id: `${params.source}->${params.target}`,
+      } as Edge;
+      const tempEdges = [...edges, newEdge];
+      if (detectCycles(nodes, tempEdges)) {
+        toast.error("Conexão criaria um loop infinito");
+        return;
+      }
+
+      // 5. Adicionar conexão com estilo
+      setEdges((eds) =>
+        addEdge(
+          {
+            ...params,
+            animated: true,
+            style: { stroke: '#2563EB', strokeWidth: 3, zIndex: 1000 },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: '#2563EB',
+              width: 20,
+              height: 20,
+            },
+          },
+          eds
+        )
+      );
+      toast.success("Blocos conectados!");
     },
-    [setEdges]
+    [edges, nodes, setEdges]
   );
 
   const onConnectStart = useCallback(
