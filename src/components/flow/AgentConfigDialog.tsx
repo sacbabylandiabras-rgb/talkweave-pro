@@ -359,6 +359,19 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
                     </div>
 
                     <div className="space-y-4 pt-4 border-t">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Configuração Inteligente</Label>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={handleFetchWebhookProducts} 
+                          disabled={urlLoading}
+                          className="h-8 gap-2 text-xs"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${urlLoading ? 'animate-spin' : ''}`} />
+                          Sincronizar Produtos via Webhook
+                        </Button>
+                      </div>
                       <div className="space-y-2">
                         <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Etapa 1: Triagem</Label>
                         <Textarea value={promptTriage} onChange={e => setPromptTriage(e.target.value)} rows={2} />
