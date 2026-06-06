@@ -1794,6 +1794,23 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
     if (outgoingEdges.length === 0) return;
 
+    if (currentNode?.type === "blocoCondicao") {
+      const pendingFlowId = flowIdForPending || currentFluxoId;
+      if (userId && pendingFlowId) {
+        await supabase.from("flow_captured_data").upsert({
+          user_id: userId,
+          flow_id: pendingFlowId,
+          flow_name: nomeFluxo,
+          phone: contact,
+          captured_data: {},
+          last_node_id: currentNodeId,
+          source: isGroupsMode ? "whatsapp_group" : "whatsapp",
+          updated_at: new Date().toISOString()
+        }, { onConflict: "user_id,flow_id,phone" });
+      }
+      return;
+    }
+
     // Filtrar apenas uma conexão por tipo de handle de saída para evitar duplicidade no envio
     const uniqueOutgoingEdges = new Map();
     outgoingEdges.forEach(edge => {
