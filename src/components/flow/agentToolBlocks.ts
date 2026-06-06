@@ -148,6 +148,17 @@ const RAW_AGENT_TOOL_BLOCKS: Omit<AgentToolBlock, "toolName">[] = [
   },
 ];
 
+/** Public catalogue with `toolName` derived from `name` */
+export const AGENT_TOOL_BLOCKS: AgentToolBlock[] = RAW_AGENT_TOOL_BLOCKS.map((b) => ({
+  ...b,
+  toolName: b.name,
+}));
+
+/** All distinct categories, in declaration order */
+export const AGENT_TOOL_CATEGORIES: string[] = Array.from(
+  new Set(AGENT_TOOL_BLOCKS.map((b) => b.category)),
+);
+
 /**
  * Encontra um bloco de ferramenta pelo nome
  * @param toolName - Nome da ferramenta (ex: "web-search")
