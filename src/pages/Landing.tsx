@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { LAST_PROTECTED_PATH_KEY, normalizeProtectedPath } from "@/lib/auth-route";
 
 const landingPaths: Record<string, string> = {
   "/": "top",
@@ -18,7 +20,23 @@ const sectionToPath = Object.fromEntries(
 const Landing = () => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const lastSyncedPath = useRef(window.location.pathname);
+
+  useEffect(() => {
+    if (location.pathname !== "/") return;
+
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!cancelled && session) {
+        navigate(normalizeProtectedPath(localStorage.getItem(LAST_PROTECTED_PATH_KEY)), { replace: true });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.pathname, navigate]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
