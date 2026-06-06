@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Download, Search, Trash2, RefreshCw, Database } from "lucide-react";
+import { Download, Search, Trash2, RefreshCw, Database, FileText } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
