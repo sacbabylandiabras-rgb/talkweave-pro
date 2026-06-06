@@ -107,6 +107,7 @@ import {
   ChevronRight,
   Webhook,
   Copy,
+  PackageCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BlocoInicialNode } from "@/components/flow/BlocoInicialNode";
@@ -468,6 +469,22 @@ const blocosDisponiveis = [
       operator: "contains",
       compareValue: "[media:", 
       isProofBlock: true
+    },
+  },
+
+  // ENTREGÁVEIS
+  {
+    type: "agentTool",
+    label: "Entregáveis",
+    icon: PackageCheck,
+    description: "Envia os conteúdos após o pagamento ser confirmado",
+    category: "Entregáveis",
+    extraData: { 
+      toolName: "entregaveis",
+      label: "Entregáveis",
+      description: "Envia os conteúdos (vídeo, foto, documento, texto) após o pagamento ser confirmado",
+      category: "Conhecimento",
+      instructions: "Use IMEDIATAMENTE após confirmar que o pagamento do lead foi aprovado. Envie todos os entregáveis configurados (vídeos, fotos, documentos, áudios e textos) na ordem definida, com legendas/instruções apropriadas. Confirme com o lead se recebeu tudo e ofereça suporte para acessar o conteúdo."
     },
   },
 
