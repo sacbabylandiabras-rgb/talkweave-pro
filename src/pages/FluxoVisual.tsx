@@ -1718,38 +1718,93 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
     }
   };
 
-  const processFlow = async (currentNodeId: string, contact: string, visitedNodes: Set<string>, instanceId?: string, userId?: string, provider: FlowSendProvider = "zapi", flowIdForPending?: string) => {
+  const processFlow = async (
+    currentNodeId: string,
+    contact: string,
+    visitedNodes: Set<string>,
+    instanceId?: string,
+    userId?: string,
+    provider: FlowSendProvider = "zapi",
+    flowIdForPending?: string
+  ) => {
     if (cancelSendRef.current) return;
-    if (visitedNodes.has(currentNodeId)) return;
+    
+    // Evitar loops infinitos
+    if (visitedNodes.has(currentNodeId)) {
+      console.log(`[FluxoVisual] Já visitou nó ${currentNodeId}, parando`);
+      return;
+    }
+    
     visitedNodes.add(currentNodeId);
 
+    // Buscar nó do estado atual
     const runtimeNodes = selectedNode
       ? nodes.map((node) => node.id === selectedNode.id ? { ...node, data: selectedNode.data } : node)
       : nodes;
-    const runtimeEdges = edges;
-    const nodeMap = new Map(runtimeNodes.map((n) => [n.id, n]));
-    const outgoingEdges = runtimeEdges
+    
+    const currentNode = runtimeNodes.find(n => n.id === currentNodeId);
+    if (!currentNode) {
+      console.warn(`[FluxoVisual] Nó ${currentNodeId} não encontrado`);
+      return;
+    }
+
+    // Processar conteúdo do nó atual se for um bloco de conteúdo
+    if (currentNode.type === "blocoConteudo" || currentNode.type === "blocoInicial") {
+      try {
+        await processNode(currentNode);
+        // Delay entre mensagens
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (err) {
+        console.error(`[FluxoVisual] Erro processando nó:`, err);
+        throw err;
+      }
+    }
+
+    // Encontrar próximas conexões
+    const outgoingEdges = edges
       .filter((e) => e.source === currentNodeId)
       .sort((a, b) => {
-        const handlePriority = (handle?: string | null) => {
-          if (!handle || handle === "default") return 0;
-          if (handle.startsWith("button-")) return 2;
-          return 1;
-        };
-
-        const priorityDiff = handlePriority(a.sourceHandle) - handlePriority(b.sourceHandle);
-        if (priorityDiff !== 0) return priorityDiff;
-
-        const aTarget = nodeMap.get(a.target);
-        const bTarget = nodeMap.get(b.target);
+        const aTarget = runtimeNodes.find(n => n.id === a.target);
+        const bTarget = runtimeNodes.find(n => n.id === b.target);
         const ay = aTarget?.position?.y ?? 0;
         const by = bTarget?.position?.y ?? 0;
+        
         if (ay !== by) return ay - by;
-
-        const ax = aTarget?.position?.x ?? 0;
-        const bx = bTarget?.position?.x ?? 0;
-        return ax - bx;
+        return (aTarget?.position?.x ?? 0) - (bTarget?.position?.x ?? 0);
       });
+
+    if (outgoingEdges.length === 0) {
+      console.log(`[FluxoVisual] Fim do fluxo - nó ${currentNodeId} sem saídas`);
+      return;
+    }
+
+    // Processar cada saída
+    for (const edge of outgoingEdges) {
+      const targetNode = runtimeNodes.find(n => n.id === edge.target);
+      if (!targetNode) continue;
+
+      // Recursivamente processar próximo nó
+      await processFlow(
+        targetNode.id,
+        contact,
+        visitedNodes,
+        instanceId,
+        userId,
+        provider,
+        flowIdForPending
+      );
+    }
+  };
+
+  // Mantendo processNode dentro do escopo se necessário, mas as alterações acima 
+  // já redefiniram a lógica principal do processFlow. 
+  // Vou apenas remover o código antigo que ficou "pendurado" após a substituição.
+  
+  const processNodePlaceholder = async (node: any) => {
+    // Esta função será substituída ou movida conforme necessário
+    // mas a lógica principal agora reside no processFlow atualizado
+  };
+
 
     // Process source node if it has content (BlocoInicial or other message nodes)
     const currentNode = nodeMap.get(currentNodeId);
