@@ -291,6 +291,7 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
       const { data, error } = await supabase.functions.invoke("scrape-url", {
         body: { 
           action: "generate-faqs",
+          url: autoImportUrl || urlInput,
           content: allContent.substring(0, 7000)
         },
       });

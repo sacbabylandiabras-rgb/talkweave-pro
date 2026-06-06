@@ -12,9 +12,27 @@ Deno.serve(async (req) => {
     const { url, action, content } = body;
 
     // Handle FAQ generation action
-    if (action === "generate-faqs" && content) {
+    if (action === "generate-faqs") {
       if (!LOVABLE_API_KEY) {
         return new Response(JSON.stringify({ error: "API Key não configurada" }), { status: 500, headers: corsHeaders });
+      }
+
+      let contentToUse = content;
+
+      if (!contentToUse && url) {
+        try {
+          let formattedUrl = url.trim();
+          if (!formattedUrl.startsWith("http://") && !formattedUrl.startsWith("https://")) {
+            formattedUrl = `https://${formattedUrl}`;
+          }
+          const scrapeRes = await fetch(formattedUrl, {
+            headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
+          });
+          if (scrapeRes.ok) {
+            contentToUse = await scrapeRes.text();
+            contentToUse = contentToUse.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "").replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "").substring(0, 15000);
+          }
+        } catch (e) { console.error("Internal scrape failed:", e); }
       }
 
       const aiResponse = await fetch("https://api.lovable.dev/v1/ai/chat", {
@@ -27,11 +45,11 @@ Deno.serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: "Você é um especialista em suporte ao cliente. Com base no conteúdo fornecido, gere exatamente 10 perguntas e respostas frequentes (FAQ) que os clientes costumam ter sobre esta loja/empresa. Retorne APENAS um JSON no formato: {\"faqs\": [{\"question\": \"...\", \"answer\": \"...\"}, ...]}"
+              content: "Você é um especialista em e-commerce e infoprodutos. Analise minuciosamente o conteúdo. Identifique: nicho, horário de atendimento, prazos de entrega, reembolso, rastreio e garantia. Gere EXATAMENTE 10 FAQs realistas. Retorne APENAS um JSON: {\"faqs\": [{\"question\": \"...\", \"answer\": \"...\"}, ...]}"
             },
             {
               role: "user",
-              content: `Gere 10 FAQs para este conteúdo:\n\n${content}`
+              content: `Analise este conteúdo e gere 10 FAQs detalhadas:\n\n${contentToUse || "Sem conteúdo disponível."}`
             }
           ],
           model: "gpt-4o-mini",
