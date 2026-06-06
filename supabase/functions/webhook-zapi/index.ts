@@ -1733,7 +1733,11 @@ async function executeFlow(
           String(e.sourceHandle) === handleId
       );
       currentNodeId = nextEdge?.target;
-      continue;
+      if (currentNodeId) {
+        continue;
+      } else {
+        break;
+      }
     }
 
     const nextEdge = edges.find(
