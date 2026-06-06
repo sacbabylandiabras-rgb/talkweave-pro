@@ -70,12 +70,23 @@ function isStatusOnlyCallback(type: string, webhook: any, messageRaw: string, me
 
 function resolveFlowStartNodeId(flow: any, triggerNode: any): string | undefined {
   if (!triggerNode?.id) return undefined;
-  if (triggerNode?.type === "step" && triggerNode?.data?.kind === "gatilho") {
+  const isTriggerNode =
+    triggerNode?.type === "blocoGatilho" ||
+    triggerNode?.type === "gatilho" ||
+    triggerNode?.type === "trigger" ||
+    (triggerNode?.type === "step" && triggerNode?.data?.kind === "gatilho");
+
+  if (isTriggerNode) {
     const edges = Array.isArray(flow?.edges) ? flow.edges : [];
     const nextEdge = edges.find((edge: any) => String(edge.source) === String(triggerNode.id));
     return nextEdge?.target || triggerNode.id;
   }
   return triggerNode.id;
+}
+
+function findDefaultNextEdge(edges: any[], currentNodeId: string) {
+  const sourceEdges = edges.filter((e: any) => String(e.source) === String(currentNodeId));
+  return sourceEdges.find((e: any) => !e.sourceHandle || ["default", "output", "source-right", "right", "source-bottom", "bottom"].includes(String(e.sourceHandle))) || sourceEdges[0];
 }
 
 async function ensureReceivedWebhook(instance: any, supabase: any) {
@@ -432,7 +443,7 @@ serve(async (req) => {
            continue;
         }
 
-        const triggerNode = flow.nodes.find((n: any) => n.type === "step" && n.data?.kind === "gatilho") || 
+        const triggerNode = flow.nodes.find((n: any) => n.type === "blocoGatilho" || n.type === "gatilho" || n.type === "trigger" || (n.type === "step" && n.data?.kind === "gatilho")) || 
                            flow.nodes.find((n: any) => n.type === "blocoInicial");
         
         let isMatch = false;
@@ -507,6 +518,12 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
     visited.add(String(currentNodeId));
     const node = nodes.find((n: any) => String(n.id) === String(currentNodeId));
     if (!node) break;
+
+    if (node.type === "blocoGatilho" || node.type === "gatilho" || node.type === "trigger" || (node.type === "step" && node.data?.kind === "gatilho")) {
+      currentNodeId = findDefaultNextEdge(edges, currentNodeId)?.target;
+      if (currentNodeId) console.log("[webhook-zapi] skipping trigger node and moving to", currentNodeId);
+      continue;
+    }
 
     if (node.type === "blocoConteudo" || node.type === "blocoInicial") {
       const content = node.data.content || "";
@@ -639,7 +656,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       }
     }
 
-    const nextEdge = edges.find((e: any) => String(e.source) === String(currentNodeId) && (!e.sourceHandle || e.sourceHandle === "default" || e.sourceHandle === "output"));
+    const nextEdge = findDefaultNextEdge(edges, currentNodeId);
     currentNodeId = nextEdge?.target;
     if (currentNodeId) console.log("[webhook-zapi] auto-advancing to next node", currentNodeId);
 
