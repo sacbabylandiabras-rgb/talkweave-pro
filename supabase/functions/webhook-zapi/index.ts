@@ -391,18 +391,23 @@ serve(async (req) => {
           isMatch = true;
           console.log(`[webhook-zapi] Exact keyword match for flow "${flow.name}"`);
         } 
-        // Then partial match for keywords with at least 3 characters
-        else if (allKeywords.some((k: string) => k.length >= 3 && normalizedMsg.includes(k))) {
-          isMatch = true;
-          console.log(`[webhook-zapi] Partial keyword match for flow "${flow.name}"`);
-        } 
-        // Then command match
+        // Command match
         else if (triggerNode?.type === "step" && triggerNode.data?.triggerType === "command") {
           const command = normalizeForMatch(triggerNode.data.keyword || "");
           if (command && normalizedMsg === command) {
             isMatch = true;
             console.log(`[webhook-zapi] Command match for flow "${flow.name}"`);
           }
+        }
+        // Then partial match for keywords with at least 2 characters (expanded from 3)
+        // This allows "oi" or "oih" to match "oi"
+        else if (allKeywords.some((k: string) => {
+          if (k.length < 2) return false;
+          // Check if message contains keyword OR keyword contains message (for very short inputs)
+          return normalizedMsg.includes(k) || k.includes(normalizedMsg);
+        })) {
+          isMatch = true;
+          console.log(`[webhook-zapi] Partial/Included keyword match for flow "${flow.name}"`);
         }
 
         if (isMatch && startNodeId) {
