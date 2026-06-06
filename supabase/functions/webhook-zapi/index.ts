@@ -304,7 +304,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const webhook = await req.json();
+    const rawBody = await req.text();
+    const webhook = JSON.parse(rawBody || "{}");
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     if (webhook?.test_event) {
@@ -392,6 +393,7 @@ serve(async (req) => {
     if (["ConnectedCallback", "DisconnectedCallback", "ReconnectedCallback"].includes(type) || ["CONNECTED", "DISCONNECTED", "RECONNECTED"].includes(webhook?.instanceStatus)) {
       const isConnected = ["ConnectedCallback", "ReconnectedCallback"].includes(type) || ["CONNECTED", "RECONNECTED"].includes(webhook?.instanceStatus);
       if (instanceId) {
+        console.log(`[webhook-zapi] instance status update: ${instanceId} -> ${isConnected ? "connected" : "disconnected"}`);
         await supabase.from("zapi_instances").update({ is_active: isConnected, updated_at: new Date().toISOString() }).or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`);
       }
       return new Response("ok", { status: 200, headers: corsHeaders });
@@ -587,7 +589,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       const content = node.data.content || "";
       const resolvedContent = content.replace(/\{\{nome\}\}/gi, captured.nome || "").replace(/\{\{whatsapp\}\}/gi, phone).replace(/\{\{email\}\}/gi, captured.email || "");
       const destination = isGroup ? chatId : phone;
-      const sentInstanceId = instanceId || instance?.zapi_instance_id;
+      const sentInstanceId = instance?.zapi_instance_id || instanceId;
       await sendZapiText(instance, destination, resolvedContent, node.data.buttons, node.id, node.data.contentType || "text", node.data.mediaUrl || "", supabase, userId, flow.name, sentInstanceId);
       
       if (node.data.buttons?.length > 0) {
