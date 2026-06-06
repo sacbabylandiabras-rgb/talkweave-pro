@@ -4793,12 +4793,13 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                           return;
                         }
 
-                        toast.info("Enviando evento de teste do Pixel...");
+                        const testCode = selectedNode.data.test_event_code || "TEST20723";
+                        toast.info(`Enviando evento de teste do Pixel (${testCode})...`);
                         
-                        const { data: response, error } = await supabase.functions.invoke('webhook-zapi', {
+                        const { data, error } = await supabase.functions.invoke('webhook-zapi', {
                           body: {
                             test_event: true,
-                            test_event_code: "TEST20723",
+                            test_event_code: testCode,
                             instanceId: "test-instance",
                             phone: "5511999999999",
                             moments: ["proof_of_payment"]
@@ -4807,7 +4808,17 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
                         if (error) throw error;
                         
-                        toast.success("Evento de teste enviado com sucesso!");
+                        if (data?.results?.length === 0) {
+                          toast.warning("Nenhum Pixel ativo encontrado para sua conta.");
+                        } else {
+                          const allSuccess = data?.results?.every((r: any) => !r.result?.error);
+                          if (allSuccess) {
+                            toast.success("Evento de teste enviado com sucesso! Verifique no Gerenciador de Eventos.");
+                          } else {
+                            const errorMsg = data?.results?.[0]?.result?.error?.message || "Erro na API do Facebook";
+                            toast.error(`Erro ao enviar: ${errorMsg}`);
+                          }
+                        }
                       } catch (error) {
                         console.error("Erro ao testar pixel:", error);
                         toast.error("Erro ao enviar evento de teste");
@@ -4820,14 +4831,28 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                           Este bloco interrompe o fluxo e aguarda o envio de um comprovante pelo lead. Assim que uma mídia for detectada, o fluxo seguirá pela saída única.
                         </div>
                         
-                        <div className="space-y-2 p-3 bg-muted/30 rounded-lg border border-border/40">
+                        <div className="space-y-3 p-3 bg-muted/30 rounded-lg border border-border/40">
                           <Label className="text-xs font-semibold flex items-center gap-2">
                             <Sparkles className="w-3 h-3 text-primary" />
                             Validação do Pixel
                           </Label>
-                          <p className="text-[10px] text-muted-foreground leading-relaxed">
-                            Use o botão abaixo para disparar um evento de teste e validar seu Pixel no Gerenciador de Eventos do Facebook.
-                          </p>
+                          
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px] text-muted-foreground uppercase font-bold">Código de Teste do Facebook</Label>
+                            <Input 
+                              placeholder="Ex: TEST12345" 
+                              className="h-8 text-xs bg-background"
+                              value={selectedNode.data.test_event_code || ""}
+                              onChange={(e) => setSelectedNode({
+                                ...selectedNode,
+                                data: { ...selectedNode.data, test_event_code: e.target.value }
+                              })}
+                            />
+                            <p className="text-[9px] text-muted-foreground">
+                              Pegue este código na aba "Testar Eventos" do seu Gerenciador de Eventos.
+                            </p>
+                          </div>
+
                           <Button 
                             variant="outline" 
                             size="sm" 
@@ -4835,7 +4860,7 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
                             onClick={handleTestPixel}
                           >
                             <TestTube className="w-3.5 h-3.5" />
-                            Testar Pixel (TEST20723)
+                            Disparar Evento de Teste
                           </Button>
                         </div>
 
