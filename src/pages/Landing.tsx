@@ -28,11 +28,18 @@ const Landing = () => {
     const scrollToCurrentPath = () => {
       const doc = iframe.contentDocument;
       const frameWindow = iframe.contentWindow;
+      if (!doc || !frameWindow) return;
+      const href = frameWindow.location.href;
+      if (!href || href === "about:blank") return;
       const section = landingPaths[window.location.pathname] || "top";
-      const target = doc?.getElementById(section);
+      const target = doc.getElementById(section);
       if (target) target.scrollIntoView({ behavior: "auto", block: "start" });
-      if (section !== "top") frameWindow?.history.replaceState(null, "", `#${section}`);
-      else frameWindow?.history.replaceState(null, "", "/landing/index.html");
+      try {
+        if (section !== "top") frameWindow.history.replaceState(null, "", `#${section}`);
+        else frameWindow.history.replaceState(null, "", "#");
+      } catch {
+        /* ignore cross-origin/about:blank state errors */
+      }
     };
 
     const syncPath = (section: string, mode: "push" | "replace" = "push") => {
