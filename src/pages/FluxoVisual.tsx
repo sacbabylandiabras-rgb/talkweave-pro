@@ -779,6 +779,12 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const leadPositions = useFlowLeadPositions(currentFluxoId);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const undoRedo = useUndoRedo();
+  const { hasUnsavedChanges } = useAutoBackup(nodes, edges, currentFluxoId, nomeFluxo, {
+    interval: 30000,
+    enabled: true,
+    maxBackups: 10,
+  });
+  const { isOnline } = useOfflineSync(currentFluxoId);
   const [showFluxosList, setShowFluxosList] = useState(true);
   const [loading, setLoading] = useState(false);
   const [savingFluxo, setSavingFluxo] = useState(false);
