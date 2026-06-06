@@ -197,7 +197,7 @@ export function BlocoCondicaoNode({ data }: any) {
                           <span className="font-medium">→ Próximo passo</span>
                         </div>
                         <div className="text-[10px] text-primary/70 italic leading-tight">
-                          Teste enviando "test_event_code: SEU_CODIGO" e anexe uma imagem
+                          Teste enviando "test_event_code: SEU_CODIGO"
                         </div>
                       </div>
                     ) : (
