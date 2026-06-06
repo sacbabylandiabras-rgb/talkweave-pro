@@ -1168,18 +1168,26 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
 
   const handleSaveNode = () => {
     if (!selectedNode) return;
+    
+    // Atualizar o nó no array de nós IMEDIATAMENTE
     setNodes((nds) =>
       nds.map((node) => {
         if (node.id === selectedNode.id) {
-          return { ...node, data: selectedNode.data };
+          return { ...node, data: { ...selectedNode.data } };
         }
         return node;
       })
     );
+    
+    // Limpar seleção e fechar modal
     setIsEditDialogOpen(false);
+    
+    // Acionar configuração de agente se necessário antes de resetar o nó selecionado
     if (selectedNode.type === "agenteIA") {
       setShowAgentConfig(true);
     }
+
+    setSelectedNode(null);
     toast.success("Bloco atualizado!");
   };
 
