@@ -647,7 +647,18 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
           } catch (pixelErr) { 
             console.error(`[webhook-zapi] Error sending pixel event:`, pixelErr); 
           }
-          await supabase.from("flow_captured_data").delete().match({ user_id: userId, flow_id: flow.id, phone });
+          const proofUrl = inboundText.match(/\[media:(?:image|video|audio|document|sticker|gif):(.+?)\]/)?.[1];
+          const updatedCaptured = { ...captured, proof_url: proofUrl || captured.proof_url };
+          await supabase.from("flow_captured_data").upsert({ 
+            user_id: userId, 
+            flow_id: flow.id, 
+            flow_name: flow.name, 
+            phone, 
+            captured_data: updatedCaptured, 
+            last_node_id: null, 
+            source: isGroup ? "whatsapp_group" : "whatsapp", 
+            updated_at: new Date().toISOString() 
+          }, { onConflict: "user_id,flow_id,phone" });
         } else if (!webhook?.__is_resuming) {
           await supabase.from("flow_captured_data").upsert({ user_id: userId, flow_id: flow.id, flow_name: flow.name, phone, captured_data: captured, last_node_id: currentNodeId, source: isGroup ? "whatsapp_group" : "whatsapp", updated_at: new Date().toISOString() }, { onConflict: "user_id,flow_id,phone" });
           return;
