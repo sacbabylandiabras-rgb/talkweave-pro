@@ -1,7 +1,40 @@
 import { Handle, Position } from "reactflow";
-import { GitBranch } from "lucide-react";
+import { GitBranch, TestTube } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
 
 export function BlocoCondicaoNode({ data }: any) {
+  const handleTestPixel = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Você precisa estar logado para testar o Pixel");
+        return;
+      }
+
+      toast.info("Enviando evento de teste do Pixel...");
+      
+      const { data: response, error } = await supabase.functions.invoke('webhook-zapi', {
+        body: {
+          test_event: true,
+          test_event_code: "TEST20723",
+          instanceId: "test-instance",
+          phone: "5511999999999",
+          moments: ["proof_of_payment"]
+        }
+      });
+
+      if (error) throw error;
+      
+      toast.success("Evento de teste enviado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao testar pixel:", error);
+      toast.error("Erro ao enviar evento de teste");
+    }
+  };
+
   const operatorShort: Record<string, string> = {
     equals: "=",
     not_equals: "≠",
@@ -189,10 +222,19 @@ export function BlocoCondicaoNode({ data }: any) {
                     <span className="font-medium">{b.label}</span>
                   </>
                 ) : isProofBlock ? (
-                  <>
-                    <span className="text-muted-foreground mr-1">Aguardando mídia</span>
-                    <span className="font-medium">→ Próximo passo</span>
-                  </>
+                  <div className="flex flex-col gap-2 w-full py-2 pr-1">
+                    <div className="flex items-center">
+                      <span className="text-muted-foreground mr-1">Aguardando mídia</span>
+                      <span className="font-medium">→ Próximo passo</span>
+                    </div>
+                    <button 
+                      onClick={handleTestPixel}
+                      className="flex items-center justify-center gap-1.5 px-2 py-1 bg-primary/20 hover:bg-primary/30 text-primary rounded text-[10px] font-medium transition-colors border border-primary/30 w-full mt-1"
+                    >
+                      <TestTube className="h-3 w-3" />
+                      Testar Pixel (TEST20723)
+                    </button>
+                  </div>
                 ) : (
                   <>
                     <span className="text-muted-foreground mr-1">se =</span>
