@@ -464,7 +464,11 @@ serve(async (req) => {
         sender_photo: senderPhoto,
         timestamp: new Date().toISOString()
       };
-      await supabase.from("message_logs").insert(logPayload).catch((err: any) => console.warn("[webhook-zapi] failed to log inbound message", err));
+      try {
+        await supabase.from("message_logs").insert(logPayload);
+      } catch (err: any) {
+        console.warn("[webhook-zapi] failed to log inbound message", err);
+      }
       
       console.log("[webhook-zapi] inbound payload:", JSON.stringify(webhook).slice(0, 500));
       console.log("[webhook-zapi] inbound detail:", { userId, phone, chatId, isGroup, msg: messageRaw.slice(0, 80) });
