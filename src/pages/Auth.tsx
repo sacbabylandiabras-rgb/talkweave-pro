@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { LAST_PROTECTED_PATH_KEY, normalizeProtectedPath } from "@/lib/auth-route";
 import { Loader2, ArrowLeft, Mail, Lock, User, Phone, TrendingUp, Zap } from "lucide-react";
 import { z } from "zod";
 import "./Landing.css";
@@ -35,12 +36,23 @@ const Auth = () => {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
 
+  const getRedirectPath = () => {
+    const from = (location.state as any)?.from;
+    const statePath = from ? `${from.pathname || ""}${from.search || ""}${from.hash || ""}` : null;
+    return normalizeProtectedPath(statePath || localStorage.getItem(LAST_PROTECTED_PATH_KEY));
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'USER_UPDATED') {
         toast({ title: "✅ Email confirmado!", description: "Agora você pode fazer login com suas credenciais." });
       }
     });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) navigate(getRedirectPath(), { replace: true });
+    });
+
     return () => subscription.unsubscribe();
   }, [navigate, toast]);
 
@@ -67,8 +79,7 @@ const Auth = () => {
         }
       }
       toast({ title: "Login realizado!", description: "Bem-vindo de volta" });
-      const origin = (location.state as any)?.from?.pathname || "/dashboard";
-      navigate(origin, { replace: true });
+      navigate(getRedirectPath(), { replace: true });
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({ title: "Dados inválidos", description: error.errors[0].message, variant: "destructive" });
