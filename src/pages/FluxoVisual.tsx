@@ -137,6 +137,12 @@ import { useMetaCredentials } from "@/hooks/useMetaCredentials";
 import { useMessageTemplates } from "@/hooks/useMessageTemplates";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { useUndoRedo } from "@/hooks/useUndoRedo";
+import { useAutoBackup } from "@/hooks/useAutoBackup";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
+import { useFlowExecutionHistory } from "@/hooks/useFlowExecutionHistory";
+import { useBlockAnalytics } from "@/hooks/useBlockAnalytics";
+import { FlowAnalyticsPanel } from "@/components/flow/FlowAnalyticsPanel";
 
 async function getInvokeErrorMessage(error: unknown, fallback: string) {
   if (!error) return fallback;
@@ -771,6 +777,8 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   const [telegramBots, setTelegramBots] = useState<TelegramBot[]>([]);
   const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
   const leadPositions = useFlowLeadPositions(currentFluxoId);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const undoRedo = useUndoRedo();
   const [showFluxosList, setShowFluxosList] = useState(true);
   const [loading, setLoading] = useState(false);
   const [savingFluxo, setSavingFluxo] = useState(false);
