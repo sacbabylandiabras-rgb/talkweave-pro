@@ -23,6 +23,7 @@ import {
   RefreshCw,
   Sparkles,
   Eye,
+  Key,
 } from "lucide-react";
 import { BaseBlockOption } from "./AddBlockDialog";
 
