@@ -186,7 +186,10 @@ Deno.serve(async (req) => {
         console.log("Using AI to refine extracted content...");
         let aiResponse;
         const isAnthropic = ANTHROPIC_API_KEY && (ANTHROPIC_API_KEY.startsWith("sk-ant-") || ANTHROPIC_API_KEY.startsWith("sk-"));
+        // Remove markdown tags if AI returns it wrapped in ```json ... ```
+        const cleanJson = (text: string) => text.replace(/```json/g, "").replace(/```/g, "").trim();
         console.log(`Refinement Provider decision: ${isAnthropic ? 'Anthropic' : 'Lovable/Gateway'}. Prefix: ${ANTHROPIC_API_KEY?.substring(0, 7)}`);
+
 
 
         if (isAnthropic) {
