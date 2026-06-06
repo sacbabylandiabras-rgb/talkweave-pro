@@ -688,12 +688,30 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
           }
         }
 
+        if (matchedIndex === -1 && conditions.length === 0 && node.data?.variable) {
+          const value = getCapturedValue(captured, node.data.variable, inboundText, phone);
+          const compareValue = String(node.data.compareValue ?? node.data.condition ?? "");
+          if (evaluateConditionValue(value, node.data.operator || "equals", compareValue)) {
+            matchedIndex = 0;
+            console.log("[webhook-zapi] legacy variable condition match", { nodeId: node.id, variable: node.data.variable });
+          } else if (findConditionEdge(edges, currentNodeId, 1)) {
+            matchedIndex = 1;
+            console.log("[webhook-zapi] legacy variable condition false branch", { nodeId: node.id, variable: node.data.variable });
+          }
+        }
+
         const branches = Array.isArray(node.data?.branches) ? node.data.branches : [];
         if (matchedIndex === -1 && branches.length > 0) {
           for (let index = 0; index < branches.length; index++) {
             const branch = branches[index];
             const branchValue = String(branch?.value || branch?.label || "");
-            if (branchValue && isKeywordMatch(inboundText, branchValue)) {
+            const branchOperator = String(branch?.operator || "contains");
+            const branchMatches = branchValue && (
+              branchOperator === "contains"
+                ? isKeywordMatch(inboundText, branchValue)
+                : evaluateConditionValue(inboundText, branchOperator, branchValue)
+            );
+            if (branchMatches) {
               matchedIndex = index;
               console.log("[webhook-zapi] branch match found", { nodeId: node.id, index, branchValue });
               break;
