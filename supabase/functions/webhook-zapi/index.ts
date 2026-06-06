@@ -372,7 +372,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       
       if (node.data?.isProofBlock) {
         if (inboundText.includes("[media:")) {
-          console.log(`[webhook-zapi] Proof received from ${phone} on instance ${instanceData?.zapi_instance_id || instanceId}`);
+          console.log(`[webhook-zapi] Proof received - Instance: ${instance?.zapi_instance_id || "N/A"} - Client: ${phone}`);
           matchedIndex = 0;
           try {
             const { data: pixels } = await supabase.from("gateway_pixels").select("*").eq("user_id", userId).eq("platform", "facebook").eq("active", true);
