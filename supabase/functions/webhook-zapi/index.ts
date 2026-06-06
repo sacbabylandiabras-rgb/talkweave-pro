@@ -649,6 +649,14 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
           }
           const proofUrl = inboundText.match(/\[media:(?:image|video|audio|document|sticker|gif):(.+?)\]/)?.[1];
           const updatedCaptured = { ...captured, proof_url: proofUrl || captured.proof_url };
+          
+          // Log explicitly if a proof was found
+          if (proofUrl) {
+            console.log(`[webhook-zapi] Media proof URL detected and saved to captured_data: ${proofUrl}`);
+          } else {
+            console.log(`[webhook-zapi] No specific media URL found in inboundText: ${inboundText}`);
+          }
+
           await supabase.from("flow_captured_data").upsert({ 
             user_id: userId, 
             flow_id: flow.id, 
