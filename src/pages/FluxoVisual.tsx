@@ -1162,32 +1162,6 @@ export default function FluxoVisual({ mode = "contacts" }: FluxoVisualProps = {}
   }, []);
 
   // 🔍 Função de DEBUG para verificar integridade do fluxo
-  const detectCycles = (allNodes: Node[], allEdges: Edge[]): boolean => {
-    const adj = new Map<string, string[]>();
-    allEdges.forEach((e) => {
-      if (!adj.has(e.source)) adj.set(e.source, []);
-      adj.get(e.source)!.push(e.target);
-    });
-
-    const visited = new Set<string>();
-    const stack = new Set<string>();
-
-    const dfs = (id: string): boolean => {
-      if (stack.has(id)) return true;
-      if (visited.has(id)) return false;
-      visited.add(id);
-      stack.add(id);
-      const neighbors = adj.get(id) || [];
-      for (const n of neighbors) {
-        if (dfs(n)) return true;
-      }
-      stack.delete(id);
-      return false;
-    };
-
-    return allNodes.some((n) => dfs(n.id));
-  };
-
   const testFlowIntegrity = useCallback(() => {
     console.group('🔍 Verificação de Integridade do Fluxo');
 
