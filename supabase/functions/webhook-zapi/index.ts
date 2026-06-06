@@ -347,11 +347,15 @@ serve(async (req) => {
         }
       }
 
+      console.log("[webhook-zapi] checking global keywords for", { flowsCount: activeFlows?.length || 0 });
       const { data: flows } = await supabase.from("flow_automations").select("*").eq("user_id", userId).eq("active", true).not("category", "in", "(telegram,meta)");
+      console.log("[webhook-zapi] active flows found:", flows?.length || 0);
       for (const flow of flows || []) {
         const normalizedMessage = normalizeForMatch(messageRaw);
         const mainKeywords = (flow.keyword || "").split(",").map((k: string) => k.trim()).filter(Boolean);
+        console.log(`[webhook-zapi] checking flow "${flow.name}" keywords:`, mainKeywords, "against:", normalizedMessage);
         if (mainKeywords.some((k: string) => isKeywordMatch(normalizedMessage, k))) {
+          console.log(`[webhook-zapi] keyword match found for flow "${flow.name}"`);
           const initialNode = flow.nodes.find((n: any) => n.type === "blocoInicial");
           if (initialNode) {
             await executeFlow(supabase, userId, phone, flow, initialNode.id, {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText });
