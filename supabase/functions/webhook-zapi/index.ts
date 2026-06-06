@@ -330,20 +330,44 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       
       if (node.data?.isProofBlock) {
         if (inboundText.includes("[media:")) {
-          console.log(`[webhook-zapi] Proof received from ${phone} on instance ${instanceId}`);
+          console.log(`[webhook-zapi] Proof received from ${phone} on instance ${instanceData?.zapi_instance_id || instanceId}`);
           matchedIndex = 0;
           try {
             const { data: pixels } = await supabase.from("gateway_pixels").select("*").eq("user_id", userId).eq("platform", "facebook").eq("active", true);
             if (pixels) {
+              console.log(`[webhook-zapi] Found ${pixels.length} active pixels for user ${userId}`);
               for (const pixel of pixels) {
-                if (!pixel.pixel_id || !pixel.api_token) continue;
+                if (!pixel.pixel_id || !pixel.api_token) {
+                  console.log(`[webhook-zapi] Pixel ${pixel.id} missing ID or token`);
+                  continue;
+                }
                 const fbUrl = `https://graph.facebook.com/v17.0/${pixel.pixel_id}/events?access_token=${pixel.api_token}`;
                 const hashedPhone = await hashValue(phone.replace(/\D/g, ""));
-                const eventData = { data: [{ event_name: "Purchase", event_time: Math.floor(Date.now() / 1000), action_source: "chat", user_data: { ph: [hashedPhone] }, custom_data: { currency: "BRL", value: 0.0, status: "proof_received" } }] };
-                fetch(fbUrl, { method: "POST", headers: { "Content-Type": "application/json", "Client-Token": clientToken || "" }, body: JSON.stringify(eventData) }).catch(() => {});
+                const eventData = { 
+                  data: [{ 
+                    event_name: "Purchase", 
+                    event_time: Math.floor(Date.now() / 1000), 
+                    action_source: "chat", 
+                    user_data: { ph: [hashedPhone] }, 
+                    custom_data: { currency: "BRL", value: 0.0, status: "proof_received" } 
+                  }] 
+                };
+                
+                console.log(`[webhook-zapi] Sending Purchase event to Pixel ${pixel.pixel_id}`);
+                const fbRes = await fetch(fbUrl, { 
+                  method: "POST", 
+                  headers: { "Content-Type": "application/json" }, 
+                  body: JSON.stringify(eventData) 
+                });
+                const fbResult = await fbRes.json();
+                console.log(`[webhook-zapi] Pixel response:`, fbResult);
               }
+            } else {
+              console.log(`[webhook-zapi] No active pixels found for user ${userId}`);
             }
-          } catch (pixelErr) { console.error(pixelErr); }
+          } catch (pixelErr) { 
+            console.error(`[webhook-zapi] Error sending pixel event:`, pixelErr); 
+          }
           await supabase.from("flow_captured_data").delete().match({ user_id: userId, flow_id: flow.id, phone });
         } else if (!webhook?.__is_resuming) {
           await supabase.from("flow_captured_data").upsert({ user_id: userId, flow_id: flow.id, flow_name: flow.name, phone, captured_data: captured, last_node_id: currentNodeId, source: isGroup ? "whatsapp_group" : "whatsapp", updated_at: new Date().toISOString() }, { onConflict: "user_id,flow_id,phone" });
