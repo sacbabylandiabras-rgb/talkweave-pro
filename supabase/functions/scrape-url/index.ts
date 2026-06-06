@@ -236,7 +236,7 @@ Deno.serve(async (req) => {
                   content: `Extraia as informações principais deste site:\n\nURL: ${formattedUrl}\n\nTexto Bruto:\n${text.substring(0, 7000)}`
                 }
               ],
-              model: "gpt-4o-mini"
+              model: "openai/gpt-5-mini"
             }),
           });
         }
