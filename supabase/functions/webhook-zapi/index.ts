@@ -677,6 +677,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
           return;
         }
       } else {
+        // 1. Check conditions (variable-based)
         const conditions = Array.isArray(node.data?.conditions) ? node.data.conditions : [];
         for (let index = 0; index < conditions.length; index++) {
           const condition = conditions[index];
@@ -688,6 +689,7 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
           }
         }
 
+        // 2. Legacy variable match
         if (matchedIndex === -1 && conditions.length === 0 && node.data?.variable) {
           const value = getCapturedValue(captured, node.data.variable, inboundText, phone);
           const compareValue = String(node.data.compareValue ?? node.data.condition ?? "");
@@ -700,17 +702,21 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
           }
         }
 
+        // 3. Check branches (direct response matching)
         const branches = Array.isArray(node.data?.branches) ? node.data.branches : [];
         if (matchedIndex === -1 && branches.length > 0) {
           for (let index = 0; index < branches.length; index++) {
             const branch = branches[index];
             const branchValue = String(branch?.value || branch?.label || "");
             const branchOperator = String(branch?.operator || "contains");
+            
+            // Allow matching "sim" or "não" directly as strings
             const branchMatches = branchValue && (
               branchOperator === "contains"
                 ? isKeywordMatch(inboundText, branchValue)
                 : evaluateConditionValue(inboundText, branchOperator, branchValue)
             );
+            
             if (branchMatches) {
               matchedIndex = index;
               console.log("[webhook-zapi] branch match found", { nodeId: node.id, index, branchValue });
@@ -719,32 +725,48 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
           }
         }
 
+        // 4. Legacy simple condition match
         if (matchedIndex === -1 && node.data?.condition && isKeywordMatch(inboundText, node.data.condition)) {
           matchedIndex = 0;
           console.log("[webhook-zapi] legacy condition match found", { nodeId: node.id });
         }
 
+        // 5. Final fallback/else
         if (matchedIndex === -1) {
           const elseEdge = findConditionEdge(edges, currentNodeId, -1);
-          if (isResumingThisNode && elseEdge) {
-            console.log("[webhook-zapi] no match, following else/default path", { nodeId: node.id, target: elseEdge.target });
+          if (isResumingThisNode) {
+             // If we are resuming (user replied) and still no match, follow Else/Fallback
+             if (elseEdge) {
+               matchedIndex = -1; // -1 triggers findConditionEdge to look for fallback/else handles
+               console.log("[webhook-zapi] no match, following else/default path", { nodeId: node.id, target: elseEdge.target });
+             } else {
+               console.log("[webhook-zapi] no match and no else path, stopping flow", { nodeId: node.id });
+               await supabase.from("flow_captured_data").delete().match({ user_id: userId, flow_id: flow.id, phone });
+               return;
+             }
           } else {
-            console.log("[webhook-zapi] no condition match, saving state and waiting", { nodeId: node.id, inbound: normalizedInbound });
+            // First time hitting this node, wait for user input
+            console.log("[webhook-zapi] waiting for user input on condition node", { nodeId: node.id });
             await saveFlowState(supabase, userId, phone, flow, captured, currentNodeId, isGroup);
             return;
           }
         }
       }
 
-      if (isResumingThisNode || matchedIndex >= 0) {
+      // Cleanup state if we found a path
+      if (isResumingThisNode || matchedIndex >= 0 || matchedIndex === -1) {
         await supabase.from("flow_captured_data").delete().match({ user_id: userId, flow_id: flow.id, phone });
       }
 
       const nextEdge = findConditionEdge(edges, currentNodeId, matchedIndex);
-      console.log("[webhook-zapi] condition route", { nodeId: node.id, matchedIndex, sourceHandle: nextEdge?.sourceHandle, target: nextEdge?.target });
-      currentNodeId = nextEdge?.target;
-      if (currentNodeId) continue;
-      break;
+      if (nextEdge) {
+        console.log("[webhook-zapi] condition route", { nodeId: node.id, matchedIndex, sourceHandle: nextEdge?.sourceHandle, target: nextEdge?.target });
+        currentNodeId = nextEdge.target;
+        continue;
+      } else {
+        console.log("[webhook-zapi] no edge found for matchedIndex", matchedIndex);
+        break;
+      }
     }
 
     const nextEdge = findDefaultNextEdge(edges, currentNodeId);
