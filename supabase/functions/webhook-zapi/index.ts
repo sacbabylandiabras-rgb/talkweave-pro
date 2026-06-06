@@ -394,8 +394,9 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
       console.log("[webhook-zapi] processing condition node", node.id, "inbound:", inboundText);
       
       if (node.data?.isProofBlock) {
-        if (inboundText.includes("[media:")) {
-          console.log(`[webhook-zapi] Proof received - Instance: ${instance?.zapi_instance_id || "N/A"} - Client: ${phone}`);
+        const isTestEvent = inboundText.includes("test_event_code:");
+        if (inboundText.includes("[media:") || isTestEvent) {
+          console.log(`[webhook-zapi] Proof received (or test event) - Instance: ${instance?.zapi_instance_id || "N/A"} - Client: ${phone}`);
           matchedIndex = 0;
           try {
             const { data: pixels } = await supabase.from("gateway_pixels").select("*").eq("user_id", userId).in("platform", ["facebook", "meta"]).eq("active", true);
@@ -408,12 +409,13 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
                 }
                 const fbUrl = `https://graph.facebook.com/v17.0/${pixel.pixel_id}/events?access_token=${pixel.api_token}`;
                 const hashedPhone = await hashValue(phone.replace(/\D/g, ""));
+                const testCode = isTestEvent ? inboundText.replace(/^(test_event_code:?\s*)+/i, "").trim() : null;
                 const eventData = { 
                   data: [{ 
                     event_name: "Purchase", 
                     event_time: Math.floor(Date.now() / 1000), 
                     action_source: "website", 
-                    event_source_url: "https://app.lovable.io",
+                    event_source_url: "https://zaplynx.com",
                     user_data: { 
                       ph: [hashedPhone],
                       external_id: [await hashValue(userId)]
@@ -423,7 +425,8 @@ async function executeFlow(supabase: any, userId: string, phone: string, flow: a
                       value: 0.01, 
                       content_name: "Comprovante de Pagamento"
                     } 
-                  }] 
+                  }],
+                  test_event_code: testCode
                 };
                 
                 console.log(`[webhook-zapi] Sending Purchase event to Pixel ${pixel.pixel_id}`);
