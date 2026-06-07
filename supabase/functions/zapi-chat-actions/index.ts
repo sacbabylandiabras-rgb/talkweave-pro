@@ -123,16 +123,16 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'business-profile') {
-        const statusRes = await fetch(withToken('/instance/status'), { headers: { token: apiToken } });
+        const statusRes = await fetch(withToken(`/instance/status/${inst}`), { headers: evolutionHeaders });
         const raw = await statusRes.json().catch(() => ({}));
-        const inst = raw?.instance || {};
+        const instData = raw?.instance || {};
         let business = raw?.business || raw?.businessProfile || {};
 
-        if (inst.owner) {
-          const jid = String(inst.owner).includes('@') ? String(inst.owner) : `${String(inst.owner).replace(/\D/g, '')}@s.whatsapp.net`;
-          const businessRes = await fetch(`${apiUrl}/business/get/profile`, {
+        if (instData.owner) {
+          const jid = String(instData.owner).includes('@') ? String(instData.owner) : `${String(instData.owner).replace(/\D/g, '')}@s.whatsapp.net`;
+          const businessRes = await fetch(withToken(`/business/get/profile/${inst}`), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', token: apiToken },
+            headers: evolutionHeaders,
             body: JSON.stringify({ jid }),
           });
           const businessRaw = await businessRes.json().catch(() => ({}));
@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
         }
 
         const profile = {
-          description: business.description || inst.profileName || creds.instanceName || '',
+          description: business.description || instData.profileName || creds.instanceName || '',
           email: business.email || '',
           address: business.address || '',
           websites: Array.isArray(business.websites) ? business.websites : [],
@@ -151,24 +151,22 @@ Deno.serve(async (req) => {
               })).filter((category: any) => category.id || category.label)
             : [],
           businessHours: null,
-          profileName: inst.profileName || null,
-          profilePicUrl: inst.profilePicUrl || null,
-          owner: inst.owner || null,
-          status: inst.status || null,
-          isBusiness: inst.isBusiness ?? null,
+          profileName: instData.profileName || null,
+          profilePicUrl: instData.profilePicUrl || null,
+          owner: instData.owner || null,
+          status: instData.status || null,
+          isBusiness: instData.isBusiness ?? null,
         };
         return new Response(JSON.stringify({ data: profile }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       if (action === 'get-business-categories') {
-        const res = await fetch(`${apiUrl}/business/get/categories`, {
+        const res = await fetch(withToken(`/business/get/categories/${inst}`), {
           method: 'GET',
-          headers: { token: apiToken },
+          headers: evolutionHeaders,
         });
         const data = await res.json().catch(() => ({}));
-        // Normalize various possible shapes into { response: [{ id, label }] }
-        const raw = Array.isArray(data) ? data
-          : (data?.response || data?.categories || data?.data || data?.result || []);
+        const raw = Array.isArray(data) ? data : (data?.response || data?.categories || data?.data || data?.result || []);
         const normalized = (Array.isArray(raw) ? raw : []).map((c: any) => ({
           id: String(c?.id ?? c?.value ?? c?.code ?? c?.key ?? ''),
           label: String(c?.localized_display_name ?? c?.name ?? c?.label ?? c?.display_name ?? c?.title ?? c?.id ?? ''),
@@ -177,9 +175,9 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'update-business-categories') {
-        const res = await fetch(`${apiUrl}/business/update/profile`, {
+        const res = await fetch(withToken(`/business/update/profile/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ categories: payload?.categories || [] }),
         });
         const data = await res.json().catch(() => ({}));
