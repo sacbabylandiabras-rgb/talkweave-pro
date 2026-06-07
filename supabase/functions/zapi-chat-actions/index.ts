@@ -121,6 +121,30 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ data: { value: list } }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
+      if (action === 'business-profile') {
+        const res = await fetch(withToken('/instance/status'), { headers: { token: apiToken } });
+        const raw = await res.json().catch(() => ({}));
+        const inst = raw?.instance || {};
+        const profile = {
+          description: inst.profileName || creds.instanceName || '',
+          email: '',
+          address: '',
+          websites: [],
+          categories: [],
+          businessHours: null,
+          profileName: inst.profileName || null,
+          profilePicUrl: inst.profilePicUrl || null,
+          owner: inst.owner || null,
+          status: inst.status || null,
+          isBusiness: inst.isBusiness ?? null,
+        };
+        return new Response(JSON.stringify({ data: profile }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'list-products' || action === 'create-product' || action === 'edit-product' || action === 'delete-product' || action === 'save-catalog-config' || action === 'create-product-v2') {
+        return new Response(JSON.stringify({ data: { products: [], nextCursor: null }, unsupported: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
       if (action.startsWith('set-')) {
          const body: any = {};
          const val = String(payload.visualizationType || '').toLowerCase();

@@ -98,10 +98,15 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
 };
 
  const PerfilEmpresa = () => {
-   const { instances: allInstances, loading: loadingInstances } = useZapiInstances({ provider: 'zapi' });
+   const { instances: allInstances, loading: loadingInstances } = useZapiInstances();
    
    const instances = useMemo(() => {
-     return allInstances.filter((i: any) => (i.api_provider || 'zapi') === 'zapi' && !isMobileZapiInstance(i));
+     return allInstances.filter((i: any) => {
+       const provider = String(i.api_provider || 'zapi').toLowerCase();
+       if (provider === 'meta') return false;
+       if (provider.includes('warmup')) return false;
+       return !isMobileZapiInstance(i);
+     });
    }, [allInstances]);
  
   const [searchParams, setSearchParams] = useSearchParams();
