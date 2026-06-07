@@ -418,6 +418,46 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
             </Select>
           </div>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {instances.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setProfileDialogOpen(true)} className="h-9 text-xs">
+              <User className="w-4 h-4 mr-1" />
+              Perfil WhatsApp
+            </Button>
+          )}
+          {instances.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setCollectionDialogOpen(true)} className="h-9 text-xs">
+              <LayoutGrid className="w-4 h-4 mr-1" />
+              Criar Coleção
+            </Button>
+          )}
+          {instances.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setProductDialogOpen(true)} className="h-9 text-xs">
+              <Package className="w-4 h-4 mr-1" />
+              Criar Produto
+            </Button>
+          )}
+          {instances.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setBusinessDialogOpen(true)} className="h-9 text-xs">
+              <Building2 className="w-4 h-4 mr-1" />
+              Perfil da Empresa
+            </Button>
+          )}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-9 text-xs"
+            onClick={() => {
+              fetchProfile(selectedInstanceId);
+              setSearchPhone("");
+              fetchProducts(selectedInstanceId);
+            }} 
+            disabled={loading || loadingProducts || !selectedInstanceId}
+          >
+            <RefreshCw className={`w-4 h-4 mr-1 ${loading || loadingProducts ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       <Tabs
