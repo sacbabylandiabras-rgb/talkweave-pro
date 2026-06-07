@@ -414,6 +414,7 @@ export const useMessageLogs = (
   const [savedContacts, setSavedContacts] = useState<Map<string, SavedContact>>(new Map());
   const [groupNames, setGroupNames] = useState<Map<string, string>>(new Map());
   const [groupPhotos, setGroupPhotos] = useState<Map<string, string>>(new Map());
+  const [groupCommunities, setGroupCommunities] = useState<Map<string, boolean>>(new Map());
   const [localManualPhotos, setLocalManualPhotos] = useState<Map<string, string>>(new Map());
   const [groupSourceInstances, setGroupSourceInstances] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -1054,6 +1055,7 @@ export const useMessageLogs = (
         if (error || !data?.groups) return;
         const map = new Map(groupNames);
         const photoMap = new Map(groupPhotos);
+        const communityMap = new Map(groupCommunities);
         const instanceMap = new Map<string, string>();
         for (const g of data.groups) {
           if (!g.id) continue;
@@ -1069,6 +1071,9 @@ export const useMessageLogs = (
             photoMap.set(rawId, g.foto);
             photoMap.set(normalizedId, g.foto);
           }
+          const isCommunity = g.isCommunity === true || String(g.typeLabel || "").toLowerCase() === "comunidade";
+          communityMap.set(rawId, isCommunity);
+          communityMap.set(normalizedId, isCommunity);
           if (g.sourceInstanceId) {
             instanceMap.set(rawId, g.sourceInstanceId);
             instanceMap.set(normalizedId, g.sourceInstanceId);
@@ -1076,6 +1081,7 @@ export const useMessageLogs = (
         }
         setGroupNames(map);
         setGroupPhotos(photoMap);
+        setGroupCommunities(communityMap);
         setGroupSourceInstances(instanceMap);
       } catch {
         /* ignore */
@@ -1271,6 +1277,10 @@ export const useMessageLogs = (
         const latestInboundLog = sortedConversationLogs.find(isConversationBoundInstanceLog);
         const normalizedPhone = normalizeConversationPhone(phone);
         const saved = safeMapGet(savedContacts, phone) || safeMapGet(savedContacts, normalizedPhone);
+        const isCommunity = saved?.is_community === true
+          || safeMapGet(groupCommunities, phone) === true
+          || safeMapGet(groupCommunities, normalizedPhone) === true
+          || isCommunityPhone(phone);
         const campaignName = !saved?.name
           ? campaignSends.find((s) => normalizeConversationPhone(s.phone) === phone && s.contact_name)?.contact_name
           : null;
@@ -1320,7 +1330,7 @@ export const useMessageLogs = (
           unreadCount: 0,
           messages: visibleMessages,
           preferredInstanceId,
-          isCommunity: saved?.is_community || false,
+          isCommunity,
           communityId: saved?.community_id || null,
           agent_stage:
             saved?.agent_stage ||
@@ -1365,6 +1375,7 @@ export const useMessageLogs = (
     savedContacts,
     groupNames,
     groupPhotos,
+    groupCommunities,
     groupSourceInstances,
     localManualPhotos,
     deletedPhones,
