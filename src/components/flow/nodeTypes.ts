@@ -40,7 +40,7 @@ export const nodeTypes: NodeTypes = {
   agenteIA: BlocoAgenteIANode,
   agenteTool: BlocoAgentToolNode,
   agentTool: BlocoAgentToolNode, // alias retrocompatível
-} as const;
+};
 
 export function isValidNodeType(type: string): boolean {
   return type in nodeTypes;
