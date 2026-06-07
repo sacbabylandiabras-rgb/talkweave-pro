@@ -56,7 +56,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     isSpecial: true,
     nodes: [
       {
-        id: "1",
+        id: "rv-1",
         type: "blocoGatilho",
         position: { x: 250, y: 50 },
         data: { 
@@ -66,7 +66,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "2",
+        id: "rv-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -77,7 +77,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "3",
+        id: "rv-3",
         type: "agenteIA",
         position: { x: 250, y: 400 },
         data: {
@@ -87,7 +87,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "4",
+        id: "rv-4",
         type: "blocoAcao",
         position: { x: 450, y: 130 },
         data: {
@@ -98,9 +98,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
       },
     ],
     edges: [
-      edge("1", "4"),
-      edge("4", "2"),
-      edge("2", "3")
+      edge("rv-1", "rv-4"),
+      edge("rv-4", "rv-2"),
+      edge("rv-2", "rv-3")
     ],
   },
   // ===== CONTATOS =====
