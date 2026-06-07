@@ -60,6 +60,11 @@ interface BusinessProfile {
     catalogId?: string;
   };
   catalogId?: string;
+  profileName?: string | null;
+  profilePicUrl?: string | null;
+  owner?: string | null;
+  status?: string | null;
+  isBusiness?: boolean | null;
 }
 
 const formatErrorMessage = (value: unknown, fallback = "Não foi possível concluir a operação."): string => {
@@ -98,10 +103,15 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
 };
 
  const PerfilEmpresa = () => {
-   const { instances: allInstances, loading: loadingInstances } = useZapiInstances({ provider: 'zapi' });
+   const { instances: allInstances, loading: loadingInstances } = useZapiInstances();
    
    const instances = useMemo(() => {
-     return allInstances.filter((i: any) => (i.api_provider || 'zapi') === 'zapi' && !isMobileZapiInstance(i));
+     return allInstances.filter((i: any) => {
+       const provider = String(i.api_provider || 'zapi').toLowerCase();
+       if (provider === 'meta') return false;
+       if (provider.includes('warmup')) return false;
+       return !isMobileZapiInstance(i);
+     });
    }, [allInstances]);
  
   const [searchParams, setSearchParams] = useSearchParams();
@@ -499,6 +509,28 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {(profile.profilePicUrl || profile.profileName || profile.owner) && (
+                    <div className="flex items-center gap-3 pb-3 border-b border-border/40">
+                      {profile.profilePicUrl ? (
+                        <img
+                          src={profile.profilePicUrl}
+                          alt={profile.profileName || 'Perfil'}
+                          className="w-14 h-14 rounded-full object-cover border border-border/50"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center border border-border/50">
+                          <User className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate">{profile.profileName || 'Conexão ativa'}</p>
+                        {profile.owner && (
+                          <p className="text-xs text-muted-foreground font-mono">+{String(profile.owner).replace(/\D/g, '')}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">Descrição</Label>
