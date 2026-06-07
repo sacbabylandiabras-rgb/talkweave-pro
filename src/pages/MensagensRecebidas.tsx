@@ -2478,6 +2478,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
     deleteConversation,
     clearFetchedPhotosCache,
     updateContactStage,
+    lidMap,
     refetch: refetchLogs,
   } = useMessageLogs(
     filterZapiInstanceId,
