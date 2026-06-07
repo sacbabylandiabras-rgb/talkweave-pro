@@ -390,6 +390,7 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
   }
 
   return (
+    <>
     <div className="container mx-auto py-6 space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -971,7 +972,7 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
       <BulkCreateCollection instances={instances} open={collectionDialogOpen} onOpenChange={setCollectionDialogOpen} />
       <BulkCreateProduct instances={instances} open={productDialogOpen} onOpenChange={setProductDialogOpen} />
       <BulkBusinessInfo instances={instances} open={businessDialogOpen} onOpenChange={setBusinessDialogOpen} />
-    </div>
+    </>
   );
 };
 
