@@ -47,7 +47,9 @@ function loadKeys(): { key: string; label: string }[] {
 function saveKeys(keys: { key: string; label: string }[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(keys));
-  } catch {}
+  } catch (e) {
+    console.warn("Falha ao salvar chaves no localStorage:", e);
+  }
 }
 
 export type AtualizarLeadConfig = {
