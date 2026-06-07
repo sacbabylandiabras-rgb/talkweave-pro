@@ -113,9 +113,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     mode: "contacts",
     suggestedKeyword: "oi",
     nodes: [
-      baseInicial,
+      createInitialNode("bv-1"),
       {
-        id: "2",
+        id: "bv-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -125,7 +125,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "3",
+        id: "bv-3",
         type: "blocoConteudo",
         position: { x: 250, y: 400 },
         data: {
@@ -136,7 +136,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2"), edge("2", "3")],
+    edges: [edge("bv-1", "bv-2"), edge("bv-2", "bv-3")],
   },
   {
     id: "qualificacao-lead",
