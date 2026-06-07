@@ -577,10 +577,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                
                if (instData) {
                  if (!foundPhone) foundPhone = instData.number || instData.phone;
-                 if (pic) {
-                   console.log("Setting profile pic from instance list:", pic);
-                   setProfilePicUrl(pic);
-                 }
+                  const instancePic = instData.profilePictureUrl || instData.profilePicUrl;
+                  if (instancePic) {
+                    console.log("Setting profile pic from instance list:", instancePic);
+                    setProfilePicUrl(instancePic);
+                  }
                }
              }
            }
