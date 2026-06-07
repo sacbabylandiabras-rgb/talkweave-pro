@@ -126,9 +126,9 @@ export function AddBlockDialog({ open, onOpenChange, baseBlocks, onSelect, showA
                         {cat}
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {items.map((b, i) => (
+                        {items.map((b) => (
                           <button
-                            key={`${b.type}-${b.label}-${i}`}
+                            key={`${cat}-${b.type}-${b.label}`}
                             type="button"
                             onClick={() => handleSelectBase(b)}
                             className="flex items-start gap-3 p-3 rounded-lg border border-border bg-secondary/30 hover:bg-accent/50 hover:border-primary/40 transition-all text-left"
