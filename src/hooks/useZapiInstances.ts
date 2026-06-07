@@ -100,7 +100,7 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
 };
 
 const fetchInstancesWithRetry = async (userId: string): Promise<ZapiInstance[]> => {
-  let lastError: unknown = null;
+  let lastError: any = null;
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const { data, error } = await fromZapiInstances()
@@ -116,8 +116,7 @@ const fetchInstancesWithRetry = async (userId: string): Promise<ZapiInstance[]> 
       return zapiData;
     }
     lastError = error;
-
-    if (error.code !== 'PGRST003') break;
+    if (error?.code !== 'PGRST003') break;
     await wait(350 * (attempt + 1));
   }
 
