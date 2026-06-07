@@ -2742,30 +2742,6 @@ const Dispositivos = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-foreground">Dispositivos ({instances.length})</h1>
         <div className="flex items-center gap-2">
-          {instances.length > 0 && (
-            <Button variant="outline" size="sm" onClick={() => setProfileDialogOpen(true)}>
-              <User className="w-4 h-4 mr-1" />
-              Perfil WhatsApp
-            </Button>
-          )}
-          {instances.length > 0 && (
-            <Button variant="outline" size="sm" onClick={() => setCollectionDialogOpen(true)}>
-              <LayoutGrid className="w-4 h-4 mr-1" />
-              Criar Coleção
-            </Button>
-          )}
-          {instances.length > 0 && (
-            <Button variant="outline" size="sm" onClick={() => setProductDialogOpen(true)}>
-              <Package className="w-4 h-4 mr-1" />
-              Criar Produto
-            </Button>
-          )}
-          {instances.length > 0 && (
-            <Button variant="outline" size="sm" onClick={() => setBusinessDialogOpen(true)}>
-              <Building2 className="w-4 h-4 mr-1" />
-              Perfil da Empresa
-            </Button>
-          )}
           <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
