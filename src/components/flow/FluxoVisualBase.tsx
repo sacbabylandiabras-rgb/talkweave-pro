@@ -382,7 +382,28 @@ export default function FluxoVisualBase({
               <Key className="h-3 w-3 text-muted-foreground" />
               <Input
                 value={keywordFluxo}
-                onChange={(e) => setKeywordFluxo(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setKeywordFluxo(val);
+                  
+                  // Atualizar automaticamente o nó de gatilho principal se ele existir
+                  setNodes((nds) => 
+                    nds.map((node) => {
+                      if (node.type === "blocoGatilho" || node.type === "gatilho") {
+                        const keywords = val.split(",").map(k => k.trim()).filter(k => k.length > 0);
+                        return { 
+                          ...node, 
+                          data: { 
+                            ...node.data, 
+                            keywords: keywords,
+                            keyword: keywords[0] || ""
+                          } 
+                        };
+                      }
+                      return node;
+                    })
+                  );
+                }}
                 className="h-5 text-xs border-none focus-visible:ring-0 p-0 bg-transparent w-40"
                 placeholder="Palavra-chave gatilho"
               />
