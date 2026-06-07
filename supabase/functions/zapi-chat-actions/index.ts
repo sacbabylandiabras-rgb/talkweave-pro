@@ -344,13 +344,22 @@ Deno.serve(async (req) => {
       if (action === 'send-call' || action === 'make-call') {
         const cleanNumber = String(phone || "").replace(/\D/g, "");
         const duration = Number(payload?.callDuration || payload?.duration || 30);
+        
+        console.log(`[zapi-chat-actions] Making call to ${cleanNumber} using provider ${provider}. URL: ${apiUrl}`);
+        
         const res = await fetch(`${apiUrl}/call/make`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', token: apiToken },
           body: JSON.stringify({ number: cleanNumber, call_duration: duration }),
         });
+        
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao realizar chamada' }), { status: res.status, headers: corsHeaders });
+        console.log(`[zapi-chat-actions] Call response status: ${res.status}`, data);
+        
+        if (!res.ok) {
+          const errMsg = formatErrorMessage(data) || 'Erro ao realizar chamada';
+          return new Response(JSON.stringify({ error: errMsg, details: data }), { status: res.status, headers: corsHeaders });
+        }
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 

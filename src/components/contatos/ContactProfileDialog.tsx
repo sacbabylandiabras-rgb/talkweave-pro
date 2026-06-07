@@ -907,7 +907,8 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                   onClick={async () => {
                     if (!contact) return;
                     try {
-                      await sendCall(contact.phone, 30);
+                      // Usar preferredInstanceId se disponível para garantir que a chamada sai pela instância correta
+                      await sendCall(contact.phone, 30, undefined, preferredInstanceId);
                     } catch (e) {
                       console.error('Error making call:', e);
                     }
