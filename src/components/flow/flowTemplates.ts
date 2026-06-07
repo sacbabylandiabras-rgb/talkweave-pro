@@ -261,9 +261,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     color: "text-yellow-500",
     mode: "contacts",
     nodes: [
-      baseInicial,
+      createInitialNode("pv-1"),
       {
-        id: "2",
+        id: "pv-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -273,7 +273,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "3",
+        id: "pv-3",
         type: "blocoAcao",
         position: { x: 250, y: 400 },
         data: {
@@ -283,7 +283,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "4",
+        id: "pv-4",
         type: "blocoConteudo",
         position: { x: 250, y: 580 },
         data: {
@@ -298,7 +298,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2"), edge("2", "3"), edge("3", "4")],
+    edges: [edge("pv-1", "pv-2"), edge("pv-2", "pv-3"), edge("pv-3", "pv-4")],
   },
 
   // ===== GRUPOS =====
