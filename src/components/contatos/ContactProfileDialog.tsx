@@ -23,7 +23,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useZapi } from "@/hooks/useZapi";
 import { useZapiInstances } from "@/hooks/useZapiInstances";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
-import { useMessageLogs } from "@/hooks/useMessageLogs";
 import { DEFAULT_PIPELINE_STAGES } from "@/components/agent/PipelineBar";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { getHttpAvatarUrl } from "@/lib/avatar-utils";
@@ -94,7 +93,6 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
    const [sendingFlow, setSendingFlow] = useState(false);
    const [localPreferredInstance, setLocalPreferredInstance] = useState<string>("");
    const { instances: zapiInstancesList } = useZapiInstances();
-   const { updateContactStage } = useMessageLogs();
    const { blockContact, reportContact, checkIsWhatsApp, getContactProfilePicture, getChatMetadata, loading: zapiLoading, setZapiInstanceOverride, listTags, addTagChat, removeTagChat, saveChatNote, sendCall } = useZapi();
     const [availableTags, setAvailableTags] = useState<{ id: string, name: string, color: number }[]>([]);
     const [tagColors, setTagColors] = useState<{ id: number; hex: string; label: string }[]>([]);
@@ -283,6 +281,42 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
     toast({ title: "Nome atualizado!" });
     setEditingName(false);
     onUpdate?.();
+  };
+
+  const updateContactStage = async (phone: string, stage: string, additionalData?: Record<string, unknown>) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const activePipelineId = (typeof window !== "undefined" && localStorage.getItem("pipeline_active_id")) || null;
+    const previousStage = (contact as any)?.agent_stage || null;
+    const payload = {
+      phone,
+      name: contact?.name || "",
+      user_id: session.user.id,
+      agent_stage: stage,
+      profile_picture_url: contact?.profilePictureUrl || null,
+      ...additionalData,
+    };
+
+    const { error } = await (supabase as any)
+      .from("saved_contacts")
+      .upsert(payload, { onConflict: "phone,user_id" });
+    if (error) throw error;
+
+    if (previousStage !== stage) {
+      (supabase as any)
+        .from("pipeline_stage_history")
+        .insert({
+          user_id: session.user.id,
+          pipeline_id: activePipelineId,
+          contact_phone: phone,
+          from_stage: previousStage,
+          to_stage: stage,
+        })
+        .then(({ error: histErr }: any) => {
+          if (histErr) console.warn("[pipeline_stage_history] insert failed:", histErr);
+        });
+    }
   };
 
   const persistTagsLocal = (tags: string[]) => {
