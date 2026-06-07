@@ -15,7 +15,8 @@ serve(async (req: Request) => {
     const body = await req.json();
     const { instanceName, action } = body;
 
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization") || "";
+    if (!authHeader.startsWith("Bearer ")) throw new Error("Não autorizado");
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(authHeader.replace("Bearer ", ""));
     if (authError || !user) throw new Error("Não autorizado");
 
@@ -72,9 +73,11 @@ serve(async (req: Request) => {
     console.log("Provision Response:", response.status, data);
 
     if (!response.ok) {
-      // Se o erro for "Maximum number of instances reached" vindo da UAZAPI, significa que o SERVIDOR global atingiu o limite, não o usuário.
-      // Mas aqui tratamos erros genéricos da API.
-      throw new Error(data.message || data.error || `Erro ${response.status}`);
+      const providerMessage = String(data.message || data.error || data.info || `Erro ${response.status}`);
+      if (response.status === 429 || providerMessage.toLowerCase().includes("maximum number of instances")) {
+        throw new Error("O servidor de conexão configurado atingiu o limite de instâncias. Libere/remova instâncias no painel do provedor ou use uma conta com limite disponível.");
+      }
+      throw new Error(providerMessage);
     }
 
     // Se criou com sucesso, registrar no banco vinculado ao usuário
