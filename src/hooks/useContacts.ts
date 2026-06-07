@@ -55,7 +55,7 @@ export const useContacts = (options?: { enabled?: boolean }) => {
     if (typeof payload === 'string') {
       const str = payload.trim();
       if (!str || str.toLowerCase() === 'null' || !/^https?:\/\//i.test(str)) return null;
-      return str;
+      return getHttpAvatarUrl(str);
     }
     if (Array.isArray(payload)) return extractProfilePictureUrl(payload[0]);
     const rawUrl = payload?.link || payload?.imgUrl || payload?.profilePictureUrl || payload?.imageUrl || payload?.data?.link || payload?.profileThumbnail || payload?.imagePreview || payload?.profilePicUrl || payload?.profilePicture || payload?.picture || payload?.image || payload?.photo || payload?.preview || payload?.pictureUrl;
