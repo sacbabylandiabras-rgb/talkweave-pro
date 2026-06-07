@@ -104,13 +104,13 @@ const getConversationDisplayName = (name?: string | null, phone?: string | null,
   const isChannel = phone.includes("@newsletter");
 
   // Prioritize real name if it exists and isn't generic
-  if (name && !(isGroup && looksLikePhoneOrId(name)) && !(/^(grupo|grupo sem nome|conversa com grupo|comunidade)$/i.test(name))) {
+  if (name && !(isGroup && looksLikePhoneOrId(name)) && !(/^(grupo|grupo sem nome|conversa com grupo|comunidade)$/i.test(name.toLowerCase()))) {
     return name;
   }
 
   if (isChannel) return "canal";
-  if (isCommunity) return "comunidade";
-  if (isGroup) return "grupo";
+  if (isCommunity) return "COMUNIDADE";
+  if (isGroup) return "GRUPO";
   return formatPhone(phone);
 };
 
