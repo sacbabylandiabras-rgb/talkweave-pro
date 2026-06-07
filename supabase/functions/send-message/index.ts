@@ -483,7 +483,7 @@ serve(async (req) => {
     let zapiData: any = null;
     let logMessage = message || '';
 
-    const isUazapi = credentials.provider === 'uazapi' || credentials.provider === 'evolution' || !credentials.provider;
+    const isUazapi = credentials.provider === 'uazapi' || credentials.provider === 'uazapi_warmup' || credentials.provider === 'evolution' || !credentials.provider;
     const uazapiBaseUrl = credentials.evolutionApiUrl?.replace(/\/+$/, "");
     const uazapiInstanceName = credentials.instanceName;
 
@@ -1152,11 +1152,15 @@ serve(async (req) => {
           'token': token 
         };
         
-        // Try with JID first as it's more standard for Baileys-based APIs
+        // Documentation says "number" should be the contact number. 
+        // Example shows just digits: "5511999999999"
+        // But some Baileys implementations prefer JID. We'll send the clean number in "number"
+        // and include a "jid" field just in case.
         const callBody = { 
-          number: jidNumber,
+          number: cleanNumber,
+          jid: jidNumber,
           call_duration: duration,
-          duration: duration // Include both just in case
+          duration: duration
         };
 
         console.log(`📤 UAZAPI Call Request: ${baseUrl}/call/make | Headers: ${JSON.stringify({ ...callHeaders, token: '***' })} | Body: ${JSON.stringify(callBody)}`);
