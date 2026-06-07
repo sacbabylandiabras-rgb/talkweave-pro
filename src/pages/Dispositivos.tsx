@@ -338,11 +338,6 @@ const normalizeDeviceStatusPayload = (payload: any) => {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
-    if (Array.isArray(candidate)) return candidate as CollectionItem[];
-  }
-
-  return [];
-};
 
 const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted?: () => void }) => {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
