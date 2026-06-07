@@ -24,30 +24,38 @@ export const isRegularGroupPhone = (phone: string): boolean => {
 };
 
 export const isGroupPhone = (phone: string): boolean => {
-  if (phone.toLowerCase().includes("@lid")) return false;
-  const clean = String(phone || '').replace(/\D/g, '');
+  if (!phone) return false;
+  const lowerPhone = phone.toLowerCase();
+  if (lowerPhone.includes("@lid")) return false;
   
-  // @g.us é sempre grupo
-  if (phone.includes('@g.us')) return true;
+  // @g.us is always a group
+  if (lowerPhone.includes('@g.us')) return true;
   
-  // Começa com 12036 = grupo real do WhatsApp (comprimento típico 18+)
+  const clean = String(phone).replace(/\D/g, '');
+  
+  // Starts with 12036 = real WhatsApp group/community (typical length 15+)
   if (/^12036/.test(clean) && clean.length >= 15) return true;
   
-  // -group com menos de 20 dígitos = grupo real
-  // -group com 21+ dígitos = número brasileiro salvo errado
-  if (phone.includes('-group')) {
-    return clean.length <= 20;
+  // -group suffix check
+  if (lowerPhone.includes('-group')) {
+    // Regular groups usually have less than 20 digits in their ID
+    // If it has more, it's often a malformed Brazilian number saved with -group
+    return clean.length <= 25; 
   }
   
   return false;
 };
 
 export const isCommunityPhone = (phone: string): boolean => {
-  if (phone.toLowerCase().includes("@lid")) return false;
-  const clean = String(phone || '').replace(/\D/g, '');
-  // Comunidades começam com 120363 e têm mais de 16 dígitos
+  if (!phone) return false;
+  const lowerPhone = phone.toLowerCase();
+  if (lowerPhone.includes("@lid")) return false;
+  
+  const clean = String(phone).replace(/\D/g, '');
+  // Communities often start with 120363 and are longer than 16 digits
+  // But they can also be identified by @c.us in some contexts (though rare for communities)
   return /^120363\d{11,}$/.test(clean) || 
-    (phone.includes('-group') && /^120363/.test(clean) && clean.length > 16);
+    (lowerPhone.includes('-group') && /^120363/.test(clean) && clean.length > 16);
 };
 
 export const isNewsletterPhone = (phone: string): boolean => {
