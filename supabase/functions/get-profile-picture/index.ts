@@ -188,12 +188,12 @@ const extractGroupName = (payload: any): string | null => {
       )
      }
  
-      type InstanceCfg = { provider: string; base: string; headers: Record<string, string>; instanceName?: string }
+      type InstanceCfg = { provider: string; base: string; headers: Record<string, string>; instanceName?: string; apiUrl?: string; apiToken?: string }
      const instancesToTry: InstanceCfg[] = []
  
       if (instanceId) {
         const sanitizedInstanceId = String(instanceId).replace(/[^a-zA-Z0-9_-]/g, '')
-        const selectInstanceFields = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, is_active'
+        const selectInstanceFields = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, is_active, evolution_api_url, evolution_api_key'
         let specificInstance: any = null
         if (sanitizedInstanceId) {
           const { data: byRowId } = await adminClient
@@ -219,16 +219,29 @@ const extractGroupName = (payload: any): string | null => {
  
         if (specificInstance) {
           const provider = (specificInstance.api_provider || 'zapi').toLowerCase()
-          instancesToTry.push({
-            provider,
-            base: `https://api.z-api.io/instances/${specificInstance.zapi_instance_id}/token/${specificInstance.zapi_token}`,
-            headers: { 'Content-Type': 'application/json', 'Client-Token': specificInstance.zapi_client_token || '' },
-          })
+          const isUazapi = provider === 'uazapi' || provider === 'uazapi_warmup';
+          
+          if (isUazapi) {
+            instancesToTry.push({
+              provider,
+              base: '',
+              headers: { 'Content-Type': 'application/json', 'token': specificInstance.evolution_api_key || specificInstance.zapi_token || '' },
+              apiUrl: (specificInstance.evolution_api_url || '').replace(/\/+$/, ''),
+              apiToken: specificInstance.evolution_api_key || specificInstance.zapi_token || '',
+            })
+          } else {
+            instancesToTry.push({
+              provider,
+              base: `https://api.z-api.io/instances/${specificInstance.zapi_instance_id}/token/${specificInstance.zapi_token}`,
+              headers: { 'Content-Type': 'application/json', 'Client-Token': specificInstance.zapi_client_token || '' },
+            })
+          }
+
        }
      } else {
         const { data: allInstances } = await adminClient
          .from('zapi_instances')
-           .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, is_default, is_active')
+           .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, is_default, is_active, evolution_api_url, evolution_api_key')
          .eq('user_id', credentials.userId)
           .eq('api_provider', 'zapi')
           .eq('is_active', true)
@@ -237,13 +250,23 @@ const extractGroupName = (payload: any): string | null => {
  
        for (const inst of allInstances || []) {
          const provider = (inst.api_provider || 'zapi').toLowerCase()
-          if (inst.zapi_instance_id && inst.zapi_token) {
-           instancesToTry.push({
-             provider,
-             base: `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`,
-             headers: { 'Content-Type': 'application/json', 'Client-Token': inst.zapi_client_token || '' },
-           })
-         }
+           const isUazapi = provider === 'uazapi' || provider === 'uazapi_warmup';
+           if (isUazapi && (inst.evolution_api_url || inst.zapi_instance_id)) {
+            instancesToTry.push({
+              provider,
+              base: '',
+              headers: { 'Content-Type': 'application/json', 'token': inst.evolution_api_key || inst.zapi_token || '' },
+              apiUrl: (inst.evolution_api_url || '').replace(/\/+$/, ''),
+              apiToken: inst.evolution_api_key || inst.zapi_token || '',
+            })
+           } else if (inst.zapi_instance_id && inst.zapi_token) {
+            instancesToTry.push({
+              provider,
+              base: `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`,
+              headers: { 'Content-Type': 'application/json', 'Client-Token': inst.zapi_client_token || '' },
+            })
+          }
+
        }
      }
  
@@ -259,7 +282,7 @@ const extractGroupName = (payload: any): string | null => {
      for (let i = 0; i < instancesToTry.length; i += CHUNK_SIZE) {
        const chunk = instancesToTry.slice(i, i + CHUNK_SIZE)
         const results = await Promise.all(chunk.map(async (cfg) => {
-           const { provider, base, headers } = cfg
+           const { provider, base, headers, apiUrl, apiToken } = cfg
           try {
              if (isGroup) {
               // Z-API group phone format is `<id>-group` (per docs)

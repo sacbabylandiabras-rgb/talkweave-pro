@@ -364,7 +364,7 @@ serve(async (req) => {
        throw err;
      }
 
-      let { instanceId, token, clientToken, userId } = credentials;
+      let { instanceId, token, clientToken, userId, provider: currentProvider, evolutionApiUrl } = credentials;
 
       // Se uma instância específica foi solicitada (via requestedInstanceId),
       // vamos usá-la. Se ela não existir para o usuário, falhamos em vez de usar a padrão.
@@ -379,16 +379,19 @@ serve(async (req) => {
           }
         }
         if (requestedInstance) {
-          console.log(`✅ Usando instância solicitada: ${requestedInstance.zapi_instance_id}`);
+          console.log(`✅ Usando instância solicitada: ${requestedInstance.zapi_instance_id} (${requestedInstance.api_provider})`);
           instanceId = requestedInstance.zapi_instance_id;
           token = requestedInstance.zapi_token;
           clientToken = requestedInstance.zapi_client_token;
+          currentProvider = requestedInstance.api_provider;
+          evolutionApiUrl = requestedInstance.evolution_api_url;
           lockedToRequestedInstance = true;
         } else {
           console.warn(`⚠️ Instância solicitada ${requestedInstanceId} não encontrada — usando credenciais padrão do usuário.`);
           // Não falha: cai para as credenciais padrão já obtidas via getUserZAPICredentials
         }
       }
+
 
  
      // Detect group phones
@@ -439,6 +442,68 @@ serve(async (req) => {
         const inboundLog = groupLogs2?.find(l => l.keyword_matched !== '__manual_send__');
         resolvedGroupInstanceId = inboundLog?.instance_id || null;
       }
+      
+      const provider = (currentProvider || 'zapi').toLowerCase();
+      const isUazapi = provider === 'uazapi' || provider === 'uazapi_warmup';
+
+      if (isUazapi) {
+        const apiUrl = (evolutionApiUrl || '').replace(/\/+$/, '');
+        const apiToken = token || '';
+        
+        if (!apiUrl || !apiToken) throw new Error('UAZAPI configuration missing (url or token)');
+
+        const results = [];
+        for (const p of phones) {
+          const startTime = Date.now();
+          const jid = p.includes('@') ? p : (isGroupPhone ? `${p.replace(/\D/g, '')}@g.us` : `${p.replace(/\D/g, '')}@s.whatsapp.net`);
+          
+          let endpoint = '/message/sendText';
+          let body: any = { number: jid, text: message || '' };
+
+          if (mediaUrl && mediaType) {
+            endpoint = mediaType === 'audio' ? '/message/sendWhatsAppAudio' : '/message/sendMedia';
+            body = {
+              number: jid,
+              media: mediaUrl,
+              mediatype: mediaType,
+              caption: message || '',
+            };
+          }
+
+          try {
+            const res = await fetch(`${apiUrl}${endpoint}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'token': apiToken },
+              body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            
+            await logProviderSend(adminClient, {
+              userId,
+              provider: 'uazapi',
+              instanceId: requestedInstanceId || instanceId,
+              phone: p,
+              endpoint,
+              status: res.ok ? 'success' : 'error',
+              httpStatus: res.status,
+              errorMessage: res.ok ? null : JSON.stringify(data),
+              durationMs: Date.now() - startTime,
+              payloadSummary: { endpoint, hasMedia: !!mediaUrl }
+            });
+
+            if (!res.ok) throw new Error(data?.message || data?.error || 'Error sending UAZAPI message');
+            results.push(data);
+          } catch (err) {
+            if (!isMultiple) throw err;
+            results.push({ error: err.message, phone: p });
+          }
+        }
+        
+        return new Response(JSON.stringify(isMultiple ? { results } : results[0]), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
 
       if (resolvedGroupInstanceId && resolvedGroupInstanceId !== instanceId) {
         // Switch to the correct instance

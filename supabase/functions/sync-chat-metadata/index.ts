@@ -30,11 +30,14 @@
  
       const provider = (instance.api_provider || 'zapi').toLowerCase()
       const isZapi = provider === 'zapi';
-      if (!isZapi) {
-        return new Response(JSON.stringify({ success: false, message: 'Only Z-API is supported for full metadata sync' }), {
+      const isUazapi = provider === 'uazapi' || provider === 'uazapi_warmup';
+
+      if (!isZapi && !isUazapi) {
+        return new Response(JSON.stringify({ success: false, message: 'Only Z-API and UAZAPI are supported for full metadata sync' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
       }
+
 
       let chats = [];
       
@@ -91,7 +94,37 @@
           } catch (err) {
             console.error('Error fetching Z-API communities:', err);
           }
-       }
+        } else if (isUazapi) {
+          const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
+          const apiToken = instance.evolution_api_key || instance.zapi_token || '';
+          
+          if (apiUrl && apiToken) {
+            try {
+              // UAZAPI (Evolution API) - Fetch chats
+              const chatsRes = await fetch(`${apiUrl}/chat/find/all`, {
+                headers: { 'Content-Type': 'application/json', 'token': apiToken }
+              });
+              if (chatsRes.ok) {
+                const data = await chatsRes.json();
+                const rawChats = Array.isArray(data) ? data : (data?.response || data?.data || []);
+                chats = [...chats, ...rawChats];
+              }
+
+              // Fetch groups as well
+              const groupsRes = await fetch(`${apiUrl}/group/find/all`, {
+                headers: { 'Content-Type': 'application/json', 'token': apiToken }
+              });
+              if (groupsRes.ok) {
+                const data = await groupsRes.json();
+                const rawGroups = Array.isArray(data) ? data : (data?.response || data?.data || []);
+                chats = [...chats, ...rawGroups];
+              }
+            } catch (err) {
+              console.error('Error fetching UAZAPI chats/groups:', err);
+            }
+          }
+        }
+
 
       if (!Array.isArray(chats)) {
         chats = [];
