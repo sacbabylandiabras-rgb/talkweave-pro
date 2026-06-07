@@ -217,7 +217,7 @@ function MediaPreview({ contentType, mediaUrl, data }: { contentType: string; me
   return null;
 }
 
-export function BlocoConteudoNode({ data }: any) {
+export function BlocoConteudoNode({ id: nodeId, data }: any) {
   const contentType = data.contentType || "text";
   const Icon = typeIcons[contentType] || MessageSquare;
   const buttons = data.buttons || [];
@@ -271,7 +271,7 @@ export function BlocoConteudoNode({ data }: any) {
               <Handle
                 type="source"
                 position={Position.Right}
-                id="collect-name"
+                id={`collect-name-${nodeId}`}
                 className="!w-3 !h-3 !bg-purple-500 !border-2 !border-background"
                 style={{ right: -22, top: "50%" }}
               />
@@ -283,7 +283,7 @@ export function BlocoConteudoNode({ data }: any) {
               <Handle
                 type="source"
                 position={Position.Right}
-                id="collect-whatsapp"
+                id={`collect-whatsapp-${nodeId}`}
                 className="!w-3 !h-3 !bg-emerald-500 !border-2 !border-background"
                 style={{ right: -22, top: "50%" }}
               />
@@ -295,7 +295,7 @@ export function BlocoConteudoNode({ data }: any) {
               <Handle
                 type="source"
                 position={Position.Right}
-                id="collect-email"
+                id={`collect-email-${nodeId}`}
                 className="!w-3 !h-3 !bg-blue-500 !border-2 !border-background"
                 style={{ right: -22, top: "50%" }}
               />
@@ -307,7 +307,7 @@ export function BlocoConteudoNode({ data }: any) {
               <Handle
                 type="source"
                 position={Position.Right}
-                id="collect-cpf"
+                id={`collect-cpf-${nodeId}`}
                 className="!w-3 !h-3 !bg-red-500 !border-2 !border-background"
                 style={{ right: -22, top: "50%" }}
               />
