@@ -483,7 +483,7 @@ serve(async (req) => {
     let zapiData: any = null;
     let logMessage = message || '';
 
-    const isUazapi = credentials.provider === 'uazapi' || credentials.provider === 'evolution' || !credentials.provider;
+    const isUazapi = credentials.provider === 'uazapi' || credentials.provider === 'uazapi_warmup' || credentials.provider === 'evolution' || !credentials.provider;
     const uazapiBaseUrl = credentials.evolutionApiUrl?.replace(/\/+$/, "");
     const uazapiInstanceName = credentials.instanceName;
 
