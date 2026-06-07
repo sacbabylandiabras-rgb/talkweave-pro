@@ -2570,6 +2570,11 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
           description: "Reconecte sua instância na página de Dispositivos.",
           variant: "destructive",
         });
+      } else if (data?.skipped) {
+        toast({
+          title: "Sincronização automática",
+          description: data?.message || "Esta conexão recebe mensagens em tempo real via webhook.",
+        });
       } else if ((data?.importedMessages || data?.importedChats || 0) > 0) {
         toast({
           title: "Histórico sincronizado",
