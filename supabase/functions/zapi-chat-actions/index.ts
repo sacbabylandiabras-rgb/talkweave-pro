@@ -89,8 +89,8 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const body = await req.json().catch(() => ({}));
-    const { action, phone, instanceDbId, payload } = body;
+    const rawReqBody = await req.json().catch(() => ({}));
+    const { action, phone, instanceDbId, payload } = rawReqBody;
     console.log(`[zapi-chat-actions] Request: action=${action}, phone=${phone}, instanceDbId=${instanceDbId}`);
     const creds = await resolveCreds(req, instanceDbId);
     const provider = creds.apiProvider.toLowerCase();
@@ -126,9 +126,9 @@ Deno.serve(async (req) => {
 
       if (action === 'business-profile') {
         const statusRes = await fetch(withToken(`/instance/status/${inst}`), { headers: evolutionHeaders });
-        const raw = await statusRes.json().catch(() => ({}));
-        const instData = raw?.instance || {};
-        let business = raw?.business || raw?.businessProfile || {};
+        const statusRaw = await statusRes.json().catch(() => ({}));
+        const instData = statusRaw?.instance || {};
+        let business = statusRaw?.business || statusRaw?.businessProfile || {};
 
         if (instData.owner) {
           const jid = String(instData.owner).includes('@') ? String(instData.owner) : `${String(instData.owner).replace(/\D/g, '')}@s.whatsapp.net`;
@@ -261,17 +261,17 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'company-description' || action === 'company-email' || action === 'company-address' || action === 'company-websites' || action === 'update-business-profile') {
-        const body: any = {};
-        if (payload?.description !== undefined) body.description = payload.description;
-        if (payload?.email !== undefined) body.email = payload.email;
-        if (payload?.address !== undefined) body.address = payload.address;
-        if (payload?.websites !== undefined) body.websites = Array.isArray(payload.websites) ? payload.websites : [payload.websites].filter(Boolean);
-        if (Object.keys(body).length === 0) return new Response(JSON.stringify({ error: 'Nenhum campo para atualizar' }), { status: 400, headers: corsHeaders });
+        const bBody: any = {};
+        if (payload?.description !== undefined) bBody.description = payload.description;
+        if (payload?.email !== undefined) bBody.email = payload.email;
+        if (payload?.address !== undefined) bBody.address = payload.address;
+        if (payload?.websites !== undefined) bBody.websites = Array.isArray(payload.websites) ? payload.websites : [payload.websites].filter(Boolean);
+        if (Object.keys(bBody).length === 0) return new Response(JSON.stringify({ error: 'Nenhum campo para atualizar' }), { status: 400, headers: corsHeaders });
         
         const res = await fetch(withToken(`/business/update/profile/${inst}`), {
           method: 'POST',
           headers: evolutionHeaders,
-          body: JSON.stringify(body),
+          body: JSON.stringify(bBody),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro' }), { status: res.status, headers: corsHeaders });
@@ -313,44 +313,44 @@ Deno.serve(async (req) => {
 
 
       if (action.startsWith('set-')) {
-         const body: any = {};
+         const setBody: any = {};
          const val = String(payload.visualizationType || '').toLowerCase();
-         if (action === 'set-last-seen') body.last = val;
-         if (action === 'set-photo-visualization') body.profile = val;
-         if (action === 'set-privacy-description') body.status = val;
-         if (action === 'set-group-add-permission') body.groupadd = val;
-         if (action === 'set-privacy-online') body.online = val;
-         if (action === 'set-read-receipts') body.readreceipts = payload.active ? 'all' : 'none';
-          if (Object.keys(body).length === 0) return new Response(JSON.stringify({ error: 'Action not supported' }), { status: 400, headers: corsHeaders });
+         if (action === 'set-last-seen') setBody.last = val;
+         if (action === 'set-photo-visualization') setBody.profile = val;
+         if (action === 'set-privacy-description') setBody.status = val;
+         if (action === 'set-group-add-permission') setBody.groupadd = val;
+         if (action === 'set-privacy-online') setBody.online = val;
+         if (action === 'set-read-receipts') setBody.readreceipts = payload.active ? 'all' : 'none';
+          if (Object.keys(setBody).length === 0) return new Response(JSON.stringify({ error: 'Action not supported' }), { status: 400, headers: corsHeaders });
 
          const res = await fetch(withToken(`/instance/updatePrivacy/${inst}`), {
            method: 'POST',
            headers: evolutionHeaders,
-           body: JSON.stringify(body) 
+           body: JSON.stringify(setBody) 
          });
          const data = await res.json();
          if (!res.ok) return new Response(JSON.stringify({ error: data.message || 'Erro' }), { status: res.status, headers: corsHeaders });
          return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      // skip send-call (already handled)
+      // skip send-call-v1 (already handled)
 
       if (action === 'send-call') {
         const number = (phone || '').replace(/\D/g, '');
         if (!number) {
           return new Response(JSON.stringify({ error: 'Número inválido' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
-        const duration = Number(payload?.callDuration ?? payload?.duration ?? 15) || 15;
+        const callDur = Number(payload?.callDuration ?? payload?.duration ?? 15) || 15;
         // Try multiple known endpoints across providers
-        const attempts = [
-          { url: withToken(`/message/sendCall/${inst}`), body: { number, delay: duration } },
-          { url: withToken(`/message/fake-call/${inst}`), body: { number, duration } },
-          { url: withToken(`/call/make/${inst}`), body: { number, duration } },
-          { url: withToken(`/message/sendCall/${inst}`), body: { number, duration } },
+        const callAtts = [
+          { url: withToken(`/message/sendCall/${inst}`), body: { number, delay: callDur } },
+          { url: withToken(`/message/fake-call/${inst}`), body: { number, duration: callDur } },
+          { url: withToken(`/call/make/${inst}`), body: { number, duration: callDur } },
+          { url: withToken(`/message/sendCall/${inst}`), body: { number, duration: callDur } },
         ];
         let lastStatus = 0;
         let lastData: any = null;
-        for (const a of attempts) {
+        for (const a of callAtts) {
           try {
             console.log(`[zapi-chat-actions] Attempting call: ${a.url}`);
             const r = await fetch(a.url, { method: 'POST', headers: evolutionHeaders, body: JSON.stringify(a.body) });
@@ -390,21 +390,21 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'save-privacy') {
-        const body: any = {};
+        const privBody: any = {};
         const lc = (v: any) => (v === undefined || v === null || v === '') ? undefined : String(v).toLowerCase();
-        if (payload.last !== undefined) body.last = lc(payload.last);
-        if (payload.profile !== undefined) body.profile = lc(payload.profile);
-        if (payload.status !== undefined) body.status = lc(payload.status);
-        if (payload.groupadd !== undefined) body.groupadd = lc(payload.groupadd);
-        if (payload.online !== undefined) body.online = lc(payload.online);
-        if (payload.readreceipts !== undefined) body.readreceipts = lc(payload.readreceipts);
-        Object.keys(body).forEach(k => body[k] === undefined && delete body[k]);
-        if (Object.keys(body).length === 0) return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        if (payload.last !== undefined) privBody.last = lc(payload.last);
+        if (payload.profile !== undefined) privBody.profile = lc(payload.profile);
+        if (payload.status !== undefined) privBody.status = lc(payload.status);
+        if (payload.groupadd !== undefined) privBody.groupadd = lc(payload.groupadd);
+        if (payload.online !== undefined) privBody.online = lc(payload.online);
+        if (payload.readreceipts !== undefined) privBody.readreceipts = lc(payload.readreceipts);
+        Object.keys(privBody).forEach(k => privBody[k] === undefined && delete privBody[k]);
+        if (Object.keys(privBody).length === 0) return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         
         const res = await fetch(withToken(`/instance/updatePrivacy/${inst}`), {
           method: 'POST',
           headers: evolutionHeaders,
-          body: JSON.stringify(body),
+          body: JSON.stringify(privBody),
         });
         const data = await res.json();
         if (!res.ok) return new Response(JSON.stringify({ error: data.message || 'Erro' }), { status: res.status, headers: corsHeaders });
@@ -482,32 +482,32 @@ Deno.serve(async (req) => {
     }
 
     // Default Z-API path
-    const zapiUrl = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}`;
-    const zapiHeaders = { 'Content-Type': 'application/json', 'Client-Token': creds.clientToken };
+    const zaUrl = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}`;
+    const zaHds = { 'Content-Type': 'application/json', 'Client-Token': creds.clientToken };
 
     // This is a minimal Z-API bridge for the privacy actions called by Dispositivos.tsx
-    let zM = 'GET';
-    let zP = '';
-    let zB = null;
+    let zaM = 'GET';
+    let zaP = '';
+    let zaB = null;
 
-    if (action === 'get-disallowed-contacts') zP = '/privacy/disallowed-contacts';
-    if (action === 'set-last-seen') { zM = 'POST'; zP = '/privacy/last-seen'; zB = { visualizationType: payload.visualizationType }; }
-    if (action === 'set-photo-visualization') { zM = 'POST'; zP = '/privacy/photo'; zB = { visualizationType: payload.visualizationType }; }
-    if (action === 'set-privacy-description') { zM = 'POST'; zP = '/privacy/description'; zB = { visualizationType: payload.visualizationType }; }
-    if (action === 'set-group-add-permission') { zM = 'POST'; zP = '/privacy/group-add'; zB = { visualizationType: payload.visualizationType }; }
-    if (action === 'set-privacy-online') { zM = 'POST'; zP = '/privacy/online'; zB = { visualizationType: payload.visualizationType }; }
-    if (action === 'set-read-receipts') { zM = 'POST'; zP = `/privacy/read-receipts?value=${payload.active ? 'enable' : 'disable'}`; }
+    if (action === 'get-disallowed-contacts') zaP = '/privacy/disallowed-contacts';
+    if (action === 'set-last-seen') { zaM = 'POST'; zaP = '/privacy/last-seen'; zaB = { visualizationType: payload.visualizationType }; }
+    if (action === 'set-photo-visualization') { zaM = 'POST'; zaP = '/privacy/photo'; zaB = { visualizationType: payload.visualizationType }; }
+    if (action === 'set-privacy-description') { zaM = 'POST'; zaP = '/privacy/description'; zaB = { visualizationType: payload.visualizationType }; }
+    if (action === 'set-group-add-permission') { zaM = 'POST'; zaP = '/privacy/group-add'; zaB = { visualizationType: payload.visualizationType }; }
+    if (action === 'set-privacy-online') { zaM = 'POST'; zaP = '/privacy/online'; zaB = { visualizationType: payload.visualizationType }; }
+    if (action === 'set-read-receipts') { zaM = 'POST'; zaP = `/privacy/read-receipts?value=${payload.active ? 'enable' : 'disable'}`; }
     if (action === 'set-messages-duration') {
        const map: any = { '0': 'disable', '86400': 'hours24', '604800': 'days7', '7776000': 'days90' };
-       zP = `/privacy/messages-duration?value=${map[String(payload.duration)] || 'disable'}`;
-       zM = 'POST';
+       zaP = `/privacy/messages-duration?value=${map[String(payload.duration)] || 'disable'}`;
+       zaM = 'POST';
     }
 
-    if (!zP) return new Response(JSON.stringify({ error: 'Action not supported' }), { status: 400, headers: corsHeaders });
+    if (!zaP) return new Response(JSON.stringify({ error: 'Action not supported' }), { status: 400, headers: corsHeaders });
 
-    const zRes = await fetch(zapiUrl + zP, { method: zM, headers: zapiHeaders, body: zB ? JSON.stringify(zB) : null });
-    const zData = await zRes.json();
-    return new Response(JSON.stringify(zData), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: zRes.status });
+    const zaRes = await fetch(zaUrl + zaP, { method: zaM, headers: zaHds, body: zaB ? JSON.stringify(zaB) : null });
+    const zaData = await zaRes.json();
+    return new Response(JSON.stringify(zaData), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: zaRes.status });
 
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
