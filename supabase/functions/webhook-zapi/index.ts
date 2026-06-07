@@ -601,7 +601,7 @@ serve(async (req) => {
 
         if (isMatch && finalStartNodeId) {
           console.log(`[webhook-zapi] trigger match found for flow "${flow.name}" (id: ${flow.id}) using startNode: ${finalStartNodeId}`);
-          await executeFlow(supabase, userId, phone, flow, finalStartNodeId, {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText });
+          await executeFlow(supabase, userId, actorPhone, flow, finalStartNodeId, {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText });
           return new Response("ok", { status: 200, headers: corsHeaders });
         }
 
