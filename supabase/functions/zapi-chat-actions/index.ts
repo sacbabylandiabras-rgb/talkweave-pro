@@ -348,11 +348,12 @@ Deno.serve(async (req) => {
         const cleanNumber = String(phone || "").replace(/\D/g, "");
         const duration = Number(payload?.callDuration || payload?.duration || 30);
         
-        console.log(`[zapi-chat-actions] Making call to ${cleanNumber} using provider ${provider}. URL: ${apiUrl}`);
+        console.log(`[zapi-chat-actions] Making call to ${cleanNumber} using provider ${provider}. URL: ${apiUrl}, Instance: ${inst}`);
         
-        const res = await fetch(`${apiUrl}/call/make`, {
+        // Evolution API v2 calling endpoint: POST /call/make/{instance}
+        const res = await fetch(withToken(`/call/make/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ number: cleanNumber, call_duration: duration }),
         });
         
