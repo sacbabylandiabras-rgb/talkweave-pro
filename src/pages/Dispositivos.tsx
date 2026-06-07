@@ -243,7 +243,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
   import { Smartphone, Wifi, WifiOff, RefreshCw, QrCode, PowerOff, RotateCcw, Edit2, Check, X, Phone, Send, Plus, Loader2, Search, Trash2, User, Upload, Image as ImageIcon, Globe, LayoutGrid, Package, PlusCircle, MinusCircle, Building2, Mail, MapPin, Clock, AlertCircle, KeyRound, Save } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -2732,12 +2732,92 @@ const Dispositivos = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
+  const [maxInstances, setMaxInstances] = useState<number>(1);
+
+  useEffect(() => {
+    const fetchMaxInstances = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('max_instances')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (profile?.max_instances) {
+        setMaxInstances(profile.max_instances);
+      }
+    };
+    fetchMaxInstances();
+  }, []);
+
+  const handleCreateInstance = async () => {
+    if (!newInstanceName.trim()) {
+      toast({ title: "Informe um nome para a instância", variant: "destructive" });
+      return;
+    }
+
+    if (instances.length >= maxInstances) {
+      toast({ 
+        title: "Limite atingido", 
+        description: `Seu plano permite no máximo ${maxInstances} instância(s). Faça upgrade para adicionar mais.`,
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { data, error } = await supabase.functions.invoke("uazapi-create-instance", {
+        body: { instanceName: newInstanceName.trim() },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.message || data.error);
+
+      // Save to database
+      const instanceData = data?.instance || data;
+      const { error: dbError } = await supabase.from('zapi_instances').insert({
+        user_id: user.id,
+        instance_name: newInstanceName.trim(),
+        zapi_instance_id: instanceData.instanceId || instanceData.instanceName || newInstanceName.trim(),
+        zapi_token: instanceData.token || instanceData.instanceToken,
+        zapi_client_token: instanceData.token || instanceData.instanceToken, // Using same token as client token for Evolution
+        api_provider: 'uazapi',
+        evolution_api_url: (import.meta as any).env.VITE_UAZAPI_SERVER_URL || "https://minhapionline.uazapi.com",
+        is_active: true,
+        is_default: instances.length === 0,
+        instance_type: 'web'
+      });
+
+      if (dbError) throw dbError;
+
+      toast({ title: "✅ Instância criada com sucesso!" });
+      setCreateOpen(false);
+      setNewInstanceName("");
+      refetch();
+    } catch (err: any) {
+      toast({ title: "❌ Erro ao criar instância", description: err.message, variant: "destructive" });
+    } finally {
+      setCreating(false);
+      refetch();
+    }
+  };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-foreground">Dispositivos ({instances.length})</h1>
         <div className="flex items-center gap-2">
+          {instances.length < maxInstances && (
+            <Button onClick={() => setCreateOpen(true)} className="gap-2 h-9 text-xs">
+              <Plus className="w-4 h-4" /> Nova Instância
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
@@ -2751,8 +2831,11 @@ const Dispositivos = () => {
             <Smartphone className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">Nenhuma instância configurada</h3>
             <p className="text-muted-foreground mb-4">
-              Crie sua primeira instância para começar a enviar mensagens.
+              Crie sua primeira instância para começar a enviar mensagens. (Limite: {maxInstances})
             </p>
+            <Button onClick={() => setCreateOpen(true)} className="gap-2">
+              <Plus className="w-4 h-4" /> Criar Instância
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -2810,6 +2893,41 @@ const Dispositivos = () => {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Criar Nova Instância</DialogTitle>
+            <DialogDescription>
+              A instância será criada automaticamente no provedor UAZAPI.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nome da Instância</Label>
+              <Input 
+                placeholder="Ex: Vendas, Suporte..." 
+                value={newInstanceName}
+                onChange={(e) => setNewInstanceName(e.target.value)}
+                disabled={creating}
+              />
+            </div>
+            <div className="bg-muted/50 p-3 rounded-lg border border-border">
+              <p className="text-xs text-muted-foreground">
+                <AlertCircle className="w-3 h-3 inline mr-1" />
+                Limite do plano: <strong>{instances.length} de {maxInstances}</strong> instâncias utilizadas.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setCreateOpen(false)} disabled={creating}>Cancelar</Button>
+              <Button onClick={handleCreateInstance} disabled={creating || !newInstanceName.trim()}>
+                {creating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                Provisionar Instância
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
