@@ -9,7 +9,7 @@ import {
   rememberGroupDisplayName,
   resolveGroupConversationName,
 } from "@/lib/group-name-resolution";
-import { getHttpAvatarUrl } from "@/lib/avatar-utils";
+}
 
 export interface MessageLog {
   id: string;
