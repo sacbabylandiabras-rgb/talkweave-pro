@@ -794,6 +794,7 @@ const ChatView = (props: ChatViewProps) => {
     onGetSipInfo,
     campaignTemplates,
     savedContacts,
+    lidMap,
     onUpdate,
     activeInstance,
   } = props;
