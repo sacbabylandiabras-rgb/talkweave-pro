@@ -264,26 +264,22 @@ Deno.serve(async (req) => {
         if (payload?.email !== undefined) body.email = payload.email;
         if (payload?.address !== undefined) body.address = payload.address;
         if (payload?.websites !== undefined) body.websites = Array.isArray(payload.websites) ? payload.websites : [payload.websites].filter(Boolean);
-        if (Object.keys(body).length === 0) {
-          return new Response(JSON.stringify({ error: 'Nenhum campo para atualizar' }), { status: 400, headers: corsHeaders });
-        }
-        const res = await fetch(`${apiUrl}/business/update/profile`, {
+        if (Object.keys(body).length === 0) return new Response(JSON.stringify({ error: 'Nenhum campo para atualizar' }), { status: 400, headers: corsHeaders });
+        
+        const res = await fetch(withToken(`/business/update/profile/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify(body),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok || data?.failed > 0 || data?.updated === 0) {
-          const details = data?.response ? formatErrorMessage(data.response) : formatErrorMessage(data);
-          return new Response(JSON.stringify({ error: details || 'Não foi possível atualizar o perfil comercial', details: data }), { status: res.ok ? 400 : res.status, headers: corsHeaders });
-        }
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro' }), { status: res.status, headers: corsHeaders });
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       if (action === 'company-name' || action === 'update-profile-name') {
-        const res = await fetch(`${apiUrl}/profile/name`, {
+        const res = await fetch(withToken(`/profile/update/name/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ name: payload?.name ?? payload?.description ?? '' }),
         });
         const data = await res.json().catch(() => ({}));
@@ -292,24 +288,24 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'company-status' || action === 'update-profile-status') {
-        const res = await fetch(`${apiUrl}/profile/status`, {
+        const res = await fetch(withToken(`/profile/update/status/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ status: payload?.status ?? payload?.description ?? '' }),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao atualizar recado' }), { status: res.status, headers: corsHeaders });
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro' }), { status: res.status, headers: corsHeaders });
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       if (action === 'update-profile-image' || action === 'company-image') {
-        const res = await fetch(`${apiUrl}/profile/image`, {
+        const res = await fetch(withToken(`/profile/update/image/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ image: payload?.image || payload?.url || payload?.value || '' }),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao atualizar imagem' }), { status: res.status, headers: corsHeaders });
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro' }), { status: res.status, headers: corsHeaders });
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
