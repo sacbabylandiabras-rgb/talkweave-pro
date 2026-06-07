@@ -985,6 +985,7 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
   );
 };
 
+      {/* Bulk Update Components */}
       <BulkProfileUpdate instances={instances} open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
       <BulkCreateCollection instances={instances} open={collectionDialogOpen} onOpenChange={setCollectionDialogOpen} />
       <BulkCreateProduct instances={instances} open={productDialogOpen} onOpenChange={setProductDialogOpen} />
