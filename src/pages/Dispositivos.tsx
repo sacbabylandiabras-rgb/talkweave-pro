@@ -414,6 +414,31 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
 
    const [privacyLoading, setPrivacyLoading] = useState(false);
    const [privacySettings, setPrivacySettings] = useState<any>({});
+   const [privacyDirty, setPrivacyDirty] = useState(false);
+
+   const updatePrivacyField = (field: string, value: any) => {
+     setPrivacySettings((prev: any) => ({ ...prev, [field]: value }));
+     setPrivacyDirty(true);
+   };
+
+   const savePrivacyAll = async () => {
+     if (!privacyDirty) return;
+     setPrivacyLoading(true);
+     try {
+       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+         body: { action: 'save-privacy', instanceDbId: instance.id, payload: privacySettings },
+       });
+       if (error) throw error;
+       if (data?.error) throw new Error(data.error?.message || data.error);
+       toast({ title: "✅ Privacidade salva" });
+       setPrivacyDirty(false);
+     } catch (err: any) {
+       const message = await getInvokeErrorMessage(err, 'Erro ao salvar privacidade');
+       toast({ title: "❌ Erro ao salvar", description: message, variant: "destructive" });
+     } finally {
+       setPrivacyLoading(false);
+     }
+   };
 
     const updatePrivacy = async (action: string, payload: any) => {
       setPrivacyLoading(true);
@@ -1120,6 +1145,10 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
              }).then(({ data }) => {
                if (data && !data.error) setPrivacySettings(data);
              });
+             setPrivacyDirty(false);
+           } else if (!open) {
+             // Save all pending changes on close
+             savePrivacyAll();
            }
          }}
        >
