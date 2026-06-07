@@ -53,8 +53,9 @@ export const isCommunityPhone = (phone: string): boolean => {
   
   const clean = String(phone).replace(/\D/g, '');
   // Communities often start with 120363 and are longer than 16 digits
-  // But they can also be identified by @c.us in some contexts (though rare for communities)
+  // Or they have the -community suffix in Z-API / UAZAPI
   return /^120363\d{11,}$/.test(clean) || 
+    lowerPhone.includes('-community') ||
     (lowerPhone.includes('-group') && /^120363/.test(clean) && clean.length > 16);
 };
 
