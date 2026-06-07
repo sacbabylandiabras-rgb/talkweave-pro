@@ -367,21 +367,6 @@ Deno.serve(async (req) => {
         const body: any = {};
         const lc = (v: any) => (v === undefined || v === null || v === '') ? undefined : String(v).toLowerCase();
 
-      if (action === 'get-chat-details') {
-        const jid = payload?.phone || payload?.jid || '';
-        const number = jid.includes('@') ? jid.split('@')[0] : jid.replace(/\D/g, '');
-        const res = await fetch(`${apiUrl}/chat/details`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
-          body: JSON.stringify({ number, preview: payload?.preview ?? false }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao buscar detalhes do chat' }), { status: res.status, headers: corsHeaders });
-        }
-        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      }
-
         if (payload.last !== undefined) body.last = lc(payload.last);
         if (payload.profile !== undefined) body.profile = lc(payload.profile);
         if (payload.status !== undefined) body.status = lc(payload.status);
@@ -401,6 +386,46 @@ Deno.serve(async (req) => {
         if (!res.ok) {
           return new Response(JSON.stringify({ error: data.message || data.error || 'Erro ao salvar privacidade' }), { status: res.status, headers: corsHeaders });
         }
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'get-chat-details') {
+        const jid = payload?.phone || payload?.jid || '';
+        const number = jid.includes('@') ? jid.split('@')[0] : jid.replace(/\D/g, '');
+        const res = await fetch(`${apiUrl}/chat/details`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify({ number, preview: payload?.preview ?? false }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao buscar detalhes do chat' }), { status: res.status, headers: corsHeaders });
+        }
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'add-tag' || action === 'remove-tag') {
+        const path = action === 'add-tag' ? '/chat/tag/add' : '/chat/tag/remove';
+        const jid = phone || payload?.phone || '';
+        const number = jid.includes('@') ? jid.split('@')[0] : jid.replace(/\D/g, '');
+        const res = await fetch(`${apiUrl}${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify({ number, tagId: payload?.tagId }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro na operação de etiqueta' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'create-tag') {
+        const res = await fetch(`${apiUrl}/chat/tag/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify({ name: payload?.name, color: payload?.color }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao criar etiqueta' }), { status: res.status, headers: corsHeaders });
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       
@@ -431,6 +456,7 @@ Deno.serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ error: 'Action not supported for this provider' }), { status: 400, headers: corsHeaders });
+
 
 
     }
