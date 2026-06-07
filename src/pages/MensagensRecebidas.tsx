@@ -1415,7 +1415,7 @@ const ChatView = (props: ChatViewProps) => {
         )}
         <Avatar className="h-10 w-10 shrink-0 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
           <AvatarImage
-            src={(conversation.profilePictureUrl && !conversation.profilePictureUrl.includes("pps.whatsapp.net")) ? conversation.profilePictureUrl : undefined}
+            src={getHttpAvatarUrl(conversation.profilePictureUrl) || undefined}
             className="h-full w-full object-cover"
             onError={(e) => {
               (e.target as HTMLImageElement).onerror = null;
