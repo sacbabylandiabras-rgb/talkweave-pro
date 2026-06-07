@@ -24,9 +24,10 @@ const INSTANCES_CACHE_PREFIX = 'zapi_instances_cache:';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export const isMobileZapiInstance = (instance: Pick<ZapiInstance, 'instance_name' | 'instance_type'>) => {
+export const isMobileZapiInstance = (instance: Pick<ZapiInstance, 'instance_name' | 'instance_type' | 'api_provider'>) => {
   const type = String(instance.instance_type || '').trim().toLowerCase();
   const name = String(instance.instance_name || '').trim().toLowerCase();
+  const provider = String(instance.api_provider || '').toLowerCase();
   const isWarmup = provider.includes('warmup') || name.includes('aquecimento') || name.includes('warmup');
   if (isWarmup) return false;
   return type === 'mobile' || /^mobile\b/.test(name);
