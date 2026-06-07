@@ -113,6 +113,14 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify(await res.json()), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
+      if (action === 'get-disallowed-contacts') {
+        const res = await fetch(withToken('/chat/blocklist'), { headers: { token: apiToken } });
+        const raw = await res.json();
+        const arr: string[] = Array.isArray(raw?.blockList) ? raw.blockList : (Array.isArray(raw) ? raw : []);
+        const list = arr.map((j) => ({ phone: String(j).replace(/@.+$/, '') }));
+        return new Response(JSON.stringify({ data: { value: list } }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
       if (action.startsWith('set-')) {
          const body: any = {};
          const val = String(payload.visualizationType || '').toLowerCase();
