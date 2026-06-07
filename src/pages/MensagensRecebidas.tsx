@@ -1656,9 +1656,9 @@ const ChatView = (props: ChatViewProps) => {
                       <div className="flex justify-start gap-2 items-end">
                         {!isGroupPhone(conversation.phone) ? (
                           <Avatar className="w-8 h-8 shrink-0 border border-border overflow-hidden bg-muted flex items-center justify-center">
-                            {senderPhoto && !senderPhoto.includes("pps.whatsapp.net") && (
+                            {getHttpAvatarUrl(senderPhoto) && (
                               <AvatarImage
-                                src={senderPhoto}
+                                src={getHttpAvatarUrl(senderPhoto)!}
                                 className="object-cover"
                                 referrerPolicy="no-referrer"
                                 crossOrigin="anonymous"
@@ -1676,9 +1676,9 @@ const ChatView = (props: ChatViewProps) => {
                           </Avatar>
                         ) : (
                           <Avatar className="w-8 h-8 shrink-0 border border-border overflow-hidden bg-muted flex items-center justify-center">
-                            {senderPhoto && !senderPhoto.includes("pps.whatsapp.net") && (
+                            {getHttpAvatarUrl(senderPhoto) && (
                               <AvatarImage
-                                src={senderPhoto}
+                                src={getHttpAvatarUrl(senderPhoto)!}
                                 className="object-cover"
                                 referrerPolicy="no-referrer"
                                 crossOrigin="anonymous"
