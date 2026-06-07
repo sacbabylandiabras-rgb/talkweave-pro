@@ -408,7 +408,11 @@ serve(async (req) => {
       if (rawId) chatId = `${rawId}-group`;
     }
 
-    const phone = isGroup && participantPhone ? participantPhone : chatId;
+    // For group messages, 'phone' in message_logs should be the group ID (chatId)
+    // while for flow state we use the participantPhone to ensure per-user state in groups.
+    const phone = chatId; 
+    const actorPhone = isGroup && participantPhone ? participantPhone : chatId;
+    
     const instanceId = webhook?.instanceId || "";
     const type = webhook?.type || webhook?.notification || (webhook?.buttonsResponseMessage || webhook?.buttonReply ? "ButtonsResponseMessage" : "");
     const messageId = webhook?.messageId || (webhook?.ids && webhook.ids[0]) || "";
