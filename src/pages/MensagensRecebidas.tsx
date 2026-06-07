@@ -684,9 +684,9 @@ const ConversationList = ({
                 </div>
               )}
               <Avatar className="h-11 w-11 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
-                {conv.profilePictureUrl && !conv.profilePictureUrl.includes("pps.whatsapp.net") ? (
+                {getHttpAvatarUrl(conv.profilePictureUrl) ? (
                   <AvatarImage
-                    src={conv.profilePictureUrl}
+                    src={getHttpAvatarUrl(conv.profilePictureUrl)!}
                     className="h-full w-full object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).onerror = null;
