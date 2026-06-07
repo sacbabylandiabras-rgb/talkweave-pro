@@ -419,6 +419,25 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
    const updatePrivacyField = (field: string, value: any) => {
      setPrivacySettings((prev: any) => ({ ...prev, [field]: value }));
      setPrivacyDirty(true);
+     // Save immediately (debounced per field) — UAZAPI aceita campos individuais
+     savePrivacyField(field, value);
+   };
+
+   const savePrivacyField = async (field: string, value: any) => {
+     setPrivacyLoading(true);
+     try {
+       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+         body: { action: 'save-privacy', instanceDbId: instance.id, payload: { [field]: value } },
+       });
+       if (error) throw error;
+       if (data?.error) throw new Error(data.error?.message || data.error);
+       toast({ title: "✅ Privacidade atualizada" });
+     } catch (err: any) {
+       const message = await getInvokeErrorMessage(err, 'Erro ao salvar privacidade');
+       toast({ title: "❌ Erro ao salvar", description: message, variant: "destructive" });
+     } finally {
+       setPrivacyLoading(false);
+     }
    };
 
    const savePrivacyAll = async () => {
@@ -1161,7 +1180,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <div className="space-y-2">
                  <Label>Visto por Último</Label>
                   <Select 
-                    value={String(privacySettings?.last || privacySettings?.lastSeen || '').toUpperCase() || undefined}
+                    value={(privacySettings?.last || privacySettings?.lastSeen) ? String(privacySettings.last || privacySettings.lastSeen).toUpperCase() : undefined}
                     onValueChange={(v) => updatePrivacyField('last', v.toLowerCase())} 
                     disabled={privacyLoading}
                   >
@@ -1177,7 +1196,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <div className="space-y-2">
                  <Label>Foto do Perfil</Label>
                   <Select 
-                    value={String(privacySettings?.profile || privacySettings?.profilePicture || '').toUpperCase() || undefined}
+                    value={(privacySettings?.profile || privacySettings?.profilePicture) ? String(privacySettings.profile || privacySettings.profilePicture).toUpperCase() : undefined}
                     onValueChange={(v) => updatePrivacyField('profile', v.toLowerCase())} 
                     disabled={privacyLoading}
                   >
@@ -1193,7 +1212,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <div className="space-y-2">
                  <Label>Recado (About)</Label>
                   <Select 
-                    value={String(privacySettings?.status || '').toUpperCase() || undefined}
+                    value={privacySettings?.status ? String(privacySettings.status).toUpperCase() : undefined}
                     onValueChange={(v) => updatePrivacyField('status', v.toLowerCase())} 
                     disabled={privacyLoading}
                   >
@@ -1209,7 +1228,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <div className="space-y-2">
                  <Label>Quem pode me adicionar a grupos</Label>
                   <Select 
-                    value={String(privacySettings?.groupadd || privacySettings?.groupsAdd || '').toUpperCase() || undefined}
+                    value={(privacySettings?.groupadd || privacySettings?.groupsAdd) ? String(privacySettings.groupadd || privacySettings.groupsAdd).toUpperCase() : undefined}
                     onValueChange={(v) => updatePrivacyField('groupadd', v.toLowerCase())} 
                     disabled={privacyLoading}
                   >
@@ -1224,7 +1243,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <div className="space-y-2">
                  <Label>Online</Label>
                   <Select 
-                    value={String(privacySettings?.online || '').toUpperCase() || undefined}
+                    value={privacySettings?.online ? String(privacySettings.online).toUpperCase() : undefined}
                     onValueChange={(v) => updatePrivacyField('online', v.toLowerCase())} 
                     disabled={privacyLoading}
                   >
