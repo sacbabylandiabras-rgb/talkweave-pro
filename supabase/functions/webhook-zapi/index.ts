@@ -87,6 +87,35 @@ function getConnectedPhone(webhook: any): string {
   return onlyDigits(webhook?.connectedPhone || webhook?.connected_phone || webhook?.ownerPhone || webhook?.me?.phone || webhook?.phoneConnected);
 }
 
+function normalizeBoolean(value: unknown): boolean {
+  return value === true || String(value || "").toLowerCase() === "true";
+}
+
+async function resolveWebhookInstance(supabase: any, instanceRef: string, authToken: string) {
+  const select = "id, user_id, zapi_instance_id, zapi_token, zapi_client_token, updated_at, api_provider, instance_name, evolution_api_url";
+  if (instanceRef) {
+    const { data } = await supabase
+      .from("zapi_instances")
+      .select(select)
+      .or(`zapi_instance_id.eq.${instanceRef},id.eq.${instanceRef},instance_name.eq.${instanceRef}`)
+      .order("is_active", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data) return data;
+  }
+  if (!authToken) return null;
+  const { data } = await supabase
+    .from("zapi_instances")
+    .select(select)
+    .or(`zapi_token.eq.${authToken},evolution_api_key.eq.${authToken}`)
+    .order("is_active", { ascending: false })
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data || null;
+}
+
 function isOwnConnectedChat(webhook: any, phone: string, chatId: string, senderPhone: string): boolean {
   const connectedPhone = getConnectedPhone(webhook);
   if (!connectedPhone) return false;
