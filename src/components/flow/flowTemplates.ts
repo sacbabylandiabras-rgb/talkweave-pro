@@ -147,9 +147,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     mode: "contacts",
     suggestedKeyword: "quero",
     nodes: [
-      baseInicial,
+      createInitialNode("ql-1"),
       {
-        id: "2",
+        id: "ql-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -160,7 +160,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "3",
+        id: "ql-3",
         type: "blocoConteudo",
         position: { x: 250, y: 400 },
         data: {
@@ -171,7 +171,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "4",
+        id: "ql-4",
         type: "blocoConteudo",
         position: { x: 250, y: 580 },
         data: {
@@ -181,7 +181,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2"), edge("2", "3"), edge("3", "4")],
+    edges: [edge("ql-1", "ql-2"), edge("ql-2", "ql-3"), edge("ql-3", "ql-4")],
   },
   {
     id: "menu-interativo",
