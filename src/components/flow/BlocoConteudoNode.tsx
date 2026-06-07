@@ -217,7 +217,7 @@ function MediaPreview({ contentType, mediaUrl, data }: { contentType: string; me
   return null;
 }
 
-export function BlocoConteudoNode({ data }: any) {
+export function BlocoConteudoNode({ id: nodeId, data }: any) {
   const contentType = data.contentType || "text";
   const Icon = typeIcons[contentType] || MessageSquare;
   const buttons = data.buttons || [];
