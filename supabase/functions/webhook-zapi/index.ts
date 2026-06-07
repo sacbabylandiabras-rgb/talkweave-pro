@@ -39,7 +39,7 @@ function normalizeForMatch(text: string): string {
     .trim();
 }
 
-function isKeywordMatch(message: string, keyword: string): boolean {
+function isKeywordMatch(message: string, keyword: string, matchType: string = "contains"): boolean {
   if (!keyword || !message) return false;
   const normalizedKeyword = normalizeForMatch(keyword);
   const normalizedMessage = normalizeForMatch(message);
@@ -47,6 +47,10 @@ function isKeywordMatch(message: string, keyword: string): boolean {
   
   // Strict check for slash commands
   if (normalizedKeyword.startsWith("/")) {
+    return normalizedMessage === normalizedKeyword;
+  }
+  
+  if (matchType === "exact") {
     return normalizedMessage === normalizedKeyword;
   }
   
@@ -524,54 +528,65 @@ serve(async (req) => {
                            flow.nodes.find((n: any) => n.type === "blocoInicial");
         
         let isMatch = false;
-        const startNodeId = resolveFlowStartNodeId(flow, triggerNode);
+        let finalStartNodeId = resolveFlowStartNodeId(flow, triggerNode);
 
-        const mainKeywords = splitKeywords(flow.keyword || flow.trigger_keywords);
         const normalizedMsg = normalizeForMatch(agentInboundText || messageRaw);
         if (!normalizedMsg) {
           console.log(`[webhook-zapi] skipping flow "${flow.name}" because inbound message is empty`);
           continue;
         }
-        
-        // Also check if any node has keywords (the user might have configured keywords inside a "Gatilho" block)
-        const nodeKeywords = flow.nodes
-          .filter((n: any) => n.data?.keyword || n.data?.keywords || n.data?.trigger_keywords || n.data?.triggerKeywords)
-          .flatMap((n: any) => {
-            const k = n.data?.keyword || n.data?.keywords || n.data?.trigger_keywords || n.data?.triggerKeywords;
-            return splitKeywords(k);
-          });
 
-        const allKeywords = Array.from(new Set([...mainKeywords, ...nodeKeywords]));
-        
-        console.log(`[webhook-zapi] Checking flow "${flow.name}" triggers. Msg: "${normalizedMsg}", All Keywords: ${JSON.stringify(allKeywords)}`);
-
-        // Prioritize exact match
-        if (allKeywords.some((k: string) => normalizedMsg === k)) {
+        // 1. Check main flow keywords (global)
+        const mainKeywords = splitKeywords(flow.keyword || flow.trigger_keywords);
+        if (mainKeywords.some(k => normalizedMsg === k || normalizedMsg.includes(k))) {
           isMatch = true;
-          console.log(`[webhook-zapi] Exact keyword match for flow "${flow.name}"`);
-        } 
-        // Command match
-        else if (triggerNode?.type === "step" && triggerNode.data?.triggerType === "command") {
+          console.log(`[webhook-zapi] Global keyword match for flow "${flow.name}"`);
+        }
+
+        // 2. Check each trigger node specifically to respect matchType
+        if (!isMatch) {
+          const gatilhoNodes = (flow.nodes || []).filter((n: any) => 
+            n.type === "blocoGatilho" || n.type === "gatilho" || n.type === "trigger" || (n.type === "step" && n.data?.kind === "gatilho")
+          );
+
+          for (const node of gatilhoNodes) {
+            const nodeKws = splitKeywords(node.data?.keyword || node.data?.keywords || node.data?.trigger_keywords || node.data?.triggerKeywords);
+            const matchType = node.data?.matchType || "contains";
+            
+            if (nodeKws.some(k => isKeywordMatch(normalizedMsg, k, matchType))) {
+              isMatch = true;
+              finalStartNodeId = resolveFlowStartNodeId(flow, node);
+              console.log(`[webhook-zapi] Node keyword match (${matchType}) for flow "${flow.name}" in node ${node.id}`);
+              break;
+            }
+          }
+        }
+
+        // 3. Command match fallback
+        if (!isMatch && triggerNode?.type === "step" && triggerNode.data?.triggerType === "command") {
           const command = normalizeForMatch(triggerNode.data.keyword || "");
           if (command && normalizedMsg === command) {
             isMatch = true;
             console.log(`[webhook-zapi] Command match for flow "${flow.name}"`);
           }
         }
-        // Then partial match for keywords with at least 2 characters (expanded from 3)
-        // This allows "oi" or "oih" to match "oi"
-        else if (allKeywords.some((k: string) => {
-          if (k.length < 2) return false;
-          // Check if message contains keyword OR keyword contains message (for very short inputs)
-          return normalizedMsg.includes(k) || (normalizedMsg.length >= 2 && k.includes(normalizedMsg));
-        })) {
-          isMatch = true;
-          console.log(`[webhook-zapi] Partial/Included keyword match for flow "${flow.name}"`);
+
+        // 4. Legacy fuzzy match fallback (if still no match, check all keywords together)
+        if (!isMatch) {
+          const allNodeKeywords = (flow.nodes || [])
+            .filter((n: any) => n.data?.keyword || n.data?.keywords || n.data?.trigger_keywords || n.data?.triggerKeywords)
+            .flatMap((n: any) => splitKeywords(n.data?.keyword || n.data?.keywords || n.data?.trigger_keywords || n.data?.triggerKeywords));
+          
+          const allKeywords = Array.from(new Set([...mainKeywords, ...allNodeKeywords]));
+          if (allKeywords.some(k => k.length >= 2 && (normalizedMsg.includes(k) || (normalizedMsg.length >= 2 && k.includes(normalizedMsg))))) {
+            isMatch = true;
+            console.log(`[webhook-zapi] Legacy fuzzy match for flow "${flow.name}"`);
+          }
         }
 
-        if (isMatch && startNodeId) {
+        if (isMatch && finalStartNodeId) {
           console.log(`[webhook-zapi] trigger match found for flow "${flow.name}" (id: ${flow.id})`);
-          await executeFlow(supabase, userId, phone, flow, startNodeId, {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText });
+          await executeFlow(supabase, userId, phone, flow, finalStartNodeId, {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText });
           return new Response("ok", { status: 200, headers: corsHeaders });
         }
 
