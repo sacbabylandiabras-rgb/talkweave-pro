@@ -304,7 +304,7 @@ export const useAdminZapiInstances = (userId?: string) => {
     zapi_token: string;
     zapi_client_token: string;
     is_default?: boolean;
-      api_provider?: 'zapi' | 'uazapi' | 'meta';
+      api_provider?: 'zapi' | 'uazapi' | 'meta' | 'evolution';
       evolution_api_url?: string;
       evolution_api_key?: string;
     instance_type?: 'web';
