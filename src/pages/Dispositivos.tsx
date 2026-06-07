@@ -419,6 +419,25 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
    const updatePrivacyField = (field: string, value: any) => {
      setPrivacySettings((prev: any) => ({ ...prev, [field]: value }));
      setPrivacyDirty(true);
+     // Save immediately (debounced per field) — UAZAPI aceita campos individuais
+     savePrivacyField(field, value);
+   };
+
+   const savePrivacyField = async (field: string, value: any) => {
+     setPrivacyLoading(true);
+     try {
+       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
+         body: { action: 'save-privacy', instanceDbId: instance.id, payload: { [field]: value } },
+       });
+       if (error) throw error;
+       if (data?.error) throw new Error(data.error?.message || data.error);
+       toast({ title: "✅ Privacidade atualizada" });
+     } catch (err: any) {
+       const message = await getInvokeErrorMessage(err, 'Erro ao salvar privacidade');
+       toast({ title: "❌ Erro ao salvar", description: message, variant: "destructive" });
+     } finally {
+       setPrivacyLoading(false);
+     }
    };
 
    const savePrivacyAll = async () => {
