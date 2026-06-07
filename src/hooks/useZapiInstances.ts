@@ -24,9 +24,12 @@ const INSTANCES_CACHE_PREFIX = 'zapi_instances_cache:';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export const isMobileZapiInstance = (instance: Pick<ZapiInstance, 'instance_name' | 'instance_type'>) => {
+export const isMobileZapiInstance = (instance: Pick<ZapiInstance, 'instance_name' | 'instance_type' | 'api_provider'>) => {
   const type = String(instance.instance_type || '').trim().toLowerCase();
   const name = String(instance.instance_name || '').trim().toLowerCase();
+  const provider = String(instance.api_provider || '').toLowerCase();
+  const isWarmup = provider.includes('warmup') || name.includes('aquecimento') || name.includes('warmup');
+  if (isWarmup) return false;
   return type === 'mobile' || /^mobile\b/.test(name);
 };
 
@@ -304,7 +307,7 @@ export const useAdminZapiInstances = (userId?: string) => {
     zapi_token: string;
     zapi_client_token: string;
     is_default?: boolean;
-      api_provider?: 'zapi' | 'uazapi' | 'meta';
+      api_provider?: 'zapi' | 'uazapi' | 'meta' | 'evolution';
       evolution_api_url?: string;
       evolution_api_key?: string;
     instance_type?: 'web';
@@ -359,7 +362,7 @@ export const useAdminZapiInstances = (userId?: string) => {
 
    const updateInstance = async (instanceId: string, uid: string, updates: Partial<{
      instance_name: string; zapi_instance_id: string; zapi_token: string; zapi_client_token: string; is_default: boolean; is_active: boolean;
-       api_provider: 'zapi' | 'uazapi' | 'meta';
+       api_provider: 'zapi' | 'uazapi' | 'meta' | 'evolution';
        evolution_api_url: string;
        evolution_api_key: string;
          instance_type: 'web';
