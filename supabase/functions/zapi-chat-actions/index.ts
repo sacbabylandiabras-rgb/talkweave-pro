@@ -123,7 +123,15 @@ Deno.serve(async (req) => {
          if (action === 'set-group-add-permission') body.groupadd = val;
          if (action === 'set-privacy-online') body.online = val;
          if (action === 'set-read-receipts') body.readreceipts = payload.active ? 'all' : 'none';
-         if (action === 'set-messages-duration') body.disappearing = String(payload.duration);
+         if (action === 'set-messages-duration') {
+           const durMap: Record<string, string> = {
+             '0': 'off',
+             '86400': '24h',
+             '604800': '7d',
+             '7776000': '90d',
+           };
+           body.disappearing = durMap[String(payload.duration)] || 'off';
+         }
 
          const res = await fetch(withToken('/instance/privacy'), {
            method: 'POST',
