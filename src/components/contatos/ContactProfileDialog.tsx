@@ -26,6 +26,7 @@ import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
 import { useMessageLogs } from "@/hooks/useMessageLogs";
 import { DEFAULT_PIPELINE_STAGES } from "@/components/agent/PipelineBar";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { getHttpAvatarUrl } from "@/lib/avatar-utils";
 
 interface ContactProfileDialogProps {
   contact: Contact | null;
