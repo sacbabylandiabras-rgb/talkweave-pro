@@ -177,7 +177,58 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      if (action === 'list-products' || action === 'create-product' || action === 'edit-product' || action === 'delete-product' || action === 'save-catalog-config' || action === 'create-product-v2') {
+      if (action === 'list-products') {
+        const jid = payload?.phone 
+          ? (String(payload.phone).includes('@') ? payload.phone : `${String(payload.phone).replace(/\D/g, '')}@s.whatsapp.net`)
+          : (creds.owner ? (String(creds.owner).includes('@') ? creds.owner : `${String(creds.owner).replace(/\D/g, '')}@s.whatsapp.net`) : null);
+        
+        if (!jid) return new Response(JSON.stringify({ error: 'JID do proprietário não encontrado' }), { status: 400, headers: corsHeaders });
+
+        const res = await fetch(`${apiUrl}/business/catalog/list`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify({ jid }),
+        });
+        const data = await res.json().catch(() => ({}));
+        
+        // Map UAZAPI catalog list response to match frontend expectations
+        const rawProducts = data?.response || data?.data || [];
+        const products = Array.isArray(rawProducts) ? rawProducts.map((p: any) => ({
+          id: p.id,
+          name: p.name || p.title || '',
+          description: p.description || '',
+          price: p.price ? Number(p.price) / 1000 : 0,
+          currency: p.currency || 'BRL',
+          isHidden: p.isHidden ?? p.hidden ?? false,
+          imageUrls: p.imageUrls || (p.images && p.images[0]?.url) || '',
+        })) : [];
+
+        return new Response(JSON.stringify({ data: { products, nextCursor: null } }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'delete-product') {
+        const res = await fetch(`${apiUrl}/business/catalog/delete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify({ productIds: [payload?.id] }),
+        });
+        const data = await res.json().catch(() => ({}));
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'show-product' || action === 'hide-product') {
+        const path = action === 'show-product' ? '/business/catalog/show' : '/business/catalog/hide';
+        const res = await fetch(`${apiUrl}${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify({ productIds: [payload?.id] }),
+        });
+        const data = await res.json().catch(() => ({}));
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'create-product' || action === 'edit-product' || action === 'save-catalog-config' || action === 'create-product-v2') {
+
 
         return new Response(JSON.stringify({ data: { products: [], nextCursor: null }, unsupported: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
