@@ -1122,7 +1122,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
              <div className="grid grid-cols-1 gap-4">
                <div className="space-y-2">
                  <Label>Visto por Último</Label>
-                 <Select onValueChange={(v) => updatePrivacy('set-last-seen', { visualizationType: v })} disabled={privacyLoading}>
+                  <Select 
+                    value={privacySettings?.lastSeen || undefined}
+                    onValueChange={(v) => updatePrivacy('set-last-seen', { visualizationType: v })} 
+                    disabled={privacyLoading}
+                  >
                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                    <SelectContent>
                      <SelectItem value="ALL">Todos</SelectItem>
@@ -1134,7 +1138,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                </div>
                <div className="space-y-2">
                  <Label>Foto do Perfil</Label>
-                 <Select onValueChange={(v) => updatePrivacy('set-photo-visualization', { visualizationType: v })} disabled={privacyLoading}>
+                  <Select 
+                    value={privacySettings?.profilePicture || undefined}
+                    onValueChange={(v) => updatePrivacy('set-photo-visualization', { visualizationType: v })} 
+                    disabled={privacyLoading}
+                  >
                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                    <SelectContent>
                      <SelectItem value="ALL">Todos</SelectItem>
@@ -1146,7 +1154,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                </div>
                <div className="space-y-2">
                  <Label>Recado (About)</Label>
-                 <Select onValueChange={(v) => updatePrivacy('set-privacy-description', { visualizationType: v })} disabled={privacyLoading}>
+                  <Select 
+                    value={privacySettings?.status || undefined}
+                    onValueChange={(v) => updatePrivacy('set-privacy-description', { visualizationType: v })} 
+                    disabled={privacyLoading}
+                  >
                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                    <SelectContent>
                      <SelectItem value="ALL">Todos</SelectItem>
@@ -1158,7 +1170,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                </div>
                <div className="space-y-2">
                  <Label>Quem pode me adicionar a grupos</Label>
-                 <Select onValueChange={(v) => updatePrivacy('set-group-add-permission', { visualizationType: v })} disabled={privacyLoading}>
+                  <Select 
+                    value={privacySettings?.groupsAdd || undefined}
+                    onValueChange={(v) => updatePrivacy('set-group-add-permission', { visualizationType: v })} 
+                    disabled={privacyLoading}
+                  >
                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                    <SelectContent>
                      <SelectItem value="ALL">Todos</SelectItem>
@@ -1169,7 +1185,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                </div>
                <div className="space-y-2">
                  <Label>Online</Label>
-                 <Select onValueChange={(v) => updatePrivacy('set-privacy-online', { visualizationType: v })} disabled={privacyLoading}>
+                  <Select 
+                    value={privacySettings?.online || undefined}
+                    onValueChange={(v) => updatePrivacy('set-privacy-online', { visualizationType: v })} 
+                    disabled={privacyLoading}
+                  >
                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                    <SelectContent>
                      <SelectItem value="ALL">Todos</SelectItem>
@@ -1179,7 +1199,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                </div>
                <div className="space-y-2">
                  <Label>Confirmações de Leitura</Label>
-                 <Select onValueChange={(v) => updatePrivacy('set-read-receipts', { active: v === 'true' })} disabled={privacyLoading}>
+                  <Select 
+                    value={privacySettings?.readReceipts ? (privacySettings.readReceipts === 'all' ? 'true' : 'false') : undefined}
+                    onValueChange={(v) => updatePrivacy('set-read-receipts', { active: v === 'true' })} 
+                    disabled={privacyLoading}
+                  >
                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                    <SelectContent>
                      <SelectItem value="true">Ativado</SelectItem>
@@ -1189,7 +1213,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                </div>
                <div className="space-y-2">
                  <Label>Duração Padrão das Mensagens</Label>
-                 <Select onValueChange={(v) => updatePrivacy('set-messages-duration', { duration: parseInt(v) })} disabled={privacyLoading}>
+                  <Select 
+                    value={privacySettings?.disappearingMessages || undefined}
+                    onValueChange={(v) => updatePrivacy('set-messages-duration', { duration: parseInt(v) })} 
+                    disabled={privacyLoading}
+                  >
                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                    <SelectContent>
                      <SelectItem value="0">Desativado</SelectItem>
