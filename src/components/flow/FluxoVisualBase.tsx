@@ -302,6 +302,15 @@ export default function FluxoVisualBase({
         return node;
       })
     );
+    // Sincronizar keyword do gatilho com o cabeçalho
+    if (selectedNode.type === "blocoGatilho" || selectedNode.type === "gatilho") {
+      const kws = Array.isArray(selectedNode.data?.keywords)
+        ? selectedNode.data.keywords
+        : typeof selectedNode.data?.keywords === "string"
+          ? selectedNode.data.keywords.split(",").map((k: string) => k.trim()).filter((k: string) => k.length > 0)
+          : [];
+      setKeywordFluxo(kws.join(", "));
+    }
     setIsEditDialogOpen(false);
     setSelectedNode(null);
     toast.success("Bloco atualizado!");
