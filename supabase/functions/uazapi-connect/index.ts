@@ -1,5 +1,35 @@
 import { corsHeaders } from "../_shared/cors.ts";
 
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+
+async function configureUazapiWebhook(apiUrl: string, apiToken: string) {
+  try {
+    const webhookUrl = `${SUPABASE_URL.replace(/\/+$/, "")}/functions/v1/webhook-zapi`;
+    const payload = {
+      url: webhookUrl,
+      enabled: true,
+      events: ["messages", "messages_update", "connection", "presence", "chats", "contacts"],
+      addUrlEvents: true,
+      addUrlTypesMessages: true,
+      excludeMessages: ["wasSentByApi"],
+    };
+    const resp = await fetch(`${apiUrl}/webhook`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "token": apiToken,
+        "apikey": apiToken,
+        "Authorization": `Bearer ${apiToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    const text = await resp.text().catch(() => "");
+    console.log(`[uazapi-webhook] config status=${resp.status} body=${text.substring(0, 200)}`);
+  } catch (err) {
+    console.error("[uazapi-webhook] failed to configure:", (err as Error).message);
+  }
+}
+
 const pickFirstString = (...values: unknown[]) => {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) return value.trim();
@@ -133,6 +163,9 @@ const normalizeConnectPayload = (data: any) => {
        }
  
  
+        // Always (re)configure the webhook so inbound/outbound messages reach our handler
+        await configureUazapiWebhook(cleanUrl, apiToken);
+
         const normalized = normalizeConnectPayload(data);
         console.log(`Connect Normalized: hasQr=${!!normalized.qrCode}, hasPairing=${!!normalized.pairingCode}`);
         if (normalized.qrCode) console.log(`QR Code (prefix): ${normalized.qrCode.substring(0, 50)}`);
