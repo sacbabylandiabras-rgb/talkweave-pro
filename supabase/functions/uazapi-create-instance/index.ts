@@ -92,6 +92,7 @@ serve(async (req: Request) => {
           zapi_client_token: data.token,
           api_provider: 'uazapi',
           evolution_api_url: apiUrl,
+          evolution_api_key: data.token, // O token da instância é a key para chamadas individuais
           instance_type: 'web',
           is_active: true,
           status: "disconnected"
