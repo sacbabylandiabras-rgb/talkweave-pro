@@ -126,8 +126,13 @@ function isOwnConnectedChat(webhook: any, phone: string, chatId: string, senderP
 function isStatusOnlyCallback(type: string, webhook: any, messageRaw: string, mediaUrl: string): boolean {
   const statusOnlyTypes = new Set(["DeliveryCallback", "MessageStatusCallback", "StatusCallback", "MessageStatus"]);
   if (statusOnlyTypes.has(type)) return true;
+  const lowerType = String(type || "").toLowerCase();
   const hasInboundContent = Boolean(normalizeForMatch(messageRaw) || mediaUrl);
-  return !hasInboundContent && (Array.isArray(webhook?.ids) || Boolean(webhook?.messageId && webhook?.zaapId));
+  if (hasInboundContent) return false;
+  if (lowerType.includes("messages_update") || lowerType.includes("message_update") || lowerType.includes("status")) return true;
+  const hasMessageReference = Boolean(webhook?.messageId || webhook?.messageid || webhook?.zaapId || webhook?.id || Array.isArray(webhook?.ids));
+  const hasDeliveryStatus = Boolean(webhook?.status || webhook?.messageStatus || webhook?.ack || webhook?.deliveryStatus);
+  return hasMessageReference && hasDeliveryStatus;
 }
 
 function resolveFlowStartNodeId(flow: any, triggerNode: any): string | undefined {
