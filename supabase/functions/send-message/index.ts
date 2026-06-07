@@ -386,6 +386,14 @@ serve(async (req) => {
           currentProvider = requestedInstance.api_provider;
           evolutionApiUrl = requestedInstance.evolution_api_url;
           lockedToRequestedInstance = true;
+          
+          // ATUALIZAÇÃO CRÍTICA: Se a instância solicitada for UAZAPI, forçamos o provider
+          // para evitar que o fluxo caia no tratamento padrão da Z-API.
+          if (currentProvider === 'uazapi' || currentProvider === 'uazapi_warmup' || currentProvider === 'evolution') {
+            credentials.provider = currentProvider;
+            credentials.evolutionApiUrl = evolutionApiUrl;
+            credentials.token = token;
+          }
         } else {
           console.warn(`⚠️ Instância solicitada ${requestedInstanceId} não encontrada — usando credenciais padrão do usuário.`);
           // Não falha: cai para as credenciais padrão já obtidas via getUserZAPICredentials
