@@ -333,6 +333,57 @@ Deno.serve(async (req) => {
 
       // skip send-call (already handled)
 
+      if (action === 'send-call') {
+        const number = (phone || '').replace(/\D/g, '');
+        if (!number) {
+          return new Response(JSON.stringify({ error: 'Número inválido' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        const duration = Number(payload?.callDuration ?? payload?.duration ?? 15) || 15;
+        // Try multiple known endpoints across providers
+        const attempts = [
+          { url: withToken(`/message/sendCall/${inst}`), body: { number, duration } },
+          { url: withToken(`/message/fake-call/${inst}`), body: { number, duration } },
+          { url: withToken(`/call/make/${inst}`), body: { number, duration } },
+        ];
+        let lastStatus = 0;
+        let lastData: any = null;
+        for (const a of attempts) {
+          try {
+            const r = await fetch(a.url, { method: 'POST', headers: evolutionHeaders, body: JSON.stringify(a.body) });
+            lastStatus = r.status;
+            lastData = await r.json().catch(() => ({}));
+            if (r.ok) {
+              return new Response(JSON.stringify({ value: true, ...lastData }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+            }
+          } catch (e) {
+            lastData = { error: (e as Error).message };
+          }
+        }
+        return new Response(JSON.stringify({ error: formatErrorMessage(lastData) || 'Erro ao realizar chamada' }), { status: lastStatus || 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'list-tags') {
+        const endpoints = [
+          `/label/findLabels/${inst}`,
+          `/chat/getlabels/${inst}`,
+          `/labels/list/${inst}`,
+        ];
+        for (const ep of endpoints) {
+          const r = await fetch(withToken(ep), { headers: evolutionHeaders });
+          if (r.ok) {
+            const d = await r.json().catch(() => ([]));
+            const arr = Array.isArray(d) ? d : (d?.labels || d?.data || d?.response || []);
+            const value = (Array.isArray(arr) ? arr : []).map((t: any) => ({
+              id: String(t.id ?? t.labelId ?? t._id ?? ''),
+              name: t.name ?? t.title ?? '',
+              color: t.color ?? t.colorHex ?? '',
+            })).filter((t: any) => t.id);
+            return new Response(JSON.stringify({ data: { value } }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          }
+        }
+        return new Response(JSON.stringify({ data: { value: [] } }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
       if (action === 'save-privacy') {
         const body: any = {};
         const lc = (v: any) => (v === undefined || v === null || v === '') ? undefined : String(v).toLowerCase();
