@@ -119,7 +119,7 @@ serve(async (req) => {
       // UAZAPI provider routing
       if ((instance as any).api_provider === 'uazapi' || (instance as any).api_provider === 'uazapi_warmup') {
         const apiUrl = ((instance as any).evolution_api_url || '').replace(/\/+$/, '');
-        const apiToken = (instance as any).evolution_api_key || '';
+        const apiToken = (instance as any).evolution_api_key || (instance as any).zapi_token || '';
         if (!apiUrl || !apiToken) {
           return new Response(JSON.stringify({ error: 'Configuração de conexão incompleta', message: 'Não foi possível iniciar a conexão agora.' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
