@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getHttpAvatarUrl } from "@/lib/avatar-utils";
 
 export interface Contact {
   phone: string;
