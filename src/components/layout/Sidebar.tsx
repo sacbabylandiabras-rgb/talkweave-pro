@@ -76,6 +76,7 @@ const zapiMenuItems = [
   { id: "painel", label: "Painel", icon: LayoutDashboard, path: "/dashboard" },
   { id: "perfil-empresa", label: "Perfil Empresa", icon: Building2, path: "/perfil-empresa" },
    { id: "dispositivos", label: "Dispositivos", icon: Smartphone, path: "/dispositivos" },
+  { id: "enviar-mensagem", label: "Enviar Mensagens", icon: Send, path: "/enviar-mensagem" },
   { id: "mensagens", label: "Mensagens", icon: MessageCircle, path: "/mensagens" },
   { id: "pipeline", label: "Pipeline (CRM)", icon: Kanban, path: "/pipeline" },
   { id: "etiquetas", label: "Etiquetas", icon: Tag, path: "/etiquetas" },
