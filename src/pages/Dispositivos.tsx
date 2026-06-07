@@ -2776,7 +2776,10 @@ const Dispositivos = () => {
         body: { instanceName: newInstanceName.trim() },
       });
 
-      if (error) throw error;
+      if (error) {
+        const message = await getInvokeErrorMessage(error, "Não foi possível criar a instância agora.");
+        throw new Error(message);
+      }
       if (data?.error) throw new Error(data.message || data.error);
 
       // Save to database
