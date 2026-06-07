@@ -341,9 +341,10 @@ Deno.serve(async (req) => {
         const duration = Number(payload?.callDuration ?? payload?.duration ?? 15) || 15;
         // Try multiple known endpoints across providers
         const attempts = [
-          { url: withToken(`/message/sendCall/${inst}`), body: { number, duration } },
+          { url: withToken(`/message/sendCall/${inst}`), body: { number, delay: duration } },
           { url: withToken(`/message/fake-call/${inst}`), body: { number, duration } },
           { url: withToken(`/call/make/${inst}`), body: { number, duration } },
+          { url: withToken(`/message/sendCall/${inst}`), body: { number, duration } },
         ];
         let lastStatus = 0;
         let lastData: any = null;
