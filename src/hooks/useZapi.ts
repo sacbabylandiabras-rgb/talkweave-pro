@@ -1199,17 +1199,30 @@ const getZAPIConfig = async () => {
      }
    };
  
-   const getChatMetadata = async (phone: string) => {
-     setLoading(true);
-     try {
-       return await invokeZapiAction('metadata', phone);
-     } catch (error) {
-       console.error('Erro ao buscar metadata da conversa:', error);
-       throw error;
-     } finally {
-       setLoading(false);
-     }
-   };
+    const getChatMetadata = async (phone: string) => {
+      setLoading(true);
+      try {
+        return await invokeZapiAction('metadata', phone);
+      } catch (error) {
+        console.error('Erro ao buscar metadata da conversa:', error);
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    const getChatDetails = async (phone: string, preview: boolean = false) => {
+      setLoading(true);
+      try {
+        return await invokeZapiAction('get-chat-details', phone, { preview });
+      } catch (error) {
+        console.error('Erro ao buscar detalhes do chat:', error);
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    };
+
  
    const readChat = async (phone: string) => {
      setLoading(true);
