@@ -26,7 +26,8 @@ export function BlocoGatilhoNode({ data }: any) {
           </div>
           {data.keywords && (
             <div className="text-xs text-muted-foreground mt-1">
-              🔑 {data.keywords}
+              {data.matchType === "exact" ? "🔑 Exato: " : "🔑 Contém: "}
+              <span className="font-semibold text-primary">{data.keywords}</span>
             </div>
           )}
           {data.description && !data.keywords && (
