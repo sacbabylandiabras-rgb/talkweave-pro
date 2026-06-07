@@ -2803,12 +2803,8 @@ const Dispositivos = () => {
     } catch (err: any) {
       toast({ title: "❌ Erro ao criar instância", description: err.message, variant: "destructive" });
     } finally {
-      setCreating(true);
-      // Force reload to update UI
-      setTimeout(() => {
-        setCreating(false);
-        refetch();
-      }, 1500);
+      setCreating(false);
+      refetch();
     }
   };
 
