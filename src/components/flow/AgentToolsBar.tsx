@@ -14,6 +14,8 @@ interface AgentToolsBarProps {
 const NODE_TYPE = "agentTool";
 
 function handleDragStart(event: React.DragEvent, block: AgentToolBlock, onToolDragStart?: AgentToolsBarProps["onToolDragStart"]) {
+  if (!event.dataTransfer) return;
+  event.dataTransfer.effectAllowed = "move";
   event.dataTransfer.setData("application/reactflow", NODE_TYPE);
   event.dataTransfer.setData(
     AGENT_TOOL_DRAG_KEY,
@@ -25,7 +27,6 @@ function handleDragStart(event: React.DragEvent, block: AgentToolBlock, onToolDr
       instructions: block.instructions,
     })
   );
-  event.dataTransfer.effectAllowed = "move";
   onToolDragStart?.(event, NODE_TYPE);
 }
 
