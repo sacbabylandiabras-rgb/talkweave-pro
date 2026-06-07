@@ -346,7 +346,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                <div className="flex items-center justify-between">
                  <h3 className="font-semibold text-emerald-500 flex items-center gap-2">
                    <Globe className="w-4 h-4" />
-                   Instâncias de Uso (Web)
+                   Instâncias de Uso (WhatsApp)
                  </h3>
                   <Button 
                     size="sm" 
@@ -357,7 +357,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                     }}
                   >
                     <Plus className="w-3 h-3 mr-1" />
-                    {showAddForm === 'zapi' ? "Fechar" : "Adicionar Z-API"}
+                    {showAddForm === 'zapi' ? "Fechar" : "Adicionar Legado"}
                   </Button>
                   <Button 
                     size="sm" 
@@ -415,7 +415,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                   <Card className="border-emerald-500/40">
                     <CardContent className="pt-4 pb-4 space-y-3">
                       <DialogDescription className="text-xs font-semibold uppercase text-emerald-500">
-                        {editingInstanceId ? "Editar Instância" : "Nova Instância (Extrair Membros)"}
+                        {editingInstanceId ? "Editar Instância" : "Nova Instância"}
                       </DialogDescription>
                      <div className="grid grid-cols-2 gap-3">
                        <div className="space-y-2">
@@ -424,7 +424,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                        </div>
                         <div className="space-y-2">
                           <Label>Finalidade</Label>
-                          <Input value="Extrair Membros" disabled className="bg-muted" />
+                          <Input value="Padrão" disabled className="bg-muted" />
                         </div>
                      </div>
                      <div className="space-y-2">
@@ -456,7 +456,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                          <div className="flex items-center gap-2">
                            <span className="font-medium text-sm block truncate">{inst.instance_name}</span>
                            {inst.is_default && <Badge variant="default" className="bg-emerald-500 text-[10px] h-4">Padrão</Badge>}
-                           {isExtrairMembro && <Badge variant="outline" className="text-[10px] h-4 border-emerald-500/50 text-emerald-500">Extrair Membro</Badge>}
+                           {isExtrairMembro && <Badge variant="outline" className="text-[10px] h-4 border-emerald-500/50 text-emerald-500">Conexão Ativa</Badge>}
                          </div>
                          <p className="text-xs text-muted-foreground truncate">ID: {inst.zapi_instance_id}</p>
                        </div>
