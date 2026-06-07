@@ -310,9 +310,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     color: "text-blue-500",
     mode: "groups",
     nodes: [
-      baseInicial,
+      createInitialNode("ag-1"),
       {
-        id: "2",
+        id: "ag-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -322,7 +322,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2")],
+    edges: [edge("ag-1", "ag-2")],
   },
   {
     id: "promocao-grupo",
