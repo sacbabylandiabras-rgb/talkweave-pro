@@ -1,6 +1,6 @@
- import { useEffect, useState, useMemo } from "react";
- import { useZapiInstances, isMobileZapiInstance, type ZapiInstance } from "@/hooks/useZapiInstances";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useState, useMemo } from "react";
+import { useZapiInstances, isMobileZapiInstance, type ZapiInstance } from "@/hooks/useZapiInstances";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, Mail, MapPin, Globe, Clock, LayoutGrid, RefreshCw, AlertCircle, ShoppingBag, Plus, Pencil, Trash2, ExternalLink, EyeOff, Search, AlertTriangle, Tag, Palette, MessageSquare, Workflow, Check, Settings, Save, User, Package, PlusCircle, Smartphone, Edit2, Loader2, Upload, Image as ImageIcon } from "lucide-react";
+import { Building2, Mail, MapPin, Globe, Clock, LayoutGrid, RefreshCw, AlertCircle, ShoppingBag, Plus, Pencil, Trash2, ExternalLink, EyeOff, Search, AlertTriangle, Tag, Palette, MessageSquare, Workflow, Check, Settings, Save, User, Package, PlusCircle, Smartphone, Edit2, Loader2, Upload, Image as ImageIcon, RotateCcw, PowerOff, Send } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 
 interface WhatsappTag {
   id: string;
@@ -104,6 +105,7 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
    }, [allInstances]);
  
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const activeTab = searchParams.get("tab") || "perfil";
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
@@ -1360,6 +1362,5 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
   );
 };
 
-import { FunctionsHttpError } from "@supabase/supabase-js";
 
 export default PerfilEmpresa;
