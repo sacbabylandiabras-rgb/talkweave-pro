@@ -5,18 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, Search, MessageSquare, Phone, Filter, RefreshCw, Camera, Globe } from "lucide-react";
+import { Users, Search, MessageSquare, Phone, Filter, RefreshCw, Camera, Globe, Plus } from "lucide-react";
 import { useContacts } from "@/hooks/useContacts";
 import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
 import type { Contact } from "@/hooks/useContacts";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useZapi } from "@/hooks/useZapi";
+
 
 const Contatos = () => {
   const { activeWorkspace } = useWorkspace();
   const [searchTerm, setSearchTerm] = useState("");
    const { contacts, stats, loading, refetch, refreshProfilePicture, forceUpdateAllPhotos } = useContacts();
+  const { addContacts } = useZapi();
   const navigate = useNavigate();
+
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -51,7 +55,7 @@ const Contatos = () => {
     <div className="space-y-4">
       <h1 className="text-lg font-semibold text-foreground">Contatos</h1>
 
-      <div className="flex gap-4">
+      <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input 
@@ -87,7 +91,23 @@ const Contatos = () => {
           <Filter className="w-4 h-4" />
           Filtros
         </Button>
+        <Button 
+          className="flex items-center gap-2"
+          onClick={async () => {
+            const name = prompt("Nome do contato:");
+            const phone = prompt("Número do WhatsApp (com DDD):");
+            if (name && phone) {
+              await addContacts([{ firstName: name, phone: phone.replace(/\D/g, '') }]);
+              refetch();
+            }
+          }}
+        >
+
+          <Plus className="w-4 h-4" />
+          Novo Contato
+        </Button>
       </div>
+
 
       {loading ? (
         <div className="flex items-center justify-center h-64">

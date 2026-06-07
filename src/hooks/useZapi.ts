@@ -1074,7 +1074,7 @@ const getZAPIConfig = async () => {
    const addContacts = async (contacts: Array<{ firstName: string; lastName?: string; phone: string }>) => {
      setLoading(true);
      try {
-       const data = await invokeZapiAction('add-contacts', '', contacts);
+       const data = await invokeZapiAction('add-contacts', contacts[0]?.phone || '', contacts[0]);
        toast({ title: "Contatos adicionados", description: "Os contatos foram salvos na agenda com sucesso." });
        return data;
      } catch (error) {
