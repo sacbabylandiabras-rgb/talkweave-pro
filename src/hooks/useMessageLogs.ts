@@ -432,6 +432,7 @@ export const useMessageLogs = (
       const { data, error } = await supabase.functions.invoke("sync-chat-metadata", {
         body: { instanceId: filterInstanceId },
       });
+
       if (error) throw error;
       await fetchSavedContacts();
       return data;
