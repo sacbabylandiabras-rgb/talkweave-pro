@@ -32,11 +32,14 @@ const FLOW_BUTTON_PREFIX = "__flow_button__:";
 const receivedWebhookSyncAt = new Map<string, number>();
 
 function normalizeForMatch(text: string): string {
-  return (text || "")
+  if (!text) return "";
+  // Keep original for case-sensitive or exact matching if needed, 
+  // but for keyword matching we usually want a clean version.
+  return text
+    .trim()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
+    .toLowerCase();
 }
 
 function isKeywordMatch(message: string, keyword: string, matchType: string = "contains"): boolean {
