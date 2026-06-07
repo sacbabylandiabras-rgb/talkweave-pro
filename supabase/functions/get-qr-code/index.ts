@@ -32,24 +32,33 @@ serve(async (req) => {
       if (!apiUrl || !apiToken) throw new Error('Credenciais da conexão atual não configuradas')
       
       const res = await fetch(`${apiUrl}/instance/connect`, {
-        method: 'GET',
+        method: 'POST',
         headers: { 
+          'Content-Type': 'application/json',
           'token': apiToken,
           'apikey': apiToken,
           'Authorization': `Bearer ${apiToken}`
-        }
+        },
+        body: JSON.stringify({})
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.message || data?.error || 'Falha ao gerar QR Code')
-      
-      // Evolution /instance/connect might return different formats
-      const qrValue = data?.base64 || data?.qrcode || data?.code;
-      
+
+      const qrValue =
+        data?.instance?.qrcode ||
+        data?.qrcode ||
+        data?.base64 ||
+        data?.code ||
+        null;
+      const statusStr = String(data?.instance?.status || data?.status || '').toLowerCase();
+      const connected = data?.connected === true || ['open', 'connected', 'online'].includes(statusStr);
+
       return new Response(JSON.stringify({ 
         success: true, 
         data: { 
           value: qrValue,
-          connected: data?.instance?.status === 'open' || data?.status === 'open'
+          pairingCode: data?.instance?.paircode || data?.paircode || null,
+          connected
         } 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
