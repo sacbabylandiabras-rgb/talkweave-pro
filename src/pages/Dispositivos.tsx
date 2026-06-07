@@ -1100,7 +1100,20 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
  
 
        {/* Privacy Dialog */}
-       <Dialog open={showPrivacy} onOpenChange={setShowPrivacy}>
+       <Dialog 
+         open={showPrivacy} 
+         onOpenChange={(open) => {
+           setShowPrivacy(open);
+           if (open && (instance.api_provider === 'uazapi' || instance.api_provider === 'uazapi_warmup')) {
+             // Fetch current privacy settings
+             supabase.functions.invoke('zapi-chat-actions', {
+               body: { action: 'get-privacy', instanceDbId: instance.id },
+             }).then(({ data }) => {
+               if (data && !data.error) setPrivacySettings(data);
+             });
+           }
+         }}
+       >
          <DialogContent className="sm:max-w-md">
            <DialogHeader>
              <DialogTitle className="flex items-center gap-2">Privacidade do WhatsApp</DialogTitle>
