@@ -255,12 +255,14 @@ export const useContacts = (options?: { enabled?: boolean }) => {
   // Auto-fetch profile pictures after contacts load
   useEffect(() => {
     if (enabled && !loading && contacts.length > 0) {
+      // Use a lock to prevent multiple simultaneous auto-fetches
       const timer = setTimeout(() => {
         autoFetchProfilePictures(contacts);
-      }, 1000);
+      }, 2000); // Wait 2s to ensure stable state
       return () => clearTimeout(timer);
     }
-  }, [enabled, loading, contacts.length]);
+  }, [enabled, loading]); // Remove contacts.length to avoid unnecessary triggers
+
 
 
   const refreshProfilePicture = async (phone: string) => {

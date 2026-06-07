@@ -646,11 +646,43 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
+      if (action === 'metadata' || action === 'get-metadata-contact') {
+        const jid = phone || payload?.phone || payload?.jid || '';
+        const number = jid.includes('@') ? jid.split('@')[0] : jid.replace(/\D/g, '');
+        
+        // Try multiple metadata endpoints for Evolution/UAZAPI
+        const endpoints = [
+          `/chat/findChat/${inst}`,
+          `/contact/find/${inst}`,
+        ];
+        
+        let lastError = 'Erro ao buscar metadados';
+        let lastStatus = 404;
+
+        for (const ep of endpoints) {
+          try {
+            const res = await fetch(withToken(ep), {
+              method: 'POST',
+              headers: evolutionHeaders,
+              body: JSON.stringify({ number, jid: jid.includes('@') ? jid : undefined }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+              return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+            }
+            lastError = data.message || data.error || lastError;
+            lastStatus = res.status;
+          } catch (e) {
+            lastError = e.message;
+          }
+        }
+        
+        return new Response(JSON.stringify({ error: lastError }), { status: lastStatus, headers: corsHeaders });
+      }
+
       return new Response(JSON.stringify({ error: 'Action not supported for this provider' }), { status: 400, headers: corsHeaders });
-
-
-
     }
+
 
     // Default Z-API path
     const zaUrl = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}`;
@@ -662,6 +694,12 @@ Deno.serve(async (req) => {
     let zaB = null;
 
     if (action === 'get-disallowed-contacts') zaP = '/privacy/disallowed-contacts';
+    if (action === 'metadata' || action === 'get-metadata-contact') {
+      const cleanPhone = (phone || payload?.phone || '').replace(/\D/g, '');
+      const jid = phone || payload?.phone || payload?.jid || '';
+      zaP = `/chats-metadata/${encodeURIComponent(jid.includes('@') ? jid : `${cleanPhone}@c.us`)}`;
+      zaM = 'GET';
+    }
     if (action === 'set-last-seen') { zaM = 'POST'; zaP = '/privacy/last-seen'; zaB = { visualizationType: payload.visualizationType }; }
     if (action === 'set-photo-visualization') { zaM = 'POST'; zaP = '/privacy/photo'; zaB = { visualizationType: payload.visualizationType }; }
     if (action === 'set-privacy-description') { zaM = 'POST'; zaP = '/privacy/description'; zaB = { visualizationType: payload.visualizationType }; }
@@ -671,6 +709,7 @@ Deno.serve(async (req) => {
     if (action === 'set-messages-duration') {
        const map: any = { '0': 'disable', '86400': 'hours24', '604800': 'days7', '7776000': 'days90' };
        zaP = `/privacy/messages-duration?value=${map[String(payload.duration)] || 'disable'}`;
+
        zaM = 'POST';
     }
 

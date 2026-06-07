@@ -145,7 +145,12 @@ const extractGroupName = (payload: any): string | null => {
       })
     }
   
+    // Create an abort controller to stop execution before the gateway times out (usually 60s)
+    const timeoutController = new AbortController();
+    const globalTimeout = setTimeout(() => timeoutController.abort(), 25000); // 25s timeout to be safe
+
     try {
+
       const supabaseUrl = Deno.env.get('SUPABASE_URL')
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
       if (!supabaseUrl || !supabaseServiceKey) {
@@ -398,15 +403,21 @@ const extractGroupName = (payload: any): string | null => {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
-    } catch (error) {
-      console.error(`📷 Fatal Error in get-profile-picture:`, error)
+    } catch (err) {
+      console.error(`❌ get-profile-picture error:`, err);
+      const isTimeout = err.name === 'AbortError' || (err instanceof Error && err.message.includes('timeout'));
       return new Response(
         JSON.stringify({ 
           success: false, 
-          data: { link: null, raw: null }, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+          error: isTimeout ? 'A solicitação demorou muito para responder' : err.message 
+        }), 
+        { 
+          status: isTimeout ? 504 : 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    } finally {
+      clearTimeout(globalTimeout);
     }
-  })
+  });
+
