@@ -561,71 +561,53 @@ serve(async (req) => {
       let finalBody = body;
       let method = 'POST';
       let headers: Record<string, string> = isUazapi 
-        ? { 'Content-Type': 'application/json', 'token': token }
+        ? { 'Content-Type': 'application/json', 'token': token, 'apikey': token }
         : { 'Content-Type': 'application/json', 'Client-Token': clientToken };
 
       if (isUazapi) {
-        // Map Z-API endpoints to UAZAPI (uazapi.com) endpoints
-        const number = body.phone || body.number;
+        // Evolution API / UAZAPI v2 mapping
+        // We use the instance name in the path if available, or fallback to the instanceId
+        const inst = uazapiInstanceName || instanceId;
+        const number = (body.phone || body.number || "").replace(/\D/g, "");
+        
+        // Ensure token is also in query string for maximum compatibility
+        const withToken = (p: string) => `${p}${p.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+
         if (endpoint === '/send-text') {
-          finalEndpoint = `/send/text`;
-          finalBody = { number, text: body.message || '' };
+          finalEndpoint = withToken(`/message/sendText/${inst}`);
+          finalBody = { number, text: body.message || '', linkPreview: true };
         } else if (endpoint === '/send-image') {
-          finalEndpoint = `/send/media`;
-          finalBody = { number, type: 'image', file: body.image, text: body.caption || '' };
+          finalEndpoint = withToken(`/message/sendMedia/${inst}`);
+          finalBody = { number, media: body.image, type: 'image', caption: body.caption || '' };
         } else if (endpoint === '/send-video') {
-          finalEndpoint = `/send/media`;
-          finalBody = { number, type: 'video', file: body.video, text: body.caption || '' };
+          finalEndpoint = withToken(`/message/sendMedia/${inst}`);
+          finalBody = { number, media: body.video, type: 'video', caption: body.caption || '' };
         } else if (endpoint === '/send-audio') {
-          finalEndpoint = `/send/media`;
-          finalBody = { number, type: 'audio', file: body.audio };
+          finalEndpoint = withToken(`/message/sendMedia/${inst}`);
+          finalBody = { number, media: body.audio, type: 'audio' };
         } else if (endpoint === '/send-document' || endpoint.startsWith('/send-document/')) {
-          finalEndpoint = `/send/media`;
-          finalBody = { number, type: 'document', file: body.document, text: body.caption || '', docName: body.fileName || '' };
+          finalEndpoint = withToken(`/message/sendMedia/${inst}`);
+          finalBody = { number, media: body.document, type: 'document', caption: body.caption || '', fileName: body.fileName || '' };
         } else if (endpoint === '/send-sticker') {
-          finalEndpoint = `/send/media`;
-          finalBody = { number, type: 'sticker', file: body.sticker };
+          finalEndpoint = withToken(`/message/sendMedia/${inst}`);
+          finalBody = { number, media: body.sticker, type: 'sticker' };
         } else if (endpoint === '/send-gif') {
-          finalEndpoint = `/send/media`;
-          finalBody = { number, type: 'video', file: body.gif, text: body.caption || '' };
+          finalEndpoint = withToken(`/message/sendMedia/${inst}`);
+          finalBody = { number, media: body.gif, type: 'video', caption: body.caption || '' };
         } else if (endpoint === '/send-ptv') {
-          finalEndpoint = `/send/media`;
-          finalBody = { number, type: 'ptv', file: body.ptv };
+          finalEndpoint = withToken(`/message/sendMedia/${inst}`);
+          finalBody = { number, media: body.ptv, type: 'ptv' };
         } else if (endpoint === '/send-button-actions' || endpoint === '/send-button-list') {
-          finalEndpoint = `/send/menu`;
-          const actions = body.buttonActions || body.buttonList?.buttons || [];
-          const choices = actions.map((b: any) => {
-            const label = b.label || b.text || b.buttonText?.displayText || 'Botão';
-            if (b.type === 'URL' && b.url) return `${label}|url|${b.url}`;
-            if (b.type === 'CALL' && b.phone) return `${label}|call|${b.phone}`;
-            return label;
-          });
-          finalBody = {
-            number,
-            type: 'button',
-            text: body.message || body.caption || ' ',
-            footerText: body.footer || '',
-            choices,
-          };
-        } else if (endpoint === '/send-option-list') {
-          finalEndpoint = `/send/menu`;
-          const opts = body.optionList?.options || [];
-          finalBody = {
-            number,
-            type: 'list',
-            text: body.message || body.optionList?.title || ' ',
-            footerText: body.footer || '',
-            buttonText: body.optionList?.buttonLabel || 'Ver opções',
-            choices: opts.map((o: any) => o.title + (o.description ? ` - ${o.description}` : '')),
-          };
-        } else if (endpoint === '/send-message-multiple-contacts') {
-          // No equivalent; send as text individually — fallback to single text
-          finalEndpoint = `/send/text`;
-          finalBody = { number: (body.phones && body.phones[0]) || number, text: body.message || '' };
+          finalEndpoint = withToken(`/message/sendButtons/${inst}`);
+          const buttons = (body.buttonActions || body.buttonList?.buttons || []).map((b: any, i: number) => ({
+            buttonId: b.id || String(i + 1),
+            buttonText: { displayText: b.label || b.text || 'Botão' },
+            type: 1
+          }));
+          finalBody = { number, title: body.title || '', description: body.message || '', footer: body.footer || '', buttons };
         } else {
-          // Unsupported endpoint on UAZAPI — fallback to text
-          finalEndpoint = `/send/text`;
-          finalBody = { number, text: body.message || body.text || ' ' };
+          // Fallback mapping for unknown endpoints
+          finalEndpoint = withToken(endpoint.replace(/^\/send-/, '/message/send'));
         }
       }
 

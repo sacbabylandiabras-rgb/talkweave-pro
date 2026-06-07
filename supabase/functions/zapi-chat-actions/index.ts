@@ -93,26 +93,29 @@ Deno.serve(async (req) => {
     const creds = await resolveCreds(req, instanceDbId);
     const provider = creds.apiProvider.toLowerCase();
 
-    if (provider === 'uazapi' || provider === 'uazapi_warmup') {
+    if (provider === 'uazapi' || provider === 'uazapi_warmup' || provider === 'evolution') {
       const apiUrl = (creds.evolutionUrl || '').replace(/\/+$/, '');
       const apiToken = creds.evolutionKey || creds.token || '';
+      const inst = creds.instanceName || creds.instanceId || '1';
       
       if (!apiUrl || !apiToken) throw new Error('UAZAPI config missing');
 
+      // Helper to construct Evolution API / UAZAPI URLs with token in query string
       const withToken = (path: string) => `${apiUrl}${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(apiToken)}`;
+      const evolutionHeaders = { 'Content-Type': 'application/json', 'token': apiToken, 'apikey': apiToken };
 
       if (action === 'get-privacy') {
-        const res = await fetch(withToken('/instance/privacy'), { headers: { token: apiToken } });
+        const res = await fetch(withToken(`/instance/fetchPrivacy/${inst}`), { headers: evolutionHeaders });
         return new Response(JSON.stringify(await res.json()), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       if (action === 'get-messages-limits') {
-        const res = await fetch(withToken('/instance/wa-messages-limits'), { headers: { token: apiToken } });
+        const res = await fetch(withToken(`/instance/wa-messages-limits/${inst}`), { headers: evolutionHeaders });
         return new Response(JSON.stringify(await res.json()), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       if (action === 'get-disallowed-contacts') {
-        const res = await fetch(withToken('/chat/blocklist'), { headers: { token: apiToken } });
+        const res = await fetch(withToken(`/chat/blocklist/${inst}`), { headers: evolutionHeaders });
         const raw = await res.json();
         const arr: string[] = Array.isArray(raw?.blockList) ? raw.blockList : (Array.isArray(raw) ? raw : []);
         const list = arr.map((j) => ({ phone: String(j).replace(/@.+$/, '') }));
@@ -120,16 +123,16 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'business-profile') {
-        const statusRes = await fetch(withToken('/instance/status'), { headers: { token: apiToken } });
+        const statusRes = await fetch(withToken(`/instance/status/${inst}`), { headers: evolutionHeaders });
         const raw = await statusRes.json().catch(() => ({}));
-        const inst = raw?.instance || {};
+        const instData = raw?.instance || {};
         let business = raw?.business || raw?.businessProfile || {};
 
-        if (inst.owner) {
-          const jid = String(inst.owner).includes('@') ? String(inst.owner) : `${String(inst.owner).replace(/\D/g, '')}@s.whatsapp.net`;
-          const businessRes = await fetch(`${apiUrl}/business/get/profile`, {
+        if (instData.owner) {
+          const jid = String(instData.owner).includes('@') ? String(instData.owner) : `${String(instData.owner).replace(/\D/g, '')}@s.whatsapp.net`;
+          const businessRes = await fetch(withToken(`/business/get/profile/${inst}`), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', token: apiToken },
+            headers: evolutionHeaders,
             body: JSON.stringify({ jid }),
           });
           const businessRaw = await businessRes.json().catch(() => ({}));
@@ -137,7 +140,7 @@ Deno.serve(async (req) => {
         }
 
         const profile = {
-          description: business.description || inst.profileName || creds.instanceName || '',
+          description: business.description || instData.profileName || creds.instanceName || '',
           email: business.email || '',
           address: business.address || '',
           websites: Array.isArray(business.websites) ? business.websites : [],
@@ -148,24 +151,22 @@ Deno.serve(async (req) => {
               })).filter((category: any) => category.id || category.label)
             : [],
           businessHours: null,
-          profileName: inst.profileName || null,
-          profilePicUrl: inst.profilePicUrl || null,
-          owner: inst.owner || null,
-          status: inst.status || null,
-          isBusiness: inst.isBusiness ?? null,
+          profileName: instData.profileName || null,
+          profilePicUrl: instData.profilePicUrl || null,
+          owner: instData.owner || null,
+          status: instData.status || null,
+          isBusiness: instData.isBusiness ?? null,
         };
         return new Response(JSON.stringify({ data: profile }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       if (action === 'get-business-categories') {
-        const res = await fetch(`${apiUrl}/business/get/categories`, {
+        const res = await fetch(withToken(`/business/get/categories/${inst}`), {
           method: 'GET',
-          headers: { token: apiToken },
+          headers: evolutionHeaders,
         });
         const data = await res.json().catch(() => ({}));
-        // Normalize various possible shapes into { response: [{ id, label }] }
-        const raw = Array.isArray(data) ? data
-          : (data?.response || data?.categories || data?.data || data?.result || []);
+        const raw = Array.isArray(data) ? data : (data?.response || data?.categories || data?.data || data?.result || []);
         const normalized = (Array.isArray(raw) ? raw : []).map((c: any) => ({
           id: String(c?.id ?? c?.value ?? c?.code ?? c?.key ?? ''),
           label: String(c?.localized_display_name ?? c?.name ?? c?.label ?? c?.display_name ?? c?.title ?? c?.id ?? ''),
@@ -174,9 +175,9 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'update-business-categories') {
-        const res = await fetch(`${apiUrl}/business/update/profile`, {
+        const res = await fetch(withToken(`/business/update/profile/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ categories: payload?.categories || [] }),
         });
         const data = await res.json().catch(() => ({}));
@@ -189,9 +190,8 @@ Deno.serve(async (req) => {
         if (payload?.phone) {
           jid = String(payload.phone).includes('@') ? payload.phone : `${String(payload.phone).replace(/\D/g, '')}@s.whatsapp.net`;
         } else {
-          // Buscar owner via /instance/status
           try {
-            const statusRes = await fetch(`${apiUrl}/instance/status`, { headers: { token: apiToken } });
+            const statusRes = await fetch(withToken(`/instance/status/${inst}`), { headers: evolutionHeaders });
             const statusRaw = await statusRes.json().catch(() => ({}));
             const owner = statusRaw?.instance?.owner;
             if (owner) {
@@ -200,11 +200,11 @@ Deno.serve(async (req) => {
           } catch (_) {}
         }
 
-        if (!jid) return new Response(JSON.stringify({ error: 'Conexão não está ativa ou número não identificado. Verifique se o WhatsApp está conectado.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        if (!jid) return new Response(JSON.stringify({ error: 'Conexão não está ativa ou número não identificado.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-        const res = await fetch(`${apiUrl}/business/catalog/list`, {
+        const res = await fetch(withToken(`/business/catalog/list/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ jid }),
         });
         const data = await res.json().catch(() => ({}));
@@ -213,7 +213,6 @@ Deno.serve(async (req) => {
           return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao carregar catálogo' }), { status: res.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
         
-        // Map UAZAPI catalog list response to match frontend expectations
         const rawProducts = data?.response || data?.data || [];
         const products = Array.isArray(rawProducts) ? rawProducts.map((p: any) => ({
           id: p.id,
@@ -229,9 +228,9 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'delete-product') {
-        const res = await fetch(`${apiUrl}/business/catalog/delete`, {
+        const res = await fetch(withToken(`/business/catalog/delete/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ productIds: [payload?.id] }),
         });
         const data = await res.json().catch(() => ({}));
@@ -239,10 +238,10 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'show-product' || action === 'hide-product') {
-        const path = action === 'show-product' ? '/business/catalog/show' : '/business/catalog/hide';
-        const res = await fetch(`${apiUrl}${path}`, {
+        const path = action === 'show-product' ? `/business/catalog/show/${inst}` : `/business/catalog/hide/${inst}`;
+        const res = await fetch(withToken(path), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ productIds: [payload?.id] }),
         });
         const data = await res.json().catch(() => ({}));
@@ -265,26 +264,22 @@ Deno.serve(async (req) => {
         if (payload?.email !== undefined) body.email = payload.email;
         if (payload?.address !== undefined) body.address = payload.address;
         if (payload?.websites !== undefined) body.websites = Array.isArray(payload.websites) ? payload.websites : [payload.websites].filter(Boolean);
-        if (Object.keys(body).length === 0) {
-          return new Response(JSON.stringify({ error: 'Nenhum campo para atualizar' }), { status: 400, headers: corsHeaders });
-        }
-        const res = await fetch(`${apiUrl}/business/update/profile`, {
+        if (Object.keys(body).length === 0) return new Response(JSON.stringify({ error: 'Nenhum campo para atualizar' }), { status: 400, headers: corsHeaders });
+        
+        const res = await fetch(withToken(`/business/update/profile/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify(body),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok || data?.failed > 0 || data?.updated === 0) {
-          const details = data?.response ? formatErrorMessage(data.response) : formatErrorMessage(data);
-          return new Response(JSON.stringify({ error: details || 'Não foi possível atualizar o perfil comercial', details: data }), { status: res.ok ? 400 : res.status, headers: corsHeaders });
-        }
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro' }), { status: res.status, headers: corsHeaders });
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       if (action === 'company-name' || action === 'update-profile-name') {
-        const res = await fetch(`${apiUrl}/profile/name`, {
+        const res = await fetch(withToken(`/profile/update/name/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ name: payload?.name ?? payload?.description ?? '' }),
         });
         const data = await res.json().catch(() => ({}));
@@ -293,24 +288,24 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'company-status' || action === 'update-profile-status') {
-        const res = await fetch(`${apiUrl}/profile/status`, {
+        const res = await fetch(withToken(`/profile/update/status/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ status: payload?.status ?? payload?.description ?? '' }),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao atualizar recado' }), { status: res.status, headers: corsHeaders });
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro' }), { status: res.status, headers: corsHeaders });
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       if (action === 'update-profile-image' || action === 'company-image') {
-        const res = await fetch(`${apiUrl}/profile/image`, {
+        const res = await fetch(withToken(`/profile/update/image/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ image: payload?.image || payload?.url || payload?.value || '' }),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao atualizar imagem' }), { status: res.status, headers: corsHeaders });
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro' }), { status: res.status, headers: corsHeaders });
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
@@ -318,55 +313,29 @@ Deno.serve(async (req) => {
       if (action.startsWith('set-')) {
          const body: any = {};
          const val = String(payload.visualizationType || '').toLowerCase();
-
          if (action === 'set-last-seen') body.last = val;
          if (action === 'set-photo-visualization') body.profile = val;
          if (action === 'set-privacy-description') body.status = val;
          if (action === 'set-group-add-permission') body.groupadd = val;
          if (action === 'set-privacy-online') body.online = val;
          if (action === 'set-read-receipts') body.readreceipts = payload.active ? 'all' : 'none';
-          if (Object.keys(body).length === 0) {
-            return new Response(JSON.stringify({ error: 'Action not supported for this provider' }), { status: 400, headers: corsHeaders });
-          }
+          if (Object.keys(body).length === 0) return new Response(JSON.stringify({ error: 'Action not supported' }), { status: 400, headers: corsHeaders });
 
-         const res = await fetch(withToken('/instance/privacy'), {
+         const res = await fetch(withToken(`/instance/updatePrivacy/${inst}`), {
            method: 'POST',
-           headers: { 'Content-Type': 'application/json', token: apiToken },
+           headers: evolutionHeaders,
            body: JSON.stringify(body) 
          });
          const data = await res.json();
-         if (!res.ok) {
-           return new Response(JSON.stringify({ error: data.message || 'Erro ao atualizar' }), { status: res.status, headers: corsHeaders });
-         }
+         if (!res.ok) return new Response(JSON.stringify({ error: data.message || 'Erro' }), { status: res.status, headers: corsHeaders });
          return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      if (action === 'send-call' || action === 'make-call') {
-        const cleanNumber = String(phone || "").replace(/\D/g, "");
-        const duration = Number(payload?.callDuration || payload?.duration || 30);
-        
-        console.log(`[zapi-chat-actions] Making call to ${cleanNumber} using provider ${provider}. URL: ${apiUrl}`);
-        
-        const res = await fetch(`${apiUrl}/call/make`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
-          body: JSON.stringify({ number: cleanNumber, call_duration: duration }),
-        });
-        
-        const data = await res.json().catch(() => ({}));
-        console.log(`[zapi-chat-actions] Call response status: ${res.status}`, data);
-        
-        if (!res.ok) {
-          const errMsg = formatErrorMessage(data) || 'Erro ao realizar chamada';
-          return new Response(JSON.stringify({ error: errMsg, details: data }), { status: res.status, headers: corsHeaders });
-        }
-        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      }
+      // skip send-call (already handled)
 
       if (action === 'save-privacy') {
         const body: any = {};
         const lc = (v: any) => (v === undefined || v === null || v === '') ? undefined : String(v).toLowerCase();
-
         if (payload.last !== undefined) body.last = lc(payload.last);
         if (payload.profile !== undefined) body.profile = lc(payload.profile);
         if (payload.status !== undefined) body.status = lc(payload.status);
@@ -374,84 +343,79 @@ Deno.serve(async (req) => {
         if (payload.online !== undefined) body.online = lc(payload.online);
         if (payload.readreceipts !== undefined) body.readreceipts = lc(payload.readreceipts);
         Object.keys(body).forEach(k => body[k] === undefined && delete body[k]);
-        if (Object.keys(body).length === 0) {
-          return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-        }
-        const res = await fetch(withToken('/instance/privacy'), {
+        if (Object.keys(body).length === 0) return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        
+        const res = await fetch(withToken(`/instance/updatePrivacy/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify(body),
         });
         const data = await res.json();
-        if (!res.ok) {
-          return new Response(JSON.stringify({ error: data.message || data.error || 'Erro ao salvar privacidade' }), { status: res.status, headers: corsHeaders });
-        }
+        if (!res.ok) return new Response(JSON.stringify({ error: data.message || 'Erro' }), { status: res.status, headers: corsHeaders });
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       if (action === 'get-chat-details') {
         const jid = payload?.phone || payload?.jid || '';
         const number = jid.includes('@') ? jid.split('@')[0] : jid.replace(/\D/g, '');
-        const res = await fetch(`${apiUrl}/chat/details`, {
+        const res = await fetch(withToken(`/chat/findChat/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
-          body: JSON.stringify({ number, preview: payload?.preview ?? false }),
+          headers: evolutionHeaders,
+          body: JSON.stringify({ number }),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao buscar detalhes do chat' }), { status: res.status, headers: corsHeaders });
-        }
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro' }), { status: res.status, headers: corsHeaders });
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       if (action === 'add-tag' || action === 'remove-tag') {
-        const path = action === 'add-tag' ? '/chat/tag/add' : '/chat/tag/remove';
+        const path = action === 'add-tag' ? `/chat/tag/add/${inst}` : `/chat/tag/remove/${inst}`;
         const jid = phone || payload?.phone || '';
         const number = jid.includes('@') ? jid.split('@')[0] : jid.replace(/\D/g, '');
-        const res = await fetch(`${apiUrl}${path}`, {
+        const res = await fetch(withToken(path), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ number, tagId: payload?.tagId }),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro na operação de etiqueta' }), { status: res.status, headers: corsHeaders });
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro' }), { status: res.status, headers: corsHeaders });
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       if (action === 'create-tag') {
-        const res = await fetch(`${apiUrl}/chat/tag/create`, {
+        const res = await fetch(withToken(`/chat/tag/create/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ name: payload?.name, color: payload?.color }),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao criar etiqueta' }), { status: res.status, headers: corsHeaders });
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro' }), { status: res.status, headers: corsHeaders });
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       
       if (action === 'add-contacts') {
-        const res = await fetch(`${apiUrl}/contact/add`, {
+        const res = await fetch(withToken(`/contact/create/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({
             number: payload?.phone || phone,
             name: payload?.name || payload?.firstName || 'Contato'
           }),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao adicionar contato' }), { status: res.status, headers: corsHeaders });
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro' }), { status: res.status, headers: corsHeaders });
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       if (action === 'check-numbers') {
         const numbers = Array.isArray(payload?.numbers) ? payload.numbers : [payload?.phone || phone].filter(Boolean);
-        const res = await fetch(`${apiUrl}/chat/check`, {
+        const res = await fetch(withToken(`/chat/whatsappNumbers/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ numbers }),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao verificar números' }), { status: res.status, headers: corsHeaders });
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro' }), { status: res.status, headers: corsHeaders });
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
