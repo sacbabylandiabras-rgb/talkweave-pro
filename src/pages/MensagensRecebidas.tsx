@@ -1611,9 +1611,19 @@ const ChatView = (props: ChatViewProps) => {
               </div>
               {msgs.map((msg) => {
                 const rawSenderPhone = msg.sender_phone ? String(msg.sender_phone).trim() : "";
-                const senderPhone = rawSenderPhone.toLowerCase().includes("@lid")
+                const isLid = rawSenderPhone.toLowerCase().includes("@lid");
+                let senderPhone = isLid
                   ? rawSenderPhone.toLowerCase()
                   : rawSenderPhone.replace(/\D/g, "");
+                
+                // Se for @lid em um grupo regular (não comunidade), tentamos converter para número real
+                if (isLid && isGroupPhone(conversation.phone) && !conversation.isCommunity) {
+                  const resolvedPhone = lidMapRef.current.get(senderPhone);
+                  if (resolvedPhone) {
+                    senderPhone = resolvedPhone.replace(/\D/g, "");
+                  }
+                }
+
                 const senderContact = rawSenderPhone
                   ? savedContacts.get(rawSenderPhone) || savedContacts.get(senderPhone) || savedContacts.get(`+${senderPhone}`)
                   : null;
