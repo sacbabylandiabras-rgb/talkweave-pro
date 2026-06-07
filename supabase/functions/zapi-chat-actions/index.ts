@@ -126,9 +126,9 @@ Deno.serve(async (req) => {
 
       if (action === 'business-profile') {
         const statusRes = await fetch(withToken(`/instance/status/${inst}`), { headers: evolutionHeaders });
-        const raw = await statusRes.json().catch(() => ({}));
-        const instData = raw?.instance || {};
-        let business = raw?.business || raw?.businessProfile || {};
+        const statusRaw = await statusRes.json().catch(() => ({}));
+        const instData = statusRaw?.instance || {};
+        let business = statusRaw?.business || statusRaw?.businessProfile || {};
 
         if (instData.owner) {
           const jid = String(instData.owner).includes('@') ? String(instData.owner) : `${String(instData.owner).replace(/\D/g, '')}@s.whatsapp.net`;
