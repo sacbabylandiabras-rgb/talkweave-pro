@@ -2835,8 +2835,11 @@ const Dispositivos = () => {
             <Smartphone className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">Nenhuma instância configurada</h3>
             <p className="text-muted-foreground mb-4">
-              Crie sua primeira instância para começar a enviar mensagens.
+              Crie sua primeira instância para começar a enviar mensagens. (Limite: {maxInstances})
             </p>
+            <Button onClick={() => setCreateOpen(true)} className="gap-2">
+              <Plus className="w-4 h-4" /> Criar Instância
+            </Button>
           </CardContent>
         </Card>
       )}
