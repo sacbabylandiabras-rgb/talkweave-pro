@@ -1157,7 +1157,32 @@ const getZAPIConfig = async () => {
      }
    };
  
-   const blockContact = async (phone: string) => {
+    const checkNumbers = async (numbers: string[]) => {
+      setLoading(true);
+      try {
+        return await invokeSendMessageEdge(
+          { 
+            phone: '', 
+            specialType: 'check-numbers',
+            specialPayload: { numbers } 
+          } as any, 
+          'Erro ao verificar números'
+        );
+      } catch (error) {
+        console.error('Erro ao verificar números:', error);
+        toast({
+          title: "Erro ao verificar números",
+          description: error instanceof Error ? error.message : "Erro desconhecido",
+          variant: "destructive",
+        });
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const blockContact = async (phone: string) => {
+
      setLoading(true);
      try {
        const data = await invokeZapiAction('block-contact', phone);
@@ -1836,7 +1861,9 @@ const getZAPIConfig = async () => {
       sendEventResponse,
       sendOrderStatusUpdate,
       sendOrderPaymentUpdate,
+      checkNumbers,
       setOverride,
+
       loading,
     };
   };
