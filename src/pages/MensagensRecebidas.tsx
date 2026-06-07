@@ -2442,7 +2442,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
     [instances],
   );
   const knownInstanceIds = useMemo(
-    () => instances.flatMap((i) => [i.id, i.zapi_instance_id]).filter(Boolean),
+    () => instances.flatMap((i) => [i.id, i.zapi_instance_id, i.instance_name]).filter(Boolean),
     [instances],
   );
   const knownInstanceNames = useMemo(() => instances.map((i) => i.instance_name).filter(Boolean), [instances]);
