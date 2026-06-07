@@ -123,6 +123,13 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [catalogConfig, setCatalogConfig] = useState({ isCartEnabled: true, isCatalogVisible: true });
   const [isSavingConfig, setIsSavingConfig] = useState(false);
+
+  // Added dialog states moved from Dispositivos
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
+  const [businessDialogOpen, setBusinessDialogOpen] = useState(false);
+  const [productDialogOpen, setProductDialogOpen] = useState(false);
+
   const { toast } = useToast();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
