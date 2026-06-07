@@ -136,9 +136,9 @@ const Contatos = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10 shrink-0 border border-border/50 overflow-hidden bg-[#DFE5E7] flex items-center justify-center">
-                    {contato.profilePictureUrl ? (
+                    {getHttpAvatarUrl(contato.profilePictureUrl) ? (
                       <AvatarImage 
-                        src={contato.profilePictureUrl} 
+                        src={getHttpAvatarUrl(contato.profilePictureUrl)!} 
                         className="h-full w-full object-cover"
                         onError={() => refreshProfilePicture(contato.phone)}
                       />
