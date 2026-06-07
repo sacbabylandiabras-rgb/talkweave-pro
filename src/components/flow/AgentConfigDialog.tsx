@@ -101,7 +101,7 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
       }
     };
     triggerAutoImport();
-  }, [open, loading, autoImportUrl]);
+  }, [open, autoImportUrl, loading, urlLoading, knowledge, saveConfig]);
 
   const handleImportUrl = async (urlToImport?: string) => {
     const url = urlToImport || urlInput;
