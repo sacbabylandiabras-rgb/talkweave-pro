@@ -5,18 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, Search, MessageSquare, Phone, Filter, RefreshCw, Camera, Globe } from "lucide-react";
+import { Users, Search, MessageSquare, Phone, Filter, RefreshCw, Camera, Globe, Plus } from "lucide-react";
 import { useContacts } from "@/hooks/useContacts";
 import ContactProfileDialog from "@/components/contatos/ContactProfileDialog";
 import type { Contact } from "@/hooks/useContacts";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useZapi } from "@/hooks/useZapi";
+
 
 const Contatos = () => {
   const { activeWorkspace } = useWorkspace();
   const [searchTerm, setSearchTerm] = useState("");
    const { contacts, stats, loading, refetch, refreshProfilePicture, forceUpdateAllPhotos } = useContacts();
+  const { addContacts } = useZapi();
   const navigate = useNavigate();
+
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -89,15 +93,16 @@ const Contatos = () => {
         </Button>
         <Button 
           className="flex items-center gap-2"
-          onClick={() => {
+          onClick={async () => {
             const name = prompt("Nome do contato:");
             const phone = prompt("Número do WhatsApp (com DDD):");
             if (name && phone) {
-              const { addContacts } = useZapi();
-              addContacts([{ firstName: name, phone: phone.replace(/\D/g, '') }]);
+              await addContacts([{ firstName: name, phone: phone.replace(/\D/g, '') }]);
+              refetch();
             }
           }}
         >
+
           <Plus className="w-4 h-4" />
           Novo Contato
         </Button>
