@@ -24,12 +24,33 @@ export function BlocoGatilhoNode({ data }: any) {
           <div className="text-sm font-semibold text-card-foreground">
             {data.label}
           </div>
-          {data.keywords && (
-            <div className="text-xs text-muted-foreground mt-1">
-              {data.matchType === "exact" ? "🔑 Exato: " : "🔑 Contém: "}
-              <span className="font-semibold text-primary">{data.keywords}</span>
-            </div>
-          )}
+          {(() => {
+            const raw = data.keywords;
+            if (!raw) return null;
+            const list = Array.isArray(raw)
+              ? raw.filter((k: unknown): k is string => typeof k === "string" && k.trim().length > 0)
+              : typeof raw === "string"
+                ? raw.split(",").map((k) => k.trim()).filter(Boolean)
+                : [];
+            if (list.length === 0) return null;
+            return (
+              <div className="mt-1">
+                <div className="text-[10px] text-muted-foreground mb-1">
+                  {data.matchType === "exact" ? "🔑 Exato" : "🔑 Contém"}
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {list.map((kw, idx) => (
+                    <span
+                      key={`${kw}-${idx}`}
+                      className="inline-block px-2 py-0.5 bg-primary/15 text-primary rounded text-xs font-medium"
+                    >
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
           {data.description && !data.keywords && (
             <div className="text-xs text-muted-foreground mt-0.5">
               {data.description}
