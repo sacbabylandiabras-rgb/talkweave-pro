@@ -115,25 +115,58 @@ Deno.serve(async (req) => {
 
       if (action.startsWith('set-')) {
          const body: any = {};
-         if (action === 'set-last-seen') body.lastSeen = payload.visualizationType;
-         if (action === 'set-photo-visualization') body.profilePicture = payload.visualizationType;
-         if (action === 'set-privacy-description') body.status = payload.visualizationType;
-         if (action === 'set-group-add-permission') body.groupsAdd = payload.visualizationType;
-         if (action === 'set-read-receipts') body.readReceipts = payload.active ? 'all' : 'none';
-         if (action === 'set-messages-duration') body.disappearingMessages = String(payload.duration);
+         const val = String(payload.visualizationType || '').toLowerCase();
+
+         if (action === 'set-last-seen') body.last = val;
+         if (action === 'set-photo-visualization') body.profile = val;
+         if (action === 'set-privacy-description') body.status = val;
+         if (action === 'set-group-add-permission') body.groupadd = val;
+         if (action === 'set-privacy-online') body.online = val;
+         if (action === 'set-read-receipts') body.readreceipts = payload.active ? 'all' : 'none';
+         if (action === 'set-messages-duration') body.disappearing = String(payload.duration);
 
          const res = await fetch(withToken('/instance/privacy'), {
            method: 'POST',
            headers: { 'Content-Type': 'application/json', token: apiToken },
            body: JSON.stringify(body) 
          });
-         return new Response(JSON.stringify(await res.json()), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+         const data = await res.json();
+         if (!res.ok) {
+           return new Response(JSON.stringify({ error: data.message || 'Erro ao atualizar' }), { status: res.status, headers: corsHeaders });
+         }
+         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       
       return new Response(JSON.stringify({ error: 'Action not supported for this provider' }), { status: 400, headers: corsHeaders });
     }
 
-    return new Response(JSON.stringify({ error: 'Action not supported for this provider' }), { status: 400, headers: corsHeaders });
+    // Default Z-API path
+    const zapiUrl = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}`;
+    const zapiHeaders = { 'Content-Type': 'application/json', 'Client-Token': creds.clientToken };
+
+    // This is a minimal Z-API bridge for the privacy actions called by Dispositivos.tsx
+    let method = 'GET';
+    let path = '';
+    let body = null;
+
+    if (action === 'get-disallowed-contacts') path = '/privacy/disallowed-contacts';
+    if (action === 'set-last-seen') { method = 'POST'; path = '/privacy/last-seen'; body = { visualizationType: payload.visualizationType }; }
+    if (action === 'set-photo-visualization') { method = 'POST'; path = '/privacy/photo'; body = { visualizationType: payload.visualizationType }; }
+    if (action === 'set-privacy-description') { method = 'POST'; path = '/privacy/description'; body = { visualizationType: payload.visualizationType }; }
+    if (action === 'set-group-add-permission') { method = 'POST'; path = '/privacy/group-add'; body = { visualizationType: payload.visualizationType }; }
+    if (action === 'set-privacy-online') { method = 'POST'; path = '/privacy/online'; body = { visualizationType: payload.visualizationType }; }
+    if (action === 'set-read-receipts') { method = 'POST'; path = `/privacy/read-receipts?value=${payload.active ? 'enable' : 'disable'}`; }
+    if (action === 'set-messages-duration') {
+       const map: any = { '0': 'disable', '86400': 'hours24', '604800': 'days7', '7776000': 'days90' };
+       path = `/privacy/messages-duration?value=${map[String(payload.duration)] || 'disable'}`;
+       method = 'POST';
+    }
+
+    if (!path) return new Response(JSON.stringify({ error: 'Action not supported' }), { status: 400, headers: corsHeaders });
+
+    const res = await fetch(zapiUrl + path, { method, headers: zapiHeaders, body: body ? JSON.stringify(body) : null });
+    const data = await res.json();
+    return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: res.status });
 
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });

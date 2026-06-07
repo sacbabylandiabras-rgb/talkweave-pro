@@ -1125,7 +1125,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <div className="space-y-2">
                  <Label>Visto por Último</Label>
                   <Select 
-                    value={privacySettings?.lastSeen || undefined}
+                    value={String(privacySettings?.last || privacySettings?.lastSeen || '').toUpperCase() || undefined}
                     onValueChange={(v) => updatePrivacy('set-last-seen', { visualizationType: v })} 
                     disabled={privacyLoading}
                   >
@@ -1141,7 +1141,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <div className="space-y-2">
                  <Label>Foto do Perfil</Label>
                   <Select 
-                    value={privacySettings?.profilePicture || undefined}
+                    value={String(privacySettings?.profile || privacySettings?.profilePicture || '').toUpperCase() || undefined}
                     onValueChange={(v) => updatePrivacy('set-photo-visualization', { visualizationType: v })} 
                     disabled={privacyLoading}
                   >
@@ -1157,7 +1157,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <div className="space-y-2">
                  <Label>Recado (About)</Label>
                   <Select 
-                    value={privacySettings?.status || undefined}
+                    value={String(privacySettings?.status || '').toUpperCase() || undefined}
                     onValueChange={(v) => updatePrivacy('set-privacy-description', { visualizationType: v })} 
                     disabled={privacyLoading}
                   >
@@ -1173,7 +1173,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <div className="space-y-2">
                  <Label>Quem pode me adicionar a grupos</Label>
                   <Select 
-                    value={privacySettings?.groupsAdd || undefined}
+                    value={String(privacySettings?.groupadd || privacySettings?.groupsAdd || '').toUpperCase() || undefined}
                     onValueChange={(v) => updatePrivacy('set-group-add-permission', { visualizationType: v })} 
                     disabled={privacyLoading}
                   >
@@ -1188,7 +1188,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <div className="space-y-2">
                  <Label>Online</Label>
                   <Select 
-                    value={privacySettings?.online || undefined}
+                    value={String(privacySettings?.online || '').toUpperCase() || undefined}
                     onValueChange={(v) => updatePrivacy('set-privacy-online', { visualizationType: v })} 
                     disabled={privacyLoading}
                   >
@@ -1202,7 +1202,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <div className="space-y-2">
                  <Label>Confirmações de Leitura</Label>
                   <Select 
-                    value={privacySettings?.readReceipts ? (privacySettings.readReceipts === 'all' ? 'true' : 'false') : undefined}
+                    value={privacySettings?.readreceipts ? (privacySettings.readreceipts === 'all' || privacySettings.readreceipts === 'all' ? 'true' : 'false') : (privacySettings?.readReceipts ? (privacySettings.readReceipts === 'all' ? 'true' : 'false') : undefined)}
                     onValueChange={(v) => updatePrivacy('set-read-receipts', { active: v === 'true' })} 
                     disabled={privacyLoading}
                   >
@@ -1216,7 +1216,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <div className="space-y-2">
                  <Label>Duração Padrão das Mensagens</Label>
                   <Select 
-                    value={privacySettings?.disappearingMessages || undefined}
+                    value={String(privacySettings?.disappearing || privacySettings?.disappearingMessages || '').toUpperCase() || undefined}
                     onValueChange={(v) => updatePrivacy('set-messages-duration', { duration: parseInt(v) })} 
                     disabled={privacyLoading}
                   >
