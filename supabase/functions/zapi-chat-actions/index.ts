@@ -350,7 +350,7 @@ Deno.serve(async (req) => {
         ];
         let lastStatus = 0;
         let lastData: any = null;
-        for (const a of attempts) {
+        for (const a of callAttempts) {
           try {
             console.log(`[zapi-chat-actions] Attempting call: ${a.url}`);
             const r = await fetch(a.url, { method: 'POST', headers: evolutionHeaders, body: JSON.stringify(a.body) });
