@@ -5,7 +5,7 @@ export function BlocoGatilhoNode({ data }: any) {
   const isWebhook = !!data.isWebhook;
 
   // Normalizar keywords (pode vir como string ou array)
-  const keywords = Array.isArray(data.keywords) ? data.keywords : data.keyword ? [data.keyword] : [];
+  const keywords = Array.isArray(data.keywords) ? data.keywords : typeof data.keywords === 'string' ? data.keywords.split(',').map((k: string) => k.trim()).filter((k: string) => k.length > 0) : data.keyword ? [data.keyword] : [];
 
   const matchType = data.matchType || "contains"; // "exact" ou "contains"
 

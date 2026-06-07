@@ -19,6 +19,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -519,6 +520,50 @@ export default function FluxoVisualBase({
                   onChange={(e) => setSelectedNode(prev => prev ? { ...prev, data: { ...prev.data, prompt: e.target.value } } : null)}
                   rows={6}
                 />
+              </div>
+            )}
+
+            {(selectedNode?.type === "blocoGatilho" || selectedNode?.type === "gatilho") && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Palavras-chave (separadas por vírgula)</Label>
+                  <Input 
+                    value={Array.isArray(selectedNode?.data?.keywords) 
+                      ? selectedNode.data.keywords.join(", ") 
+                      : selectedNode?.data?.keywords || selectedNode?.data?.keyword || ""} 
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const keywords = val.split(",").map(k => k.trim()).filter(k => k.length > 0);
+                      setSelectedNode(prev => prev ? { 
+                        ...prev, 
+                        data: { 
+                          ...prev.data, 
+                          keywords: keywords,
+                          keyword: keywords[0] || "" // Manter compatibilidade
+                        } 
+                      } : null);
+                    }}
+                    placeholder="ex: oi, ola, ajuda"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Tipo de Correspondência</Label>
+                  <RadioGroup 
+                    value={selectedNode?.data?.matchType || "contains"} 
+                    onValueChange={(val) => setSelectedNode(prev => prev ? { ...prev, data: { ...prev.data, matchType: val } } : null)}
+                    className="flex gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="contains" id="contains" />
+                      <Label htmlFor="contains" className="font-normal cursor-pointer">Contém</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="exact" id="exact" />
+                      <Label htmlFor="exact" className="font-normal cursor-pointer">Exato</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
               </div>
             )}
           </div>
