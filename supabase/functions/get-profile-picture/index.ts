@@ -137,12 +137,15 @@ const extractGroupName = (payload: any): string | null => {
  const cache = new Map<string, { data: any, timestamp: number }>()
  const CACHE_TTL = 30000 // 30 seconds
 
- Deno.serve(async (req) => {
-   if (req.method === 'OPTIONS') {
-     return new Response(null, { headers: corsHeaders })
-   }
- 
-   try {
+  Deno.serve(async (req) => {
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { 
+        status: 204, 
+        headers: corsHeaders 
+      })
+    }
+  
+    try {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
       if (!supabaseUrl || !supabaseServiceKey) {
@@ -375,26 +378,35 @@ const extractGroupName = (payload: any): string | null => {
 
           } catch (e) {
             console.log(`📷 Error on instance ${provider}: ${e instanceof Error ? e.message : String(e)}`)
-         }
-         return null
-       }))
+          }
+          return null
+        }))
  
-       const winner = results.find(r => r !== null)
-       if (winner) {
-         cache.set(cacheKey, { data: winner, timestamp: Date.now() })
-         return new Response(JSON.stringify(winner), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-       }
-     }
+        const winner = results.find(r => r !== null)
+        if (winner) {
+          cache.set(cacheKey, { data: winner, timestamp: Date.now() })
+          return new Response(JSON.stringify(winner), { 
+            status: 200, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          })
+        }
+      }
 
-    return new Response(
-      JSON.stringify({ success: false, data: { link: null, raw: null } }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  } catch (error) {
-    console.error(`📷 Error:`, error)
-    return new Response(
-      JSON.stringify({ success: false, data: { link: null, raw: null }, error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  }
-})
+      const emptyResult = { success: false, data: { link: null, raw: null } }
+      cache.set(cacheKey, { data: emptyResult, timestamp: Date.now() })
+      return new Response(JSON.stringify(emptyResult), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    } catch (error) {
+      console.error(`📷 Fatal Error in get-profile-picture:`, error)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          data: { link: null, raw: null }, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+  })
