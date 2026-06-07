@@ -2506,7 +2506,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
     refetch();
   }, []);
 
-  const { forwardMessage, sendReaction, sendSticker, sendGif, sendCall: sendCallZapi, setOverride } = useZapi();
+  const { forwardMessage, sendReaction, sendSticker, sendGif, sendCall: sendCallZapi, setOverride, readChat, archiveChat, pinChat, muteChat } = useZapi();
 
   useEffect(() => {
     if (selectedInstance) {
