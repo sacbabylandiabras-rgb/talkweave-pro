@@ -1636,7 +1636,13 @@ const ChatView = (props: ChatViewProps) => {
                 const senderContact = rawSenderPhone
                   ? savedContacts.get(rawSenderPhone) || savedContacts.get(senderPhone) || savedContacts.get(`+${senderPhone}`)
                   : null;
-                const senderDisplayName = msg.sender_name || senderContact?.name || null;
+                
+                // Prioritize real number if it was resolved from @lid, unless there's a contact name
+                let senderDisplayName = msg.sender_name || senderContact?.name || null;
+                if (!senderDisplayName && senderPhone && !senderPhone.includes("@lid") && isLid) {
+                  senderDisplayName = formatPhone(senderPhone);
+                }
+
                 const messageSenderPhoto = getHttpAvatarUrl(msg.sender_photo);
                 const savedSenderPhoto = getHttpAvatarUrl(senderContact?.profile_picture_url);
                 const groupConversationPhoto = getHttpAvatarUrl(conversation.profilePictureUrl);
@@ -1705,9 +1711,9 @@ const ChatView = (props: ChatViewProps) => {
                                   {senderDisplayName}
                                 </span>
                               )}
-                              {senderPhone && (
+                              {senderPhone && !senderPhone.includes("@lid") && (
                                 <span className="text-[10px] text-muted-foreground truncate">
-                                  {senderPhone.includes("@lid") || (senderPhone.includes("-") && !senderPhone.startsWith("+")) ? senderPhone : formatPhone(senderPhone)}
+                                  {senderPhone.includes("-") && !senderPhone.startsWith("+") ? senderPhone : formatPhone(senderPhone)}
                                 </span>
                               )}
                             </div>
