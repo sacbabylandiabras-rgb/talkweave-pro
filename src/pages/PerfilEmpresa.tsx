@@ -1515,8 +1515,8 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
       if (!error && data?.response) {
         setAvailableCategories(
           data.response.map((c: any) => ({
-            id: c.id,
-            label: c.localized_display_name || c.name,
+            id: String(c.id || c.value || ''),
+            label: String(c.label || c.localized_display_name || c.name || c.id || ''),
           }))
         );
       }
