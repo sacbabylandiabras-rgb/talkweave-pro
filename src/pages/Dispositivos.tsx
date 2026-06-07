@@ -318,11 +318,12 @@ const normalizeQrImageValue = (value: unknown) => {
 };
 
 const normalizeDeviceStatusPayload = (payload: any) => {
-  const status = String(payload?.status || payload?.device?.status || '').toLowerCase();
+  const status = String(payload?.status || payload?.device?.status || payload?.instance?.status || '').toLowerCase();
   const connected = payload?.connected === true ||
     payload?.session === true ||
     payload?.smartphoneConnected === true ||
     payload?.device?.connected === true ||
+    payload?.instance?.connected === true ||
     ['connected', 'open', 'online'].includes(status);
 
   return {
@@ -721,18 +722,39 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
        const apiToken = instance.evolution_api_key || instance.zapi_token || '';
        if (apiUrl && apiToken) {
          try {
+           // Try /instance/status first (it's what get-device-status uses and is often more reliable)
            const res = await fetch(`${apiUrl}/instance/status/${instance.instance_name || instance.zapi_instance_id}?token=${encodeURIComponent(apiToken)}`, {
              headers: { "Content-Type": "application/json", "token": apiToken, "Authorization": `Bearer ${apiToken}` }
            });
+           
            if (res.ok) {
              const d = await res.json();
+             // Evolution/UAZAPI status response often has number inside instance
              const num = d?.instance?.number || d?.status?.checked_instance?.number || d?.number || null;
              if (num) foundPhone = num;
-             const pic = d?.instance?.profilePictureUrl || d?.profilePictureUrl || null;
+             const pic = d?.instance?.profilePictureUrl || d?.profilePictureUrl || d?.instance?.profilePicUrl || null;
              if (pic) setProfilePicUrl(pic);
            }
+           
+           // If we still don't have a picture, try /instance endpoint
+           if (!foundPhone || !profilePicUrl) {
+             const resInst = await fetch(`${apiUrl}/instance?token=${encodeURIComponent(apiToken)}`, {
+               headers: { "Content-Type": "application/json", "token": apiToken, "Authorization": `Bearer ${apiToken}` }
+             });
+             if (resInst.ok) {
+               const list = await resInst.json();
+               const instData = Array.isArray(list) 
+                 ? list.find(i => i.name === (instance.instance_name || instance.zapi_instance_id) || i.instanceId === instance.zapi_instance_id)
+                 : null;
+               
+               if (instData) {
+                 if (!foundPhone) foundPhone = instData.number || instData.phone;
+                 if (!profilePicUrl) setProfilePicUrl(instData.profilePictureUrl || instData.profilePicUrl);
+               }
+             }
+           }
          } catch (e) {
-           console.error("Error fetching UAZAPI phone:", e);
+           console.error("Error fetching UAZAPI phone/pic:", e);
          }
        }
      } else {
@@ -1146,10 +1168,15 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 </div>
               );
             })()}
-            <div className="flex items-center gap-1 mt-1">
+            <div className="flex flex-col gap-0.5 mt-1">
               <span className="text-[10px] text-muted-foreground font-mono truncate" title={instance.zapi_instance_id}>
-                ID: {instance.zapi_instance_id}
+                ID Sistema: {instance.zapi_instance_id}
               </span>
+              {deviceStatus?.raw?.instance?.name && deviceStatus.raw.instance.name !== instance.zapi_instance_id && (
+                <span className="text-[10px] text-primary/70 font-mono truncate">
+                  ID Conexão: {deviceStatus.raw.instance.name}
+                </span>
+              )}
             </div>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
