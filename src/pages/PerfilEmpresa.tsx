@@ -1121,6 +1121,8 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
             token: inst.zapi_token,
             clientToken: inst.zapi_client_token,
             provider: inst.api_provider,
+            apiUrl: inst.evolution_api_url,
+            apiKey: inst.evolution_api_key,
           },
         });
         if (error) {
