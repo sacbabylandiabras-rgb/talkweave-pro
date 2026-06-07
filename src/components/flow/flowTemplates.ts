@@ -28,12 +28,12 @@ export interface FlowTemplate {
   isSpecial?: boolean;
 }
 
-const baseInicial: Node = {
-  id: "1",
+const createInitialNode = (id: string): Node => ({
+  id,
   type: "blocoInicial",
   position: { x: 250, y: 50 },
   data: { label: "Bloco Inicial", description: "Seu fluxo começa por este bloco. Conecte com outro bloco." },
-};
+});
 
 const edge = (source: string, target: string, sourceHandle?: string): Edge => ({
   id: `e-${source}-${target}${sourceHandle ? `-${sourceHandle}` : ""}`,
