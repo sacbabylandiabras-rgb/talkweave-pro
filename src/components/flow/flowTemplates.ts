@@ -192,9 +192,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     mode: "contacts",
     suggestedKeyword: "menu",
     nodes: [
-      baseInicial,
+      createInitialNode("mi-1"),
       {
-        id: "2",
+        id: "mi-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -209,7 +209,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2")],
+    edges: [edge("mi-1", "mi-2")],
   },
   {
     id: "recuperacao-carrinho",
