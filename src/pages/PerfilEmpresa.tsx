@@ -1375,10 +1375,67 @@ const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiI
             <Input type="number" placeholder="Preço" value={price} onChange={(e) => setPrice(e.target.value)} />
           </div>
           <Textarea placeholder="Descrição..." value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
-          <Input placeholder="URL da Imagem" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} />
+          
+          <div className="space-y-3">
+            <Label>Imagem do Produto</Label>
+            <div className="flex items-center gap-4 border p-3 rounded-lg bg-muted/10">
+              {previewUrl ? (
+                <div className="relative w-16 h-16 rounded-md overflow-hidden border">
+                  <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                  <button 
+                    onClick={() => { setPreviewUrl(""); setImageFile(null); }}
+                    className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="w-4 h-4 text-white" />
+                  </button>
+                </div>
+              ) : (
+                <div className="w-16 h-16 rounded-md bg-muted flex items-center justify-center border border-dashed">
+                  <ImageIcon className="w-6 h-6 text-muted-foreground/30" />
+                </div>
+              )}
+              
+              <div className="flex-1 space-y-2">
+                <div className="flex gap-2">
+                  <Input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleFileChange} 
+                    className="hidden" 
+                    id="bulk-product-img"
+                    disabled={submitting}
+                  />
+                  <Button 
+                    asChild 
+                    variant="outline" 
+                    size="sm"
+                    className="flex-1 cursor-pointer"
+                    disabled={submitting}
+                  >
+                    <label htmlFor="bulk-product-img">
+                      <Upload className="w-3 h-3 mr-2" />
+                      Upar Foto
+                    </label>
+                  </Button>
+                </div>
+                {!previewUrl && (
+                  <Input 
+                    placeholder="Ou cole a URL da imagem..." 
+                    value={mediaUrl} 
+                    onChange={(e) => setMediaUrl(e.target.value)} 
+                    disabled={submitting}
+                    className="h-8 text-xs"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+
           <Button onClick={handleSubmit} disabled={submitting || selectedIds.length === 0} className="w-full">
-            {submitting ? <Loader2 className="animate-spin" /> : "Criar Produto"}
+            {submitting ? <Loader2 className="animate-spin mr-2" /> : <PlusCircle className="w-4 h-4 mr-2" />}
+            Criar Produto
           </Button>
+
         </div>
       </DialogContent>
     </Dialog>
