@@ -32,11 +32,14 @@ const FLOW_BUTTON_PREFIX = "__flow_button__:";
 const receivedWebhookSyncAt = new Map<string, number>();
 
 function normalizeForMatch(text: string): string {
-  return (text || "")
+  if (!text) return "";
+  // Keep original for case-sensitive or exact matching if needed, 
+  // but for keyword matching we usually want a clean version.
+  return text
+    .trim()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
+    .toLowerCase();
 }
 
 function isKeywordMatch(message: string, keyword: string, matchType: string = "contains"): boolean {
@@ -530,35 +533,29 @@ serve(async (req) => {
         let isMatch = false;
         let finalStartNodeId = resolveFlowStartNodeId(flow, triggerNode);
 
-        const normalizedMsg = normalizeForMatch(agentInboundText || messageRaw);
-        if (!normalizedMsg) {
-          console.log(`[webhook-zapi] skipping flow "${flow.name}" because inbound message is empty`);
-          continue;
+        // 1. Check trigger nodes specifically (Highest priority)
+        const gatilhoNodes = (flow.nodes || []).filter((n: any) => 
+          n.type === "blocoGatilho" || n.type === "gatilho" || n.type === "trigger" || (n.type === "step" && n.data?.kind === "gatilho")
+        );
+
+        for (const node of gatilhoNodes) {
+          const nodeKws = splitKeywords(node.data?.keyword || node.data?.keywords || node.data?.trigger_keywords || node.data?.triggerKeywords);
+          const matchType = node.data?.matchType || "contains";
+          
+          if (nodeKws.some(k => isKeywordMatch(agentInboundText || messageRaw, k, matchType))) {
+            isMatch = true;
+            finalStartNodeId = resolveFlowStartNodeId(flow, node);
+            console.log(`[webhook-zapi] Node keyword match (${matchType}) for flow "${flow.name}" in node ${node.id}`);
+            break;
+          }
         }
 
-        // 1. Check main flow keywords (global) - Higher priority
-        const mainKeywords = splitKeywords(flow.keyword || flow.trigger_keywords);
-        if (mainKeywords.some(k => isKeywordMatch(agentInboundText || messageRaw, k, "contains"))) {
-          isMatch = true;
-          console.log(`[webhook-zapi] Global keyword match for flow "${flow.name}"`);
-        }
-
-        // 2. Check each trigger node specifically to respect matchType
+        // 2. Check main flow keywords (global fallback)
         if (!isMatch) {
-          const gatilhoNodes = (flow.nodes || []).filter((n: any) => 
-            n.type === "blocoGatilho" || n.type === "gatilho" || n.type === "trigger" || (n.type === "step" && n.data?.kind === "gatilho")
-          );
-
-          for (const node of gatilhoNodes) {
-            const nodeKws = splitKeywords(node.data?.keyword || node.data?.keywords || node.data?.trigger_keywords || node.data?.triggerKeywords);
-            const matchType = node.data?.matchType || "contains";
-            
-            if (nodeKws.some(k => isKeywordMatch(agentInboundText || messageRaw, k, matchType))) {
-              isMatch = true;
-              finalStartNodeId = resolveFlowStartNodeId(flow, node);
-              console.log(`[webhook-zapi] Node keyword match (${matchType}) for flow "${flow.name}" in node ${node.id}`);
-              break;
-            }
+          const mainKeywords = splitKeywords(flow.keyword || flow.trigger_keywords);
+          if (mainKeywords.some(k => isKeywordMatch(agentInboundText || messageRaw, k, "contains"))) {
+            isMatch = true;
+            console.log(`[webhook-zapi] Global keyword match for flow "${flow.name}"`);
           }
         }
 
@@ -575,7 +572,7 @@ serve(async (req) => {
         if (!isMatch) {
           const allNodeKeywords = (flow.nodes || [])
             .filter((n: any) => n.data?.keyword || n.data?.keywords || n.data?.trigger_keywords || n.data?.triggerKeywords)
-            .flatMap((n: any) => splitKeywords(n.data?.keyword || n.data?.keywords || n.data?.trigger_keywords || n.data?.triggerKeywords));
+            .flatMap((n: any) => splitKeywords(n.data?.keyword || n.data?.keyword || n.data?.keywords || n.data?.trigger_keywords || n.data?.triggerKeywords));
           
           const allKeywords = Array.from(new Set([...mainKeywords, ...allNodeKeywords]));
           if (allKeywords.some(k => k.length >= 2 && (normalizedMsg.includes(k) || (normalizedMsg.length >= 2 && k.includes(normalizedMsg))))) {
@@ -585,7 +582,7 @@ serve(async (req) => {
         }
 
         if (isMatch && finalStartNodeId) {
-          console.log(`[webhook-zapi] trigger match found for flow "${flow.name}" (id: ${flow.id})`);
+          console.log(`[webhook-zapi] trigger match found for flow "${flow.name}" (id: ${flow.id}) using startNode: ${finalStartNodeId}`);
           await executeFlow(supabase, userId, phone, flow, finalStartNodeId, {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText });
           return new Response("ok", { status: 200, headers: corsHeaders });
         }
