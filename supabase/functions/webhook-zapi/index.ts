@@ -408,7 +408,11 @@ serve(async (req) => {
       if (rawId) chatId = `${rawId}-group`;
     }
 
-    const phone = isGroup && participantPhone ? participantPhone : chatId;
+    // For group messages, 'phone' in message_logs should be the group ID (chatId)
+    // while for flow state we use the participantPhone to ensure per-user state in groups.
+    const phone = chatId; 
+    const actorPhone = isGroup && participantPhone ? participantPhone : chatId;
+    
     const instanceId = webhook?.instanceId || "";
     const type = webhook?.type || webhook?.notification || (webhook?.buttonsResponseMessage || webhook?.buttonReply ? "ButtonsResponseMessage" : "");
     const messageId = webhook?.messageId || (webhook?.ids && webhook.ids[0]) || "";
@@ -510,19 +514,19 @@ serve(async (req) => {
       console.log("[webhook-zapi] inbound detail:", { userId, phone, chatId, isGroup, msg: messageRaw.slice(0, 80) });
 
       
-      const { data: activeFlowStates, error: activeErr } = await supabase.from("flow_captured_data").select("*").eq("user_id", userId).eq("phone", phone).not("last_node_id", "is", null);
-      console.log("[webhook-zapi] activeFlows check:", { count: activeFlowStates?.length || 0, error: activeErr?.message, userId, phone });
+      const { data: activeFlowStates, error: activeErr } = await supabase.from("flow_captured_data").select("*").eq("user_id", userId).eq("phone", actorPhone).not("last_node_id", "is", null);
+      console.log("[webhook-zapi] activeFlows check:", { count: activeFlowStates?.length || 0, error: activeErr?.message, userId, actorPhone });
       
       if (activeFlowStates && activeFlowStates.length > 0) {
         for (const flowState of activeFlowStates) {
           console.log("[webhook-zapi] resuming flow", flowState.flow_id, "at node", flowState.last_node_id);
           const { data: flow } = await supabase.from("flow_automations").select("*").eq("id", flowState.flow_id).single();
           if (flow && flow.active === true && isZapiWhatsAppFlow(flow) && flowMatchesChatType(flow, isGroup)) {
-            await executeFlow(supabase, userId, phone, flow, flowState.last_node_id, flowState.captured_data || {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText, __is_resuming: true });
+            await executeFlow(supabase, userId, actorPhone, flow, flowState.last_node_id, flowState.captured_data || {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText, __is_resuming: true });
             return new Response("ok", { status: 200, headers: corsHeaders });
           } else {
-            await supabase.from("flow_captured_data").delete().match({ user_id: userId, flow_id: flowState.flow_id, phone });
-            console.log("[webhook-zapi] removed stale/non-whatsapp flow state", { flowId: flowState.flow_id, phone });
+            await supabase.from("flow_captured_data").delete().match({ user_id: userId, flow_id: flowState.flow_id, phone: actorPhone });
+            console.log("[webhook-zapi] removed stale/non-whatsapp flow state", { flowId: flowState.flow_id, phone: actorPhone });
           }
         }
       }
@@ -597,7 +601,7 @@ serve(async (req) => {
 
         if (isMatch && finalStartNodeId) {
           console.log(`[webhook-zapi] trigger match found for flow "${flow.name}" (id: ${flow.id}) using startNode: ${finalStartNodeId}`);
-          await executeFlow(supabase, userId, phone, flow, finalStartNodeId, {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText });
+          await executeFlow(supabase, userId, actorPhone, flow, finalStartNodeId, {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText });
           return new Response("ok", { status: 200, headers: corsHeaders });
         }
 
