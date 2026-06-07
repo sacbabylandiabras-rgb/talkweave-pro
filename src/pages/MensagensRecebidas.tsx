@@ -3083,6 +3083,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
                 onTriggerFlow={(phone) => setProfileOpen(true)}
                 campaignTemplates={campaignTemplates}
                 savedContacts={savedContacts}
+                lidMap={lidMap}
                 activeInstance={rawActiveInstance}
                 onSendMessage={async (phone, message, options) => {
                   await sendMessage(phone, message, options);
