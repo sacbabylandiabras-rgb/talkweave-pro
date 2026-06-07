@@ -33,7 +33,7 @@ async function getUserZAPICredentials(
     .from('zapi_instances')
     .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, is_default, is_active')
     .eq('user_id', user.id)
-    .eq('api_provider', 'zapi')
+    .in('api_provider', ['zapi', 'uazapi', 'uazapi_warmup'])
     .eq('is_active', true)
     .order('is_active', { ascending: false })
     .order('is_default', { ascending: false })
@@ -201,7 +201,7 @@ const extractGroupName = (payload: any): string | null => {
             .select(selectInstanceFields)
             .eq('id', sanitizedInstanceId)
             .eq('user_id', credentials.userId)
-            .eq('api_provider', 'zapi')
+            .in('api_provider', ['zapi', 'uazapi', 'uazapi_warmup'])
             .maybeSingle()
 
           specificInstance = byRowId
@@ -211,7 +211,7 @@ const extractGroupName = (payload: any): string | null => {
               .select(selectInstanceFields)
               .eq('zapi_instance_id', sanitizedInstanceId)
               .eq('user_id', credentials.userId)
-              .eq('api_provider', 'zapi')
+              .in('api_provider', ['zapi', 'uazapi', 'uazapi_warmup'])
               .maybeSingle()
             specificInstance = byProviderId
           }
@@ -243,7 +243,7 @@ const extractGroupName = (payload: any): string | null => {
          .from('zapi_instances')
            .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, is_default, is_active, evolution_api_url, evolution_api_key')
          .eq('user_id', credentials.userId)
-          .eq('api_provider', 'zapi')
+           .in('api_provider', ['zapi', 'uazapi', 'uazapi_warmup'])
           .eq('is_active', true)
           .order('is_active', { ascending: false })
          .order('is_default', { ascending: false })
