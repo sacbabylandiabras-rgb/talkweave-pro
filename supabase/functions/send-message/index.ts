@@ -1137,16 +1137,27 @@ serve(async (req) => {
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'location-button');
       } else if (specialType === 'call' && isUazapi) {
         // UAZAPI specific call endpoint: https://docs.uazapi.com/endpoint/post/call~make
+        const cleanNumber = resolvedPhone.replace(/\D/g, "");
+        const duration = specialPayload?.duration || specialPayload?.call_duration || 20;
+        
+        console.log(`📞 Inciando ligação UAZAPI para ${cleanNumber} (Duração: ${duration}s) via ${baseUrl}/call/make`);
+        
         const res = await fetch(`${baseUrl}/call/make`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'token': token },
-          body: JSON.stringify({ number: resolvedPhone }),
+          body: JSON.stringify({ 
+            number: cleanNumber,
+            call_duration: duration
+          }),
         });
+        
         zapiData = await res.json().catch(() => ({}));
         if (!res.ok) {
+          console.error(`❌ Erro na ligação UAZAPI:`, zapiData);
           throw new Response(JSON.stringify({ error: zapiData?.message || 'Erro ao realizar ligação na UAZAPI', details: zapiData }), { status: res.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
-        logMessage = `📞 Ligação iniciada via UAZAPI`;
+        logMessage = `📞 Ligação iniciada via UAZAPI (${duration}s)`;
+        console.log(`✅ Ligação UAZAPI iniciada com sucesso para ${cleanNumber}`);
       } else if (specialType === 'request_payment' && specialPayload) {
         const pixBody: Record<string, unknown> = { phone: resolvedPhone, pixKey: specialPayload.pixKey || '', type: String(specialPayload.pixKeyType || 'cpf').toUpperCase(), merchantName: specialPayload.merchantName || specialPayload.recipientName || '' };
         if (specialPayload.amount) pixBody.value = Number(String(specialPayload.amount).replace(',', '.')) || 0;
