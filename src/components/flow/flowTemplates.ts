@@ -357,9 +357,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     color: "text-fuchsia-500",
     mode: "groups",
     nodes: [
-      baseInicial,
+      createInitialNode("lg-1"),
       {
-        id: "2",
+        id: "lg-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -369,13 +369,13 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "3",
+        id: "lg-3",
         type: "blocoAcao",
         position: { x: 250, y: 400 },
         data: { label: "Aguardar 1h", actionType: "delay", delaySeconds: 3600 },
       },
       {
-        id: "4",
+        id: "lg-4",
         type: "blocoConteudo",
         position: { x: 250, y: 580 },
         data: {
@@ -385,13 +385,13 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "5",
+        id: "lg-5",
         type: "blocoAcao",
         position: { x: 250, y: 760 },
         data: { label: "Aguardar 30 min", actionType: "delay", delaySeconds: 1800 },
       },
       {
-        id: "6",
+        id: "lg-6",
         type: "blocoConteudo",
         position: { x: 250, y: 940 },
         data: {
@@ -402,7 +402,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2"), edge("2", "3"), edge("3", "4"), edge("4", "5"), edge("5", "6")],
+    edges: [edge("lg-1", "lg-2"), edge("lg-2", "lg-3"), edge("lg-3", "lg-4"), edge("lg-4", "lg-5"), edge("lg-5", "lg-6")],
   },
   {
     id: "lembrete-evento",
