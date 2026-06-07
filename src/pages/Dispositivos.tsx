@@ -503,6 +503,17 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
       }
 
       setDeviceStatus(data?.data ? normalizeDeviceStatusPayload(data.data) : null);
+      
+      // If UAZAPI, also fetch message limits
+      if (instance.api_provider === 'uazapi' || instance.api_provider === 'uazapi_warmup') {
+        const { data: limitsData } = await supabase.functions.invoke('zapi-chat-actions', {
+          body: { action: 'get-messages-limits', instanceDbId: instance.id },
+        });
+        if (limitsData && !limitsData.error) {
+           setWaLimits(limitsData);
+        }
+      }
+
       fetchHealth(); // Atualiza também o status de shadowban/saúde
       statusErrorShownRef.current = false;
     } catch (error) {
