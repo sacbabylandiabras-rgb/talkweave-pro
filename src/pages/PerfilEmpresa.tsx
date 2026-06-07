@@ -1,6 +1,6 @@
- import { useEffect, useState, useMemo } from "react";
- import { useZapiInstances, isMobileZapiInstance } from "@/hooks/useZapiInstances";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useState, useMemo } from "react";
+import { useZapiInstances, isMobileZapiInstance, type ZapiInstance } from "@/hooks/useZapiInstances";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, Mail, MapPin, Globe, Clock, LayoutGrid, RefreshCw, AlertCircle, ShoppingBag, Plus, Pencil, Trash2, ExternalLink, EyeOff, Search, AlertTriangle, Tag, Palette, MessageSquare, Workflow, Check, Settings, Save } from "lucide-react";
+import { Building2, Mail, MapPin, Globe, Clock, LayoutGrid, RefreshCw, AlertCircle, ShoppingBag, Plus, Pencil, Trash2, ExternalLink, EyeOff, Search, AlertTriangle, Tag, Palette, MessageSquare, Workflow, Check, Settings, Save, User, Package, PlusCircle, Smartphone, Edit2, Loader2, Upload, Image as ImageIcon, RotateCcw, PowerOff, Send } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 
 interface WhatsappTag {
   id: string;
@@ -104,6 +105,7 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
    }, [allInstances]);
  
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const activeTab = searchParams.get("tab") || "perfil";
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
@@ -123,6 +125,13 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [catalogConfig, setCatalogConfig] = useState({ isCartEnabled: true, isCatalogVisible: true });
   const [isSavingConfig, setIsSavingConfig] = useState(false);
+
+  // Added dialog states moved from Dispositivos
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
+  const [businessDialogOpen, setBusinessDialogOpen] = useState(false);
+  const [productDialogOpen, setProductDialogOpen] = useState(false);
+
   const { toast } = useToast();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -383,6 +392,7 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
   }
 
   return (
+    <>
     <div className="container mx-auto py-6 space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -391,6 +401,31 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
         </div>
         
         <div className="flex flex-wrap items-center gap-2">
+          {instances.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setProfileDialogOpen(true)} className="h-9 text-xs">
+              <User className="w-4 h-4 mr-1" />
+              Perfil WhatsApp
+            </Button>
+          )}
+          {instances.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setCollectionDialogOpen(true)} className="h-9 text-xs">
+              <LayoutGrid className="w-4 h-4 mr-1" />
+              Criar Coleção
+            </Button>
+          )}
+          {instances.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setProductDialogOpen(true)} className="h-9 text-xs">
+              <Package className="w-4 h-4 mr-1" />
+              Criar Produto
+            </Button>
+          )}
+          {instances.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setBusinessDialogOpen(true)} className="h-9 text-xs">
+              <Building2 className="w-4 h-4 mr-1" />
+              Perfil da Empresa
+            </Button>
+          )}
+          
           <Button 
             variant="outline" 
             size="icon" 
@@ -935,7 +970,397 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
         </DialogContent>
       </Dialog>
     </div>
+      <BulkProfileUpdate instances={instances} open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
+      <BulkCreateCollection instances={instances} open={collectionDialogOpen} onOpenChange={setCollectionDialogOpen} />
+      <BulkCreateProduct instances={instances} open={productDialogOpen} onOpenChange={setProductDialogOpen} />
+      <BulkBusinessInfo instances={instances} open={businessDialogOpen} onOpenChange={setBusinessDialogOpen} />
+    </>
   );
 };
+
+// Moving helper components and bulk update components from Dispositivos to PerfilEmpresa
+
+const sanitizeConnectionMessage = (message: unknown, fallback: string) => {
+  const text = typeof message === 'string' && message.trim() ? message.trim() : fallback;
+  const lower = text.toLowerCase();
+
+  if (lower.includes('client-token') || lower.includes('not allowed') || lower.includes('unauthorized') || lower.includes('forbidden')) {
+    return 'Credenciais da conexão inválidas. Atualize o ID da instância, token e token de segurança em Dispositivos.';
+  }
+
+  if (lower.includes('whatsapp is not responding') || lower.includes('not responding')) {
+    return 'WhatsApp não respondeu agora. Aguarde alguns instantes e tente gerar novamente.';
+  }
+
+  return text
+    .replace(/z-api|meta cloud|woovi|hubpague|cartwave/gi, 'provedor de conexão')
+    .replace(/client-token\s+[\w-]+/gi, 'token de segurança');
+};
+
+const getInvokeErrorMessage = async (error: unknown, fallback: string) => {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const payload = await error.context.json();
+      return sanitizeConnectionMessage(payload?.details?.error || payload?.message || payload?.error, fallback);
+    } catch {
+      return fallback;
+    }
+  }
+
+  if (error instanceof Error) {
+    return sanitizeConnectionMessage(error.message, fallback);
+  }
+
+  return fallback;
+};
+
+const DEVICE_PROFILE_PICTURE_UPDATED_EVENT = "device-profile-picture-updated";
+
+const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiInstance[]; open: boolean; onOpenChange: (v: boolean) => void }) => {
+  const { toast } = useToast();
+  const [profileName, setProfileName] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [updating, setUpdating] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [statusMap, setStatusMap] = useState<Record<string, boolean>>({});
+  const [checkingStatus, setCheckingStatus] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setCheckingStatus(true);
+    setStatusMap({});
+    setSelectedIds(instances.map((i) => i.id));
+
+    (async () => {
+      const entries = await Promise.all(
+        instances.map(async (inst) => {
+          try {
+            const { data } = await supabase.functions.invoke('get-device-status', {
+              body: { instanceId: inst.id },
+            });
+            const connected = Boolean(data?.data?.connected ?? data?.connected);
+            return [inst.id, connected] as const;
+          } catch {
+            return [inst.id, false] as const;
+          }
+        }),
+      );
+      if (cancelled) return;
+      const map = Object.fromEntries(entries);
+      setStatusMap(map);
+      const connectedIds = instances.filter((i) => map[i.id]).map((i) => i.id);
+      if (connectedIds.length > 0) {
+        setSelectedIds(connectedIds);
+      }
+      setCheckingStatus(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, instances]);
+
+  const targetInstances = instances.filter((i) => selectedIds.includes(i.id));
+  const allSelected = selectedIds.length === instances.length && instances.length > 0;
+  const toggleAll = () => setSelectedIds(allSelected ? [] : instances.map((i) => i.id));
+  const toggleOne = (id: string) => setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const updateAllInstances = async (type: "name" | "picture", value: string) => {
+    if (targetInstances.length === 0) {
+      toast({ title: "Selecione ao menos uma instância", variant: "destructive" });
+      return;
+    }
+    setUpdating(true);
+    let success = 0;
+    let failed = 0;
+    const updatedInstanceIds: string[] = [];
+    const errors: string[] = [];
+
+    for (const inst of targetInstances) {
+      try {
+        const { data, error } = await supabase.functions.invoke("update-profile", {
+          body: {
+            type,
+            value,
+            instanceId: inst.zapi_instance_id,
+            token: inst.zapi_token,
+            clientToken: inst.zapi_client_token,
+            provider: inst.api_provider,
+          },
+        });
+        if (error) {
+          failed++;
+          continue;
+        }
+        if (data?.skipped || data?.fallback || data?.error) {
+          failed++;
+          continue;
+        }
+        success++;
+        updatedInstanceIds.push(inst.id);
+      } catch (err) {
+        failed++;
+      }
+    }
+
+    setUpdating(false);
+    toast({ title: success > 0 ? "✅ Perfil atualizado" : "❌ Erro", description: `${success} atualizadas, ${failed} falharam.` });
+
+    if (type === "picture" && success > 0) {
+      window.dispatchEvent(new CustomEvent(DEVICE_PROFILE_PICTURE_UPDATED_EVENT, { detail: { value, instanceIds: updatedInstanceIds } }));
+    }
+  };
+
+  const handleUpdateName = () => {
+    if (!profileName.trim()) return;
+    updateAllInstances("name", profileName.trim()).then(() => setProfileName(""));
+  };
+
+  const handleUpdatePictureUrl = () => {
+    if (!imageUrl.trim()) return;
+    updateAllInstances("picture", imageUrl.trim()).then(() => setImageUrl(""));
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><User className="w-5 h-5" /> Atualizar Perfil WhatsApp em Massa</DialogTitle>
+          <DialogDescription>Mude o nome ou foto de perfil de todas as instâncias selecionadas de uma vez.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-6 py-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Instâncias ({selectedIds.length}/{instances.length})</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={toggleAll} disabled={updating}>
+                {allSelected ? "Desmarcar todas" : "Selecionar todas"}
+              </Button>
+            </div>
+            <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-1 bg-muted/20">
+              {instances.map((inst) => (
+                <label key={inst.id} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50 cursor-pointer text-sm">
+                  <input type="checkbox" checked={selectedIds.includes(inst.id)} onChange={() => toggleOne(inst.id)} disabled={updating} className="accent-primary" />
+                  <span className="flex-1 truncate">{inst.instance_name || inst.zapi_instance_id}</span>
+                  {!statusMap[inst.id] && checkingStatus && <Loader2 className="w-3 h-3 animate-spin" />}
+                  {statusMap[inst.id] === true && <Badge className="bg-emerald-500 hover:bg-emerald-600 text-[9px] h-4">Online</Badge>}
+                  {statusMap[inst.id] === false && <Badge variant="secondary" className="text-[9px] h-4">Offline</Badge>}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-3">
+            <Label>Nome de Exibição</Label>
+            <div className="flex gap-2">
+              <Input placeholder="Novo nome..." value={profileName} onChange={(e) => setProfileName(e.target.value)} disabled={updating} />
+              <Button onClick={handleUpdateName} disabled={updating || !profileName.trim() || selectedIds.length === 0}>
+                {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar Nome"}
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <Label>Foto de Perfil (URL)</Label>
+            <div className="flex gap-2">
+              <Input type="url" placeholder="https://exemplo.com/foto.jpg" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} disabled={updating} />
+              <Button onClick={handleUpdatePictureUrl} disabled={updating || !imageUrl.trim() || selectedIds.length === 0}>
+                {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar Foto"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiInstance[]; open: boolean; onOpenChange: (v: boolean) => void }) => {
+  const { toast } = useToast();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [productName, setProductName] = useState("");
+  const [price, setPrice] = useState("");
+  const [description, setDescription] = useState("");
+  const [mediaUrl, setMediaUrl] = useState("");
+
+  useEffect(() => {
+    if (open) setSelectedIds(instances.map((i) => i.id));
+  }, [open, instances]);
+
+  const allSelected = selectedIds.length === instances.length && instances.length > 0;
+  const toggleAll = () => setSelectedIds(allSelected ? [] : instances.map((i) => i.id));
+  const toggleOne = (id: string) => setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const handleSubmit = async () => {
+    if (!productName.trim() || !mediaUrl.trim()) {
+      toast({ title: "Nome e URL da Imagem são obrigatórios", variant: "destructive" });
+      return;
+    }
+    const targets = instances.filter((i) => selectedIds.includes(i.id));
+    setSubmitting(true);
+    let success = 0;
+    for (const inst of targets) {
+      try {
+        const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+          body: {
+            action: "create-product-v2",
+            instanceDbId: inst.id,
+            payload: { name: productName.trim(), price: Number(price) || 0, description: description.trim(), mediaUrl: mediaUrl.trim(), currency: "BRL" },
+          },
+        });
+        if (!error && !(data as any)?.error) success++;
+      } catch (err) {}
+    }
+    setSubmitting(false);
+    toast({ title: success > 0 ? "✅ Produto criado" : "❌ Erro", description: `Produto criado em ${success} instância(s)` });
+    if (success > 0) onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Package className="w-5 h-5" /> Criar Produto em Massa</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6 pt-2">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Instâncias ({selectedIds.length}/{instances.length})</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={toggleAll}>
+                {allSelected ? "Desmarcar todas" : "Selecionar todas"}
+              </Button>
+            </div>
+            <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-1 bg-muted/20">
+              {instances.map((inst) => (
+                <label key={inst.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 cursor-pointer text-sm">
+                  <input type="checkbox" checked={selectedIds.includes(inst.id)} onChange={() => toggleOne(inst.id)} className="accent-primary" />
+                  <span>{inst.instance_name || inst.zapi_instance_id}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input placeholder="Nome do Produto" value={productName} onChange={(e) => setProductName(e.target.value)} />
+            <Input type="number" placeholder="Preço" value={price} onChange={(e) => setPrice(e.target.value)} />
+          </div>
+          <Textarea placeholder="Descrição..." value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+          <Input placeholder="URL da Imagem" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} />
+          <Button onClick={handleSubmit} disabled={submitting || selectedIds.length === 0} className="w-full">
+            {submitting ? <Loader2 className="animate-spin" /> : "Criar Produto"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const BulkCreateCollection = ({ instances, open, onOpenChange }: { instances: ZapiInstance[]; open: boolean; onOpenChange: (v: boolean) => void }) => {
+  const { toast } = useToast();
+  const [name, setName] = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (open) setSelectedIds(instances.map((i) => i.id));
+  }, [open, instances]);
+
+  const handleSubmit = async () => {
+    if (!name.trim()) return;
+    setSubmitting(true);
+    let success = 0;
+    const targets = instances.filter((i) => selectedIds.includes(i.id));
+    for (const inst of targets) {
+      try {
+        const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+          body: { action: "create-collection", instanceDbId: inst.id, payload: { name: name.trim(), products: [] } },
+        });
+        if (!error && !(data as any)?.error) success++;
+      } catch (err) {}
+    }
+    setSubmitting(false);
+    toast({ title: success > 0 ? "✅ Coleção criada" : "❌ Erro", description: `Coleção criada em ${success} instâncias` });
+    if (success > 0) onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Criar Coleção em Massa</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 pt-2">
+          <Input placeholder="Nome da Coleção" value={name} onChange={(e) => setName(e.target.value)} />
+          <Button onClick={handleSubmit} disabled={submitting || !name.trim() || selectedIds.length === 0} className="w-full">
+            {submitting ? <Loader2 className="animate-spin" /> : "Criar Coleção"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiInstance[]; open: boolean; onOpenChange: (v: boolean) => void }) => {
+  const { toast } = useToast();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [description, setDescription] = useState("");
+  const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (open) setSelectedIds(instances.map((i) => i.id));
+  }, [open, instances]);
+
+  const applyToAll = async (action: string, payload: any) => {
+    setSubmitting(true);
+    let success = 0;
+    const targets = instances.filter((i) => selectedIds.includes(i.id));
+    for (const inst of targets) {
+      try {
+        const { error } = await supabase.functions.invoke("zapi-chat-actions", {
+          body: { action, instanceDbId: inst.id, payload },
+        });
+        if (!error) success++;
+      } catch (err) {}
+    }
+    setSubmitting(false);
+    toast({ title: "✅ Atualizado", description: `${success} instâncias atualizadas.` });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Perfil da Empresa em Massa</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 pt-2">
+          <div className="space-y-2">
+            <Label>Descrição</Label>
+            <div className="flex gap-2">
+              <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+              <Button onClick={() => applyToAll('company-description', { description })} disabled={submitting}>Aplicar</Button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>E-mail</Label>
+            <div className="flex gap-2">
+              <Input value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Button onClick={() => applyToAll('company-email', { email })} disabled={submitting}>Aplicar</Button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Endereço</Label>
+            <div className="flex gap-2">
+              <Input value={address} onChange={(e) => setAddress(e.target.value)} />
+              <Button onClick={() => applyToAll('company-address', { address })} disabled={submitting}>Aplicar</Button>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 
 export default PerfilEmpresa;

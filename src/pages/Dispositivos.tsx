@@ -2729,10 +2729,6 @@ const Dispositivos = () => {
     }, [allInstances]);
 
   const { toast } = useToast();
-  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
-  const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
-  const [businessDialogOpen, setBusinessDialogOpen] = useState(false);
-  const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
@@ -2742,30 +2738,6 @@ const Dispositivos = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-foreground">Dispositivos ({instances.length})</h1>
         <div className="flex items-center gap-2">
-          {instances.length > 0 && (
-            <Button variant="outline" size="sm" onClick={() => setProfileDialogOpen(true)}>
-              <User className="w-4 h-4 mr-1" />
-              Perfil WhatsApp
-            </Button>
-          )}
-          {instances.length > 0 && (
-            <Button variant="outline" size="sm" onClick={() => setCollectionDialogOpen(true)}>
-              <LayoutGrid className="w-4 h-4 mr-1" />
-              Criar Coleção
-            </Button>
-          )}
-          {instances.length > 0 && (
-            <Button variant="outline" size="sm" onClick={() => setProductDialogOpen(true)}>
-              <Package className="w-4 h-4 mr-1" />
-              Criar Produto
-            </Button>
-          )}
-          {instances.length > 0 && (
-            <Button variant="outline" size="sm" onClick={() => setBusinessDialogOpen(true)}>
-              <Building2 className="w-4 h-4 mr-1" />
-              Perfil da Empresa
-            </Button>
-          )}
           <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
@@ -2791,17 +2763,6 @@ const Dispositivos = () => {
         ))}
       </div>
 
-      {/* Bulk Profile Update Dialog */}
-      <BulkProfileUpdate instances={instances} open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
-
-      {/* Bulk Create Collection Dialog */}
-      <BulkCreateCollection instances={instances} open={collectionDialogOpen} onOpenChange={setCollectionDialogOpen} />
-
-      {/* Bulk Create Product Dialog */}
-      <BulkCreateProduct instances={instances} open={productDialogOpen} onOpenChange={setProductDialogOpen} />
-
-      {/* Bulk Business Info Dialog */}
-      <BulkBusinessInfo instances={instances} open={businessDialogOpen} onOpenChange={setBusinessDialogOpen} />
 
       {/* Planos */}
       <Card className="border-primary/20">
