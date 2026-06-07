@@ -271,7 +271,7 @@ Deno.serve(async (req) => {
         const res = await fetch(withToken(`/business/update/profile/${inst}`), {
           method: 'POST',
           headers: evolutionHeaders,
-          body: JSON.stringify(busBody),
+          body: JSON.stringify(bBody),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro' }), { status: res.status, headers: corsHeaders });
