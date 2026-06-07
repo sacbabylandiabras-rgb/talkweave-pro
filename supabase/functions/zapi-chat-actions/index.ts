@@ -77,7 +77,7 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
     instanceId: inst?.zapi_instance_id ?? null,
     token: inst?.zapi_token ?? null,
     clientToken: inst?.zapi_client_token ?? null,
-    apiProvider: inst?.api_provider || 'zapi',
+    apiProvider: inst?.api_provider || 'uazapi',
     instanceType: inst?.instance_type,
     evolutionUrl: inst?.evolution_api_url,
     evolutionKey: inst?.evolution_api_key,
