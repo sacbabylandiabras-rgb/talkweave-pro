@@ -1249,22 +1249,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                    </SelectContent>
                  </Select>
                </div>
-               <div className="space-y-2">
-                 <Label>Duração Padrão das Mensagens</Label>
-                  <Select 
-                    value={String(privacySettings?.disappearing || privacySettings?.disappearingMessages || '').toUpperCase() || undefined}
-                    onValueChange={(v) => updatePrivacyField('disappearing', v)} 
-                    disabled={privacyLoading}
-                  >
-                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                   <SelectContent>
-                     <SelectItem value="0">Desativado</SelectItem>
-                     <SelectItem value="86400">24 horas</SelectItem>
-                     <SelectItem value="604800">7 dias</SelectItem>
-                     <SelectItem value="7776000">90 dias</SelectItem>
-                   </SelectContent>
-                 </Select>
-               </div>
              </div>
              <Button variant="secondary" className="w-full" onClick={fetchBlacklist} disabled={privacyLoading}>
                <Search className="w-4 h-4 mr-2" /> Ver Lista de Bloqueados
