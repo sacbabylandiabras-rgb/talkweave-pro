@@ -277,6 +277,7 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .eq('is_default', true)
       .eq('is_active', true)
+      .in('api_provider', ['uazapi', 'uazapi_warmup'])
       .maybeSingle();
 
     const fallbackInstance = preferredInstance || (await adminClient
@@ -284,6 +285,8 @@ serve(async (req) => {
       .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
       .eq('user_id', user.id)
       .eq('is_active', true)
+      .in('api_provider', ['uazapi', 'uazapi_warmup'])
+      .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle()).data;
 
@@ -298,7 +301,7 @@ serve(async (req) => {
 
     if ((activeInstance as any).api_provider === 'uazapi' || (activeInstance as any).api_provider === 'uazapi_warmup') {
       const apiUrl = String((activeInstance as any).evolution_api_url || '').replace(/\/+$/, '');
-      const apiToken = String((activeInstance as any).evolution_api_key || '');
+      const apiToken = String((activeInstance as any).evolution_api_key || (activeInstance as any).zapi_token || '');
       if (!apiUrl || !apiToken) {
         return new Response(JSON.stringify({ error: 'UAZAPI URL/Token não configurados' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

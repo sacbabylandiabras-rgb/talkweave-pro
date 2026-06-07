@@ -10,11 +10,17 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const admin = createClient(supabaseUrl, supabaseKey)
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader) throw new Error('No authorization header')
+    const { data: { user }, error: userError } = await admin.auth.getUser(authHeader.replace(/^Bearer\s+/i, ''))
+    if (userError || !user) throw new Error('Unauthorized')
 
     const { data: inst } = await admin
       .from('zapi_instances')
       .select('*')
       .eq('id', instanceId)
+      .eq('user_id', user.id)
+      .eq('is_active', true)
       .maybeSingle()
 
     if (!inst) throw new Error('Instance not found')
@@ -23,6 +29,7 @@ serve(async (req) => {
     if (provider === 'uazapi' || provider === 'uazapi_warmup' || provider === 'evolution') {
       const apiUrl = (inst.evolution_api_url || '').replace(/\/+$/, '')
       const apiToken = inst.evolution_api_key || inst.zapi_token || ''
+      if (!apiUrl || !apiToken) throw new Error('Credenciais da conexão atual não configuradas')
       
       const res = await fetch(`${apiUrl}/instance/connect`, {
         method: 'GET',
@@ -32,7 +39,8 @@ serve(async (req) => {
           'Authorization': `Bearer ${apiToken}`
         }
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.message || data?.error || 'Falha ao gerar QR Code')
       
       // Evolution /instance/connect might return different formats
       const qrValue = data?.base64 || data?.qrcode || data?.code;

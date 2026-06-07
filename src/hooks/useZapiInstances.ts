@@ -65,6 +65,7 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
   const dedupedMap = new Map<string, ZapiInstance>();
 
   for (const instance of items.filter((item) => {
+    if (item.is_active === false) return false;
     const isMobile = isMobileZapiInstance(item);
     const provider = (item.api_provider || 'zapi').toLowerCase();
     const isWarmup = provider.includes('warmup') || 
@@ -109,6 +110,7 @@ const fetchInstancesWithRetry = async (userId: string): Promise<ZapiInstance[]> 
     const { data, error } = await fromZapiInstances()
       .select('*')
       .eq('user_id', userId)
+      .eq('is_active', true)
       .order('is_default', { ascending: false })
       .order('created_at', { ascending: true });
 

@@ -31,7 +31,8 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
 
   let q = admin.from('zapi_instances' as any)
     .select(instanceSelect)
-    .eq('user_id', user.id);
+    .eq('user_id', user.id)
+    .eq('is_active', true);
 
   if (instanceDbId) {
     q = uuidLike.test(instanceDbId)
@@ -47,6 +48,8 @@ async function resolveCreds(req: Request, instanceDbId?: string) {
       .eq('user_id', user.id)
       .eq('is_active', true)
       .or('api_provider.eq.zapi,api_provider.eq.uazapi,api_provider.eq.uazapi_warmup,api_provider.eq.meta,api_provider.is.null')
+      .order('is_default', { ascending: false })
+      .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
     inst = r.data as any;

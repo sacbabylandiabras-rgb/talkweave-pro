@@ -2502,7 +2502,11 @@ const Dispositivos = () => {
     // Exibir apenas instâncias de uso (Z-API/UAZAPI Web), ocultando legados Mobile
     const instances = useMemo(() => {
       return allInstances.filter(
-         (i) => (i.api_provider === 'zapi' || i.api_provider === 'uazapi' || !i.api_provider) && !isMobileZapiInstance(i)
+         (i) => {
+           const provider = String(i.api_provider || '').toLowerCase();
+           const hasCurrentConnection = provider === 'uazapi' && Boolean(i.evolution_api_url && (i.evolution_api_key || i.zapi_token));
+           return hasCurrentConnection && !isMobileZapiInstance(i);
+         }
       );
     }, [allInstances]);
 

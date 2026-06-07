@@ -74,37 +74,26 @@ const getZAPIConfig = async () => {
     .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, instance_type, evolution_api_url, evolution_api_key')
     .eq('user_id', user.id)
     .eq('is_active', true)
+    .in('api_provider', ['uazapi', 'uazapi_warmup'])
     .order('is_default', { ascending: false })
+    .order('updated_at', { ascending: false })
     .limit(10);
 
   if (error) throw new Error('Erro ao buscar credenciais: ' + error.message);
 
-  const instance = instances?.find((item) => !isMobileZapiInstance(item as any));
+  const instance = instances?.find((item) => {
+    const token = item.evolution_api_key || item.zapi_token;
+    return !isMobileZapiInstance(item as any) && Boolean(item.evolution_api_url && token);
+  });
 
-  if (!instance?.zapi_instance_id || !instance?.zapi_token || !instance?.zapi_client_token) {
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('zapi_instance_id, zapi_token, zapi_client_token')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile?.zapi_instance_id || !profile?.zapi_token || !profile?.zapi_client_token) {
-      throw new Error('Nenhuma instância de WhatsApp configurada. Peça ao administrador para configurar.');
-    }
-
-    return {
-      dbId: undefined as string | undefined,
-      instanceId: profile.zapi_instance_id,
-      token: profile.zapi_token,
-      clientToken: profile.zapi_client_token,
-      provider: 'zapi',
-    };
+  if (!instance?.zapi_instance_id || !(instance.evolution_api_key || instance.zapi_token)) {
+    throw new Error('Nenhuma conexão WhatsApp atual configurada. Crie ou conecte uma instância em Dispositivos.');
   }
 
   return {
     dbId: instance.id,
     instanceId: instance.zapi_instance_id,
-    token: instance.zapi_token,
+    token: instance.evolution_api_key || instance.zapi_token,
     clientToken: instance.zapi_client_token,
     provider: instance.api_provider || 'evolution',
     evolutionApiUrl: instance.evolution_api_url,

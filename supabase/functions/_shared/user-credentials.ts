@@ -14,7 +14,8 @@ const isWhatsAppInstance = (instance: any) => {
   const provider = String(instance?.api_provider || 'zapi').toLowerCase();
   const type = String(instance?.instance_type || '').toLowerCase();
   const name = String(instance?.instance_name || '').toLowerCase();
-  return (provider === 'zapi' || provider === 'uazapi') && type !== 'mobile' && !name.includes('mobile');
+  const hasCurrentCredentials = Boolean(instance?.evolution_api_url && instance?.zapi_token);
+  return (provider === 'uazapi' || provider === 'uazapi_warmup') && hasCurrentCredentials && type !== 'mobile' && !name.includes('mobile');
 };
 
 export async function getUserZAPICredentials(
@@ -44,8 +45,9 @@ export async function getUserZAPICredentials(
     .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, is_default, evolution_api_url')
     .eq('user_id', user.id)
     .eq('is_active', true)
-    .in('api_provider', ['zapi', 'uazapi'])
-    .order('is_default', { ascending: false });
+    .in('api_provider', ['uazapi', 'uazapi_warmup'])
+    .order('is_default', { ascending: false })
+    .order('updated_at', { ascending: false });
 
   const zapi = zapiInstances?.find(isWhatsAppInstance);
   
@@ -62,23 +64,5 @@ export async function getUserZAPICredentials(
     };
   }
 
-  const { data: profile } = await adminClient
-    .from('profiles')
-    .select('zapi_instance_id, zapi_token, zapi_client_token')
-    .eq('id', user.id)
-    .single();
-
-  if (profile?.zapi_instance_id && profile?.zapi_token && profile?.zapi_client_token) {
-    console.log(`✅ Found Z-API credentials from profile for user ${user.id}`);
-    return {
-      instanceId: profile.zapi_instance_id,
-      token: profile.zapi_token,
-      clientToken: profile.zapi_client_token,
-      userId: user.id,
-      instanceName: 'Instância Perfil',
-      provider: 'zapi',
-    };
-  }
-
-  throw new Error('Z-API credentials not configured. Please configure in settings.');
+  throw new Error('Nenhuma conexão WhatsApp atual configurada. Crie ou conecte uma instância em Dispositivos.');
 }
