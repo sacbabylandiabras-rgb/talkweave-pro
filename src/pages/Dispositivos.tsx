@@ -1255,9 +1255,20 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 <span>{deviceStatus?.created ? new Date(deviceStatus.created).toLocaleString('pt-BR') : 'N/A'}</span>
               </div>
             </div>
+            {waLimits && (
+              <div className="text-[11px] p-2 bg-primary/5 rounded border border-primary/10 mb-2">
+                 <p className="font-semibold mb-1">Limites de Mensagens (WhatsApp):</p>
+                 <div className="grid grid-cols-2 gap-x-2">
+                   <span className="text-muted-foreground">Atual:</span>
+                   <span className="text-primary font-medium">{waLimits.tier || 'N/A'}</span>
+                   <span className="text-muted-foreground">Diário:</span>
+                   <span>{waLimits.dailyLimit || 'N/A'}</span>
+                 </div>
+              </div>
+            )}
             <details className="text-[10px]">
               <summary className="cursor-pointer text-muted-foreground hover:text-foreground">🔧 Debug</summary>
-              <pre className="mt-1 p-2 bg-muted rounded overflow-auto max-h-32">{JSON.stringify(deviceStatus, null, 2)}</pre>
+              <pre className="mt-1 p-2 bg-muted rounded overflow-auto max-h-32">{JSON.stringify({ ...deviceStatus, waLimits }, null, 2)}</pre>
             </details>
           </div>
         )}
