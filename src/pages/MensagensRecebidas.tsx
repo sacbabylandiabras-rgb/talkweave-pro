@@ -1465,66 +1465,21 @@ const ChatView = (props: ChatViewProps) => {
               <div className="space-y-1">
                 <div className="p-2 space-y-2">
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground uppercase">Chamada de WhatsApp (5s)</Label>
-                    <div className="flex gap-1">
-                      <div className="flex flex-col gap-1.5 w-full">
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-[11px] h-8 gap-1.5 border-green-200 hover:bg-green-50 px-2"
-                          onClick={() => conversation && onSendCall(conversation.phone, 5)}
-                          title="Apenas chamar sem áudio"
-                        >
-                          <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />
-                          Chamada Simples (Sem Áudio)
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground uppercase">Falar agora (SIP)</Label>
-                    <Button
-                      variant="default"
-                      className="w-full justify-start text-xs h-8 gap-2 bg-green-600 hover:bg-green-700"
-                      onClick={handleOpenSipInfo}
-                      disabled={loadingSip}
-                    >
-                      {loadingSip ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Phone className="w-3.5 h-3.5" />
-                      )}
-                      Configurar Ramal SIP
-                    </Button>
-                    <p className="text-[10px] text-muted-foreground leading-tight px-1">
-                      Para conversar por voz, é necessário configurar um ramal (Zoiper/MicroSIP).
-                    </p>
-                  </div>
-                  </div>
-                  <div className="space-y-1">
                     <Label className="text-[10px] text-muted-foreground uppercase">Ligação UAZAPI</Label>
                     <Button
                       variant="outline"
                       className="w-full justify-start text-[11px] h-8 gap-1.5 border-green-200 hover:bg-green-50 px-2"
-                      onClick={() => conversation && onSendMessage(conversation.phone, "", { specialType: "call", specialPayload: { type: "call", duration: 25 } })}
+                      onClick={() => conversation && onSendMessage(conversation.phone, "", { specialType: "call", specialPayload: { type: "call", duration: 30 } })}
                       title="Realizar ligação via UAZAPI"
                     >
                       <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />
                       Ligar (UAZAPI)
                     </Button>
+                    <p className="text-[10px] text-muted-foreground leading-tight px-1 mt-1">
+                      Faz o WhatsApp do contato tocar via UAZAPI.
+                    </p>
                   </div>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-sm h-9 gap-2"
-                  onClick={handleOpenSipInfo}
-                  disabled={loadingSip}
-                >
-                  {loadingSip ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <ShieldCheck className="w-4 h-4 text-blue-600" />
-                  )}
-                  Configurações SIP
-                </Button>
+                </div>
               </div>
             </PopoverContent>
           </Popover>
