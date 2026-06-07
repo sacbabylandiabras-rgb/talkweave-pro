@@ -420,7 +420,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                      <div className="grid grid-cols-2 gap-3">
                        <div className="space-y-2">
                          <Label>Nome</Label>
-                         <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Uazapi 01" />
+                         <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: WhatsApp 01" />
                        </div>
                         <div className="space-y-2">
                           <Label>Finalidade</Label>

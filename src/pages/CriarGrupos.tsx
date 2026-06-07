@@ -2383,8 +2383,8 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
 
 /* ============= TAB: Participantes ============= */
   function ParticipantesTab() {
-    const { groups, loading, refetch } = useWhatsAppGroups({ provider: 'uazapi' });
-  const { instances } = useZapiInstances({ provider: 'uazapi' });
+    const { groups, loading, refetch } = useWhatsAppGroups();
+  const { instances } = useZapiInstances();
   const { fetchMemberCount, getMemberCount, isLoading: isMemberLoading } = useGroupMemberCount();
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [busca, setBusca] = useState("");
