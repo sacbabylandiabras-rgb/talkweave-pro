@@ -5,6 +5,7 @@ import { User, Mail, Phone, FileText, Calendar, CreditCard, ShieldCheck, Hash, S
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getHttpAvatarUrl } from "@/lib/avatar-utils";
 
 interface ProfileData {
   id: string;
