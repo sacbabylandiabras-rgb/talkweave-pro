@@ -335,35 +335,9 @@ const normalizeDeviceStatusPayload = (payload: any) => {
   };
 };
 
-type CollectionItem = {
-  id?: string | number;
-  name?: string;
-  status?: string;
-  [key: string]: unknown;
-};
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
-const getNestedValue = (source: unknown, path: string[]) =>
-  path.reduce<unknown>((current, key) => isRecord(current) ? current[key] : undefined, source);
-
-const normalizeCollectionsPayload = (payload: unknown): CollectionItem[] => {
-  const candidates = [
-    payload,
-    getNestedValue(payload, ['data']),
-    getNestedValue(payload, ['data', 'value']),
-    getNestedValue(payload, ['data', 'collections']),
-    getNestedValue(payload, ['data', 'value', 'collections']),
-    getNestedValue(payload, ['data', 'items']),
-    getNestedValue(payload, ['data', 'value', 'items']),
-    getNestedValue(payload, ['collections']),
-    getNestedValue(payload, ['value']),
-    getNestedValue(payload, ['value', 'collections']),
-    getNestedValue(payload, ['items']),
-  ];
-
-  for (const candidate of candidates) {
     if (Array.isArray(candidate)) return candidate as CollectionItem[];
   }
 
@@ -440,166 +414,10 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   const [connectionTab, setConnectionTab] = useState("qr-code");
   const [pairingCode, setPairingCode] = useState<string | null>(null);
    const [showConnect, setShowConnect] = useState(false);
-    const [showCollections, setShowCollections] = useState(false);
-    const [collections, setCollections] = useState<CollectionItem[]>([]);
-    const [collectionsLoading, setCollectionsLoading] = useState(false);
-    const [deletingCollectionId, setDeletingCollectionId] = useState<string | number | null>(null);
-    const [editingCollection, setEditingCollection] = useState<{ id: string | number; name: string } | null>(null);
-    const [editName, setEditName] = useState("");
-    const [editingLoading, setEditingLoading] = useState(false);
-    const [viewingProductsId, setViewingProductsId] = useState<string | number | null>(null);
-    const [products, setProducts] = useState<any[]>([]);
-    const [productsLoading, setProductsLoading] = useState(false);
-    const [addingProductId, setAddingProductId] = useState("");
-    const [isAddingProduct, setIsAddingProduct] = useState(false);
-    const [removingProductId, setRemovingProductId] = useState<string | number | null>(null);
     const [showPrivacy, setShowPrivacy] = useState(false);
+
    const [privacyLoading, setPrivacyLoading] = useState(false);
    const [privacySettings, setPrivacySettings] = useState<any>({});
-   const fetchCollections = async () => {
-     setCollectionsLoading(true);
-     try {
-       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
-         body: { 
-           action: 'list-collections', 
-           instanceDbId: instance.id,
-           phone: connectedPhone 
-         },
-       });
-       if (error) throw error;
-        if (data?.error) throw new Error(data.error?.message || data.error);
-        setCollections(normalizeCollectionsPayload(data));
-     } catch (err: any) {
-        setCollections([]);
-       const message = await getInvokeErrorMessage(err, 'Erro ao buscar coleções');
-       toast({ title: "❌ Erro ao buscar coleções", description: message, variant: "destructive" });
-     } finally {
-       setCollectionsLoading(false);
-     }
-   };
-
-   const deleteCollection = async (collectionId: string | number) => {
-     setDeletingCollectionId(collectionId);
-     try {
-       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
-         body: { 
-           action: 'delete-collection', 
-           instanceDbId: instance.id,
-           payload: { collectionId }
-         },
-       });
-       if (error) throw error;
-       if (data?.error) throw new Error(data.error?.message || data.error);
-       toast({ title: "✅ Coleção excluída" });
-       // Refresh list
-       fetchCollections();
-     } catch (err: any) {
-       const message = await getInvokeErrorMessage(err, 'Erro ao excluir coleção');
-       toast({ title: "❌ Erro ao excluir", description: message, variant: "destructive" });
-     } finally {
-       setDeletingCollectionId(null);
-     }
-   };
-
-   const handleEditCollection = async () => {
-     if (!editingCollection || !editName.trim()) return;
-     setEditingLoading(true);
-     try {
-       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
-         body: { 
-           action: 'edit-collection', 
-           instanceDbId: instance.id,
-           payload: { collectionId: editingCollection.id, name: editName.trim() }
-         },
-       });
-       if (error) throw error;
-       if (data?.error) throw new Error(data.error?.message || data.error);
-       toast({ title: "✅ Coleção atualizada" });
-       setEditingCollection(null);
-       fetchCollections();
-     } catch (err: any) {
-       const message = await getInvokeErrorMessage(err, 'Erro ao editar coleção');
-       toast({ title: "❌ Erro ao editar", description: message, variant: "destructive" });
-     } finally {
-       setEditingLoading(false);
-     }
-   };
-
-   const fetchCollectionProducts = async (collectionId: string | number) => {
-     setViewingProductsId(collectionId);
-     setProductsLoading(true);
-     try {
-       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
-         body: { 
-           action: 'list-collection-products', 
-           instanceDbId: instance.id,
-           phone: connectedPhone,
-           payload: { collectionId }
-         },
-       });
-       if (error) throw error;
-       if (data?.error) throw new Error(data.error?.message || data.error);
-       setProducts(data?.data?.value || data?.data?.items || data?.data?.products || []);
-     } catch (err: any) {
-       const message = await getInvokeErrorMessage(err, 'Erro ao buscar produtos');
-       toast({ title: "❌ Erro ao buscar produtos", description: message, variant: "destructive" });
-       setViewingProductsId(null);
-     } finally {
-       setProductsLoading(false);
-     }
-   };
-
-   const addProductToCollection = async (collectionId: string | number) => {
-     if (!addingProductId.trim()) return;
-     setIsAddingProduct(true);
-     try {
-       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
-         body: { 
-           action: 'add-products-to-collection', 
-           instanceDbId: instance.id,
-           payload: { 
-             collectionId, 
-             products: [{ id: addingProductId.trim() }] 
-           }
-         },
-       });
-       if (error) throw error;
-       if (data?.error) throw new Error(data.error?.message || data.error);
-       toast({ title: "✅ Produto adicionado" });
-       setAddingProductId("");
-       fetchCollectionProducts(collectionId);
-     } catch (err: any) {
-       const message = await getInvokeErrorMessage(err, 'Erro ao adicionar produto');
-       toast({ title: "❌ Erro ao adicionar", description: message, variant: "destructive" });
-     } finally {
-       setIsAddingProduct(false);
-     }
-   };
-
-   const removeProductFromCollection = async (collectionId: string | number, productId: string | number) => {
-     setRemovingProductId(productId);
-     try {
-       const { data, error } = await supabase.functions.invoke('zapi-chat-actions', {
-         body: { 
-           action: 'remove-products-from-collection', 
-           instanceDbId: instance.id,
-           payload: { 
-             collectionId, 
-             products: [{ id: productId }] 
-           }
-         },
-       });
-       if (error) throw error;
-       if (data?.error) throw new Error(data.error?.message || data.error);
-       toast({ title: "✅ Produto removido" });
-       fetchCollectionProducts(collectionId);
-     } catch (err: any) {
-       const message = await getInvokeErrorMessage(err, 'Erro ao remover produto');
-       toast({ title: "❌ Erro ao remover", description: message, variant: "destructive" });
-     } finally {
-       setRemovingProductId(null);
-     }
-   };
 
     const updatePrivacy = async (action: string, payload: any) => {
       setPrivacyLoading(true);
