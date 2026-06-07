@@ -219,31 +219,66 @@ serve(async (req) => {
                 }
 
                 // === CHECK KEYWORD MATCH ===
-                const matchedFlow = flowAutomations.find((flow: any) => {
-                  const keywords = extractFlowKeywords(flow)
-                  return keywords.some((keyword) => isKeywordMatch(normalizedMessage, keyword))
-                })
+                let matchedFlow = null;
+                let matchedNode = null;
+
+                for (const flow of flowAutomations) {
+                  // 1. Check global keyword (contains)
+                  const globalKws = (flow.keyword || flow.trigger_keywords || '').split(/[\n,;]/).filter(Boolean);
+                  if (globalKws.some(kw => isKeywordMatch(msgText, kw, 'contains'))) {
+                    matchedFlow = flow;
+                    break;
+                  }
+
+                  // 2. Check trigger nodes (exact or contains)
+                  const triggerNodes = (flow.nodes || []).filter((n: any) => 
+                    n.type === 'blocoGatilho' || n.type === 'gatilho' || n.type === 'trigger'
+                  );
+                  for (const node of triggerNodes) {
+                    const kwsRaw = node.data?.keywords || node.data?.keyword || '';
+                    const nodeKws = Array.isArray(kwsRaw) ? kwsRaw : kwsRaw.toString().split(/[\n,;]/).filter(Boolean);
+                    const matchType = node.data?.matchType || 'contains';
+                    
+                    if (nodeKws.some((kw: string) => isKeywordMatch(msgText, kw, matchType))) {
+                      matchedFlow = flow;
+                      matchedNode = node;
+                      break;
+                    }
+                  }
+                  if (matchedFlow) break;
+                }
 
                 if (matchedFlow) {
-                  console.log(`[webhook-meta] Flow matched keyword: ${matchedFlow.keyword}`)
+                  console.log(`[webhook-meta] Flow matched keyword for: ${matchedFlow.name}`)
 
                   const nodes: FlowNode[] = matchedFlow.nodes || []
                   const edges: FlowEdge[] = matchedFlow.edges || []
-                  const initialNode = nodes.find(n => n.type === 'blocoInicial')
+                  
+                  // Decide starting node: if matched specific node, use it, else find blocoInicial
+                  let startNode = nodes.find(n => n.type === 'blocoInicial')
+                  if (matchedNode) {
+                    // Try to follow edge from trigger node
+                    const nextEdge = edges.find(e => e.source === matchedNode.id)
+                    if (nextEdge) {
+                      startNode = nodes.find(n => n.id === nextEdge.target)
+                    } else {
+                      startNode = matchedNode
+                    }
+                  }
 
-                  if (initialNode) {
+                  if (startNode) {
                     const metaCreds = { access_token: accessToken, phone_number_id: phoneNumberId }
                     const visited = new Set<string>()
-                    const shouldStop = await sendNodeContentMeta(initialNode, nodes, edges, fromPhone, metaCreds, visited, supabase, userId, matchedFlow.name)
+                    const shouldStop = await sendNodeContentMeta(startNode, nodes, edges, fromPhone, metaCreds, visited, supabase, userId, matchedFlow.name)
                     if (!shouldStop) {
-                      await processFlowNodeMeta(initialNode.id, nodes, edges, fromPhone, metaCreds, supabase, visited, userId, matchedFlow.name)
+                      await processFlowNodeMeta(startNode.id, nodes, edges, fromPhone, metaCreds, supabase, visited, userId, matchedFlow.name)
                     }
 
                     await supabase.from('message_logs').insert({
                       user_id: userId,
                       phone: fromPhone,
                       message_received: null,
-                      keyword_matched: matchedFlow.keyword,
+                      keyword_matched: matchedFlow.keyword || matchedNode?.data?.keyword || 'matched',
                       response_sent: `[Fluxo: ${matchedFlow.name}]`,
                       instance_id: `meta:${phoneNumberId}`,
                     })
