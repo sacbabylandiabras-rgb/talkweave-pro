@@ -558,7 +558,10 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
              const num = d?.instance?.number || d?.status?.checked_instance?.number || d?.number || null;
              if (num) foundPhone = num;
              const pic = d?.instance?.profilePictureUrl || d?.profilePictureUrl || d?.instance?.profilePicUrl || null;
-             if (pic) setProfilePicUrl(pic);
+             if (pic) {
+               console.log("Setting profile pic from status:", pic);
+               setProfilePicUrl(pic);
+             }
            }
            
            // If we still don't have a picture, try /instance endpoint
