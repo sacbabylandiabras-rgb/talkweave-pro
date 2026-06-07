@@ -326,15 +326,42 @@ const Etiquetas = () => {
         <div className="flex flex-wrap items-center gap-2">
           <Button 
             variant="outline" 
-            size="icon" 
-            onClick={() => fetchTags(selectedInstanceId)} 
+            size="sm" 
+            className="gap-2 h-9"
+            onClick={async () => {
+              if (!selectedInstanceId) return;
+              setLoadingTags(true);
+              try {
+                const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+                  body: { action: "refresh-tags", instanceDbId: selectedInstanceId },
+                });
+                if (error) throw error;
+                toast({ title: "Sincronização iniciada", description: "As etiquetas estão sendo atualizadas com o WhatsApp." });
+                setTimeout(() => fetchTags(selectedInstanceId), 2000);
+              } catch (err: any) {
+                toast({ title: "Erro ao sincronizar", description: err.message, variant: "destructive" });
+              } finally {
+                setLoadingTags(false);
+              }
+            }}
             disabled={loadingTags || !selectedInstanceId}
           >
             <RefreshCw className={`w-4 h-4 ${loadingTags ? "animate-spin" : ""}`} />
+            Sincronizar Celular
+          </Button>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="h-9 w-9"
+            onClick={() => fetchTags(selectedInstanceId)} 
+            disabled={loadingTags || !selectedInstanceId}
+            title="Atualizar lista local"
+          >
+            <Search className="w-4 h-4" />
           </Button>
           <div className="flex items-center gap-2 min-w-[200px]">
             <Select value={selectedInstanceId} onValueChange={setSelectedInstanceId}>
-              <SelectTrigger>
+              <SelectTrigger className="h-9">
                 <SelectValue placeholder="Selecione uma instância" />
               </SelectTrigger>
               <SelectContent>
@@ -346,7 +373,7 @@ const Etiquetas = () => {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={() => setIsCreateTagOpen(true)} className="gap-2">
+          <Button onClick={() => setIsCreateTagOpen(true)} className="gap-2 h-9">
             <Plus className="w-4 h-4" />
             Nova Etiqueta
           </Button>

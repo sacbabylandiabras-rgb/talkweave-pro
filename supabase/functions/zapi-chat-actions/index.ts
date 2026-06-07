@@ -114,6 +114,15 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify(await res.json()), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
+      if (action === 'refresh-tags') {
+        const res = await fetch(withToken(`/labels/refresh/${inst}`), { 
+          method: 'POST',
+          headers: evolutionHeaders 
+        });
+        const data = await res.json().catch(() => ({}));
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
       if (action === 'get-messages-limits') {
         const res = await fetch(withToken(`/instance/wa-messages-limits/${inst}`), { headers: evolutionHeaders });
         return new Response(JSON.stringify(await res.json()), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
