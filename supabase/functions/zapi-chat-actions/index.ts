@@ -395,16 +395,16 @@ Deno.serve(async (req) => {
         if (payload.last !== undefined) privBody.last = lc(payload.last);
         if (payload.profile !== undefined) privBody.profile = lc(payload.profile);
         if (payload.status !== undefined) privBody.status = lc(payload.status);
-        if (payload.groupadd !== undefined) body.groupadd = lc(payload.groupadd);
-        if (payload.online !== undefined) body.online = lc(payload.online);
-        if (payload.readreceipts !== undefined) body.readreceipts = lc(payload.readreceipts);
-        Object.keys(body).forEach(k => body[k] === undefined && delete body[k]);
-        if (Object.keys(body).length === 0) return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        if (payload.groupadd !== undefined) privBody.groupadd = lc(payload.groupadd);
+        if (payload.online !== undefined) privBody.online = lc(payload.online);
+        if (payload.readreceipts !== undefined) privBody.readreceipts = lc(payload.readreceipts);
+        Object.keys(privBody).forEach(k => privBody[k] === undefined && delete privBody[k]);
+        if (Object.keys(privBody).length === 0) return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         
         const res = await fetch(withToken(`/instance/updatePrivacy/${inst}`), {
           method: 'POST',
           headers: evolutionHeaders,
-          body: JSON.stringify(body),
+          body: JSON.stringify(privBody),
         });
         const data = await res.json();
         if (!res.ok) return new Response(JSON.stringify({ error: data.message || 'Erro' }), { status: res.status, headers: corsHeaders });
