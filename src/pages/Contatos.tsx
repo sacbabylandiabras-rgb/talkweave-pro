@@ -51,7 +51,7 @@ const Contatos = () => {
     <div className="space-y-4">
       <h1 className="text-lg font-semibold text-foreground">Contatos</h1>
 
-      <div className="flex gap-4">
+      <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input 
@@ -87,7 +87,22 @@ const Contatos = () => {
           <Filter className="w-4 h-4" />
           Filtros
         </Button>
+        <Button 
+          className="flex items-center gap-2"
+          onClick={() => {
+            const name = prompt("Nome do contato:");
+            const phone = prompt("Número do WhatsApp (com DDD):");
+            if (name && phone) {
+              const { addContacts } = useZapi();
+              addContacts([{ firstName: name, phone: phone.replace(/\D/g, '') }]);
+            }
+          }}
+        >
+          <Plus className="w-4 h-4" />
+          Novo Contato
+        </Button>
       </div>
+
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
