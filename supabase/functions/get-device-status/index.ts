@@ -67,6 +67,40 @@ const detectUazapiConnection = (j: any): { connected: boolean; status: string } 
   return { connected, status };
 };
 
+const normalizeUazapiPhone = (value: unknown): string | null => {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  const beforeAt = raw.split('@')[0] || raw;
+  const beforeColon = beforeAt.split(':')[0] || beforeAt;
+  const digits = beforeColon.replace(/\D/g, '');
+  return digits || null;
+};
+
+const extractUazapiProfileInfo = (raw: any) => {
+  const profilePicUrl =
+    raw?.instance?.profilePicUrl ||
+    raw?.instance?.profilePictureUrl ||
+    raw?.profilePicUrl ||
+    raw?.profilePictureUrl ||
+    raw?.status?.checked_instance?.profilePicUrl ||
+    raw?.status?.checked_instance?.profilePictureUrl ||
+    null;
+
+  const ownerPhone = normalizeUazapiPhone(
+    raw?.instance?.owner ||
+    raw?.status?.jid ||
+    raw?.status?.checked_instance?.jid ||
+    raw?.instance?.number ||
+    raw?.number,
+  );
+
+  return {
+    profilePicUrl: typeof profilePicUrl === 'string' && profilePicUrl.trim() ? profilePicUrl.trim() : null,
+    profileName: raw?.instance?.profileName || raw?.profileName || null,
+    ownerPhone,
+  };
+};
+
 const fetchUazapiStatus = async (apiUrl: string, apiToken: string, instanceName?: string | null) => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -192,6 +226,7 @@ serve(async (req) => {
           session: connected,
           smartphoneConnected: connected,
           status,
+          ...extractUazapiProfileInfo(raw),
           raw,
         };
         return new Response(JSON.stringify({ success: true, data: normalized }),
@@ -275,6 +310,7 @@ serve(async (req) => {
         session: connected,
         smartphoneConnected: connected,
         status,
+        ...extractUazapiProfileInfo(raw),
         raw,
       };
 

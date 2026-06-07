@@ -335,6 +335,25 @@ const normalizeDeviceStatusPayload = (payload: any) => {
   };
 };
 
+const normalizeConnectedPhone = (value: unknown) => {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  const base = (raw.split('@')[0] || raw).split(':')[0] || raw;
+  const digits = base.replace(/\D/g, '');
+  return digits || null;
+};
+
+const getProfilePicFromStatus = (payload: any) =>
+  payload?.profilePicUrl ||
+  payload?.profilePictureUrl ||
+  payload?.instance?.profilePicUrl ||
+  payload?.instance?.profilePictureUrl ||
+  payload?.raw?.instance?.profilePicUrl ||
+  payload?.raw?.instance?.profilePictureUrl ||
+  payload?.raw?.status?.checked_instance?.profilePicUrl ||
+  payload?.raw?.status?.checked_instance?.profilePictureUrl ||
+  null;
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
@@ -546,7 +565,20 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
         throw new Error(data?.message || data?.error || 'Erro ao buscar status do dispositivo');
       }
 
-      setDeviceStatus(data?.data ? normalizeDeviceStatusPayload(data.data) : null);
+      const normalizedStatus = data?.data ? normalizeDeviceStatusPayload(data.data) : null;
+      setDeviceStatus(normalizedStatus);
+
+      const statusPic = getProfilePicFromStatus(normalizedStatus);
+      if (statusPic) setProfilePicUrl(statusPic);
+
+      const statusPhone = normalizeConnectedPhone(
+        normalizedStatus?.ownerPhone ||
+        normalizedStatus?.raw?.instance?.owner ||
+        normalizedStatus?.raw?.status?.jid ||
+        normalizedStatus?.raw?.instance?.number ||
+        normalizedStatus?.raw?.number,
+      );
+      if (statusPhone) setConnectedPhone(statusPhone);
       
       // If UAZAPI, also fetch message limits
       if (instance.api_provider === 'uazapi' || instance.api_provider === 'uazapi_warmup') {
@@ -591,17 +623,17 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
        const apiToken = instance.evolution_api_key || instance.zapi_token || '';
        if (apiUrl && apiToken) {
          try {
-           // Try /instance/status first (it's what get-device-status uses and is often more reliable)
-           const res = await fetch(`${apiUrl}/instance/status/${instance.instance_name || instance.zapi_instance_id}?token=${encodeURIComponent(apiToken)}`, {
+            // Try the token-scoped status first; UAZAPI returns profilePicUrl here.
+            const res = await fetch(`${apiUrl}/instance/status?token=${encodeURIComponent(apiToken)}`, {
              headers: { "Content-Type": "application/json", "token": apiToken, "Authorization": `Bearer ${apiToken}`, "apikey": apiToken }
            });
            
            if (res.ok) {
              const d = await res.json();
              // Evolution/UAZAPI status response often has number inside instance
-             const num = d?.instance?.number || d?.status?.checked_instance?.number || d?.number || null;
+              const num = d?.instance?.owner || d?.status?.jid || d?.instance?.number || d?.status?.checked_instance?.number || d?.number || null;
              if (num) foundPhone = num;
-             const pic = d?.instance?.profilePictureUrl || d?.profilePictureUrl || d?.instance?.profilePicUrl || null;
+              const pic = getProfilePicFromStatus(d);
              if (pic) {
                console.log("Setting profile pic from status:", pic);
                setProfilePicUrl(pic);
@@ -620,8 +652,8 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                  : null;
                
                if (instData) {
-                 if (!foundPhone) foundPhone = instData.number || instData.phone;
-                  const instancePic = instData.profilePictureUrl || instData.profilePicUrl;
+                  if (!foundPhone) foundPhone = instData.owner || instData.number || instData.phone;
+                   const instancePic = instData.profilePicUrl || instData.profilePictureUrl;
                   if (instancePic) {
                     console.log("Setting profile pic from instance list:", instancePic);
                     setProfilePicUrl(instancePic);
@@ -658,7 +690,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
      }
  
      if (foundPhone) {
-       setConnectedPhone(foundPhone);
+        setConnectedPhone(normalizeConnectedPhone(foundPhone) || foundPhone);
      }
    };
 
