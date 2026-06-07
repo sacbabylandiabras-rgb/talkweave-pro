@@ -50,13 +50,11 @@ export const isCommunityPhone = (phone: string): boolean => {
   if (!phone) return false;
   const lowerPhone = phone.toLowerCase();
   if (lowerPhone.includes("@lid")) return false;
-  
-  const clean = String(phone).replace(/\D/g, '');
-  // Communities often start with 120363 and are longer than 16 digits
-  // Or they have the -community suffix in Z-API / UAZAPI
-  return /^120363\d{11,}$/.test(clean) || 
-    lowerPhone.includes('-community') ||
-    (lowerPhone.includes('-group') && /^120363/.test(clean) && clean.length > 16);
+
+  // Community classification must come from API metadata (is_community flag).
+  // Numeric prefixes like 120363 are shared by regular groups and communities,
+  // so we only treat as community when an explicit marker is present.
+  return lowerPhone.includes('-community');
 };
 
 export const isNewsletterPhone = (phone: string): boolean => {
