@@ -100,7 +100,7 @@ const EnviarMensagem = () => {
 
    const { sendMessage, sendButtonActions, sendOptionList, sendImage, sendVideo, sendAudio, sendDocument, sendSpecialTemplate, sendCarousel, sendMessageCatalog, sendMessageContact, sendEvent, sendEditEvent, sendEventResponse, loading, setOverride } = useZapi();
   const { toast } = useToast();
-   const { instances: allInstances, activeInstance } = useZapiInstances({ includeMeta: true, provider: 'zapi' });
+   const { instances: allInstances, activeInstance } = useZapiInstances({ includeMeta: true, provider: 'uazapi' });
    const instances = useMemo(() => {
      return allInstances.filter(i => {
        const provider = (i.api_provider || 'zapi').toLowerCase();

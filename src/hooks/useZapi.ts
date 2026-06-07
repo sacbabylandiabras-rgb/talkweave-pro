@@ -106,7 +106,7 @@ const getZAPIConfig = async () => {
     instanceId: instance.zapi_instance_id,
     token: instance.zapi_token,
     clientToken: instance.zapi_client_token,
-    provider: instance.api_provider || 'zapi',
+    provider: instance.api_provider || 'uazapi',
     evolutionApiUrl: instance.evolution_api_url,
     evolutionApiKey: instance.evolution_api_key,
     instanceName: instance.instance_name,
