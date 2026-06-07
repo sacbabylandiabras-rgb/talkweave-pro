@@ -1083,7 +1083,7 @@ export const useMessageLogs = (
       if (filterInstanceId && filterInstanceId !== "all")
         return messageLogs.filter((m) => m.instance_id === filterInstanceId || m.instance_id === filterInstanceName);
       if (hasKnownInstanceFilter) {
-        const knownIdSet = new Set(knownInstanceIds);
+        const knownIdSet = new Set([...(knownInstanceIds || []), ...(knownInstanceNames || [])]);
         return messageLogs.filter((m) => m.instance_id && knownIdSet.has(m.instance_id));
       }
       return messageLogs;
