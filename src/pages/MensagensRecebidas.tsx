@@ -71,6 +71,7 @@ import { isGroupPhone, isCommunityPhone, isRegularGroupPhone, normalizeConversat
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
 import { PipelineBar, DEFAULT_PIPELINE_STAGES } from "@/components/agent/PipelineBar";
 import { PipelineSelector } from "@/components/agent/PipelineSelector";
+import { getHttpAvatarUrl, sameAvatarUrl } from "@/lib/avatar-utils";
 
 const normalizeSelectedConversationPhone = (phone: string | null) => {
   if (!phone) return null;
@@ -89,23 +90,6 @@ const formatPhone = (phone?: string | null) => {
   return phone;
 };
 
-const getHttpAvatarUrl = (value?: string | null) => {
-  const url = String(value || "").trim();
-  if (!url || url === "null" || url === "undefined") return null;
-  if (!/^https?:\/\//i.test(url)) return null;
-  
-  // Se for pps.whatsapp.net, retornamos null para evitar o erro 403 (Forbidden)
-  // que o usuário está enfrentando consistentemente.
-  if (url.includes("pps.whatsapp.net")) return null;
-  
-  return url;
-};
-
-const sameAvatarUrl = (a?: string | null, b?: string | null) => {
-  const left = getHttpAvatarUrl(a);
-  const right = getHttpAvatarUrl(b);
-  return !!left && !!right && left === right;
-};
 
 const looksLikePhoneOrId = (value: string) => {
   const trimmed = value.trim();
@@ -683,9 +667,9 @@ const ConversationList = ({
                 </div>
               )}
               <Avatar className="h-11 w-11 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
-                {conv.profilePictureUrl && !conv.profilePictureUrl.includes("pps.whatsapp.net") ? (
+                {getHttpAvatarUrl(conv.profilePictureUrl) ? (
                   <AvatarImage
-                    src={conv.profilePictureUrl}
+                    src={getHttpAvatarUrl(conv.profilePictureUrl)!}
                     className="h-full w-full object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).onerror = null;
@@ -1414,7 +1398,7 @@ const ChatView = (props: ChatViewProps) => {
         )}
         <Avatar className="h-10 w-10 shrink-0 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
           <AvatarImage
-            src={(conversation.profilePictureUrl && !conversation.profilePictureUrl.includes("pps.whatsapp.net")) ? conversation.profilePictureUrl : undefined}
+            src={getHttpAvatarUrl(conversation.profilePictureUrl) || undefined}
             className="h-full w-full object-cover"
             onError={(e) => {
               (e.target as HTMLImageElement).onerror = null;
@@ -1655,9 +1639,9 @@ const ChatView = (props: ChatViewProps) => {
                       <div className="flex justify-start gap-2 items-end">
                         {!isGroupPhone(conversation.phone) ? (
                           <Avatar className="w-8 h-8 shrink-0 border border-border overflow-hidden bg-muted flex items-center justify-center">
-                            {senderPhoto && !senderPhoto.includes("pps.whatsapp.net") && (
+                            {getHttpAvatarUrl(senderPhoto) && (
                               <AvatarImage
-                                src={senderPhoto}
+                                src={getHttpAvatarUrl(senderPhoto)!}
                                 className="object-cover"
                                 referrerPolicy="no-referrer"
                                 crossOrigin="anonymous"
@@ -1675,9 +1659,9 @@ const ChatView = (props: ChatViewProps) => {
                           </Avatar>
                         ) : (
                           <Avatar className="w-8 h-8 shrink-0 border border-border overflow-hidden bg-muted flex items-center justify-center">
-                            {senderPhoto && !senderPhoto.includes("pps.whatsapp.net") && (
+                            {getHttpAvatarUrl(senderPhoto) && (
                               <AvatarImage
-                                src={senderPhoto}
+                                src={getHttpAvatarUrl(senderPhoto)!}
                                 className="object-cover"
                                 referrerPolicy="no-referrer"
                                 crossOrigin="anonymous"
@@ -3228,7 +3212,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
                               </div>
                               <div className="flex items-center gap-2.5 mb-2.5">
                                 <Avatar className="h-8 w-8 border border-border/40 shadow-sm shrink-0">
-                                  <AvatarImage src={conv.profilePictureUrl || undefined} />
+                                  <AvatarImage src={getHttpAvatarUrl(conv.profilePictureUrl) || undefined} />
                                   <AvatarFallback className="text-[10px] bg-muted">
                                     <User className="w-4 h-4 text-muted-foreground" />
                                   </AvatarFallback>

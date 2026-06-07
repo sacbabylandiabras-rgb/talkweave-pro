@@ -5,6 +5,7 @@ import { User, Mail, Phone, FileText, Calendar, CreditCard, ShieldCheck, Hash, S
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getHttpAvatarUrl } from "@/lib/avatar-utils";
 
 interface ProfileData {
   id: string;
@@ -97,7 +98,7 @@ const PerfilWhatsApp = () => {
             <>
               <div className="flex items-center gap-4 pb-4 border-b border-border">
                 <Avatar className="h-16 w-16">
-                  {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={displayName} />}
+                  {getHttpAvatarUrl(profile?.avatar_url) && <AvatarImage src={getHttpAvatarUrl(profile?.avatar_url)!} alt={displayName} />}
                   <AvatarFallback className="bg-primary text-primary-foreground text-xl">{initial}</AvatarFallback>
                 </Avatar>
                 <div className="space-y-1 flex-1 min-w-0">

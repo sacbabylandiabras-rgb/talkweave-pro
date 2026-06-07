@@ -36,6 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { isGroupPhone, isCommunityPhone, isRegularGroupPhone } from "@/lib/group-name-resolution";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
+import { getHttpAvatarUrl } from "@/lib/avatar-utils";
 
 const normalizeSelectedConversationPhone = (phone: string | null) => {
   if (!phone) return null;
@@ -503,15 +504,15 @@ const ConversationList = ({
                  </div>
                )}
               <Avatar className="h-11 w-11 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
-                {conv.profilePictureUrl ? (
-                  <AvatarImage 
-                    src={conv.profilePictureUrl} 
-                    className="h-full w-full object-cover" 
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).onerror = null;
-                    }} 
-                  />
-                ) : null}
+                 {getHttpAvatarUrl(conv.profilePictureUrl) ? (
+                   <AvatarImage 
+                     src={getHttpAvatarUrl(conv.profilePictureUrl)!} 
+                     className="h-full w-full object-cover" 
+                     onError={(e) => {
+                       (e.target as HTMLImageElement).onerror = null;
+                     }} 
+                   />
+                 ) : null}
                 <AvatarFallback className="bg-[#DFE5E7] flex h-full w-full items-center justify-center rounded-full">
                   <WhatsAppDefaultAvatar />
                 </AvatarFallback>
@@ -1183,7 +1184,7 @@ const ChatView = ({
         )}
         <Avatar className="h-10 w-10 shrink-0 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
           <AvatarImage 
-            src={conversation.profilePictureUrl || undefined} 
+            src={getHttpAvatarUrl(conversation.profilePictureUrl) || undefined} 
             className="h-full w-full object-cover" 
             onError={(e) => {
               (e.target as HTMLImageElement).onerror = null;
@@ -1289,7 +1290,7 @@ const ChatView = ({
                       <div className="flex justify-start gap-2 items-end">
                         {isGroupPhone(conversation.phone) && (
                           <Avatar className="w-8 h-8 shrink-0 border border-border overflow-hidden bg-muted flex items-center justify-center">
-                            {senderPhoto && <AvatarImage src={senderPhoto} className="object-cover" />}
+                            {getHttpAvatarUrl(senderPhoto) && <AvatarImage src={getHttpAvatarUrl(senderPhoto)!} className="object-cover" />}
                             <AvatarFallback className="text-[10px] font-semibold">
                               {(msg.sender_name || msg.sender_phone || '?').replace(/[^A-Za-zÀ-ú0-9]/g, '').slice(0, 2).toUpperCase() || '?'}
                             </AvatarFallback>
