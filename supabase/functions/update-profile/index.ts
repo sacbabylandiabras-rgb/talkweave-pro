@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
       if (!baseUrl || !adminToken) {
         return buildDisconnectedResponse();
       }
-      const endpoint = type === 'name' ? `${baseUrl}/instance/updateName` : `${baseUrl}/instance/updateProfilePicture`;
+      const endpoint = type === 'name' ? `${baseUrl}/profile/name` : `${baseUrl}/profile/image`;
       const payload = type === 'name'
         ? { name: String(value) }
         : { image: String(value) };
