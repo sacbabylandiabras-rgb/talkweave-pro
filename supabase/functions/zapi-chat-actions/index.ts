@@ -20,11 +20,11 @@ function formatErrorMessage(value: unknown, fallback = 'Erro ao processar solici
 
 async function resolveCreds(req: Request, instanceDbId?: string) {
   const auth = req.headers.get('authorization');
-  if (!auth) throw new Error('Unauthorized');
+  if (!auth) { console.error('No auth header'); throw new Error('Unauthorized'); }
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
   const token = auth.replace(/^Bearer\s+/i, '');
   const { data: { user }, error } = await admin.auth.getUser(token);
-  if (error || !user) throw new Error('Unauthorized');
+  if (error || !user) { console.error('getUser failed', error?.message, 'tokenLen', token.length); throw new Error('Unauthorized'); }
 
   const instanceSelect = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_type, evolution_api_url, evolution_api_key, instance_name';
   const uuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
