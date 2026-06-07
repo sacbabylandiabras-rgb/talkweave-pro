@@ -190,9 +190,8 @@ Deno.serve(async (req) => {
         if (payload?.phone) {
           jid = String(payload.phone).includes('@') ? payload.phone : `${String(payload.phone).replace(/\D/g, '')}@s.whatsapp.net`;
         } else {
-          // Buscar owner via /instance/status
           try {
-            const statusRes = await fetch(`${apiUrl}/instance/status`, { headers: { token: apiToken } });
+            const statusRes = await fetch(withToken(`/instance/status/${inst}`), { headers: evolutionHeaders });
             const statusRaw = await statusRes.json().catch(() => ({}));
             const owner = statusRaw?.instance?.owner;
             if (owner) {
@@ -201,11 +200,11 @@ Deno.serve(async (req) => {
           } catch (_) {}
         }
 
-        if (!jid) return new Response(JSON.stringify({ error: 'Conexão não está ativa ou número não identificado. Verifique se o WhatsApp está conectado.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        if (!jid) return new Response(JSON.stringify({ error: 'Conexão não está ativa ou número não identificado.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-        const res = await fetch(`${apiUrl}/business/catalog/list`, {
+        const res = await fetch(withToken(`/business/catalog/list/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ jid }),
         });
         const data = await res.json().catch(() => ({}));
@@ -214,7 +213,6 @@ Deno.serve(async (req) => {
           return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao carregar catálogo' }), { status: res.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
         
-        // Map UAZAPI catalog list response to match frontend expectations
         const rawProducts = data?.response || data?.data || [];
         const products = Array.isArray(rawProducts) ? rawProducts.map((p: any) => ({
           id: p.id,
@@ -230,9 +228,9 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'delete-product') {
-        const res = await fetch(`${apiUrl}/business/catalog/delete`, {
+        const res = await fetch(withToken(`/business/catalog/delete/${inst}`), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ productIds: [payload?.id] }),
         });
         const data = await res.json().catch(() => ({}));
@@ -240,10 +238,10 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'show-product' || action === 'hide-product') {
-        const path = action === 'show-product' ? '/business/catalog/show' : '/business/catalog/hide';
-        const res = await fetch(`${apiUrl}${path}`, {
+        const path = action === 'show-product' ? `/business/catalog/show/${inst}` : `/business/catalog/hide/${inst}`;
+        const res = await fetch(withToken(path), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
+          headers: evolutionHeaders,
           body: JSON.stringify({ productIds: [payload?.id] }),
         });
         const data = await res.json().catch(() => ({}));
