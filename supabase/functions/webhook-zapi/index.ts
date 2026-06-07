@@ -447,6 +447,8 @@ serve(async (req) => {
     const authToken = req.headers.get("token") || req.headers.get("apikey") || String(webhook?.token || "");
     const type = webhook?.type || webhook?.notification || webhook?.EventType || webhook?.event || (webhook?.buttonsResponseMessage || webhook?.buttonReply ? "ButtonsResponseMessage" : "");
     const messageId = webhook?.messageId || webhook?.messageid || messagePayload?.messageid || (webhook?.ids && webhook.ids[0]) || "";
+    const instanceData = await resolveWebhookInstance(supabase, String(rawInstanceId || ""), authToken);
+    const instanceId = instanceData?.zapi_instance_id || String(rawInstanceId || "");
 
     if (["PresenceChatCallback", "PresenceCallback", "ChatPresenceCallback"].includes(type) || ["AVAILABLE", "UNAVAILABLE", "COMPOSING", "RECORDING"].includes(webhook?.status)) {
       return new Response("ok", { status: 200, headers: corsHeaders });
@@ -486,8 +488,7 @@ serve(async (req) => {
       }
     }
 
-    const fromMe = webhook?.fromMe === true || webhook?.fromMe === "true" || webhook?.fromApi === true || webhook?.fromApi === "true";
-    const { data: instanceData } = await supabase.from("zapi_instances").select("id, user_id, zapi_instance_id, zapi_token, zapi_client_token, updated_at, api_provider, instance_name, evolution_api_url").or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`).maybeSingle();
+    const fromMe = normalizeBoolean(webhook?.fromMe ?? messagePayload?.fromMe) || normalizeBoolean(webhook?.fromApi ?? messagePayload?.wasSentByApi);
     const userId = instanceData?.user_id;
 
     if (isStatusOnlyCallback(type, webhook, messageRaw, mediaUrl)) {
