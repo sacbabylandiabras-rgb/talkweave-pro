@@ -1140,19 +1140,23 @@ serve(async (req) => {
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'location-button');
       } else if (specialType === 'call' || (specialType === 'call' && isUazapi)) {
         // UAZAPI specific call endpoint: https://docs.uazapi.com/endpoint/post/call~make
+        // Some versions use 'number' with @s.whatsapp.net, others just digits.
         const cleanNumber = resolvedPhone.replace(/\D/g, "");
+        const jidNumber = cleanNumber.includes('@') ? cleanNumber : `${cleanNumber}@s.whatsapp.net`;
         const duration = Number(specialPayload?.duration || specialPayload?.call_duration || 30);
         
-        console.log(`📞 Iniciando ligação UAZAPI para ${cleanNumber} (Duração: ${duration}s) via ${baseUrl}/call/make`);
+        console.log(`📞 Iniciando ligação UAZAPI para ${jidNumber} (Duração: ${duration}s) via ${baseUrl}/call/make`);
         
         const callHeaders: Record<string, string> = { 
           'Content-Type': 'application/json',
           'token': token 
         };
         
+        // Try with JID first as it's more standard for Baileys-based APIs
         const callBody = { 
-          number: cleanNumber,
-          call_duration: duration
+          number: jidNumber,
+          call_duration: duration,
+          duration: duration // Include both just in case
         };
 
         console.log(`📤 UAZAPI Call Request: ${baseUrl}/call/make | Headers: ${JSON.stringify({ ...callHeaders, token: '***' })} | Body: ${JSON.stringify(callBody)}`);
@@ -1167,12 +1171,17 @@ serve(async (req) => {
         console.log(`📥 UAZAPI Call Response (Status ${res.status}): ${callResponseText}`);
         
         zapiData = await res.json().catch(() => ({}));
+        
+        // If it failed with JID or the response looks like it didn't recognize it, we could try clean number
+        // but since it returns 200 "accepted locally", we don't know for sure.
+        
         if (!res.ok) {
           console.error(`❌ Erro na ligação UAZAPI:`, zapiData);
           throw new Response(JSON.stringify({ error: zapiData?.message || 'Erro ao realizar ligação na UAZAPI', details: zapiData }), { status: res.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
+        
         logMessage = `📞 Ligação iniciada via UAZAPI (${duration}s)`;
-        console.log(`✅ Ligação UAZAPI iniciada com sucesso para ${cleanNumber}`);
+        console.log(`✅ Ligação UAZAPI iniciada com sucesso para ${jidNumber}`);
       } else if (specialType === 'request_payment' && specialPayload) {
         const pixBody: Record<string, unknown> = { phone: resolvedPhone, pixKey: specialPayload.pixKey || '', type: String(specialPayload.pixKeyType || 'cpf').toUpperCase(), merchantName: specialPayload.merchantName || specialPayload.recipientName || '' };
         if (specialPayload.amount) pixBody.value = Number(String(specialPayload.amount).replace(',', '.')) || 0;
