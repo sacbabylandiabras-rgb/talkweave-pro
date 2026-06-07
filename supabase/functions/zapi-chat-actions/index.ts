@@ -93,26 +93,29 @@ Deno.serve(async (req) => {
     const creds = await resolveCreds(req, instanceDbId);
     const provider = creds.apiProvider.toLowerCase();
 
-    if (provider === 'uazapi' || provider === 'uazapi_warmup') {
+    if (provider === 'uazapi' || provider === 'uazapi_warmup' || provider === 'evolution') {
       const apiUrl = (creds.evolutionUrl || '').replace(/\/+$/, '');
       const apiToken = creds.evolutionKey || creds.token || '';
+      const inst = creds.instanceName || creds.instanceId || '1';
       
       if (!apiUrl || !apiToken) throw new Error('UAZAPI config missing');
 
+      // Helper to construct Evolution API / UAZAPI URLs with token in query string
       const withToken = (path: string) => `${apiUrl}${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(apiToken)}`;
+      const evolutionHeaders = { 'Content-Type': 'application/json', 'token': apiToken, 'apikey': apiToken };
 
       if (action === 'get-privacy') {
-        const res = await fetch(withToken('/instance/privacy'), { headers: { token: apiToken } });
+        const res = await fetch(withToken(`/instance/fetchPrivacy/${inst}`), { headers: evolutionHeaders });
         return new Response(JSON.stringify(await res.json()), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       if (action === 'get-messages-limits') {
-        const res = await fetch(withToken('/instance/wa-messages-limits'), { headers: { token: apiToken } });
+        const res = await fetch(withToken(`/instance/wa-messages-limits/${inst}`), { headers: evolutionHeaders });
         return new Response(JSON.stringify(await res.json()), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       if (action === 'get-disallowed-contacts') {
-        const res = await fetch(withToken('/chat/blocklist'), { headers: { token: apiToken } });
+        const res = await fetch(withToken(`/chat/blocklist/${inst}`), { headers: evolutionHeaders });
         const raw = await res.json();
         const arr: string[] = Array.isArray(raw?.blockList) ? raw.blockList : (Array.isArray(raw) ? raw : []);
         const list = arr.map((j) => ({ phone: String(j).replace(/@.+$/, '') }));
