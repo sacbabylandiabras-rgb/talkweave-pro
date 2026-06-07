@@ -229,7 +229,21 @@ export default function FluxoVisualBase({
         user_id: user.id,
         name: nomeFluxo,
         keyword: keywordFluxo,
-        nodes: nodes as any,
+        nodes: nodes.map(n => {
+          // Garantir que os gatilhos tenham as keywords atualizadas do header ao salvar
+          if (n.type === "blocoGatilho" || n.type === "gatilho") {
+            const keywords = keywordFluxo.split(",").map(k => k.trim()).filter(k => k.length > 0);
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                keywords,
+                keyword: keywords[0] || ""
+              }
+            };
+          }
+          return n;
+        }) as any,
         edges: edges as any,
         active: fluxoAtivo,
         category,
