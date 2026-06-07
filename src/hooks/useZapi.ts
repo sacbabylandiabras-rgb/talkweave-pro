@@ -284,9 +284,10 @@ const getZAPIConfig = async () => {
 
       ensureZapiSendConfirmed(data, '❌ Falha no envio da mensagem.');
 
+      const isCall = options?.specialType === 'call';
       toast({
-        title: "Mensagem enviada!",
-        description: "A mensagem foi enviada com sucesso.",
+        title: isCall ? "Ligação iniciada!" : "Mensagem enviada!",
+        description: isCall ? "O comando de ligação foi enviado." : "A mensagem foi enviada com sucesso.",
       });
 
       return data;
