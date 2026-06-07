@@ -2817,6 +2817,11 @@ const Dispositivos = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-foreground">Dispositivos ({instances.length})</h1>
         <div className="flex items-center gap-2">
+          {instances.length < maxInstances && (
+            <Button onClick={() => setCreateOpen(true)} className="gap-2 h-9 text-xs">
+              <Plus className="w-4 h-4" /> Nova Instância
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
