@@ -564,7 +564,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
            // If we still don't have a picture, try /instance endpoint
            if (!foundPhone || !profilePicUrl) {
              const resInst = await fetch(`${apiUrl}/instance?token=${encodeURIComponent(apiToken)}`, {
-               headers: { "Content-Type": "application/json", "token": apiToken, "Authorization": `Bearer ${apiToken}` }
+               headers: { "Content-Type": "application/json", "token": apiToken, "Authorization": `Bearer ${apiToken}`, "apikey": apiToken }
              });
              if (resInst.ok) {
                const list = await resInst.json();
