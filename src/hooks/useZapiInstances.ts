@@ -15,6 +15,8 @@ export interface ZapiInstance {
   updated_at: string;
   api_provider: string;
     instance_type?: 'web' | 'mobile' | null;
+    evolution_api_url?: string | null;
+    evolution_api_key?: string | null;
 }
 
 const fromZapiInstances = () => (supabase as any).from('zapi_instances');

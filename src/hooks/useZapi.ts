@@ -87,7 +87,7 @@ const getZAPIConfig = async () => {
       .single();
 
     if (profileError || !profile?.zapi_instance_id || !profile?.zapi_token || !profile?.zapi_client_token) {
-      throw new Error('Nenhuma instância Z-API configurada. Peça ao administrador para configurar.');
+      throw new Error('Nenhuma instância de WhatsApp configurada. Peça ao administrador para configurar.');
     }
 
     return {
