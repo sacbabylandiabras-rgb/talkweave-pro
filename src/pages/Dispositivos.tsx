@@ -2729,10 +2729,6 @@ const Dispositivos = () => {
     }, [allInstances]);
 
   const { toast } = useToast();
-  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
-  const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
-  const [businessDialogOpen, setBusinessDialogOpen] = useState(false);
-  const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
@@ -2767,17 +2763,6 @@ const Dispositivos = () => {
         ))}
       </div>
 
-      {/* Bulk Profile Update Dialog */}
-      <BulkProfileUpdate instances={instances} open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
-
-      {/* Bulk Create Collection Dialog */}
-      <BulkCreateCollection instances={instances} open={collectionDialogOpen} onOpenChange={setCollectionDialogOpen} />
-
-      {/* Bulk Create Product Dialog */}
-      <BulkCreateProduct instances={instances} open={productDialogOpen} onOpenChange={setProductDialogOpen} />
-
-      {/* Bulk Business Info Dialog */}
-      <BulkBusinessInfo instances={instances} open={businessDialogOpen} onOpenChange={setBusinessDialogOpen} />
 
       {/* Planos */}
       <Card className="border-primary/20">
