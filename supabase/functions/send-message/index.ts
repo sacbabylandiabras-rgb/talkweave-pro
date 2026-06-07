@@ -1138,7 +1138,7 @@ serve(async (req) => {
         zapiResponse = await fetch(`${baseUrl}/send-button-actions`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken }, body: JSON.stringify({ phone: resolvedPhone, message: message || title, ...(footer ? { footer } : {}), buttonActions: [{ id: '1', type: 'URL', label: buttonLabel, url: mapsUrl }] }) });
         logMessage = `📍 ${title} (com botão)`;
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'location-button');
-      } else if (specialType === 'call' && isUazapi) {
+      } else if (specialType === 'call' || (specialType === 'call' && isUazapi)) {
         // UAZAPI specific call endpoint: https://docs.uazapi.com/endpoint/post/call~make
         const cleanNumber = resolvedPhone.replace(/\D/g, "");
         const duration = Number(specialPayload?.duration || specialPayload?.call_duration || 30);
