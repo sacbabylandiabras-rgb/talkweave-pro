@@ -20,13 +20,18 @@ serve(async (req) => {
     if (!inst) throw new Error('Instance not found')
 
     const provider = (inst.api_provider || 'zapi').toLowerCase()
-    if (provider === 'uazapi' || provider === 'uazapi_warmup') {
+    if (provider === 'uazapi' || provider === 'uazapi_warmup' || provider === 'evolution') {
       const apiUrl = (inst.evolution_api_url || '').replace(/\/+$/, '')
       const apiToken = inst.evolution_api_key || inst.zapi_token || ''
       
       const res = await fetch(`${apiUrl}/instance/connect/phone`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'token': apiToken },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'token': apiToken,
+          'apikey': apiToken,
+          'Authorization': `Bearer ${apiToken}`
+        },
         body: JSON.stringify({ number: phoneNumber })
       })
       const data = await res.json()

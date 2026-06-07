@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
     const apiProvider = String(instance.api_provider || 'zapi').toLowerCase();
 
-    if (apiProvider === 'uazapi' || apiProvider === 'uazapi_warmup') {
+    if (apiProvider === 'uazapi' || apiProvider === 'uazapi_warmup' || apiProvider === 'evolution') {
       const apiUrl = ((instance as any).evolution_api_url || '').replace(/\/+$/, '');
       const apiToken = (instance as any).evolution_api_key || (instance as any).zapi_token || '';
 
@@ -44,27 +44,40 @@ Deno.serve(async (req) => {
         throw new Error('Configuração de conexão incompleta');
       }
 
-      // reset endpoint for UAZAPI
-      const resetUrl = `${apiUrl}/instance/reset?token=${encodeURIComponent(apiToken)}`;
-      const resetRes = await fetch(resetUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', token: apiToken },
-      });
+      // Try multiple possible restart endpoints for Evolution/UAZAPI
+      const endpoints = [
+        `${apiUrl}/instance/restart`,
+        `${apiUrl}/instance/logout`, // Sometimes used to force a clean start
+      ];
 
-      const resetText = await resetRes.text();
-      let resetData: any = {};
-      try { resetData = JSON.parse(resetText); } catch { resetData = { message: resetText }; }
+      let lastError = null;
+      for (const url of endpoints) {
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json', 
+              'token': apiToken,
+              'apikey': apiToken,
+              'Authorization': `Bearer ${apiToken}`
+            },
+          });
 
-      if (!resetRes.ok) {
-        return new Response(JSON.stringify({ error: 'Failed to reset instance', details: resetData }), {
-          status: resetRes.status,
-          headers: jsonHeaders,
-        });
+          if (res.ok) {
+            const data = await res.json().catch(() => ({}));
+            return new Response(JSON.stringify({ 
+              success: true, 
+              data, 
+              message: 'Instância reiniciada com sucesso.' 
+            }), { headers: jsonHeaders });
+          }
+          lastError = await res.text();
+        } catch (e) {
+          lastError = e.message;
+        }
       }
 
-      return new Response(JSON.stringify({ success: true, data: resetData, message: 'Instância reiniciada com sucesso.' }), {
-        headers: jsonHeaders,
-      });
+      throw new Error(`Falha ao reiniciar: ${lastError}`);
     }
 
     // Z-API restart
