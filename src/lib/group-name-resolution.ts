@@ -136,7 +136,7 @@ export const resolveGroupConversationName = ({
   stableGroupNames,
   campaignContactName,
 }: ResolveGroupNameInput): string | null => {
-  if (!isGroupPhone(phone)) {
+  if (!isGroupPhone(phone) && !isCommunityPhone(phone)) {
     return savedContacts.get(phone)?.name?.trim() || null;
   }
 

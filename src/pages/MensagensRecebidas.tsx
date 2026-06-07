@@ -99,12 +99,12 @@ const looksLikePhoneOrId = (value: string) => {
 
 const getConversationDisplayName = (name?: string | null, phone?: string | null, isCommunityProp?: boolean) => {
   if (!phone) return name || "";
-  const isGroup = isGroupPhone(phone) && !phone.startsWith("ig_");
+  const isGroup = isRegularGroupPhone(phone) && !phone.startsWith("ig_");
   const isCommunity = (isCommunityProp || isCommunityPhone(phone)) && !phone.startsWith("ig_");
   const isChannel = phone.includes("@newsletter");
 
   // Prioritize real name if it exists and isn't generic
-  if (name && !(isGroup && looksLikePhoneOrId(name)) && !(/^(grupo|grupo sem nome|conversa com grupo|comunidade)$/i.test(name.toLowerCase()))) {
+  if (name && !((isGroup || isCommunity) && looksLikePhoneOrId(name)) && !(/^(grupo|grupo sem nome|conversa com grupo|comunidade)$/i.test(name.toLowerCase()))) {
     return name;
   }
 
