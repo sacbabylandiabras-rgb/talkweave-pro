@@ -332,9 +332,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     color: "text-orange-500",
     mode: "groups",
     nodes: [
-      baseInicial,
+      createInitialNode("pg-1"),
       {
-        id: "2",
+        id: "pg-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -347,7 +347,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2")],
+    edges: [edge("pg-1", "pg-2")],
   },
   {
     id: "lancamento-grupo",
