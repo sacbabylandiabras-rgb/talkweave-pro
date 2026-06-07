@@ -61,6 +61,8 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
   }, [open, autoImportUrl]);
 
   useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    
     const triggerAutoImport = async () => {
       if (open && autoImportUrl && !loading && !urlLoading) {
         console.log("[AutoImport] Checking...", { autoImportUrl, knowledgeCount: knowledge.length });
@@ -72,7 +74,7 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
         
         if (!alreadyHasUrl) {
           console.log("[AutoImport] Starting import for:", autoImportUrl);
-          setTimeout(() => handleImportUrl(autoImportUrl), 300);
+          timer = setTimeout(() => handleImportUrl(autoImportUrl), 300);
         } else {
           console.log("[AutoImport] URL já existe. Forçando preenchimento dos prompts.");
           const existing = alreadyHasUrl;
@@ -100,7 +102,12 @@ export function AgentConfigDialog({ open, onOpenChange, autoImportUrl, onImportC
         }
       }
     };
+
     triggerAutoImport();
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [open, autoImportUrl, loading, urlLoading, knowledge, saveConfig]);
 
   const handleImportUrl = async (urlToImport?: string) => {
