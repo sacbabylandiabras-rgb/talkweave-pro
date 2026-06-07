@@ -2720,11 +2720,11 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
 };
 
 const Dispositivos = () => {
-  const { instances: allInstances, loading, refetch } = useZapiInstances({ provider: 'zapi' });
-    // Exibir apenas instâncias de uso (Z-API Web), ocultando legados Mobile
+  const { instances: allInstances, loading, refetch } = useZapiInstances();
+    // Exibir apenas instâncias de uso (Z-API/UAZAPI Web), ocultando legados Mobile
     const instances = useMemo(() => {
       return allInstances.filter(
-         (i) => (i.api_provider || 'zapi') === 'zapi' && !isMobileZapiInstance(i)
+         (i) => (i.api_provider === 'zapi' || i.api_provider === 'uazapi' || !i.api_provider) && !isMobileZapiInstance(i)
       );
     }, [allInstances]);
 
@@ -2782,22 +2782,9 @@ const Dispositivos = () => {
       }
       if (data?.error) throw new Error(data.message || data.error);
 
-      // Save to database
-      const instanceData = data?.instance || data;
-      const { error: dbError } = await supabase.from('zapi_instances').insert({
-        user_id: user.id,
-        instance_name: newInstanceName.trim(),
-        zapi_instance_id: instanceData.instanceId || instanceData.instanceName || newInstanceName.trim(),
-        zapi_token: instanceData.token || instanceData.instanceToken,
-        zapi_client_token: instanceData.token || instanceData.instanceToken, // Using same token as client token for Evolution
-        api_provider: 'uazapi',
-        evolution_api_url: (import.meta as any).env.VITE_UAZAPI_SERVER_URL || "https://minhapionline.uazapi.com",
-        is_active: true,
-        is_default: instances.length === 0,
-        instance_type: 'web'
-      });
+      // A instância já é salva no banco pela Edge Function para maior confiabilidade.
+      // Apenas garantimos que o toast e o fechamento do modal ocorram.
 
-      if (dbError) throw dbError;
 
       toast({ title: "✅ Instância criada com sucesso!" });
       setCreateOpen(false);
