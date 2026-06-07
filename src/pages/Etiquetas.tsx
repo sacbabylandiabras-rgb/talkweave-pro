@@ -373,10 +373,11 @@ const Etiquetas = () => {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={() => setIsCreateTagOpen(true)} className="gap-2 h-9">
+          {/* Botão de criar etiqueta oculto conforme solicitado */}
+          {/* <Button onClick={() => setIsCreateTagOpen(true)} className="gap-2 h-9">
             <Plus className="w-4 h-4" />
             Nova Etiqueta
-          </Button>
+          </Button> */}
         </div>
       </div>
 
@@ -430,7 +431,8 @@ const Etiquetas = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button 
+                      {/* Botões de editar e excluir ocultos conforme solicitado */}
+                      {/* <Button 
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8"
@@ -445,7 +447,7 @@ const Etiquetas = () => {
                         onClick={() => handleDeleteTag(tag)}
                       >
                         <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive transition-colors" />
-                      </Button>
+                      </Button> */}
                     </div>
                   </div>
                 );
