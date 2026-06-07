@@ -263,7 +263,7 @@ const sanitizeConnectionMessage = (message: unknown, fallback: string) => {
   const lower = text.toLowerCase();
 
   if (lower.includes('client-token') || lower.includes('not allowed') || lower.includes('unauthorized') || lower.includes('forbidden')) {
-    return 'Credenciais da conexão inválidas. Atualize o ID da instância, token e token de segurança em Dispositivos.';
+    return 'Credenciais da conexão inválidas. Atualize as configurações da instância em Dispositivos.';
   }
 
   if (lower.includes('whatsapp is not responding') || lower.includes('not responding')) {
@@ -271,13 +271,13 @@ const sanitizeConnectionMessage = (message: unknown, fallback: string) => {
   }
 
   return text
-    .replace(/z-api|meta cloud|woovi|hubpague|cartwave/gi, 'provedor de conexão')
+    .replace(/z-api|uazapi|evolution|meta cloud|woovi|hubpague|cartwave/gi, 'provedor de conexão')
     .replace(/client-token\s+[\w-]+/gi, 'token de segurança');
 };
 
 const getConnectionIssueMessage = (issue?: string | null) => {
   if (issue === 'credentials_invalid') {
-    return 'Credenciais da conexão inválidas no Z-API. Verifique se você está usando o "Security Token" (Token de Segurança da Conta) correto em Minha Conta -> Segurança no painel da Z-API.';
+    return 'Credenciais da conexão inválidas. Verifique as configurações de segurança da sua conta no painel do provedor.';
   }
   if (issue === 'whatsapp_unavailable') {
     return 'WhatsApp não respondeu agora. Aguarde alguns instantes e tente gerar novamente.';
@@ -2911,7 +2911,7 @@ const Dispositivos = () => {
           <DialogHeader>
             <DialogTitle>Criar Nova Instância</DialogTitle>
             <DialogDescription>
-              A instância será criada automaticamente no provedor UAZAPI.
+              A instância será criada automaticamente no sistema.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
