@@ -1008,9 +1008,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             <Badge variant={isOnline ? 'default' : 'secondary'} className="text-[10px]">
               {isOnline ? 'Online' : 'Offline'}
             </Badge>
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={() => setShowSettings(true)}>
-              <Edit2 className="w-3.5 h-3.5" />
-            </Button>
+            {(instance.api_provider === 'zapi' || !instance.api_provider) && (
+              <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={() => setShowSettings(true)}>
+                <Edit2 className="w-3.5 h-3.5" />
+              </Button>
+            )}
           </div>
         </div>
 
