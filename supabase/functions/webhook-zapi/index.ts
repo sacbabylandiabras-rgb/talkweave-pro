@@ -428,9 +428,10 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, results }), { status: 200, headers: corsHeaders });
     }
 
-    const isGroup = webhook?.isGroup === true || webhook?.isGroup === "true";
-    const participantPhone = webhook?.participantPhone || webhook?.participant || webhook?.senderPhone || webhook?.sender?.phone || "";
-    let chatId = webhook?.phone || webhook?.chatPhone || "";
+    const messagePayload = webhook?.message || webhook?.msg || webhook?.data?.message || webhook;
+    const isGroup = normalizeBoolean(webhook?.isGroup ?? messagePayload?.isGroup) || String(messagePayload?.chatid || webhook?.phone || webhook?.chatPhone || "").includes("@g.us");
+    const participantPhone = webhook?.participantPhone || webhook?.participant || webhook?.senderPhone || webhook?.sender?.phone || messagePayload?.sender || "";
+    let chatId = webhook?.phone || webhook?.chatPhone || messagePayload?.chatid || "";
 
     if (isGroup || chatId.includes("@g.us")) {
       const rawId = chatId.replace(/@g\.us$/i, "").replace(/-group$/i, "");
@@ -442,9 +443,10 @@ serve(async (req) => {
     const phone = chatId; 
     const actorPhone = isGroup && participantPhone ? participantPhone : chatId;
     
-    const instanceId = webhook?.instanceId || "";
-    const type = webhook?.type || webhook?.notification || (webhook?.buttonsResponseMessage || webhook?.buttonReply ? "ButtonsResponseMessage" : "");
-    const messageId = webhook?.messageId || (webhook?.ids && webhook.ids[0]) || "";
+    const rawInstanceId = webhook?.instanceId || webhook?.instanceid || webhook?.InstanceID || webhook?.instance?.id || webhook?.instance?.name || webhook?.instanceName || webhook?.instance || "";
+    const authToken = req.headers.get("token") || req.headers.get("apikey") || String(webhook?.token || "");
+    const type = webhook?.type || webhook?.notification || webhook?.EventType || webhook?.event || (webhook?.buttonsResponseMessage || webhook?.buttonReply ? "ButtonsResponseMessage" : "");
+    const messageId = webhook?.messageId || webhook?.messageid || messagePayload?.messageid || (webhook?.ids && webhook.ids[0]) || "";
 
     if (["PresenceChatCallback", "PresenceCallback", "ChatPresenceCallback"].includes(type) || ["AVAILABLE", "UNAVAILABLE", "COMPOSING", "RECORDING"].includes(webhook?.status)) {
       return new Response("ok", { status: 200, headers: corsHeaders });
