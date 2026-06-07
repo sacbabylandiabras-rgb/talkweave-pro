@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   isGroupPhone,
   isUsableGroupDisplayName,
+  isCommunityPhone,
   normalizeConversationPhone,
   rememberGroupDisplayName,
   resolveGroupConversationName,
@@ -1252,7 +1253,7 @@ export const useMessageLogs = (
         const campaignName = !saved?.name
           ? campaignSends.find((s) => normalizeConversationPhone(s.phone) === phone && s.contact_name)?.contact_name
           : null;
-        const isGroup = isGroupPhone(phone);
+        const isGroup = isGroupPhone(phone) || isCommunityPhone(phone);
         const preferredInstanceId =
           filterInstanceId && filterInstanceId !== "all"
             ? filterInstanceId

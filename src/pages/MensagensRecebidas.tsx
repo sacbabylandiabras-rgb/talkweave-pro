@@ -67,19 +67,14 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { isGroupPhone, isCommunityPhone, isRegularGroupPhone } from "@/lib/group-name-resolution";
+import { isGroupPhone, isCommunityPhone, isRegularGroupPhone, normalizeConversationPhone } from "@/lib/group-name-resolution";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
 import { PipelineBar, DEFAULT_PIPELINE_STAGES } from "@/components/agent/PipelineBar";
 import { PipelineSelector } from "@/components/agent/PipelineSelector";
 
 const normalizeSelectedConversationPhone = (phone: string | null) => {
   if (!phone) return null;
-  if (!isGroupPhone(phone)) return phone;
-  const numericId = phone
-    .replace(/@g\.us$/i, "")
-    .replace(/-group$/i, "")
-    .replace(/\D/g, "");
-  return numericId ? `${numericId}-group` : phone;
+  return normalizeConversationPhone(phone);
 };
 
 const formatPhone = (phone?: string | null) => {
