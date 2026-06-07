@@ -275,13 +275,18 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const savedContactsApi = {
-  async getAll(token: string): Promise<SavedContact[]> {
+  async getAll(token: string, userId: string): Promise<SavedContact[]> {
     const allContacts: SavedContact[] = [];
     const pageSize = 1000;
     let from = 0;
     let hasMore = true;
     while (hasMore && allContacts.length < 25000) {
-      const res = await fetch(`${supabaseUrl}/rest/v1/saved_contacts?select=phone,name,profile_picture_url,updated_at,is_community&order=phone.asc`, {
+      const params = new URLSearchParams({
+        select: "phone,name,profile_picture_url,updated_at,is_community",
+        user_id: `eq.${userId}`,
+        order: "phone.asc",
+      });
+      const res = await fetch(`${supabaseUrl}/rest/v1/saved_contacts?${params.toString()}`, {
         headers: {
           apikey: supabaseKey,
           Authorization: `Bearer ${token}`,
@@ -324,6 +329,18 @@ async function getToken(): Promise<string> {
 async function getUserId(): Promise<string | null> {
   const { data } = await supabase.auth.getUser();
   return data.user?.id || null;
+}
+
+async function getEffectiveUserId(): Promise<string | null> {
+  const userId = await getUserId();
+  if (!userId) return null;
+  try {
+    const { data, error } = await supabase.rpc("get_effective_user_id", { _user_id: userId });
+    if (error) throw error;
+    return data || userId;
+  } catch {
+    return userId;
+  }
 }
 
 const extractProfilePictureUrl = (payload: any): string | null => {
@@ -417,9 +434,9 @@ export const useMessageLogs = (
 
   const fetchSavedContacts = useCallback(async () => {
     try {
-      const token = await getToken();
-      if (!token) return;
-      const data = await savedContactsApi.getAll(token);
+      const [token, userId] = await Promise.all([getToken(), getEffectiveUserId()]);
+      if (!token || !userId) return;
+      const data = await savedContactsApi.getAll(token, userId);
       const map = new Map<string, SavedContact>();
       data.forEach((c) => {
         map.set(c.phone, c);
