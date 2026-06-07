@@ -341,6 +341,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted?: () => void }) => {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
+  const [waLimits, setWaLimits] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
   const [instanceName, setInstanceName] = useState(instance.instance_name);
