@@ -1,16 +1,15 @@
+import { Smartphone, RefreshCw, Check } from "lucide-react";
+import { useZapiInstances } from "@/hooks/useZapiInstances";
+import { cn } from "@/lib/utils";
 import { useState, useEffect, useMemo } from "react";
 import { Label } from "@/components/ui/label";
-import { Smartphone, RefreshCw, Check } from "lucide-react";
-import { useZapiInstances, type ZapiInstance } from "@/hooks/useZapiInstances";
-import { useMetaCredentials } from "@/hooks/useMetaCredentials";
-import { cn } from "@/lib/utils";
 
 interface InstanceSelectorProps {
   onInstanceChange?: (instanceId: string) => void;
   onMultiInstanceChange?: (instanceIds: string[]) => void;
   useSavedSelection?: boolean;
   allowMultiple?: boolean;
-  providerFilter?: "zapi" | "meta" | "all";
+  providerFilter?: "zapi" | "meta" | "all" | "uazapi";
 }
 
 const ROTATE_ALL = "__rotate_all__";
@@ -23,7 +22,10 @@ const InstanceSelector = ({
   allowMultiple = true,
   providerFilter = "all",
 }: InstanceSelectorProps) => {
-  const zapiFilter = providerFilter === "all" ? undefined : providerFilter;
+  // Se for "all", não passamos provider para o hook para ele retornar tudo.
+  // Se for "zapi", o hook filtra por 'zapi'.
+  // Se for "uazapi", o hook filtra por 'uazapi'.
+  const hookProvider = providerFilter === "all" ? undefined : providerFilter;
 
   const {
     instances: allInstances,
@@ -31,20 +33,13 @@ const InstanceSelector = ({
     selectInstance,
     loading,
   } = useZapiInstances({
-    provider: zapiFilter,
+    provider: hookProvider === "zapi" ? "zapi" : (hookProvider === "uazapi" ? "uazapi" : undefined),
     includeMeta: providerFilter === "all" || providerFilter === "meta",
   });
 
-  const { data: metaCreds } = useMetaCredentials();
-
   const instances = useMemo(() => allInstances, [allInstances]);
 
-  const activeInstance = providerFilter
-    ? instances.find((i: any) => i.id === rawActiveInstance?.id) ||
-      instances.find((i: any) => i.is_default) ||
-      instances[0] ||
-      null
-    : rawActiveInstance;
+  const activeInstance = rawActiveInstance;
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [initialized, setInitialized] = useState(false);
@@ -55,9 +50,6 @@ const InstanceSelector = ({
 
       let idsToSelect: string[];
 
-      // ✅ Quando useSavedSelection=false (dialogs de campanha),
-      // apenas pré-seleciona a instância padrão sem chamar callbacks —
-      // evita sobrescrever a seleção que o usuário vai fazer manualmente.
       if (useSavedSelection && allowMultiple) {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
@@ -77,7 +69,6 @@ const InstanceSelector = ({
         setInitialized(true);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(idsToSelect));
 
-        // Dispara callbacks apenas quando restaura seleção salva
         if (allowMultiple && idsToSelect.length > 1) {
           onInstanceChange?.(ROTATE_ALL);
           onMultiInstanceChange?.(idsToSelect);
@@ -87,8 +78,6 @@ const InstanceSelector = ({
           onMultiInstanceChange?.(idsToSelect);
         }
       } else {
-        // useSavedSelection=false: pré-seleciona visualmente mas NÃO dispara callbacks
-        // O usuário vai clicar manualmente na instância que quer usar
         idsToSelect = fallbackId ? [fallbackId] : [];
         setSelectedIds(new Set(idsToSelect));
         setInitialized(true);
@@ -157,17 +146,6 @@ const InstanceSelector = ({
     );
   }
 
-  if (instances.length === 1) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Smartphone className="h-4 w-4 text-primary" />
-        <span>
-          Enviando por: <strong className="text-foreground">{instances[0].instance_name}</strong>
-        </span>
-      </div>
-    );
-  }
-
   const allSelected = allowMultiple && selectedIds.size === instances.length;
 
   return (
@@ -180,7 +158,7 @@ const InstanceSelector = ({
         )}
       </Label>
       <div className="flex flex-wrap gap-2">
-        {allowMultiple && (
+        {allowMultiple && instances.length > 1 && (
           <button
             type="button"
             onClick={selectAll}
