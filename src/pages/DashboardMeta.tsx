@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useMetaCredentials } from "@/hooks/useMetaCredentials";
+import { getHttpAvatarUrl } from "@/lib/avatar-utils";
 
 interface PhoneInfo {
   display_phone_number?: string;
