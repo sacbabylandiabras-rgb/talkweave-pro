@@ -24,12 +24,12 @@ export function BlocoGatilhoNode({ data }: any) {
           <div className="text-sm font-semibold text-card-foreground">
             {data.label}
           </div>
-          {data.keyword && (
+          {data.keywords && (
             <div className="text-xs text-muted-foreground mt-1">
-              🔑 {data.keyword}
+              🔑 {data.keywords}
             </div>
           )}
-          {data.description && !data.keyword && (
+          {data.description && !data.keywords && (
             <div className="text-xs text-muted-foreground mt-0.5">
               {data.description}
             </div>
