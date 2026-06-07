@@ -1284,7 +1284,7 @@ export const useMessageLogs = (
         const campaignName = !saved?.name
           ? campaignSends.find((s) => normalizeConversationPhone(s.phone) === phone && s.contact_name)?.contact_name
           : null;
-        const isGroup = isGroupPhone(phone) || isCommunityPhone(phone);
+        const isGroup = isGroupPhone(phone);
         const preferredInstanceId =
           filterInstanceId && filterInstanceId !== "all"
             ? filterInstanceId
