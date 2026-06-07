@@ -432,6 +432,7 @@ export const useMessageLogs = (
       const { data, error } = await supabase.functions.invoke("sync-chat-metadata", {
         body: { instanceId: filterInstanceId },
       });
+
       if (error) throw error;
       await fetchSavedContacts();
       return data;
@@ -741,6 +742,9 @@ export const useMessageLogs = (
       const userId = await getUserId();
       if (!token || !userId) return;
 
+
+
+
       const now = new Date();
       const toFetch = phones
         .filter((p) => {
@@ -770,6 +774,7 @@ export const useMessageLogs = (
               const body: Record<string, unknown> = { phone: zapiPhone };
               if (filterInstanceId && filterInstanceId !== "all") body.instanceId = filterInstanceId;
               const { data, error } = await supabase.functions.invoke("get-profile-picture", { body });
+
               let saved = false;
               if (!error) {
                 const payload = data?.data ?? data;
@@ -1393,7 +1398,42 @@ export const useMessageLogs = (
     };
   }, [loading, groupsMissingPhotoKey]);
 
+  const addTagChat = useCallback(
+    async (phone: string, tagId: string) => {
+      const conversation = conversations.find(c => c.phone === phone);
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: {
+          action: "add-tag",
+          phone: phone,
+          payload: { tagId },
+          instanceDbId: conversation?.preferredInstanceId
+        },
+      });
+      if (error) throw error;
+      return data;
+    },
+    [conversations],
+  );
+
+  const removeTagChat = useCallback(
+    async (phone: string, tagId: string) => {
+      const conversation = conversations.find(c => c.phone === phone);
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: {
+          action: "remove-tag",
+          phone: phone,
+          payload: { tagId },
+          instanceDbId: conversation?.preferredInstanceId
+        },
+      });
+      if (error) throw error;
+      return data;
+    },
+    [conversations],
+  );
+
   const sendMessage = useCallback(
+
     async (phone: string, message: string, options: SendMessageOptions = {}) => {
       const {
         data: { session },

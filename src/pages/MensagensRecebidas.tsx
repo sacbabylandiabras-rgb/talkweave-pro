@@ -1136,8 +1136,10 @@ const ChatView = (props: ChatViewProps) => {
         body: {
           action: "create-tag",
           payload: { name: newTagName, color: newTagColor },
+          instanceDbId: conversation.preferredInstanceId
         },
       });
+
       if (error) throw error;
       toast({ title: "Etiqueta criada" });
       setNewTagName("");
@@ -1483,7 +1485,7 @@ const ChatView = (props: ChatViewProps) => {
                     <Button
                       variant="outline"
                       className="w-full justify-start text-[11px] h-8 gap-1.5 border-green-200 hover:bg-green-50 px-2"
-                      onClick={() => conversation && onSendMessage(conversation.phone, "", { specialType: "call", specialPayload: { call_duration: 60 } })}
+                      onClick={() => conversation && onSendMessage(conversation.phone, "", { specialType: "call", specialPayload: { call_duration: 60 }, preferredInstanceId: conversation.preferredInstanceId })}
                       title="Realizar ligação de voz (60s)"
                     >
                       <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />

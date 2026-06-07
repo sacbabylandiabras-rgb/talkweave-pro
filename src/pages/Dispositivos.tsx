@@ -248,7 +248,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
-import { useZapi, setZapiInstanceOverride } from "@/hooks/useZapi";
+import { useZapi, setZapiInstanceOverride, setZapiRotateMode } from "@/hooks/useZapi";
 import { isMobileZapiInstance, useZapiInstances, ZapiInstance } from "@/hooks/useZapiInstances";
 import { useToast } from "@/hooks/use-toast";
 import QRCodeLib from 'qrcode';

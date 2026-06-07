@@ -218,7 +218,7 @@ export const useContacts = (options?: { enabled?: boolean }) => {
       const chunk = toFetch.slice(i, i + CHUNK_SIZE);
       await Promise.all(chunk.map(async (contact) => {
         try {
-          const { data, error } = await supabase.functions.invoke('get-profile-picture', { body: { phone: contact.phone } });
+          const { data, error } = await supabase.functions.invoke('get-profile-picture', { body: { phone: contact.phone, instanceId: session.user.id } });
           if (!error) {
             const url = extractProfilePictureUrl(data?.data ?? data);
             if (url) {

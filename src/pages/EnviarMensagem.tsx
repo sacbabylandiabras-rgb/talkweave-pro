@@ -157,7 +157,9 @@ const EnviarMensagem = () => {
         sent_at: status === 'sent' ? new Date().toISOString() : null,
         error_message: errorMsg || null,
         user_id: session.user.id,
+        instance_id: getSelectedCampaignInstanceId()
       });
+
     } catch (err) {
       console.error('Erro ao registrar envio individual:', err);
     }

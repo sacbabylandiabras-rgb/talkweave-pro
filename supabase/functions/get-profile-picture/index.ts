@@ -188,12 +188,12 @@ const extractGroupName = (payload: any): string | null => {
       )
      }
  
-      type InstanceCfg = { provider: string; base: string; headers: Record<string, string>; instanceName?: string }
+      type InstanceCfg = { provider: string; base: string; headers: Record<string, string>; instanceName?: string; apiUrl?: string; apiToken?: string }
      const instancesToTry: InstanceCfg[] = []
  
       if (instanceId) {
         const sanitizedInstanceId = String(instanceId).replace(/[^a-zA-Z0-9_-]/g, '')
-        const selectInstanceFields = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, is_active'
+        const selectInstanceFields = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, is_active, evolution_api_url, evolution_api_key'
         let specificInstance: any = null
         if (sanitizedInstanceId) {
           const { data: byRowId } = await adminClient
@@ -219,16 +219,29 @@ const extractGroupName = (payload: any): string | null => {
  
         if (specificInstance) {
           const provider = (specificInstance.api_provider || 'zapi').toLowerCase()
-          instancesToTry.push({
-            provider,
-            base: `https://api.z-api.io/instances/${specificInstance.zapi_instance_id}/token/${specificInstance.zapi_token}`,
-            headers: { 'Content-Type': 'application/json', 'Client-Token': specificInstance.zapi_client_token || '' },
-          })
+          const isUazapi = provider === 'uazapi' || provider === 'uazapi_warmup';
+          
+          if (isUazapi) {
+            instancesToTry.push({
+              provider,
+              base: '',
+              headers: { 'Content-Type': 'application/json', 'token': specificInstance.evolution_api_key || specificInstance.zapi_token || '' },
+              apiUrl: (specificInstance.evolution_api_url || '').replace(/\/+$/, ''),
+              apiToken: specificInstance.evolution_api_key || specificInstance.zapi_token || '',
+            })
+          } else {
+            instancesToTry.push({
+              provider,
+              base: `https://api.z-api.io/instances/${specificInstance.zapi_instance_id}/token/${specificInstance.zapi_token}`,
+              headers: { 'Content-Type': 'application/json', 'Client-Token': specificInstance.zapi_client_token || '' },
+            })
+          }
+
        }
      } else {
         const { data: allInstances } = await adminClient
          .from('zapi_instances')
-           .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, is_default, is_active')
+           .select('zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, is_default, is_active, evolution_api_url, evolution_api_key')
          .eq('user_id', credentials.userId)
           .eq('api_provider', 'zapi')
           .eq('is_active', true)
@@ -237,13 +250,23 @@ const extractGroupName = (payload: any): string | null => {
  
        for (const inst of allInstances || []) {
          const provider = (inst.api_provider || 'zapi').toLowerCase()
-          if (inst.zapi_instance_id && inst.zapi_token) {
-           instancesToTry.push({
-             provider,
-             base: `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`,
-             headers: { 'Content-Type': 'application/json', 'Client-Token': inst.zapi_client_token || '' },
-           })
-         }
+           const isUazapi = provider === 'uazapi' || provider === 'uazapi_warmup';
+           if (isUazapi && (inst.evolution_api_url || inst.zapi_instance_id)) {
+            instancesToTry.push({
+              provider,
+              base: '',
+              headers: { 'Content-Type': 'application/json', 'token': inst.evolution_api_key || inst.zapi_token || '' },
+              apiUrl: (inst.evolution_api_url || '').replace(/\/+$/, ''),
+              apiToken: inst.evolution_api_key || inst.zapi_token || '',
+            })
+           } else if (inst.zapi_instance_id && inst.zapi_token) {
+            instancesToTry.push({
+              provider,
+              base: `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`,
+              headers: { 'Content-Type': 'application/json', 'Client-Token': inst.zapi_client_token || '' },
+            })
+          }
+
        }
      }
  
@@ -259,66 +282,97 @@ const extractGroupName = (payload: any): string | null => {
      for (let i = 0; i < instancesToTry.length; i += CHUNK_SIZE) {
        const chunk = instancesToTry.slice(i, i + CHUNK_SIZE)
         const results = await Promise.all(chunk.map(async (cfg) => {
-           const { provider, base, headers } = cfg
+           const { provider, base, headers, apiUrl, apiToken } = cfg
           try {
-             if (isGroup) {
-              // Z-API group phone format is `<id>-group` (per docs)
-              const groupId = `${numericId}-group`
-              console.log(`📷 [GROUP] Fetching photo/metadata for ${groupId} on ${provider}`)
-
-              // 1) /profile-picture?phone=<id>-group → returns { link }
-              const resPic = await fetch(`${base}/profile-picture?phone=${encodeURIComponent(groupId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
-              const dataPic = await resPic.json().catch(() => null)
-              console.log(`📷 [GROUP] profile-picture ${resPic.status}: ${JSON.stringify(dataPic).substring(0, 120)}`)
-              const linkPic = extractUrl(dataPic)
-              if (resPic.ok && linkPic) return { success: true, data: { link: linkPic, raw: dataPic } }
-
-              // 2) /group-metadata/<id>-group → has subject, communityId, etc. (no image)
-              const resMeta = await fetch(`${base}/group-metadata/${encodeURIComponent(groupId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
-              const dataMeta = await resMeta.json().catch(() => null)
-              console.log(`📷 [GROUP] group-metadata ${resMeta.status}: ${JSON.stringify(dataMeta).substring(0, 120)}`)
-              const linkMeta = extractUrl(dataMeta)
-              const nameMeta = extractGroupName(dataMeta)
-              if (resMeta.ok && (linkMeta || nameMeta)) return { success: true, data: { link: linkMeta || linkPic, name: nameMeta, raw: dataMeta } }
-
-              // 3) Fallback: /chats/<id>-group (sometimes returns imagePreview)
-              const resChat = await fetch(`${base}/chats/${encodeURIComponent(groupId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
-              const dataChat = await resChat.json().catch(() => null)
-              const linkChat = extractUrl(dataChat)
-              const nameChat = extractGroupName(dataChat)
-              if (resChat.ok && (linkChat || nameChat)) return { success: true, data: { link: linkChat, name: nameChat, raw: dataChat } }
-            } else {
-              // Per Z-API docs, phone must be DDI+DDD+number (no @c.us suffix)
-              console.log(`📷 Checking profile-picture for ${numericId} on ${provider}`);
-              const res = await fetch(`${base}/profile-picture?phone=${encodeURIComponent(numericId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
-              const data = await res.json().catch(() => null)
-              console.log(`📷 Result for ${numericId}: ${res.status}`, JSON.stringify(data).substring(0, 120));
-              const link = extractUrl(data)
-              if (res.ok && link) return { success: true, data: { link, raw: data } }
-               // Try get-contact profile picture endpoint
-               if (!isGroup) {
-                 const contactRes = await fetch(`${base}/contacts/${encodeURIComponent(numericId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
-                 const contactData = await contactRes.json().catch(() => null)
-                 const contactLink = extractUrl(contactData)
-                 if (contactRes.ok && contactLink) return { success: true, data: { link: contactLink, raw: contactData } }
-               }
-
-               // Try chats-metadata which is often more reliable than profile-picture for some contacts
-               const metaRes = await fetch(`${base}/chats-metadata/${encodeURIComponent(isGroup ? `${numericId}@g.us` : `${numericId}@c.us`)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
-               const metaData = await metaRes.json().catch(() => null)
-               const metaLink = extractUrl(metaData)
-               const metaName = extractGroupName(metaData)
-               if (metaRes.ok && (metaLink || metaName)) return { success: true, data: { link: metaLink, name: metaName, raw: metaData } }
-
               if (isGroup) {
-                const gr = await fetch(`${base}/groups?page=1&pageSize=100`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
-                const gd = await gr.json().catch(() => null)
-                const match = (Array.isArray(gd) ? gd : []).find((g: any) => String(g.phone || g.id || '').includes(numericId))
-                const linkG = extractUrl(match)
-                const nameG = extractGroupName(match)
-                if (linkG || nameG) return { success: true, data: { link: linkG, name: nameG, raw: match } }
-              }
-           }
+               const groupId = provider.includes('zapi') ? `${numericId}-group` : numericId;
+               
+               if (provider.includes('uazapi')) {
+                  const jid = groupId.includes('@') ? groupId : `${groupId}@g.us`;
+                  // UAZAPI: profile picture for groups
+                  const resPic = await fetch(`${apiUrl}/chat/fetch/profile/picture`, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json', 'token': apiToken }, 
+                    body: JSON.stringify({ jid }),
+                    signal: AbortSignal.timeout(4000) 
+                  });
+                  const dataPic = await resPic.json().catch(() => null);
+                  const linkPic = extractUrl(dataPic);
+                  if (resPic.ok && linkPic) return { success: true, data: { link: linkPic, raw: dataPic } };
+
+                  // UAZAPI: group metadata for name
+                  const resMeta = await fetch(`${apiUrl}/group/find/by/id`, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json', 'token': apiToken }, 
+                    body: JSON.stringify({ jid }),
+                    signal: AbortSignal.timeout(4000) 
+                  });
+                  const dataMeta = await resMeta.json().catch(() => null);
+                  const nameMeta = extractGroupName(dataMeta);
+                  if (resMeta.ok && nameMeta) return { success: true, data: { link: null, name: nameMeta, raw: dataMeta } };
+               } else {
+                // Z-API group phone format is `<id>-group` (per docs)
+                console.log(`📷 [GROUP] Fetching photo/metadata for ${groupId} on ${provider}`)
+
+                // 1) /profile-picture?phone=<id>-group → returns { link }
+                const resPic = await fetch(`${base}/profile-picture?phone=${encodeURIComponent(groupId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+                const dataPic = await resPic.json().catch(() => null)
+                console.log(`📷 [GROUP] profile-picture ${resPic.status}: ${JSON.stringify(dataPic).substring(0, 120)}`)
+                const linkPic = extractUrl(dataPic)
+                if (resPic.ok && linkPic) return { success: true, data: { link: linkPic, raw: dataPic } }
+
+                // 2) /group-metadata/<id>-group → has subject, communityId, etc. (no image)
+                const resMeta = await fetch(`${base}/group-metadata/${encodeURIComponent(groupId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+                const dataMeta = await resMeta.json().catch(() => null)
+                console.log(`📷 [GROUP] group-metadata ${resMeta.status}: ${JSON.stringify(dataMeta).substring(0, 120)}`)
+                const linkMeta = extractUrl(dataMeta)
+                const nameMeta = extractGroupName(dataMeta)
+                if (resMeta.ok && (linkMeta || nameMeta)) return { success: true, data: { link: linkMeta || linkPic, name: nameMeta, raw: dataMeta } }
+
+                // 3) Fallback: /chats/<id>-group (sometimes returns imagePreview)
+                const resChat = await fetch(`${base}/chats/${encodeURIComponent(groupId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+                const dataChat = await resChat.json().catch(() => null)
+                const linkChat = extractUrl(dataChat)
+                const nameChat = extractGroupName(dataChat)
+                if (resChat.ok && (linkChat || nameChat)) return { success: true, data: { link: linkChat, name: nameChat, raw: dataChat } }
+               }
+            } else {
+               if (provider.includes('uazapi')) {
+                  const jid = numericId.includes('@') ? numericId : `${numericId}@s.whatsapp.net`;
+                  const resPic = await fetch(`${apiUrl}/chat/fetch/profile/picture`, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json', 'token': apiToken }, 
+                    body: JSON.stringify({ jid }),
+                    signal: AbortSignal.timeout(4000) 
+                  });
+                  const dataPic = await resPic.json().catch(() => null);
+                  const linkPic = extractUrl(dataPic);
+                  if (resPic.ok && linkPic) return { success: true, data: { link: linkPic, raw: dataPic } };
+               } else {
+                // Per Z-API docs, phone must be DDI+DDD+number (no @c.us suffix)
+                console.log(`📷 Checking profile-picture for ${numericId} on ${provider}`);
+                const res = await fetch(`${base}/profile-picture?phone=${encodeURIComponent(numericId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+                const data = await res.json().catch(() => null)
+                console.log(`📷 Result for ${numericId}: ${res.status}`, JSON.stringify(data).substring(0, 120));
+                const link = extractUrl(data)
+                if (res.ok && link) return { success: true, data: { link, raw: data } }
+                 // Try get-contact profile picture endpoint
+                 if (!isGroup) {
+                   const contactRes = await fetch(`${base}/contacts/${encodeURIComponent(numericId)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+                   const contactData = await contactRes.json().catch(() => null)
+                   const contactLink = extractUrl(contactData)
+                   if (contactRes.ok && contactLink) return { success: true, data: { link: contactLink, raw: contactData } }
+                 }
+
+                 // Try chats-metadata which is often more reliable than profile-picture for some contacts
+                 const metaRes = await fetch(`${base}/chats-metadata/${encodeURIComponent(isGroup ? `${numericId}@g.us` : `${numericId}@c.us`)}`, { method: 'GET', headers, signal: AbortSignal.timeout(4000) })
+                 const metaData = await metaRes.json().catch(() => null)
+                 const metaLink = extractUrl(metaData)
+                 const metaName = extractGroupName(metaData)
+                 if (metaRes.ok && (metaLink || metaName)) return { success: true, data: { link: metaLink, name: metaName, raw: metaData } }
+               }
+            }
+
           } catch (e) {
             console.log(`📷 Error on instance ${provider}: ${e instanceof Error ? e.message : String(e)}`)
          }
