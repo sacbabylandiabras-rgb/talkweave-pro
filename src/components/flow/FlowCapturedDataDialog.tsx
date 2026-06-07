@@ -52,8 +52,9 @@ export default function FlowCapturedDataDialog({ open, onOpenChange, flowId, flo
   const load = async () => {
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error("Não autenticado");
+      
       let query = supabase
         .from("flow_captured_data" as any)
         .select("*")
