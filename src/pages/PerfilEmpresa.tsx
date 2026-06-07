@@ -1292,6 +1292,9 @@ const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiI
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+
 
   useEffect(() => {
     if (open) setSelectedIds(instances.map((i) => i.id));
