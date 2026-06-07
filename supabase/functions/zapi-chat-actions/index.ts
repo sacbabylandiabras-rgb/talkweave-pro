@@ -163,7 +163,14 @@ Deno.serve(async (req) => {
           headers: { token: apiToken },
         });
         const data = await res.json().catch(() => ({}));
-        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        // Normalize various possible shapes into { response: [{ id, label }] }
+        const raw = Array.isArray(data) ? data
+          : (data?.response || data?.categories || data?.data || data?.result || []);
+        const normalized = (Array.isArray(raw) ? raw : []).map((c: any) => ({
+          id: String(c?.id ?? c?.value ?? c?.code ?? c?.key ?? ''),
+          label: String(c?.localized_display_name ?? c?.name ?? c?.label ?? c?.display_name ?? c?.title ?? c?.id ?? ''),
+        })).filter((c: any) => c.id && c.label);
+        return new Response(JSON.stringify({ response: normalized, raw: data }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       if (action === 'update-business-categories') {
