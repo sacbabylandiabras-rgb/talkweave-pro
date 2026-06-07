@@ -1700,7 +1700,7 @@ const ChatView = (props: ChatViewProps) => {
                               )}
                               {senderPhone && (
                                 <span className="text-[10px] text-muted-foreground truncate">
-                                  {senderPhone.includes("@lid") ? senderPhone : `+${senderPhone}`}
+                                  {senderPhone.includes("@lid") || (senderPhone.includes("-") && !senderPhone.startsWith("+")) ? senderPhone : formatPhone(senderPhone)}
                                 </span>
                               )}
                             </div>
