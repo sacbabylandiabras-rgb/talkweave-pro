@@ -1528,9 +1528,6 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
   };
 
 
-  useEffect(() => {
-    if (open) setSelectedIds(instances.map((i) => i.id));
-  }, [open, instances]);
 
   const applyToAll = async (action: string, payload: any, label: string) => {
     const targets = instances.filter((i) => selectedIds.includes(i.id));
