@@ -71,6 +71,7 @@ import { isGroupPhone, isCommunityPhone, isRegularGroupPhone, normalizeConversat
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
 import { PipelineBar, DEFAULT_PIPELINE_STAGES } from "@/components/agent/PipelineBar";
 import { PipelineSelector } from "@/components/agent/PipelineSelector";
+import { getHttpAvatarUrl, sameAvatarUrl } from "@/lib/avatar-utils";
 
 const normalizeSelectedConversationPhone = (phone: string | null) => {
   if (!phone) return null;
