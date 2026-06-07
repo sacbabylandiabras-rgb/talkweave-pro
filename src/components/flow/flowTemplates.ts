@@ -28,12 +28,12 @@ export interface FlowTemplate {
   isSpecial?: boolean;
 }
 
-const baseInicial: Node = {
-  id: "1",
+const createInitialNode = (id: string): Node => ({
+  id,
   type: "blocoInicial",
   position: { x: 250, y: 50 },
   data: { label: "Bloco Inicial", description: "Seu fluxo começa por este bloco. Conecte com outro bloco." },
-};
+});
 
 const edge = (source: string, target: string, sourceHandle?: string): Edge => ({
   id: `e-${source}-${target}${sourceHandle ? `-${sourceHandle}` : ""}`,
@@ -56,7 +56,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     isSpecial: true,
     nodes: [
       {
-        id: "1",
+        id: "rv-1",
         type: "blocoGatilho",
         position: { x: 250, y: 50 },
         data: { 
@@ -66,7 +66,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "2",
+        id: "rv-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -77,7 +77,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "3",
+        id: "rv-3",
         type: "agenteIA",
         position: { x: 250, y: 400 },
         data: {
@@ -87,7 +87,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "4",
+        id: "rv-4",
         type: "blocoAcao",
         position: { x: 450, y: 130 },
         data: {
@@ -98,9 +98,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
       },
     ],
     edges: [
-      edge("1", "4"),
-      edge("4", "2"),
-      edge("2", "3")
+      edge("rv-1", "rv-4"),
+      edge("rv-4", "rv-2"),
+      edge("rv-2", "rv-3")
     ],
   },
   // ===== CONTATOS =====
@@ -113,9 +113,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     mode: "contacts",
     suggestedKeyword: "oi",
     nodes: [
-      baseInicial,
+      createInitialNode("bv-1"),
       {
-        id: "2",
+        id: "bv-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -125,7 +125,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "3",
+        id: "bv-3",
         type: "blocoConteudo",
         position: { x: 250, y: 400 },
         data: {
@@ -136,7 +136,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2"), edge("2", "3")],
+    edges: [edge("bv-1", "bv-2"), edge("bv-2", "bv-3")],
   },
   {
     id: "qualificacao-lead",
@@ -147,9 +147,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     mode: "contacts",
     suggestedKeyword: "quero",
     nodes: [
-      baseInicial,
+      createInitialNode("ql-1"),
       {
-        id: "2",
+        id: "ql-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -160,7 +160,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "3",
+        id: "ql-3",
         type: "blocoConteudo",
         position: { x: 250, y: 400 },
         data: {
@@ -171,7 +171,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "4",
+        id: "ql-4",
         type: "blocoConteudo",
         position: { x: 250, y: 580 },
         data: {
@@ -181,7 +181,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2"), edge("2", "3"), edge("3", "4")],
+    edges: [edge("ql-1", "ql-2"), edge("ql-2", "ql-3"), edge("ql-3", "ql-4")],
   },
   {
     id: "menu-interativo",
@@ -192,9 +192,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     mode: "contacts",
     suggestedKeyword: "menu",
     nodes: [
-      baseInicial,
+      createInitialNode("mi-1"),
       {
-        id: "2",
+        id: "mi-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -209,7 +209,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2")],
+    edges: [edge("mi-1", "mi-2")],
   },
   {
     id: "recuperacao-carrinho",
@@ -219,9 +219,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     color: "text-amber-500",
     mode: "contacts",
     nodes: [
-      baseInicial,
+      createInitialNode("rc-1"),
       {
-        id: "2",
+        id: "rc-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -231,7 +231,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "3",
+        id: "rc-3",
         type: "blocoAcao",
         position: { x: 250, y: 400 },
         data: {
@@ -241,7 +241,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "4",
+        id: "rc-4",
         type: "blocoConteudo",
         position: { x: 250, y: 580 },
         data: {
@@ -251,7 +251,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2"), edge("2", "3"), edge("3", "4")],
+    edges: [edge("rc-1", "rc-2"), edge("rc-2", "rc-3"), edge("rc-3", "rc-4")],
   },
   {
     id: "pos-venda",
@@ -261,9 +261,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     color: "text-yellow-500",
     mode: "contacts",
     nodes: [
-      baseInicial,
+      createInitialNode("pv-1"),
       {
-        id: "2",
+        id: "pv-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -273,7 +273,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "3",
+        id: "pv-3",
         type: "blocoAcao",
         position: { x: 250, y: 400 },
         data: {
@@ -283,7 +283,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "4",
+        id: "pv-4",
         type: "blocoConteudo",
         position: { x: 250, y: 580 },
         data: {
@@ -298,7 +298,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2"), edge("2", "3"), edge("3", "4")],
+    edges: [edge("pv-1", "pv-2"), edge("pv-2", "pv-3"), edge("pv-3", "pv-4")],
   },
 
   // ===== GRUPOS =====
@@ -310,9 +310,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     color: "text-blue-500",
     mode: "groups",
     nodes: [
-      baseInicial,
+      createInitialNode("ag-1"),
       {
-        id: "2",
+        id: "ag-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -322,7 +322,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2")],
+    edges: [edge("ag-1", "ag-2")],
   },
   {
     id: "promocao-grupo",
@@ -332,9 +332,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     color: "text-orange-500",
     mode: "groups",
     nodes: [
-      baseInicial,
+      createInitialNode("pg-1"),
       {
-        id: "2",
+        id: "pg-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -347,7 +347,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2")],
+    edges: [edge("pg-1", "pg-2")],
   },
   {
     id: "lancamento-grupo",
@@ -357,9 +357,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     color: "text-fuchsia-500",
     mode: "groups",
     nodes: [
-      baseInicial,
+      createInitialNode("lg-1"),
       {
-        id: "2",
+        id: "lg-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -369,13 +369,13 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "3",
+        id: "lg-3",
         type: "blocoAcao",
         position: { x: 250, y: 400 },
         data: { label: "Aguardar 1h", actionType: "delay", delaySeconds: 3600 },
       },
       {
-        id: "4",
+        id: "lg-4",
         type: "blocoConteudo",
         position: { x: 250, y: 580 },
         data: {
@@ -385,13 +385,13 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "5",
+        id: "lg-5",
         type: "blocoAcao",
         position: { x: 250, y: 760 },
         data: { label: "Aguardar 30 min", actionType: "delay", delaySeconds: 1800 },
       },
       {
-        id: "6",
+        id: "lg-6",
         type: "blocoConteudo",
         position: { x: 250, y: 940 },
         data: {
@@ -402,7 +402,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2"), edge("2", "3"), edge("3", "4"), edge("4", "5"), edge("5", "6")],
+    edges: [edge("lg-1", "lg-2"), edge("lg-2", "lg-3"), edge("lg-3", "lg-4"), edge("lg-4", "lg-5"), edge("lg-5", "lg-6")],
   },
   {
     id: "lembrete-evento",
@@ -412,9 +412,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     color: "text-emerald-500",
     mode: "groups",
     nodes: [
-      baseInicial,
+      createInitialNode("le-1"),
       {
-        id: "2",
+        id: "le-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -424,7 +424,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2")],
+    edges: [edge("le-1", "le-2")],
   },
   {
     id: "enquete-grupo",
@@ -434,9 +434,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     color: "text-pink-500",
     mode: "groups",
     nodes: [
-      baseInicial,
+      createInitialNode("eg-1"),
       {
-        id: "2",
+        id: "eg-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -451,7 +451,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2")],
+    edges: [edge("eg-1", "eg-2")],
   },
 ];
 
