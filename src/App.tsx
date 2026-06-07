@@ -227,7 +227,8 @@ const App = () => (
                   <Route path="/fluxo-grupos" element={<FluxoGrupos />} />
                   <Route path="/enviar-mensagem" element={<EnviarMensagem />} />
                   <Route path="/enviar" element={<EnviarMensagem />} />
-                   <Route path="/mensagens" element={<MensagensRecebidas mode="chat" />} />
+                    <Route path="/mensagens" element={<MensagensRecebidas mode="chat" />} />
+                   <Route path="/mensagens-recebidas" element={<MensagensRecebidas mode="chat" />} />
                   <Route path="/pipeline" element={<MensagensRecebidas mode="pipeline" />} />
                   <Route path="/notificacoes" element={<NotificacoesApp />} />
                   
