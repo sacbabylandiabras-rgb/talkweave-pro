@@ -15,7 +15,8 @@ serve(async (req: Request) => {
     const body = await req.json();
     const { instanceName, action } = body;
 
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization") || "";
+    if (!authHeader.startsWith("Bearer ")) throw new Error("Não autorizado");
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(authHeader.replace("Bearer ", ""));
     if (authError || !user) throw new Error("Não autorizado");
 
