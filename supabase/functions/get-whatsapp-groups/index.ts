@@ -490,6 +490,7 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
 
     let detail: any = null;
     if (!isChannel) try {
+      const isCommunityEndpoint = String(groupId).includes('@newsletter') || String(groupId).includes('-community');
       const infoUrl = `${apiUrl}/group/info${apiUrl.includes('?') ? '&' : '?'}token=${encodeURIComponent(apiToken)}&apikey=${encodeURIComponent(apiToken)}`;
       const infoResponse = await fetch(infoUrl, {
         method: 'POST',
@@ -540,15 +541,25 @@ const fetchGroupsViaUazapi = async (instance: ZapiInstance): Promise<any[]> => {
       console.log(`🔎 UAZAPI group without name. id=${groupId} keys=${Object.keys(group || {}).join(',')} detailKeys=${detail ? Object.keys(detail).join(',') : 'none'}`);
     }
 
+    // Identifica se é comunidade baseado em metadados da UAZAPI
+    // UAZAPI /group/info retorna isCommunity: true para comunidades
+    const isCommunity = 
+      detail?.isCommunity === true || 
+      detail?.group?.isCommunity === true ||
+      detail?.groupMetadata?.isCommunity === true ||
+      group?.isCommunity === true ||
+      String(groupId).includes('-community');
+
     return {
       ...group,
       ...detail,
       id: groupId,
       phone: groupId,
       name: resolvedName,
-       isAdmin: (isChannel || isOwnerAdminInGroup(detail, group, ownerPhone)) || (group.isCommunity || group.isGroup), 
-       // Be more lenient in UAZAPI as well
+      isAdmin: (isChannel || isOwnerAdminInGroup(detail, group, ownerPhone)) || (isCommunity || group.isGroup), 
+      // Be more lenient in UAZAPI as well
       isChannel,
+      isCommunity,
       memberCount:
         extractParticipantsFromGroup({ ...group, ...detail }).length ||
         detail?.ParticipantCount ||
