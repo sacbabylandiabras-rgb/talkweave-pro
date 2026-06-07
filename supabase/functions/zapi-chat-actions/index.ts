@@ -143,6 +143,49 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ data: { products: [], nextCursor: null }, unsupported: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
+      if (action === 'company-description' || action === 'company-email' || action === 'company-address' || action === 'company-websites' || action === 'update-business-profile') {
+        const body: any = {};
+        if (payload?.description !== undefined) body.description = payload.description;
+        if (payload?.email !== undefined) body.email = payload.email;
+        if (payload?.address !== undefined) body.address = payload.address;
+        if (payload?.websites !== undefined) body.websites = Array.isArray(payload.websites) ? payload.websites : [payload.websites].filter(Boolean);
+        if (Object.keys(body).length === 0) {
+          return new Response(JSON.stringify({ error: 'Nenhum campo para atualizar' }), { status: 400, headers: corsHeaders });
+        }
+        const res = await fetch(`${apiUrl}/instance/updateBusinessProfile`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao atualizar perfil' }), { status: res.status, headers: corsHeaders });
+        }
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'company-name' || action === 'update-profile-name') {
+        const res = await fetch(`${apiUrl}/instance/updateProfileName`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify({ name: payload?.name ?? payload?.description ?? '' }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'company-status' || action === 'update-profile-status') {
+        const res = await fetch(`${apiUrl}/instance/updateProfileStatus`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify({ status: payload?.status ?? payload?.description ?? '' }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
       if (action.startsWith('set-')) {
          const body: any = {};
          const val = String(payload.visualizationType || '').toLowerCase();
