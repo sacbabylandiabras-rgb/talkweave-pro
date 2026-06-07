@@ -1304,21 +1304,33 @@ const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiI
   const toggleAll = () => setSelectedIds(allSelected ? [] : instances.map((i) => i.id));
   const toggleOne = (id: string) => setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async () => {
-    if (!productName.trim() || !mediaUrl.trim()) {
-      toast({ title: "Nome e URL da Imagem são obrigatórios", variant: "destructive" });
+    if (!productName.trim() || (!mediaUrl.trim() && !previewUrl)) {
+      toast({ title: "Nome e Imagem são obrigatórios", variant: "destructive" });
       return;
     }
     const targets = instances.filter((i) => selectedIds.includes(i.id));
     setSubmitting(true);
     let success = 0;
+    const finalMedia = previewUrl || mediaUrl.trim();
     for (const inst of targets) {
       try {
         const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
           body: {
             action: "create-product-v2",
             instanceDbId: inst.id,
-            payload: { name: productName.trim(), price: Number(price) || 0, description: description.trim(), mediaUrl: mediaUrl.trim(), currency: "BRL" },
+            payload: { name: productName.trim(), price: Number(price) || 0, description: description.trim(), mediaUrl: finalMedia, currency: "BRL" },
           },
         });
         if (!error && !(data as any)?.error) success++;
@@ -1326,8 +1338,14 @@ const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiI
     }
     setSubmitting(false);
     toast({ title: success > 0 ? "✅ Produto criado" : "❌ Erro", description: `Produto criado em ${success} instância(s)` });
-    if (success > 0) onOpenChange(false);
+    if (success > 0) {
+      setPreviewUrl("");
+      setImageFile(null);
+      setMediaUrl("");
+      onOpenChange(false);
+    }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
