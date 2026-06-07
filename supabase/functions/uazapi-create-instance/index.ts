@@ -50,7 +50,9 @@ serve(async (req: Request) => {
     const { count } = await supabaseClient
       .from("zapi_instances")
       .select("*", { count: 'exact', head: true })
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .eq("instance_type", "web");
 
     const maxAllowed = profile?.max_instances ?? 1;
     if ((count || 0) >= maxAllowed) {
@@ -82,6 +84,12 @@ serve(async (req: Request) => {
 
     // Se criou com sucesso, registrar no banco vinculado ao usuário
     if (data.token) {
+      await supabaseClient
+        .from("zapi_instances")
+        .update({ is_default: false })
+        .eq("user_id", user.id)
+        .eq("is_default", true);
+
       const { error: dbError } = await supabaseClient
         .from("zapi_instances")
         .insert({
@@ -95,7 +103,7 @@ serve(async (req: Request) => {
           evolution_api_key: data.token, // O token da instância é a key para chamadas individuais
           instance_type: 'web',
           is_active: true,
-          status: "disconnected"
+          is_default: true
         });
       
       if (dbError) console.error("Erro ao registrar no banco:", dbError);
