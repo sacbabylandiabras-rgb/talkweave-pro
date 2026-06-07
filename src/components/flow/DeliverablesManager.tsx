@@ -104,7 +104,7 @@ export function DeliverablesManager() {
         mediaUrl = pub.publicUrl;
         mediaType = detectMediaType(file);
       }
-      const { error } = await supabase.from("agent_deliverables").insert({
+      const result = await supabase.from("agent_deliverables").insert({
         user_id: user.id,
         title: form.title.trim(),
         description: form.description.trim() || null,
@@ -114,8 +114,12 @@ export function DeliverablesManager() {
         content_text: form.content_text.trim() || null,
         product_id: form.product_id.trim() || null,
         order_index: Number(form.order_index) || 0,
-      });
-      if (error) throw error;
+      }).select();
+      
+      if (result.error) throw result.error;
+      if (!result.data || result.data.length === 0) {
+        throw new Error("Falha ao inserir registro");
+      }
       toast({ title: "Entregável adicionado" });
       resetForm();
       setOpen(false);
