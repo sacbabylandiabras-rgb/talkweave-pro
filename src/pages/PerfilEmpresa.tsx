@@ -1597,7 +1597,55 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
               </Button>
             </div>
           </div>
+          <div className="space-y-2">
+            <Label>Categorias</Label>
+            <div className="flex flex-col gap-2">
+              <Select 
+                onValueChange={(val) => {
+                  if (val && !categories.includes(val)) setCategories([...categories, val]);
+                }}
+                disabled={loadingCategories || !!submitting}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingCategories ? "Carregando..." : "Adicionar categoria..."} />
+                </SelectTrigger>
+                <SelectContent className="max-h-60 overflow-y-auto">
+                  {availableCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <div className="flex flex-wrap gap-2 min-h-[32px] p-2 border rounded-md bg-muted/20">
+                {categories.map((catId) => {
+                  const cat = availableCategories.find(c => c.id === catId);
+                  return (
+                    <Badge key={catId} variant="secondary" className="gap-1 px-2 py-1">
+                      {cat?.label || catId}
+                      <button 
+                        onClick={() => setCategories(categories.filter(c => c !== catId))}
+                        className="hover:text-destructive"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+                {categories.length === 0 && <span className="text-xs text-muted-foreground">Nenhuma categoria selecionada</span>}
+              </div>
+
+              <Button 
+                onClick={() => applyToAll('update-business-categories', { categories }, 'Categorias')} 
+                disabled={!!submitting || categories.length === 0 || selectedIds.length === 0}
+                className="w-full"
+              >
+                {submitting === 'update-business-categories' ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                Aplicar Categorias
+              </Button>
+            </div>
+          </div>
         </div>
+
       </DialogContent>
     </Dialog>
   );
