@@ -134,10 +134,17 @@ async function ensureReceivedWebhook(instance: any, supabase: any) {
   receivedWebhookSyncAt.set(zapiId, Date.now());
 
   const webhookUrl = `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/webhook-zapi`;
-  const url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/update-webhook-received`;
+  let url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/update-webhook-received`;
+  let headers: Record<string, string> = { "Content-Type": "application/json", "Client-Token": clientToken };
+
+  if (instance?.api_provider === "uazapi") {
+    url = `${instance.evolution_api_url?.replace(/\/+$/, "")}/instance/webhook-received/${instance.instance_name}`;
+    headers = { "Content-Type": "application/json", "Authorization": `Bearer ${zapiToken}`, "apikey": zapiToken };
+  }
+
   const response = await fetch(url, {
     method: "PUT",
-    headers: { "Content-Type": "application/json", "Client-Token": clientToken },
+    headers,
     body: JSON.stringify({ value: webhookUrl }),
   });
   console.log("[webhook-zapi] received webhook sync", { ok: response.ok, status: response.status, instanceId: zapiId });
@@ -152,10 +159,17 @@ async function disableNotifySentByMe(instance: any) {
   const clientToken = instance?.zapi_client_token;
   if (!zapiId || !zapiToken || !clientToken) return;
 
-  const url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/update-notify-sent-by-me`;
+  let url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/update-notify-sent-by-me`;
+  let headers: Record<string, string> = { "Content-Type": "application/json", "Client-Token": clientToken };
+
+  if (instance?.api_provider === "uazapi") {
+    url = `${instance.evolution_api_url?.replace(/\/+$/, "")}/instance/notify-sent-by-me/${instance.instance_name}`;
+    headers = { "Content-Type": "application/json", "Authorization": `Bearer ${zapiToken}`, "apikey": zapiToken };
+  }
+
   const response = await fetch(url, {
     method: "PUT",
-    headers: { "Content-Type": "application/json", "Client-Token": clientToken },
+    headers,
     body: JSON.stringify({ notifySentByMe: false }),
   });
   console.log("[webhook-zapi] notify-sent-by-me disabled", { ok: response.ok, status: response.status, instanceId: zapiId });
@@ -438,7 +452,7 @@ serve(async (req) => {
     }
 
     const fromMe = webhook?.fromMe === true || webhook?.fromMe === "true" || webhook?.fromApi === true || webhook?.fromApi === "true";
-    const { data: instanceData } = await supabase.from("zapi_instances").select("id, user_id, zapi_instance_id, zapi_token, zapi_client_token, updated_at").or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`).maybeSingle();
+    const { data: instanceData } = await supabase.from("zapi_instances").select("id, user_id, zapi_instance_id, zapi_token, zapi_client_token, updated_at, api_provider, instance_name, evolution_api_url").or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`).maybeSingle();
     const userId = instanceData?.user_id;
 
     if (isStatusOnlyCallback(type, webhook, messageRaw, mediaUrl)) {
@@ -811,15 +825,36 @@ async function sendZapiText(instance: any, phone: string, message: string, butto
   if (!zapiId || !zapiToken || !clientToken || !phone) return;
 
   let url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-text`;
+  let headers: Record<string, string> = { "Content-Type": "application/json", "Client-Token": clientToken || "" };
   let body: any = { phone, message };
+
+  if (instance?.api_provider === "uazapi") {
+    url = `${instance.evolution_api_url?.replace(/\/+$/, "")}/message/sendText/${instance.instance_name}`;
+    headers = { "Content-Type": "application/json", "Authorization": `Bearer ${zapiToken}`, "apikey": zapiToken };
+    body = { number: phone, text: message };
+  }
+
   if (buttons?.length > 0) {
-    url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-button-actions`;
-    body = { phone, message, buttonActions: buttons.map((btn, idx) => ({ id: btn.id || `node:${nodeId}:button:${idx}`, type: "REPLY", label: btn.text })) };
+    if (instance?.api_provider === "uazapi") {
+      url = `${instance.evolution_api_url?.replace(/\/+$/, "")}/message/sendButtons/${instance.instance_name}`;
+      body = {
+        number: phone,
+        buttons: buttons.map((btn, idx) => ({
+          buttonId: btn.id || `node:${nodeId}:button:${idx}`,
+          buttonText: { displayText: btn.text },
+          type: 1
+        })),
+        text: message
+      };
+    } else {
+      url = `https://api.z-api.io/instances/${zapiId}/token/${zapiToken}/send-button-actions`;
+      body = { phone, message, buttonActions: buttons.map((btn, idx) => ({ id: btn.id || `node:${nodeId}:button:${idx}`, type: "REPLY", label: btn.text })) };
+    }
   }
 
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Client-Token": clientToken || "" },
+    headers,
     body: JSON.stringify(body),
   });
   console.log("[webhook-zapi] send message result", { ok: response.ok, status: response.status, phone, contentType, hasMedia: !!mediaUrl });

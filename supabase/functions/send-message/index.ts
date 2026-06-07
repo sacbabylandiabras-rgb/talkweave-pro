@@ -150,7 +150,7 @@ const logProviderSend = async (
   adminClient: any,
    params: {
      userId: string;
-     provider: 'zapi';
+     provider: 'zapi' | 'uazapi';
      instanceId?: string | null;
      phone?: string | null;
      endpoint?: string | null;
@@ -164,7 +164,7 @@ const logProviderSend = async (
   try {
     await adminClient.from('provider_send_logs').insert({
       user_id: params.userId,
-      provider: params.provider,
+      provider: params.provider || 'zapi',
       instance_id: params.instanceId || null,
       phone: params.phone || null,
       endpoint: params.endpoint || null,
@@ -442,7 +442,7 @@ serve(async (req) => {
 
       if (resolvedGroupInstanceId && resolvedGroupInstanceId !== instanceId) {
         // Switch to the correct instance
-        const correctInstance = await findUserInstance(adminClient, credentials.userId, resolvedGroupInstanceId);
+        const correctInstance = await findUserInstance(adminClient, credentials.userId, resolvedGroupInstanceId, true);
 
         if (correctInstance) {
           console.log(`🔄 GROUP INSTANCE OVERRIDE: switching from ${instanceId} to ${correctInstance.zapi_instance_id} (verified from inbound logs)`);
@@ -483,13 +483,56 @@ serve(async (req) => {
     let zapiData: any = null;
     let logMessage = message || '';
 
-    const baseUrl = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
+    const isUazapi = credentials.provider === 'uazapi';
+    const uazapiBaseUrl = credentials.evolutionApiUrl?.replace(/\/+$/, "");
+    const uazapiInstanceName = credentials.instanceName;
+
+    const baseUrl = isUazapi ? uazapiBaseUrl : `https://api.z-api.io/instances/${instanceId}/token/${token}`;
     const sendZapi = async (endpoint: string, body: any, label: string) => {
-      console.log(`📤 Z-API [${label}] to ${endpoint}:`, JSON.stringify(body).substring(0, 500));
-      const response = await fetch(`${baseUrl}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify(body),
+      let finalEndpoint = endpoint;
+      let finalBody = body;
+      let method = 'POST';
+      let headers: Record<string, string> = isUazapi 
+        ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'apikey': token }
+        : { 'Content-Type': 'application/json', 'Client-Token': clientToken };
+
+      if (isUazapi) {
+        // Map Z-API endpoints to UAZAPI (Evolution API)
+        const phone = body.phone || body.number;
+        if (endpoint === '/send-text') {
+          finalEndpoint = `/message/sendText/${uazapiInstanceName}`;
+          finalBody = { number: phone, text: body.message };
+        } else if (endpoint === '/send-image') {
+          finalEndpoint = `/message/sendMedia/${uazapiInstanceName}`;
+          finalBody = { number: phone, media: body.image, mediaType: 'image', caption: body.caption };
+        } else if (endpoint === '/send-video') {
+          finalEndpoint = `/message/sendMedia/${uazapiInstanceName}`;
+          finalBody = { number: phone, media: body.video, mediaType: 'video', caption: body.caption };
+        } else if (endpoint === '/send-audio') {
+          finalEndpoint = `/message/sendWhatsAppAudio/${uazapiInstanceName}`;
+          finalBody = { number: phone, audio: body.audio };
+        } else if (endpoint === '/send-button-actions') {
+          finalEndpoint = `/message/sendButtons/${uazapiInstanceName}`;
+          finalBody = {
+            number: phone,
+            text: body.message || body.caption || ' ',
+            buttons: body.buttonActions.map((b: any) => ({
+              buttonId: b.id,
+              buttonText: { displayText: b.label },
+              type: b.type === 'URL' ? 2 : (b.type === 'CALL' ? 3 : 1)
+            }))
+          };
+        } else {
+          // Fallback for other endpoints
+          finalEndpoint = endpoint.replace(/^\//, '') + `/${uazapiInstanceName}`;
+        }
+      }
+
+      console.log(`📤 ${isUazapi ? 'UAZAPI' : 'Z-API'} [${label}] to ${finalEndpoint}:`, JSON.stringify(finalBody).substring(0, 500));
+      const response = await fetch(`${baseUrl}${finalEndpoint}`, {
+        method,
+        headers,
+        body: JSON.stringify(finalBody),
       });
 
       const data = await response.json().catch(() => ({}));

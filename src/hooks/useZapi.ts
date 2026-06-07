@@ -47,6 +47,8 @@ const getZAPIConfig = async () => {
       token: inst.zapi_token,
       clientToken: inst.zapi_client_token,
       provider: inst.api_provider,
+      evolutionApiUrl: inst.evolution_api_url,
+      instanceName: inst.instance_name,
     };
   }
 
@@ -57,6 +59,8 @@ const getZAPIConfig = async () => {
       token: _instanceOverride.zapi_token,
       clientToken: _instanceOverride.zapi_client_token,
       provider: _instanceOverride.api_provider,
+      evolutionApiUrl: _instanceOverride.evolution_api_url,
+      instanceName: _instanceOverride.instance_name,
     };
   }
 
@@ -65,7 +69,7 @@ const getZAPIConfig = async () => {
 
   const { data: instances, error } = await supabase
     .from('zapi_instances')
-    .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, instance_type')
+    .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, instance_type, evolution_api_url')
     .eq('user_id', user.id)
     .eq('is_active', true)
     .order('is_default', { ascending: false })
@@ -83,7 +87,7 @@ const getZAPIConfig = async () => {
       .single();
 
     if (profileError || !profile?.zapi_instance_id || !profile?.zapi_token || !profile?.zapi_client_token) {
-      throw new Error('Nenhuma instância Z-API configurada. Peça ao administrador para configurar.');
+      throw new Error('Nenhuma instância de WhatsApp configurada. Peça ao administrador para configurar.');
     }
 
     return {
@@ -101,6 +105,8 @@ const getZAPIConfig = async () => {
     token: instance.zapi_token,
     clientToken: instance.zapi_client_token,
     provider: instance.api_provider || 'zapi',
+    evolutionApiUrl: instance.evolution_api_url,
+    instanceName: instance.instance_name,
   };
 };
 

@@ -4,15 +4,17 @@ export interface UserZAPICredentials {
   instanceId: string;
   token: string;
   clientToken: string;
-  userId: string;
-  instanceName: string;
-}
+   userId: string;
+   instanceName: string;
+   provider: string;
+   evolutionApiUrl?: string;
+ }
 
-const isWebZapiInstance = (instance: any) => {
+const isWhatsAppInstance = (instance: any) => {
   const provider = String(instance?.api_provider || 'zapi').toLowerCase();
   const type = String(instance?.instance_type || '').toLowerCase();
   const name = String(instance?.instance_name || '').toLowerCase();
-  return provider === 'zapi' && type !== 'mobile' && !name.includes('mobile');
+  return (provider === 'zapi' || provider === 'uazapi') && type !== 'mobile' && !name.includes('mobile');
 };
 
 export async function getUserZAPICredentials(
@@ -39,22 +41,24 @@ export async function getUserZAPICredentials(
 
   const { data: zapiInstances } = await adminClient
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, is_default')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, is_default, evolution_api_url')
     .eq('user_id', user.id)
     .eq('is_active', true)
-    .eq('api_provider', 'zapi')
+    .in('api_provider', ['zapi', 'uazapi'])
     .order('is_default', { ascending: false });
 
-  const zapi = zapiInstances?.find(isWebZapiInstance);
+  const zapi = zapiInstances?.find(isWhatsAppInstance);
   
   if (zapi) {
-    console.log(`✅ Found Z-API credentials for user ${user.id}`);
+    console.log(`✅ Found WhatsApp credentials (${zapi.api_provider}) for user ${user.id}`);
     return {
       instanceId: zapi.zapi_instance_id,
       token: zapi.zapi_token || '',
       clientToken: zapi.zapi_client_token || '',
       userId: user.id,
-      instanceName: zapi.instance_name || 'Z-API Instance',
+      instanceName: zapi.instance_name || 'WhatsApp Instance',
+      provider: zapi.api_provider || 'zapi',
+      evolutionApiUrl: zapi.evolution_api_url,
     };
   }
 
@@ -72,6 +76,7 @@ export async function getUserZAPICredentials(
       clientToken: profile.zapi_client_token,
       userId: user.id,
       instanceName: 'Instância Perfil',
+      provider: 'zapi',
     };
   }
 
