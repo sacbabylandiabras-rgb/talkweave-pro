@@ -30,21 +30,19 @@ serve(async (req) => {
       })
       const data = await res.json()
       
-      // Map Evolution response to frontend expectations
-      // Evolution /instance/connect often returns base64 or string
-      let qrCode = data?.base64 || data?.qrcode || data?.code || data?.response;
+      // Evolution /instance/connect might return different formats
+      const qrValue = data?.base64 || data?.qrcode || data?.code;
       
       return new Response(JSON.stringify({ 
         success: true, 
         data: { 
-          qrCode,
+          value: qrValue,
           connected: data?.instance?.status === 'open' || data?.status === 'open'
         } 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     } else {
-      // Z-API implementation
       const baseUrl = `https://api.z-api.io/instances/${inst.zapi_instance_id}/token/${inst.zapi_token}`
       const headers = { 'Client-Token': inst.zapi_client_token || '' }
       const res = await fetch(`${baseUrl}/qr-code`, { headers })
