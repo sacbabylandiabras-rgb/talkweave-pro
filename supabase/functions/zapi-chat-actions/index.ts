@@ -352,9 +352,11 @@ Deno.serve(async (req) => {
         let lastData: any = null;
         for (const a of attempts) {
           try {
+            console.log(`[zapi-chat-actions] Attempting call: ${a.url}`);
             const r = await fetch(a.url, { method: 'POST', headers: evolutionHeaders, body: JSON.stringify(a.body) });
             lastStatus = r.status;
             lastData = await r.json().catch(() => ({}));
+            console.log(`[zapi-chat-actions] Call attempt status: ${r.status}, data:`, lastData);
             if (r.ok) {
               return new Response(JSON.stringify({ value: true, ...lastData }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
             }
