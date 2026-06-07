@@ -151,7 +151,10 @@ export function SelectContactsDialog({
 
   const handleAddManualPhone = () => {
     const clean = manualPhone.replace(/\D/g, "");
-    if (clean.length < 10 || clean.length > 15) return;
+    if (clean.length < 10 || clean.length > 15) {
+      toast.error("Telefone deve ter entre 10 e 15 dígitos");
+      return;
+    }
     if (manualPhones.includes(clean)) return;
     setManualPhones(prev => [...prev, clean]);
     setManualPhone("");
