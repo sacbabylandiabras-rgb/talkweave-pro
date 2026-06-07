@@ -1508,7 +1508,7 @@ const ChatView = (props: ChatViewProps) => {
                       variant="outline"
                       size="sm"
                       className="justify-start text-[11px] h-8 gap-1.5 px-2 hover:bg-muted"
-                      onClick={() => conversation && (props as any).onReadChat?.(conversation.phone)}
+                      onClick={() => conversation && props.onReadChat?.(conversation.phone)}
                       title="Marcar como lida"
                     >
                       <CheckCheck className="w-3 h-3 text-blue-500 shrink-0" />
@@ -1518,7 +1518,7 @@ const ChatView = (props: ChatViewProps) => {
                       variant="outline"
                       size="sm"
                       className="justify-start text-[11px] h-8 gap-1.5 px-2 hover:bg-muted"
-                      onClick={() => conversation && (props as any).onArchiveChat?.(conversation.phone, true)}
+                      onClick={() => conversation && props.onArchiveChat?.(conversation.phone, true)}
                       title="Arquivar conversa"
                     >
                       <FileText className="w-3 h-3 text-amber-500 shrink-0" />
@@ -1528,7 +1528,7 @@ const ChatView = (props: ChatViewProps) => {
                       variant="outline"
                       size="sm"
                       className="justify-start text-[11px] h-8 gap-1.5 px-2 hover:bg-muted"
-                      onClick={() => conversation && (props as any).onPinChat?.(conversation.phone, true)}
+                      onClick={() => conversation && props.onPinChat?.(conversation.phone, true)}
                       title="Fixar conversa"
                     >
                       <Square className="w-3 h-3 text-orange-500 shrink-0" />
@@ -1538,7 +1538,7 @@ const ChatView = (props: ChatViewProps) => {
                       variant="outline"
                       size="sm"
                       className="justify-start text-[11px] h-8 gap-1.5 px-2 hover:bg-muted"
-                      onClick={() => conversation && (props as any).onMuteChat?.(conversation.phone, true)}
+                      onClick={() => conversation && props.onMuteChat?.(conversation.phone, true)}
                       title="Silenciar (24h)"
                     >
                       <Phone className="w-3 h-3 text-slate-500 shrink-0" />
