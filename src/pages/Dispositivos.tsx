@@ -1363,14 +1363,16 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label className="text-xs uppercase text-muted-foreground font-semibold">Instance ID</Label>
-              <Input 
-                value={editForm.zapi_instance_id} 
-                onChange={(e) => setEditForm({...editForm, zapi_instance_id: e.target.value})}
-                placeholder="Ex: 3F32C5..."
-              />
-            </div>
+            {(instance.api_provider === 'zapi' || !instance.api_provider) && (
+              <div className="space-y-2">
+                <Label className="text-xs uppercase text-muted-foreground font-semibold">Instance ID</Label>
+                <Input 
+                  value={editForm.zapi_instance_id} 
+                  onChange={(e) => setEditForm({...editForm, zapi_instance_id: e.target.value})}
+                  placeholder="Ex: 3F32C5..."
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label className="text-xs uppercase text-muted-foreground font-semibold">Instance Token</Label>
               <Input 
