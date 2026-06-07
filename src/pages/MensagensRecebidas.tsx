@@ -94,9 +94,10 @@ const getHttpAvatarUrl = (value?: string | null) => {
   if (!url || url === "null" || url === "undefined") return null;
   if (!/^https?:\/\//i.test(url)) return null;
   
-  // Se for pps.whatsapp.net, retornamos null para evitar o erro 403 (Forbidden)
-  // que o usuário está enfrentando consistentemente.
-  if (url.includes("pps.whatsapp.net")) return null;
+  // Se for pps.whatsapp.net, usamos o proxy images.weserv.nl para evitar o erro 403 (Forbidden)
+  if (url.includes("pps.whatsapp.net")) {
+    return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&default=mm`;
+  }
   
   return url;
 };
