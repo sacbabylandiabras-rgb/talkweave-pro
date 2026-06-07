@@ -2897,6 +2897,41 @@ const Dispositivos = () => {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Criar Nova Instância</DialogTitle>
+            <DialogDescription>
+              A instância será criada automaticamente no provedor UAZAPI.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nome da Instância</Label>
+              <Input 
+                placeholder="Ex: Vendas, Suporte..." 
+                value={newInstanceName}
+                onChange={(e) => setNewInstanceName(e.target.value)}
+                disabled={creating}
+              />
+            </div>
+            <div className="bg-muted/50 p-3 rounded-lg border border-border">
+              <p className="text-xs text-muted-foreground">
+                <AlertCircle className="w-3 h-3 inline mr-1" />
+                Limite do plano: <strong>{instances.length} de {maxInstances}</strong> instâncias utilizadas.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setCreateOpen(false)} disabled={creating}>Cancelar</Button>
+              <Button onClick={handleCreateInstance} disabled={creating || !newInstanceName.trim()}>
+                {creating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                Provisionar Instância
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
