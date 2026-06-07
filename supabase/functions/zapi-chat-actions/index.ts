@@ -341,6 +341,19 @@ Deno.serve(async (req) => {
          return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
+      if (action === 'send-call' || action === 'make-call') {
+        const cleanNumber = String(phone || "").replace(/\D/g, "");
+        const duration = Number(payload?.callDuration || payload?.duration || 30);
+        const res = await fetch(`${apiUrl}/call/make`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify({ number: cleanNumber, call_duration: duration }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao realizar chamada' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
       if (action === 'save-privacy') {
         const body: any = {};
         const lc = (v: any) => (v === undefined || v === null || v === '') ? undefined : String(v).toLowerCase();

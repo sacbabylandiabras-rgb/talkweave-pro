@@ -1450,13 +1450,27 @@ const ChatView = (props: ChatViewProps) => {
           </div>
         </div>
         <div className="flex gap-1 items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+            title="Ligar (WhatsApp)"
+            onClick={() => {
+              if (conversation) {
+                onSendCall?.(conversation.phone, 30);
+              }
+            }}
+          >
+            <PhoneCall className="w-4 h-4" />
+          </Button>
+
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                title="Ligações"
+                className="h-8 w-8"
+                title="Mais opções de chamada"
               >
                 <Phone className="w-4 h-4" />
               </Button>
@@ -1465,19 +1479,16 @@ const ChatView = (props: ChatViewProps) => {
               <div className="space-y-1">
                 <div className="p-2 space-y-2">
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground uppercase">Ligação UAZAPI</Label>
+                    <Label className="text-[10px] text-muted-foreground uppercase">Opções UAZAPI</Label>
                     <Button
                       variant="outline"
                       className="w-full justify-start text-[11px] h-8 gap-1.5 border-green-200 hover:bg-green-50 px-2"
-                      onClick={() => conversation && onSendMessage(conversation.phone, "", { specialType: "call", specialPayload: { call_duration: 30 } })}
-                      title="Realizar ligação via UAZAPI"
+                      onClick={() => conversation && onSendMessage(conversation.phone, "", { specialType: "call", specialPayload: { call_duration: 60 } })}
+                      title="Realizar ligação de voz (60s)"
                     >
                       <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />
-                      Ligar (UAZAPI)
+                      Ligar (60 segundos)
                     </Button>
-                    <p className="text-[10px] text-muted-foreground leading-tight px-1 mt-1">
-                      Faz o WhatsApp do contato tocar via UAZAPI.
-                    </p>
                   </div>
                 </div>
               </div>
