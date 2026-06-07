@@ -751,6 +751,7 @@ interface ChatViewProps {
   onBack: () => void;
   isMobile: boolean;
   savedContacts: Map<string, any>;
+  lidMap?: Map<string, string>;
   onSaveContact: (phone: string, currentName: string) => void;
   onFetchPhoto: (phone: string, force?: boolean) => void;
   loadingPhoto: boolean;
@@ -793,6 +794,7 @@ const ChatView = (props: ChatViewProps) => {
     onGetSipInfo,
     campaignTemplates,
     savedContacts,
+    lidMap,
     onUpdate,
     activeInstance,
   } = props;
@@ -1422,7 +1424,7 @@ const ChatView = (props: ChatViewProps) => {
           </div>
           <div className="flex items-center gap-2">
             <p className="text-xs text-muted-foreground">
-              {conversation.contactName ? formatPhone(conversation.phone) : `${conversation.messages.length} mensagens`}
+              {conversation.contactName ? (conversation.phone.includes("-") && !conversation.phone.startsWith("+") ? conversation.phone : formatPhone(conversation.phone)) : `${conversation.messages.length} mensagens`}
             </p>
             {conversation.messages.some((m) => (m as any).tags?.length > 0) && (
               <div className="flex gap-1 flex-wrap">
@@ -1611,9 +1613,19 @@ const ChatView = (props: ChatViewProps) => {
               </div>
               {msgs.map((msg) => {
                 const rawSenderPhone = msg.sender_phone ? String(msg.sender_phone).trim() : "";
-                const senderPhone = rawSenderPhone.toLowerCase().includes("@lid")
+                const isLid = rawSenderPhone.toLowerCase().includes("@lid");
+                let senderPhone = isLid
                   ? rawSenderPhone.toLowerCase()
                   : rawSenderPhone.replace(/\D/g, "");
+                
+                // Se for @lid em um grupo regular (não comunidade), tentamos converter para número real
+                if (isLid && isGroupPhone(conversation.phone) && !conversation.isCommunity) {
+                  const resolvedPhone = (lidMap as any)?.get?.(senderPhone);
+                  if (resolvedPhone) {
+                    senderPhone = resolvedPhone.replace(/\D/g, "");
+                  }
+                }
+
                 const senderContact = rawSenderPhone
                   ? savedContacts.get(rawSenderPhone) || savedContacts.get(senderPhone) || savedContacts.get(`+${senderPhone}`)
                   : null;
@@ -1688,7 +1700,7 @@ const ChatView = (props: ChatViewProps) => {
                               )}
                               {senderPhone && (
                                 <span className="text-[10px] text-muted-foreground truncate">
-                                  {senderPhone.includes("@lid") ? senderPhone : `+${senderPhone}`}
+                                  {senderPhone.includes("@lid") || (senderPhone.includes("-") && !senderPhone.startsWith("+")) ? senderPhone : formatPhone(senderPhone)}
                                 </span>
                               )}
                             </div>
@@ -2468,6 +2480,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
     deleteConversation,
     clearFetchedPhotosCache,
     updateContactStage,
+    lidMap,
     refetch: refetchLogs,
   } = useMessageLogs(
     filterZapiInstanceId,
@@ -3070,6 +3083,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
                 onTriggerFlow={(phone) => setProfileOpen(true)}
                 campaignTemplates={campaignTemplates}
                 savedContacts={savedContacts}
+                lidMap={lidMap}
                 activeInstance={rawActiveInstance}
                 onSendMessage={async (phone, message, options) => {
                   await sendMessage(phone, message, options);

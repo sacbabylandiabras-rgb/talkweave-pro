@@ -1612,6 +1612,7 @@ export const useMessageLogs = (
     },
     fetchProfilePicture,
     savedContacts,
+    lidMap: lidMapRef.current,
     sendMessage,
     forceUpdateAllPhotos,
     syncMetadata,
