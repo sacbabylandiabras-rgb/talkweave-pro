@@ -12,6 +12,7 @@ import type { Contact } from "@/hooks/useContacts";
 import { WhatsAppDefaultAvatar } from "@/components/ui/whatsapp-default-avatar";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useZapi } from "@/hooks/useZapi";
+import { getHttpAvatarUrl } from "@/lib/avatar-utils";
 
 
 const Contatos = () => {
