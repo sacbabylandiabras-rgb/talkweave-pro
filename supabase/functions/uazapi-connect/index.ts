@@ -9,8 +9,8 @@ async function configureUazapiWebhook(apiUrl: string, apiToken: string) {
       url: webhookUrl,
       enabled: true,
       events: ["messages", "messages_update", "connection", "presence", "chats", "contacts"],
-      addUrlEvents: true,
-      addUrlTypesMessages: true,
+      addUrlEvents: false,
+      addUrlTypesMessages: false,
       excludeMessages: ["wasSentByApi"],
     };
     const resp = await fetch(`${apiUrl}/webhook`, {
