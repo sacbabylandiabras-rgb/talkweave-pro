@@ -646,11 +646,43 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
+      if (action === 'metadata' || action === 'get-metadata-contact') {
+        const jid = phone || payload?.phone || payload?.jid || '';
+        const number = jid.includes('@') ? jid.split('@')[0] : jid.replace(/\D/g, '');
+        
+        // Try multiple metadata endpoints for Evolution/UAZAPI
+        const endpoints = [
+          `/chat/findChat/${inst}`,
+          `/contact/find/${inst}`,
+        ];
+        
+        let lastError = 'Erro ao buscar metadados';
+        let lastStatus = 404;
+
+        for (const ep of endpoints) {
+          try {
+            const res = await fetch(withToken(ep), {
+              method: 'POST',
+              headers: evolutionHeaders,
+              body: JSON.stringify({ number, jid: jid.includes('@') ? jid : undefined }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+              return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+            }
+            lastError = data.message || data.error || lastError;
+            lastStatus = res.status;
+          } catch (e) {
+            lastError = e.message;
+          }
+        }
+        
+        return new Response(JSON.stringify({ error: lastError }), { status: lastStatus, headers: corsHeaders });
+      }
+
       return new Response(JSON.stringify({ error: 'Action not supported for this provider' }), { status: 400, headers: corsHeaders });
-
-
-
     }
+
 
     // Default Z-API path
     const zaUrl = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}`;
