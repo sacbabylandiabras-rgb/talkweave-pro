@@ -396,7 +396,20 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
+      if (action === 'check-numbers') {
+        const numbers = Array.isArray(payload?.numbers) ? payload.numbers : [payload?.phone || phone].filter(Boolean);
+        const res = await fetch(`${apiUrl}/chat/check`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify({ numbers }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao verificar números' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
       return new Response(JSON.stringify({ error: 'Action not supported for this provider' }), { status: 400, headers: corsHeaders });
+
 
     }
 
