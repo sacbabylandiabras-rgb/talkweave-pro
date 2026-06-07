@@ -144,6 +144,36 @@ Deno.serve(async (req) => {
          }
          return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
+
+      if (action === 'save-privacy') {
+        const body: any = {};
+        const lc = (v: any) => (v === undefined || v === null || v === '') ? undefined : String(v).toLowerCase();
+        const durMap: Record<string, string> = {
+          '0': 'off', '86400': '24h', '604800': '7d', '7776000': '90d',
+          'off': 'off', '24h': '24h', '7d': '7d', '90d': '90d',
+        };
+        if (payload.last !== undefined) body.last = lc(payload.last);
+        if (payload.profile !== undefined) body.profile = lc(payload.profile);
+        if (payload.status !== undefined) body.status = lc(payload.status);
+        if (payload.groupadd !== undefined) body.groupadd = lc(payload.groupadd);
+        if (payload.online !== undefined) body.online = lc(payload.online);
+        if (payload.readreceipts !== undefined) body.readreceipts = lc(payload.readreceipts);
+        if (payload.disappearing !== undefined) body.disappearing = durMap[String(payload.disappearing).toLowerCase()] || 'off';
+        Object.keys(body).forEach(k => body[k] === undefined && delete body[k]);
+        if (Object.keys(body).length === 0) {
+          return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        const res = await fetch(withToken('/instance/privacy'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          return new Response(JSON.stringify({ error: data.message || data.error || 'Erro ao salvar privacidade' }), { status: res.status, headers: corsHeaders });
+        }
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
       
       return new Response(JSON.stringify({ error: 'Action not supported for this provider' }), { status: 400, headers: corsHeaders });
     }
