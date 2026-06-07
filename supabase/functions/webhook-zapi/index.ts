@@ -39,7 +39,7 @@ function normalizeForMatch(text: string): string {
     .trim();
 }
 
-function isKeywordMatch(message: string, keyword: string): boolean {
+function isKeywordMatch(message: string, keyword: string, matchType: string = "contains"): boolean {
   if (!keyword || !message) return false;
   const normalizedKeyword = normalizeForMatch(keyword);
   const normalizedMessage = normalizeForMatch(message);
@@ -47,6 +47,10 @@ function isKeywordMatch(message: string, keyword: string): boolean {
   
   // Strict check for slash commands
   if (normalizedKeyword.startsWith("/")) {
+    return normalizedMessage === normalizedKeyword;
+  }
+  
+  if (matchType === "exact") {
     return normalizedMessage === normalizedKeyword;
   }
   
