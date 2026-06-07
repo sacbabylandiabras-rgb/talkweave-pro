@@ -195,14 +195,7 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'company-status' || action === 'update-profile-status') {
-        const res = await fetch(`${apiUrl}/instance/presence`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
-          body: JSON.stringify({ status: payload?.status ?? payload?.description ?? '' }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro' }), { status: res.status, headers: corsHeaders });
-        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: 'Atualização de recado não suportada por esta conexão' }), { status: 400, headers: corsHeaders });
       }
 
       if (action.startsWith('set-')) {
