@@ -765,7 +765,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
 
   // Fetch phone when connected
   useEffect(() => {
-    if (deviceStatus?.connected === true && !connectedPhone) {
+    if (deviceStatus?.connected === true) {
       fetchConnectedPhone();
     }
   }, [deviceStatus?.connected]);
