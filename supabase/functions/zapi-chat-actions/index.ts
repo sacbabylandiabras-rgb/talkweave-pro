@@ -529,6 +529,16 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'list-tags') {
+        // Continues below
+      }
+
+      if (action === 'tag-colors') {
+        // No native endpoint on UAZAPI/Evolution — return empty list so the UI
+        // can fall back to per-tag colors without surfacing a 400 error.
+        return new Response(JSON.stringify({ data: [] }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'list-tags') {
         const endpoints = [
           `/label/findLabels/${inst}`,
           `/chat/getlabels/${inst}`,
