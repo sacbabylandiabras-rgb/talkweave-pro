@@ -736,45 +736,12 @@ export const useMessageLogs = (
     [savedContacts, fetchSavedContacts, filterInstanceId],
   );
 
-  const addTagChat = useCallback(
-    async (phone: string, tagId: string) => {
-      const conversation = conversations.find(c => c.phone === phone);
-      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
-        body: {
-          action: "add-tag",
-          phone: phone,
-          payload: { tagId },
-          instanceDbId: conversation?.preferredInstanceId
-        },
-      });
-      if (error) throw error;
-      return data;
-    },
-    [conversations],
-  );
-
-  const removeTagChat = useCallback(
-    async (phone: string, tagId: string) => {
-      const conversation = conversations.find(c => c.phone === phone);
-      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
-        body: {
-          action: "remove-tag",
-          phone: phone,
-          payload: { tagId },
-          instanceDbId: conversation?.preferredInstanceId
-        },
-      });
-      if (error) throw error;
-      return data;
-    },
-    [conversations],
-  );
-
   const autoFetchPhotos = useCallback(
     async (phones: string[]) => {
       const token = await getToken();
       const userId = await getUserId();
       if (!token || !userId) return;
+
 
 
 
@@ -1431,7 +1398,42 @@ export const useMessageLogs = (
     };
   }, [loading, groupsMissingPhotoKey]);
 
+  const addTagChat = useCallback(
+    async (phone: string, tagId: string) => {
+      const conversation = conversations.find(c => c.phone === phone);
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: {
+          action: "add-tag",
+          phone: phone,
+          payload: { tagId },
+          instanceDbId: conversation?.preferredInstanceId
+        },
+      });
+      if (error) throw error;
+      return data;
+    },
+    [conversations],
+  );
+
+  const removeTagChat = useCallback(
+    async (phone: string, tagId: string) => {
+      const conversation = conversations.find(c => c.phone === phone);
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: {
+          action: "remove-tag",
+          phone: phone,
+          payload: { tagId },
+          instanceDbId: conversation?.preferredInstanceId
+        },
+      });
+      if (error) throw error;
+      return data;
+    },
+    [conversations],
+  );
+
   const sendMessage = useCallback(
+
     async (phone: string, message: string, options: SendMessageOptions = {}) => {
       const {
         data: { session },
