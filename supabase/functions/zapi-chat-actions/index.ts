@@ -120,15 +120,33 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'business-profile') {
-        const res = await fetch(withToken('/instance/status'), { headers: { token: apiToken } });
-        const raw = await res.json().catch(() => ({}));
+        const statusRes = await fetch(withToken('/instance/status'), { headers: { token: apiToken } });
+        const raw = await statusRes.json().catch(() => ({}));
         const inst = raw?.instance || {};
+        let business = raw?.business || raw?.businessProfile || {};
+
+        if (inst.owner) {
+          const jid = String(inst.owner).includes('@') ? String(inst.owner) : `${String(inst.owner).replace(/\D/g, '')}@s.whatsapp.net`;
+          const businessRes = await fetch(`${apiUrl}/business/get/profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', token: apiToken },
+            body: JSON.stringify({ jid }),
+          });
+          const businessRaw = await businessRes.json().catch(() => ({}));
+          business = businessRaw?.response || businessRaw?.data || businessRaw?.profile || business;
+        }
+
         const profile = {
-          description: inst.profileName || creds.instanceName || '',
-          email: '',
-          address: '',
-          websites: [],
-          categories: [],
+          description: business.description || inst.profileName || creds.instanceName || '',
+          email: business.email || '',
+          address: business.address || '',
+          websites: Array.isArray(business.websites) ? business.websites : [],
+          categories: Array.isArray(business.categories)
+            ? business.categories.map((category: any) => ({
+                id: String(category.id || category.value || ''),
+                label: String(category.localized_display_name || category.label || category.name || category.id || ''),
+              })).filter((category: any) => category.id || category.label)
+            : [],
           businessHours: null,
           profileName: inst.profileName || null,
           profilePicUrl: inst.profilePicUrl || null,
@@ -152,20 +170,21 @@ Deno.serve(async (req) => {
         if (Object.keys(body).length === 0) {
           return new Response(JSON.stringify({ error: 'Nenhum campo para atualizar' }), { status: 400, headers: corsHeaders });
         }
-        const res = await fetch(`${apiUrl}/instance/updateBusinessProfile`, {
+        const res = await fetch(`${apiUrl}/business/update/profile`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', token: apiToken },
           body: JSON.stringify(body),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao atualizar perfil' }), { status: res.status, headers: corsHeaders });
+        if (!res.ok || data?.failed > 0 || data?.updated === 0) {
+          const details = data?.response ? formatErrorMessage(data.response) : formatErrorMessage(data);
+          return new Response(JSON.stringify({ error: details || 'Não foi possível atualizar o perfil comercial', details: data }), { status: res.ok ? 400 : res.status, headers: corsHeaders });
         }
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       if (action === 'company-name' || action === 'update-profile-name') {
-        const res = await fetch(`${apiUrl}/instance/updateProfileName`, {
+        const res = await fetch(`${apiUrl}/profile/name`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', token: apiToken },
           body: JSON.stringify({ name: payload?.name ?? payload?.description ?? '' }),
@@ -176,7 +195,7 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'company-status' || action === 'update-profile-status') {
-        const res = await fetch(`${apiUrl}/instance/updateProfileStatus`, {
+        const res = await fetch(`${apiUrl}/instance/presence`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', token: apiToken },
           body: JSON.stringify({ status: payload?.status ?? payload?.description ?? '' }),
