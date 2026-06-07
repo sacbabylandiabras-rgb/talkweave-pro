@@ -901,6 +901,22 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
                   <MessageSquare className="w-4 h-4" />
                   Abrir Conversa
                 </Button>
+                <Button 
+                  variant="outline" 
+                  className="justify-start gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                  onClick={async () => {
+                    if (!contact) return;
+                    try {
+                      await sendCall(contact.phone, 30);
+                    } catch (e) {
+                      console.error('Error making call:', e);
+                    }
+                  }}
+                  disabled={zapiLoading}
+                >
+                  <Phone className="w-4 h-4" />
+                  Realizar Ligação (WhatsApp)
+                </Button>
                  <Button 
                    variant="outline" 
                    className="justify-start gap-2"
