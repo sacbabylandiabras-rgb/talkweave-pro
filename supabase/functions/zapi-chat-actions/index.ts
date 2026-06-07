@@ -89,8 +89,8 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const rBody = await req.json().catch(() => ({}));
-    const { action, phone, instanceDbId, payload } = rBody;
+    const jsonBody = await req.json().catch(() => ({}));
+    const { action, phone, instanceDbId, payload } = jsonBody;
     console.log(`[zapi-chat-actions] Request: action=${action}, phone=${phone}, instanceDbId=${instanceDbId}`);
     const creds = await resolveCreds(req, instanceDbId);
     const provider = creds.apiProvider.toLowerCase();
