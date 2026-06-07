@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   isGroupPhone,
   isUsableGroupDisplayName,
+  isCommunityPhone,
   normalizeConversationPhone,
   rememberGroupDisplayName,
   resolveGroupConversationName,
