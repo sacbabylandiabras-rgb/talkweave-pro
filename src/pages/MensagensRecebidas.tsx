@@ -1469,7 +1469,7 @@ const ChatView = (props: ChatViewProps) => {
                     <Button
                       variant="outline"
                       className="w-full justify-start text-[11px] h-8 gap-1.5 border-green-200 hover:bg-green-50 px-2"
-                      onClick={() => conversation && onSendMessage(conversation.phone, "", { specialType: "call", specialPayload: { type: "call", duration: 30 } })}
+                      onClick={() => conversation && onSendMessage(conversation.phone, "", { specialType: "call", specialPayload: { call_duration: 30 } })}
                       title="Realizar ligação via UAZAPI"
                     >
                       <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />
