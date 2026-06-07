@@ -74,7 +74,8 @@ function parse(data: any): Config {
 }
 
 function countTokens(text: string) {
-  return Math.ceil((text || "").length / 4);
+  // Aproximação mais realista: média ~1.3 chars/token para português
+  return Math.ceil((text || "").length / 3.5);
 }
 
 interface Props {
