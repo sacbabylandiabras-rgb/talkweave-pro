@@ -109,8 +109,8 @@ const getConversationDisplayName = (name?: string | null, phone?: string | null,
   }
 
   if (isChannel) return "canal";
-  if (isCommunity) return "comunidade";
-  if (isGroup) return "grupo";
+  if (isCommunity) return "COMUNIDADE";
+  if (isGroup) return "GRUPO";
   return formatPhone(phone);
 };
 
