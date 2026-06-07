@@ -913,6 +913,8 @@ const getZAPIConfig = async () => {
           token: config.token,
           clientToken: config.clientToken,
           provider: (config as any).provider,
+          apiUrl: (config as any).evolutionApiUrl,
+          apiKey: (config as any).evolutionApiKey,
         },
       });
 
@@ -957,6 +959,8 @@ const getZAPIConfig = async () => {
           token: config.token,
           clientToken: config.clientToken,
           provider: (config as any).provider,
+          apiUrl: (config as any).evolutionApiUrl,
+          apiKey: (config as any).evolutionApiKey,
         },
       });
 
