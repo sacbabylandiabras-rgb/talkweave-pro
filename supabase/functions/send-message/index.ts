@@ -493,38 +493,71 @@ serve(async (req) => {
       let finalBody = body;
       let method = 'POST';
       let headers: Record<string, string> = isUazapi 
-        ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'apikey': token }
+        ? { 'Content-Type': 'application/json', 'token': token }
         : { 'Content-Type': 'application/json', 'Client-Token': clientToken };
 
       if (isUazapi) {
-        // Map Z-API endpoints to UAZAPI (Evolution API)
-        const phone = body.phone || body.number;
+        // Map Z-API endpoints to UAZAPI (uazapi.com) endpoints
+        const number = body.phone || body.number;
         if (endpoint === '/send-text') {
-          finalEndpoint = `/message/sendText/${uazapiInstanceName}`;
-          finalBody = { number: phone, text: body.message };
+          finalEndpoint = `/send/text`;
+          finalBody = { number, text: body.message || '' };
         } else if (endpoint === '/send-image') {
-          finalEndpoint = `/message/sendMedia/${uazapiInstanceName}`;
-          finalBody = { number: phone, media: body.image, mediaType: 'image', caption: body.caption };
+          finalEndpoint = `/send/media`;
+          finalBody = { number, type: 'image', file: body.image, text: body.caption || '' };
         } else if (endpoint === '/send-video') {
-          finalEndpoint = `/message/sendMedia/${uazapiInstanceName}`;
-          finalBody = { number: phone, media: body.video, mediaType: 'video', caption: body.caption };
+          finalEndpoint = `/send/media`;
+          finalBody = { number, type: 'video', file: body.video, text: body.caption || '' };
         } else if (endpoint === '/send-audio') {
-          finalEndpoint = `/message/sendWhatsAppAudio/${uazapiInstanceName}`;
-          finalBody = { number: phone, audio: body.audio };
-        } else if (endpoint === '/send-button-actions') {
-          finalEndpoint = `/message/sendButtons/${uazapiInstanceName}`;
+          finalEndpoint = `/send/media`;
+          finalBody = { number, type: 'audio', file: body.audio };
+        } else if (endpoint === '/send-document' || endpoint.startsWith('/send-document/')) {
+          finalEndpoint = `/send/media`;
+          finalBody = { number, type: 'document', file: body.document, text: body.caption || '', docName: body.fileName || '' };
+        } else if (endpoint === '/send-sticker') {
+          finalEndpoint = `/send/media`;
+          finalBody = { number, type: 'sticker', file: body.sticker };
+        } else if (endpoint === '/send-gif') {
+          finalEndpoint = `/send/media`;
+          finalBody = { number, type: 'video', file: body.gif, text: body.caption || '' };
+        } else if (endpoint === '/send-ptv') {
+          finalEndpoint = `/send/media`;
+          finalBody = { number, type: 'ptv', file: body.ptv };
+        } else if (endpoint === '/send-button-actions' || endpoint === '/send-button-list') {
+          finalEndpoint = `/send/menu`;
+          const actions = body.buttonActions || body.buttonList?.buttons || [];
+          const choices = actions.map((b: any) => {
+            const label = b.label || b.text || b.buttonText?.displayText || 'Botão';
+            if (b.type === 'URL' && b.url) return `${label}|url|${b.url}`;
+            if (b.type === 'CALL' && b.phone) return `${label}|call|${b.phone}`;
+            return label;
+          });
           finalBody = {
-            number: phone,
+            number,
+            type: 'button',
             text: body.message || body.caption || ' ',
-            buttons: body.buttonActions.map((b: any) => ({
-              buttonId: b.id,
-              buttonText: { displayText: b.label },
-              type: b.type === 'URL' ? 2 : (b.type === 'CALL' ? 3 : 1)
-            }))
+            footerText: body.footer || '',
+            choices,
           };
+        } else if (endpoint === '/send-option-list') {
+          finalEndpoint = `/send/menu`;
+          const opts = body.optionList?.options || [];
+          finalBody = {
+            number,
+            type: 'list',
+            text: body.message || body.optionList?.title || ' ',
+            footerText: body.footer || '',
+            buttonText: body.optionList?.buttonLabel || 'Ver opções',
+            choices: opts.map((o: any) => o.title + (o.description ? ` - ${o.description}` : '')),
+          };
+        } else if (endpoint === '/send-message-multiple-contacts') {
+          // No equivalent; send as text individually — fallback to single text
+          finalEndpoint = `/send/text`;
+          finalBody = { number: (body.phones && body.phones[0]) || number, text: body.message || '' };
         } else {
-          // Fallback for other endpoints
-          finalEndpoint = endpoint.replace(/^\//, '') + `/${uazapiInstanceName}`;
+          // Unsupported endpoint on UAZAPI — fallback to text
+          finalEndpoint = `/send/text`;
+          finalBody = { number, text: body.message || body.text || ' ' };
         }
       }
 
