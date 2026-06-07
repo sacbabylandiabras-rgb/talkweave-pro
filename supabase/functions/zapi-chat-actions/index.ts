@@ -227,10 +227,14 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      if (action === 'create-product' || action === 'edit-product' || action === 'save-catalog-config' || action === 'create-product-v2') {
+      if (action === 'create-product' || action === 'edit-product' || action === 'create-product-v2') {
+        return new Response(JSON.stringify({ 
+          error: 'A criação/edição de produtos não está disponível por esta conexão. Adicione os produtos diretamente pelo WhatsApp Business no celular conectado e use o botão Atualizar para listá-los aqui.' 
+        }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
 
-
-        return new Response(JSON.stringify({ data: { products: [], nextCursor: null }, unsupported: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (action === 'save-catalog-config') {
+        return new Response(JSON.stringify({ data: { ok: true }, unsupported: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       if (action === 'company-description' || action === 'company-email' || action === 'company-address' || action === 'company-websites' || action === 'update-business-profile') {
