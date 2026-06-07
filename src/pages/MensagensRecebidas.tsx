@@ -383,6 +383,9 @@ const MessageContent = ({
             mediaType === "sticker" ? "w-[120px] h-[120px]" : "w-full max-h-[200px]",
           )}
           alt={mediaType === "sticker" ? "figurinha" : "gif"}
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = 'none';
+          }}
         />
       )}
       {mediaType === "document" && mediaUrl && (
