@@ -102,10 +102,15 @@ const getConversationDisplayName = (name?: string | null, phone?: string | null,
   const isGroup = isGroupPhone(phone) && !phone.startsWith("ig_");
   const isCommunity = (isCommunityProp || isCommunityPhone(phone)) && !phone.startsWith("ig_");
   const isChannel = phone.includes("@newsletter");
-  if (name && !(isGroup && looksLikePhoneOrId(name))) return name;
+
+  // Prioritize real name if it exists and isn't generic
+  if (name && !(isGroup && looksLikePhoneOrId(name)) && !(/^(grupo|grupo sem nome|conversa com grupo)$/i.test(name))) {
+    return name;
+  }
+
   if (isChannel) return "canal";
-  if (isCommunity) return "comunidade";
-  if (isGroup) return "grupo";
+  if (isCommunity) return name || formatPhone(phone); // Changed from hardcoded "comunidade"
+  if (isGroup) return name || "grupo";
   return formatPhone(phone);
 };
 
@@ -403,7 +408,9 @@ const MessageContent = ({
 };
 
 const ChatTypeBadge = ({ phone, isCommunity }: { phone: string; name?: string | null; isCommunity?: boolean }) => {
-  if (isCommunity) {
+  const isActuallyCommunity = isCommunity || isCommunityPhone(phone);
+  
+  if (isActuallyCommunity) {
     return (
       <Badge variant="secondary" className="text-[10px] shrink-0 bg-purple-100 text-purple-700">
         COMUNIDADE
