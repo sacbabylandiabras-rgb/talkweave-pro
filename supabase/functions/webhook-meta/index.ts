@@ -687,13 +687,21 @@ function normalizeForMatch(text: string): string {
     .trim()
 }
 
-function isKeywordMatch(message: string, keyword: string): boolean {
+function isKeywordMatch(message: string, keyword: string, matchType: string = "contains"): boolean {
   const normalizedKeyword = normalizeForMatch(keyword)
-  if (!normalizedKeyword || !message) return false
-  if (message.includes(normalizedKeyword)) return true
+  const normalizedMessage = normalizeForMatch(message)
+  if (!normalizedKeyword || !normalizedMessage) return false
+  
+  if (matchType === "exact") {
+    return normalizedMessage === normalizedKeyword
+  }
+  
+  if (normalizedMessage.includes(normalizedKeyword)) return true
+  
+  // Fuzzy fallback for longer sentences
   const words = normalizedKeyword.split(' ').filter(w => w.length >= 3)
   if (words.length === 0) return false
-  const hits = words.filter(w => message.includes(w)).length
+  const hits = words.filter(w => normalizedMessage.includes(w)).length
   return hits / words.length >= 0.7
 }
 
