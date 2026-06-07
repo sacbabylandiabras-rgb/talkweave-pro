@@ -343,7 +343,14 @@ const MessageContent = ({
   return (
     <>
       {mediaType === "image" && mediaUrl && (
-        <img src={mediaUrl} className="w-full max-h-[200px] object-contain rounded mb-1" alt="" />
+        <img 
+          src={mediaUrl} 
+          className="w-full max-h-[200px] object-contain rounded mb-1" 
+          alt="" 
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = 'none';
+          }}
+        />
       )}
       {mediaType === "video" && mediaUrl && (
         <video
@@ -376,6 +383,9 @@ const MessageContent = ({
             mediaType === "sticker" ? "w-[120px] h-[120px]" : "w-full max-h-[200px]",
           )}
           alt={mediaType === "sticker" ? "figurinha" : "gif"}
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = 'none';
+          }}
         />
       )}
       {mediaType === "document" && mediaUrl && (
