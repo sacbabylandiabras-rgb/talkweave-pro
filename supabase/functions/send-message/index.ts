@@ -1138,18 +1138,30 @@ serve(async (req) => {
       } else if (specialType === 'call' && isUazapi) {
         // UAZAPI specific call endpoint: https://docs.uazapi.com/endpoint/post/call~make
         const cleanNumber = resolvedPhone.replace(/\D/g, "");
-        const duration = specialPayload?.duration || specialPayload?.call_duration || 20;
+        const duration = Number(specialPayload?.duration || specialPayload?.call_duration || 30);
         
-        console.log(`📞 Inciando ligação UAZAPI para ${cleanNumber} (Duração: ${duration}s) via ${baseUrl}/call/make`);
+        console.log(`📞 Iniciando ligação UAZAPI para ${cleanNumber} (Duração: ${duration}s) via ${baseUrl}/call/make`);
+        
+        const callHeaders: Record<string, string> = { 
+          'Content-Type': 'application/json',
+          'token': token 
+        };
+        
+        const callBody = { 
+          number: cleanNumber,
+          call_duration: duration
+        };
+
+        console.log(`📤 UAZAPI Call Request: ${baseUrl}/call/make | Headers: ${JSON.stringify({ ...callHeaders, token: '***' })} | Body: ${JSON.stringify(callBody)}`);
         
         const res = await fetch(`${baseUrl}/call/make`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'token': token },
-          body: JSON.stringify({ 
-            number: cleanNumber,
-            call_duration: duration
-          }),
+          headers: callHeaders,
+          body: JSON.stringify(callBody),
         });
+        
+        const callResponseText = await res.clone().text();
+        console.log(`📥 UAZAPI Call Response (Status ${res.status}): ${callResponseText}`);
         
         zapiData = await res.json().catch(() => ({}));
         if (!res.ok) {
