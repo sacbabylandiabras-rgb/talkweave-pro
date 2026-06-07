@@ -1493,7 +1493,40 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
   const [description, setDescription] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<{ id: string; label: string }[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
   const [submitting, setSubmitting] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setSelectedIds(instances.map((i) => i.id));
+      fetchCategories();
+    }
+  }, [open, instances]);
+
+  const fetchCategories = async () => {
+    if (instances.length === 0) return;
+    setLoadingCategories(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
+        body: { action: "get-business-categories", instanceDbId: instances[0].id },
+      });
+      if (!error && data?.response) {
+        setAvailableCategories(
+          data.response.map((c: any) => ({
+            id: c.id,
+            label: c.localized_display_name || c.name,
+          }))
+        );
+      }
+    } catch (err) {
+      console.error("Erro ao buscar categorias:", err);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
 
   useEffect(() => {
     if (open) setSelectedIds(instances.map((i) => i.id));

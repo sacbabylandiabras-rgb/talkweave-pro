@@ -157,7 +157,28 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ data: profile }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
+      if (action === 'get-business-categories') {
+        const res = await fetch(`${apiUrl}/business/get/categories`, {
+          method: 'GET',
+          headers: { token: apiToken },
+        });
+        const data = await res.json().catch(() => ({}));
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'update-business-categories') {
+        const res = await fetch(`${apiUrl}/business/update/profile`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify({ categories: payload?.categories || [] }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao atualizar categorias' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
       if (action === 'list-products' || action === 'create-product' || action === 'edit-product' || action === 'delete-product' || action === 'save-catalog-config' || action === 'create-product-v2') {
+
         return new Response(JSON.stringify({ data: { products: [], nextCursor: null }, unsupported: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
