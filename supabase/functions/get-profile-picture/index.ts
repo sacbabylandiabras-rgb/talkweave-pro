@@ -137,12 +137,15 @@ const extractGroupName = (payload: any): string | null => {
  const cache = new Map<string, { data: any, timestamp: number }>()
  const CACHE_TTL = 30000 // 30 seconds
 
- Deno.serve(async (req) => {
-   if (req.method === 'OPTIONS') {
-     return new Response(null, { headers: corsHeaders })
-   }
- 
-   try {
+  Deno.serve(async (req) => {
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { 
+        status: 204, 
+        headers: corsHeaders 
+      })
+    }
+  
+    try {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
       if (!supabaseUrl || !supabaseServiceKey) {
