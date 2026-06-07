@@ -336,8 +336,6 @@ export function DashboardLayout() {
       "/gateway-checkout/marketplace": "pay-marketplace",
       "/gateway-checkout/my-affiliations": "pay-my-affiliations",
       "/gateway-checkout/affiliates": "pay-affiliates",
-      "/agente-ia": "agente-ia",
-      "/canais": "canais",
       // Instagram routes
       "/instagram/dashboard": "ig-dashboard",
        "/instagram/mensagens": "ig-mensagens",
