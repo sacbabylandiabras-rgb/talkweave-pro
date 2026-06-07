@@ -93,7 +93,7 @@ function normalizeBoolean(value: unknown): boolean {
 
 async function resolveWebhookInstance(supabase: any, instanceRef: string, authToken: string) {
   const select = "id, user_id, zapi_instance_id, zapi_token, zapi_client_token, updated_at, api_provider, instance_name, evolution_api_url";
-  if (instanceRef) {
+  if (instanceRef && /^[\w .:@-]+$/.test(instanceRef)) {
     const { data } = await supabase
       .from("zapi_instances")
       .select(select)
