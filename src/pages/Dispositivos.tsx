@@ -715,26 +715,48 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
      const baseUrl = `https://api.z-api.io/instances/${instance.zapi_instance_id}/token/${instance.zapi_token}`;
      const hdrs: Record<string, string> = { "Client-Token": instance.zapi_client_token, "Content-Type": "application/json" };
  
-     try {
-       const res = await fetch(`${baseUrl}/device`, { headers: hdrs });
-       if (res.ok) {
-         const d = await res.json();
-         const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.me?.user || null;
-         if (num) foundPhone = num;
-         const pic = d?.imgUrl || d?.profilePictureUrl || d?.picture || null;
-         if (pic) setProfilePicUrl(pic);
+     // UAZAPI / Evolution
+     if (instance.api_provider === 'uazapi' || instance.api_provider === 'uazapi_warmup') {
+       const apiUrl = (instance.evolution_api_url || '').replace(/\/+$/, '');
+       const apiToken = instance.evolution_api_key || instance.zapi_token || '';
+       if (apiUrl && apiToken) {
+         try {
+           const res = await fetch(`${apiUrl}/instance/status/${instance.instance_name || instance.zapi_instance_id}?token=${encodeURIComponent(apiToken)}`, {
+             headers: { "Content-Type": "application/json", "token": apiToken, "Authorization": `Bearer ${apiToken}` }
+           });
+           if (res.ok) {
+             const d = await res.json();
+             const num = d?.instance?.number || d?.status?.checked_instance?.number || d?.number || null;
+             if (num) foundPhone = num;
+             const pic = d?.instance?.profilePictureUrl || d?.profilePictureUrl || null;
+             if (pic) setProfilePicUrl(pic);
+           }
+         } catch (e) {
+           console.error("Error fetching UAZAPI phone:", e);
+         }
        }
-     } catch {}
- 
-     if (!foundPhone) {
+     } else {
        try {
-         const res = await fetch(`${baseUrl}/host-device`, { headers: hdrs });
+         const res = await fetch(`${baseUrl}/device`, { headers: hdrs });
          if (res.ok) {
            const d = await res.json();
-           const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.id?.replace?.("@c.us", "") || null;
+           const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.me?.user || null;
            if (num) foundPhone = num;
+           const pic = d?.imgUrl || d?.profilePictureUrl || d?.picture || null;
+           if (pic) setProfilePicUrl(pic);
          }
        } catch {}
+ 
+       if (!foundPhone) {
+         try {
+           const res = await fetch(`${baseUrl}/host-device`, { headers: hdrs });
+           if (res.ok) {
+             const d = await res.json();
+             const num = d?.phone || d?.phoneNumber || d?.wid?.user || d?.id?.replace?.("@c.us", "") || null;
+             if (num) foundPhone = num;
+           }
+         } catch {}
+       }
      }
  
      if (foundPhone) {
