@@ -329,7 +329,7 @@ const extractProfilePictureUrl = (payload: any): string | null => {
     const str = payload.trim();
     if (!str || str.toLowerCase() === "null" || str.toLowerCase() === "undefined" || !/^https?:\/\//i.test(str))
       return null;
-    return getHttpAvatarUrl(str);
+    return str;
   }
   if (Array.isArray(payload)) return extractProfilePictureUrl(payload[0]);
   const rawUrl =
