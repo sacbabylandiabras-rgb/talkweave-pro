@@ -1391,7 +1391,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 type="password"
               />
               <p className="text-[10px] text-muted-foreground">
-                Este token é encontrado na aba "Segurança" dentro do painel Z-API. É o "Account Security Token".
+                Este token é encontrado nas configurações de segurança do seu provedor.
               </p>
             </div>
             <div className="flex justify-end gap-2 pt-2">
