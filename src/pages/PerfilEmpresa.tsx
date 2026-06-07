@@ -451,24 +451,6 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
           </div>
         </div>
       </div>
-            </Button>
-          )}
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-9 text-xs"
-            onClick={() => {
-              fetchProfile(selectedInstanceId);
-              setSearchPhone("");
-              fetchProducts(selectedInstanceId);
-            }} 
-            disabled={loading || loadingProducts || !selectedInstanceId}
-          >
-            <RefreshCw className={`w-4 h-4 mr-1 ${loading || loadingProducts ? "animate-spin" : ""}`} />
-            Atualizar
-          </Button>
-        </div>
-      </div>
 
       <Tabs
         value={activeTab}
@@ -985,10 +967,6 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
         </DialogContent>
       </Dialog>
     </div>
-  );
-};
-
-      {/* Bulk Update Components */}
       <BulkProfileUpdate instances={instances} open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
       <BulkCreateCollection instances={instances} open={collectionDialogOpen} onOpenChange={setCollectionDialogOpen} />
       <BulkCreateProduct instances={instances} open={productDialogOpen} onOpenChange={setProductDialogOpen} />
