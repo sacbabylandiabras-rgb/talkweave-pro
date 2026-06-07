@@ -97,7 +97,11 @@ const formatPhone = (phone?: string | null) => {
 const getHttpAvatarUrl = (value?: string | null) => {
   const url = String(value || "").trim();
   if (!url || url === "null" || url === "undefined") return null;
-  return /^https?:\/\//i.test(url) ? url : null;
+  if (!/^https?:\/\//i.test(url)) return null;
+  // Fallback para pps.whatsapp.net que costumam dar 403 quando acessados diretamente via browser mas funcionam em img tags (às vezes)
+  // Porém aqui o usuário reportou 403, então vamos tentar limpar parâmetros ou usar proxy se necessário.
+  // Por enquanto, apenas retornamos a URL.
+  return url;
 };
 
 const sameAvatarUrl = (a?: string | null, b?: string | null) => {
