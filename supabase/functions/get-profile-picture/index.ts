@@ -378,26 +378,35 @@ const extractGroupName = (payload: any): string | null => {
 
           } catch (e) {
             console.log(`📷 Error on instance ${provider}: ${e instanceof Error ? e.message : String(e)}`)
-         }
-         return null
-       }))
+          }
+          return null
+        }))
  
-       const winner = results.find(r => r !== null)
-       if (winner) {
-         cache.set(cacheKey, { data: winner, timestamp: Date.now() })
-         return new Response(JSON.stringify(winner), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-       }
-     }
+        const winner = results.find(r => r !== null)
+        if (winner) {
+          cache.set(cacheKey, { data: winner, timestamp: Date.now() })
+          return new Response(JSON.stringify(winner), { 
+            status: 200, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          })
+        }
+      }
 
-    return new Response(
-      JSON.stringify({ success: false, data: { link: null, raw: null } }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  } catch (error) {
-    console.error(`📷 Error:`, error)
-    return new Response(
-      JSON.stringify({ success: false, data: { link: null, raw: null }, error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  }
-})
+      const emptyResult = { success: false, data: { link: null, raw: null } }
+      cache.set(cacheKey, { data: emptyResult, timestamp: Date.now() })
+      return new Response(JSON.stringify(emptyResult), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    } catch (error) {
+      console.error(`📷 Fatal Error in get-profile-picture:`, error)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          data: { link: null, raw: null }, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+  })
