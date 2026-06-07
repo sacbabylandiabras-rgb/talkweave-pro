@@ -390,11 +390,11 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'save-privacy') {
-        const body: any = {};
+        const privBody: any = {};
         const lc = (v: any) => (v === undefined || v === null || v === '') ? undefined : String(v).toLowerCase();
-        if (payload.last !== undefined) body.last = lc(payload.last);
-        if (payload.profile !== undefined) body.profile = lc(payload.profile);
-        if (payload.status !== undefined) body.status = lc(payload.status);
+        if (payload.last !== undefined) privBody.last = lc(payload.last);
+        if (payload.profile !== undefined) privBody.profile = lc(payload.profile);
+        if (payload.status !== undefined) privBody.status = lc(payload.status);
         if (payload.groupadd !== undefined) body.groupadd = lc(payload.groupadd);
         if (payload.online !== undefined) body.online = lc(payload.online);
         if (payload.readreceipts !== undefined) body.readreceipts = lc(payload.readreceipts);
