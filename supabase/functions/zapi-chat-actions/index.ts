@@ -108,23 +108,31 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify(await res.json()), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
+      if (action === 'get-messages-limits') {
+        const res = await fetch(withToken('/instance/wa-messages-limits'), { headers: { token: apiToken } });
+        return new Response(JSON.stringify(await res.json()), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
       if (action.startsWith('set-')) {
-         // Evolution/UAZAPI privacy update
-         // Maps our internal set-last-seen etc to UAZAPI /instance/privacy POST body
+         const body: any = {};
+         if (action === 'set-last-seen') body.lastSeen = payload.visualizationType;
+         if (action === 'set-photo-visualization') body.profilePicture = payload.visualizationType;
+         if (action === 'set-privacy-description') body.status = payload.visualizationType;
+         if (action === 'set-group-add-permission') body.groupsAdd = payload.visualizationType;
+         if (action === 'set-read-receipts') body.readReceipts = payload.active ? 'all' : 'none';
+         if (action === 'set-messages-duration') body.disappearingMessages = String(payload.duration);
+
          const res = await fetch(withToken('/instance/privacy'), {
            method: 'POST',
            headers: { 'Content-Type': 'application/json', token: apiToken },
-           body: JSON.stringify(payload) 
+           body: JSON.stringify(body) 
          });
          return new Response(JSON.stringify(await res.json()), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       
-      // Fallback for others if needed, but the main ones are privacy
+      return new Response(JSON.stringify({ error: 'Action not supported for this provider' }), { status: 400, headers: corsHeaders });
     }
 
-    // Default Z-API path logic follows (truncated for space but preserved)
-    // [Preserving original Z-API logic while adding UAZAPI above]
-    // ...
     return new Response(JSON.stringify({ error: 'Action not supported for this provider' }), { status: 400, headers: corsHeaders });
 
   } catch (err) {
