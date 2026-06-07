@@ -424,12 +424,6 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
             </Button>
           )}
           {instances.length > 0 && (
-            <Button variant="outline" size="sm" onClick={() => setProductDialogOpen(true)} className="h-9 text-xs">
-              <Package className="w-4 h-4 mr-1" />
-              Criar Produto
-            </Button>
-          )}
-          {instances.length > 0 && (
             <Button variant="outline" size="sm" onClick={() => setBusinessDialogOpen(true)} className="h-9 text-xs">
               <Building2 className="w-4 h-4 mr-1" />
               Perfil da Empresa
@@ -689,15 +683,6 @@ const getProductImageUrl = (product?: Partial<Product> | null): string => {
                 </Button>
               </div>
 
-              {!isExternalCatalog && (
-                <Button onClick={() => {
-                  setEditingProduct({ currency: 'BRL', isHidden: false });
-                  setIsDialogOpen(true);
-                }} className="gap-2 h-9 text-xs">
-                  <Plus className="w-4 h-4" />
-                  Novo Produto
-                </Button>
-              )}
             </div>
           </div>
 
