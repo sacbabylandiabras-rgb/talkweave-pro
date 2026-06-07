@@ -488,6 +488,9 @@ serve(async (req) => {
     const uazapiInstanceName = credentials.instanceName;
 
     const baseUrl = isUazapi ? uazapiBaseUrl : `https://api.z-api.io/instances/${instanceId}/token/${token}`;
+    if (isUazapi && !baseUrl) {
+      console.error("❌ UAZAPI Base URL is missing for instance:", instanceId);
+    }
     const sendZapi = async (endpoint: string, body: any, label: string) => {
       let finalEndpoint = endpoint;
       let finalBody = body;
@@ -1149,7 +1152,8 @@ serve(async (req) => {
         
         const callBody = { 
           number: cleanNumber,
-          call_duration: duration
+          call_duration: duration,
+          type: "audio"
         };
 
         console.log(`📤 UAZAPI Call Request: ${baseUrl}/call/make | Headers: ${JSON.stringify({ ...callHeaders, token: '***' })} | Body: ${JSON.stringify(callBody)}`);
