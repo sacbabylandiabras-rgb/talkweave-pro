@@ -783,6 +783,10 @@ interface ChatViewProps {
   onSendSticker: (phone: string, stickerUrl: string) => Promise<void>;
   onSendGif: (phone: string, gifUrl: string, caption?: string) => Promise<void>;
   onDeleteConversation: (phone: string) => Promise<void>;
+  onReadChat?: (phone: string) => Promise<any>;
+  onArchiveChat?: (phone: string, archive?: boolean) => Promise<any>;
+  onPinChat?: (phone: string, pin?: boolean) => Promise<any>;
+  onMuteChat?: (phone: string, mute?: boolean, duration?: number) => Promise<any>;
   onSendCall?: (phone: string, duration?: number) => Promise<void>;
   onGetSipInfo?: () => Promise<any>;
   onUpdate?: () => void;
