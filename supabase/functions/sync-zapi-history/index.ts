@@ -146,6 +146,25 @@ Deno.serve(async (req) => {
       throw new Error('Instância não encontrada para sincronização');
     }
 
+    // UAZAPI / Evolution-based providers receive messages via webhook in real-time.
+    // There is no equivalent of Z-API's paginated /chats endpoint to bulk-import history,
+    // so we return a friendly skipped response instead of throwing 400.
+    if (apiProvider === 'uazapi' || apiProvider === 'uazapi_warmup' || apiProvider === 'evolution') {
+      console.log(`ℹ️ Skipping bulk history sync for provider=${apiProvider}; messages arrive via webhook.`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          skipped: true,
+          message: "Esta conexão sincroniza mensagens automaticamente em tempo real. Novas conversas aparecerão conforme chegam.",
+          importedContacts: 0,
+          importedChats: 0,
+          importedMessages: 0,
+          totalChatsRead: 0,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     console.log(`📱 Syncing contacts for user: ${userId}, instance: ${instanceId || body?.instanceId}`);
 
     // Fetch all chats with pagination (this works in multi-device)
