@@ -318,11 +318,12 @@ const normalizeQrImageValue = (value: unknown) => {
 };
 
 const normalizeDeviceStatusPayload = (payload: any) => {
-  const status = String(payload?.status || payload?.device?.status || '').toLowerCase();
+  const status = String(payload?.status || payload?.device?.status || payload?.instance?.status || '').toLowerCase();
   const connected = payload?.connected === true ||
     payload?.session === true ||
     payload?.smartphoneConnected === true ||
     payload?.device?.connected === true ||
+    payload?.instance?.connected === true ||
     ['connected', 'open', 'online'].includes(status);
 
   return {
