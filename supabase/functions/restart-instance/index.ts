@@ -34,64 +34,35 @@ Deno.serve(async (req) => {
 
     if (instError || !instance) throw new Error('Instance not found');
 
-    if ((instance as any).api_provider === 'uazapi') {
+    const apiProvider = String(instance.api_provider || 'zapi').toLowerCase();
+
+    if (apiProvider === 'uazapi' || apiProvider === 'uazapi_warmup') {
       const apiUrl = ((instance as any).evolution_api_url || '').replace(/\/+$/, '');
-      const apiToken = (instance as any).evolution_api_key || '';
+      const apiToken = (instance as any).evolution_api_key || (instance as any).zapi_token || '';
 
       if (!apiUrl || !apiToken) {
-        throw new Error('UAZAPI URL/Token não configurados');
+        throw new Error('Configuração de conexão incompleta');
       }
 
-      const disconnectEndpoints = [`${apiUrl}/instance/disconnect`, `${apiUrl}/instance/logout`];
-      let disconnectData: any = {};
-      let disconnectStatus = 500;
-      let disconnected = false;
-
-      for (const endpoint of disconnectEndpoints) {
-        const disconnectRes = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', token: apiToken },
-        });
-
-        const disconnectText = await disconnectRes.text();
-        try { disconnectData = JSON.parse(disconnectText); } catch { disconnectData = { message: disconnectText }; }
-        disconnectStatus = disconnectRes.status;
-
-        if (disconnectRes.ok) {
-          disconnected = true;
-          break;
-        }
-
-        if (disconnectRes.status !== 404 && disconnectRes.status !== 405) {
-          break;
-        }
-      }
-
-      if (!disconnected) {
-        return new Response(JSON.stringify({ error: 'Failed to restart', details: disconnectData }), {
-          status: disconnectStatus,
-          headers: jsonHeaders,
-        });
-      }
-
-      const connectRes = await fetch(`${apiUrl}/instance/connect`, {
+      // reset endpoint for UAZAPI
+      const resetUrl = `${apiUrl}/instance/reset?token=${encodeURIComponent(apiToken)}`;
+      const resetRes = await fetch(resetUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', token: apiToken },
-        body: JSON.stringify({}),
       });
 
-      const connectText = await connectRes.text();
-      let connectData: any = {};
-      try { connectData = JSON.parse(connectText); } catch { connectData = { message: connectText }; }
+      const resetText = await resetRes.text();
+      let resetData: any = {};
+      try { resetData = JSON.parse(resetText); } catch { resetData = { message: resetText }; }
 
-      if (!connectRes.ok) {
-        return new Response(JSON.stringify({ error: 'Failed to restart', details: connectData }), {
-          status: connectRes.status,
+      if (!resetRes.ok) {
+        return new Response(JSON.stringify({ error: 'Failed to reset instance', details: resetData }), {
+          status: resetRes.status,
           headers: jsonHeaders,
         });
       }
 
-      return new Response(JSON.stringify({ success: true, data: connectData, message: 'Instância reiniciada com sucesso.' }), {
+      return new Response(JSON.stringify({ success: true, data: resetData, message: 'Instância reiniciada com sucesso.' }), {
         headers: jsonHeaders,
       });
     }

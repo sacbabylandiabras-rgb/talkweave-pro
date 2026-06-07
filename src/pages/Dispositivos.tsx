@@ -341,6 +341,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted?: () => void }) => {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
+  const [waLimits, setWaLimits] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
   const [instanceName, setInstanceName] = useState(instance.instance_name);
@@ -502,6 +503,17 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
       }
 
       setDeviceStatus(data?.data ? normalizeDeviceStatusPayload(data.data) : null);
+      
+      // If UAZAPI, also fetch message limits
+      if (instance.api_provider === 'uazapi' || instance.api_provider === 'uazapi_warmup') {
+        const { data: limitsData } = await supabase.functions.invoke('zapi-chat-actions', {
+          body: { action: 'get-messages-limits', instanceDbId: instance.id },
+        });
+        if (limitsData && !limitsData.error) {
+           setWaLimits(limitsData);
+        }
+      }
+
       fetchHealth(); // Atualiza também o status de shadowban/saúde
       statusErrorShownRef.current = false;
     } catch (error) {
@@ -1088,7 +1100,20 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
  
 
        {/* Privacy Dialog */}
-       <Dialog open={showPrivacy} onOpenChange={setShowPrivacy}>
+       <Dialog 
+         open={showPrivacy} 
+         onOpenChange={(open) => {
+           setShowPrivacy(open);
+           if (open && (instance.api_provider === 'uazapi' || instance.api_provider === 'uazapi_warmup')) {
+             // Fetch current privacy settings
+             supabase.functions.invoke('zapi-chat-actions', {
+               body: { action: 'get-privacy', instanceDbId: instance.id },
+             }).then(({ data }) => {
+               if (data && !data.error) setPrivacySettings(data);
+             });
+           }
+         }}
+       >
          <DialogContent className="sm:max-w-md">
            <DialogHeader>
              <DialogTitle className="flex items-center gap-2">Privacidade do WhatsApp</DialogTitle>
@@ -1097,7 +1122,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
              <div className="grid grid-cols-1 gap-4">
                <div className="space-y-2">
                  <Label>Visto por Último</Label>
-                 <Select onValueChange={(v) => updatePrivacy('set-last-seen', { visualizationType: v })} disabled={privacyLoading}>
+                  <Select 
+                    value={privacySettings?.lastSeen || undefined}
+                    onValueChange={(v) => updatePrivacy('set-last-seen', { visualizationType: v })} 
+                    disabled={privacyLoading}
+                  >
                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                    <SelectContent>
                      <SelectItem value="ALL">Todos</SelectItem>
@@ -1109,7 +1138,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                </div>
                <div className="space-y-2">
                  <Label>Foto do Perfil</Label>
-                 <Select onValueChange={(v) => updatePrivacy('set-photo-visualization', { visualizationType: v })} disabled={privacyLoading}>
+                  <Select 
+                    value={privacySettings?.profilePicture || undefined}
+                    onValueChange={(v) => updatePrivacy('set-photo-visualization', { visualizationType: v })} 
+                    disabled={privacyLoading}
+                  >
                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                    <SelectContent>
                      <SelectItem value="ALL">Todos</SelectItem>
@@ -1121,7 +1154,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                </div>
                <div className="space-y-2">
                  <Label>Recado (About)</Label>
-                 <Select onValueChange={(v) => updatePrivacy('set-privacy-description', { visualizationType: v })} disabled={privacyLoading}>
+                  <Select 
+                    value={privacySettings?.status || undefined}
+                    onValueChange={(v) => updatePrivacy('set-privacy-description', { visualizationType: v })} 
+                    disabled={privacyLoading}
+                  >
                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                    <SelectContent>
                      <SelectItem value="ALL">Todos</SelectItem>
@@ -1133,7 +1170,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                </div>
                <div className="space-y-2">
                  <Label>Quem pode me adicionar a grupos</Label>
-                 <Select onValueChange={(v) => updatePrivacy('set-group-add-permission', { visualizationType: v })} disabled={privacyLoading}>
+                  <Select 
+                    value={privacySettings?.groupsAdd || undefined}
+                    onValueChange={(v) => updatePrivacy('set-group-add-permission', { visualizationType: v })} 
+                    disabled={privacyLoading}
+                  >
                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                    <SelectContent>
                      <SelectItem value="ALL">Todos</SelectItem>
@@ -1144,7 +1185,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                </div>
                <div className="space-y-2">
                  <Label>Online</Label>
-                 <Select onValueChange={(v) => updatePrivacy('set-privacy-online', { visualizationType: v })} disabled={privacyLoading}>
+                  <Select 
+                    value={privacySettings?.online || undefined}
+                    onValueChange={(v) => updatePrivacy('set-privacy-online', { visualizationType: v })} 
+                    disabled={privacyLoading}
+                  >
                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                    <SelectContent>
                      <SelectItem value="ALL">Todos</SelectItem>
@@ -1154,7 +1199,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                </div>
                <div className="space-y-2">
                  <Label>Confirmações de Leitura</Label>
-                 <Select onValueChange={(v) => updatePrivacy('set-read-receipts', { active: v === 'true' })} disabled={privacyLoading}>
+                  <Select 
+                    value={privacySettings?.readReceipts ? (privacySettings.readReceipts === 'all' ? 'true' : 'false') : undefined}
+                    onValueChange={(v) => updatePrivacy('set-read-receipts', { active: v === 'true' })} 
+                    disabled={privacyLoading}
+                  >
                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                    <SelectContent>
                      <SelectItem value="true">Ativado</SelectItem>
@@ -1164,7 +1213,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                </div>
                <div className="space-y-2">
                  <Label>Duração Padrão das Mensagens</Label>
-                 <Select onValueChange={(v) => updatePrivacy('set-messages-duration', { duration: parseInt(v) })} disabled={privacyLoading}>
+                  <Select 
+                    value={privacySettings?.disappearingMessages || undefined}
+                    onValueChange={(v) => updatePrivacy('set-messages-duration', { duration: parseInt(v) })} 
+                    disabled={privacyLoading}
+                  >
                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                    <SelectContent>
                      <SelectItem value="0">Desativado</SelectItem>
@@ -1202,9 +1255,20 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 <span>{deviceStatus?.created ? new Date(deviceStatus.created).toLocaleString('pt-BR') : 'N/A'}</span>
               </div>
             </div>
+            {waLimits && (
+              <div className="text-[11px] p-2 bg-primary/5 rounded border border-primary/10 mb-2">
+                 <p className="font-semibold mb-1">Limites de Mensagens (WhatsApp):</p>
+                 <div className="grid grid-cols-2 gap-x-2">
+                   <span className="text-muted-foreground">Atual:</span>
+                   <span className="text-primary font-medium">{waLimits.tier || 'N/A'}</span>
+                   <span className="text-muted-foreground">Diário:</span>
+                   <span>{waLimits.dailyLimit || 'N/A'}</span>
+                 </div>
+              </div>
+            )}
             <details className="text-[10px]">
               <summary className="cursor-pointer text-muted-foreground hover:text-foreground">🔧 Debug</summary>
-              <pre className="mt-1 p-2 bg-muted rounded overflow-auto max-h-32">{JSON.stringify(deviceStatus, null, 2)}</pre>
+              <pre className="mt-1 p-2 bg-muted rounded overflow-auto max-h-32">{JSON.stringify({ ...deviceStatus, waLimits }, null, 2)}</pre>
             </details>
           </div>
         )}

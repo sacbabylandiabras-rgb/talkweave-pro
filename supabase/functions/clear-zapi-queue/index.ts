@@ -31,6 +31,7 @@ serve(async (req) => {
           token: '',
           clientToken: '',
           instanceName: 'Internal Admin Call',
+          provider: 'zapi'
         }
       : await getUserZAPICredentials(req, supabaseUrl, supabaseServiceKey);
 
@@ -38,12 +39,12 @@ serve(async (req) => {
       throw new Error('userId is required for internal admin calls');
     }
 
-    let instancesToClear: Array<{ instanceId: string; token: string; clientToken: string; instanceName: string; apiProvider: string }> = [];
+    let instancesToClear: Array<{ id: string; instanceId: string; token: string; clientToken: string; instanceName: string; apiProvider: string; evolutionUrl?: string; evolutionKey?: string }> = [];
 
     if (clearAllActive) {
       const { data: activeInstances, error } = await supabase
         .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider')
+        .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
         .order('created_at', { ascending: true });
@@ -51,16 +52,19 @@ serve(async (req) => {
       if (error) throw error;
 
       instancesToClear = (activeInstances || []).map((instance: any) => ({
+        id: instance.id,
         instanceId: instance.zapi_instance_id,
         token: instance.zapi_token,
         clientToken: instance.zapi_client_token,
         instanceName: instance.instance_name || 'Instância Ativa',
         apiProvider: String(instance.api_provider || 'zapi').toLowerCase(),
+        evolutionUrl: instance.evolution_api_url,
+        evolutionKey: instance.evolution_api_key,
       }));
     } else if (requestedInstanceId) {
       const { data: specificInstance, error } = await supabase
         .from('zapi_instances')
-        .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider')
+        .select('id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, evolution_api_url, evolution_api_key')
         .eq('id', requestedInstanceId)
         .eq('user_id', credentials.userId)
         .eq('is_active', true)
@@ -73,19 +77,14 @@ serve(async (req) => {
       }
 
       instancesToClear = [{
+        id: specificInstance.id,
         instanceId: specificInstance.zapi_instance_id,
         token: specificInstance.zapi_token,
         clientToken: specificInstance.zapi_client_token,
         instanceName: specificInstance.instance_name || 'Instância Selecionada',
         apiProvider: String((specificInstance as any).api_provider || 'zapi').toLowerCase(),
-      }];
-    } else {
-      instancesToClear = [{
-        instanceId: credentials.instanceId,
-        token: credentials.token,
-        clientToken: credentials.clientToken,
-        instanceName: credentials.instanceName,
-        apiProvider: 'zapi',
+        evolutionUrl: specificInstance.evolution_api_url,
+        evolutionKey: specificInstance.evolution_api_key,
       }];
     }
 
@@ -101,6 +100,30 @@ serve(async (req) => {
     const results = [];
 
     for (const instance of instancesToClear) {
+      if (instance.apiProvider === 'uazapi' || instance.apiProvider === 'uazapi_warmup') {
+        const apiUrl = (instance.evolutionUrl || '').replace(/\/+$/, '');
+        const apiToken = instance.evolutionKey || instance.token || '';
+        
+        if (apiUrl && apiToken) {
+           // Evolution/UAZAPI doesn't have a direct "clear queue" like Z-API.
+           // However, /instance/reset basically does it.
+           // If they want to just clear messages, there isn't a specific endpoint for everything.
+           // We'll use /instance/reset as requested since it restarts the process.
+           const resetUrl = `${apiUrl}/instance/reset?token=${encodeURIComponent(apiToken)}`;
+           const resetRes = await fetch(resetUrl, {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json', token: apiToken },
+           });
+           results.push({
+             instanceId: instance.instanceId,
+             success: resetRes.ok,
+             status: resetRes.status,
+             provider: 'uazapi'
+           });
+           continue;
+        }
+      }
+
       console.log(`🧹 Clearing Z-API queue for instance ${instance.instanceName} (${instance.instanceId})`);
 
       const zapiUrl = `https://api.z-api.io/instances/${instance.instanceId}/token/${instance.token}/queue`;
@@ -133,9 +156,9 @@ serve(async (req) => {
 
     const failed = results.filter(result => !result.success);
     if (failed.length > 0) {
-      console.error('❌ Failed to clear one or more Z-API queues:', failed);
+      console.error('❌ Failed to clear one or more queues:', failed);
       return new Response(
-        JSON.stringify({ error: 'Failed to clear one or more Z-API queues', results }),
+        JSON.stringify({ error: 'Failed to clear one or more queues', results }),
         {
           status: 502,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -143,17 +166,15 @@ serve(async (req) => {
       )
     }
 
-    console.log(`✅ Cleared ${results.length} Z-API queue(s) successfully`);
-
     return new Response(
-      JSON.stringify({ success: true, message: 'Z-API queue(s) cleared', results }),
+      JSON.stringify({ success: true, message: 'Queue(s) cleared', results }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
 
   } catch (error) {
-    console.error('❌ Error clearing Z-API queue:', error);
+    console.error('❌ Error clearing queue:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' }),
       {
