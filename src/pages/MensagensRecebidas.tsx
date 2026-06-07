@@ -1620,7 +1620,7 @@ const ChatView = (props: ChatViewProps) => {
                 
                 // Se for @lid em um grupo regular (não comunidade), tentamos converter para número real
                 if (isLid && isGroupPhone(conversation.phone) && !conversation.isCommunity) {
-                  const resolvedPhone = lidMap?.get(senderPhone);
+                  const resolvedPhone = (lidMap as any)?.get?.(senderPhone);
                   if (resolvedPhone) {
                     senderPhone = resolvedPhone.replace(/\D/g, "");
                   }
