@@ -77,8 +77,18 @@ export const FlowAnalyticsPanel: React.FC<FlowAnalyticsPanelProps> = ({
     }
   }, [open, flowId, nodes, fetchHistory, fetchMetrics]);
 
-  const executionStats = getStats();
-  const blockStats = getOverallStats();
+  const executionStats = getStats() ?? {
+    total: 0,
+    successful: 0,
+    failed: 0,
+    successRate: 0,
+    avgDuration: 0,
+  };
+  const blockStats = getOverallStats() ?? {
+    totalExecutions: 0,
+    overallSuccessRate: 0,
+    avgBlockExecutionTime: 0,
+  };
 
   const executionTrend = [...history]
     .reverse()
