@@ -694,6 +694,12 @@ Deno.serve(async (req) => {
     let zaB = null;
 
     if (action === 'get-disallowed-contacts') zaP = '/privacy/disallowed-contacts';
+    if (action === 'metadata' || action === 'get-metadata-contact') {
+      const cleanPhone = (phone || payload?.phone || '').replace(/\D/g, '');
+      const jid = phone || payload?.phone || payload?.jid || '';
+      zaP = `/chats-metadata/${encodeURIComponent(jid.includes('@') ? jid : `${cleanPhone}@c.us`)}`;
+      zaM = 'GET';
+    }
     if (action === 'set-last-seen') { zaM = 'POST'; zaP = '/privacy/last-seen'; zaB = { visualizationType: payload.visualizationType }; }
     if (action === 'set-photo-visualization') { zaM = 'POST'; zaP = '/privacy/photo'; zaB = { visualizationType: payload.visualizationType }; }
     if (action === 'set-privacy-description') { zaM = 'POST'; zaP = '/privacy/description'; zaB = { visualizationType: payload.visualizationType }; }
@@ -703,6 +709,7 @@ Deno.serve(async (req) => {
     if (action === 'set-messages-duration') {
        const map: any = { '0': 'disable', '86400': 'hours24', '604800': 'days7', '7776000': 'days90' };
        zaP = `/privacy/messages-duration?value=${map[String(payload.duration)] || 'disable'}`;
+
        zaM = 'POST';
     }
 
