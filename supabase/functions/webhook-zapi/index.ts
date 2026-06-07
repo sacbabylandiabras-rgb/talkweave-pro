@@ -536,9 +536,9 @@ serve(async (req) => {
           continue;
         }
 
-        // 1. Check main flow keywords (global)
+        // 1. Check main flow keywords (global) - Higher priority
         const mainKeywords = splitKeywords(flow.keyword || flow.trigger_keywords);
-        if (mainKeywords.some(k => normalizedMsg === k || normalizedMsg.includes(k))) {
+        if (mainKeywords.some(k => isKeywordMatch(agentInboundText || messageRaw, k, "contains"))) {
           isMatch = true;
           console.log(`[webhook-zapi] Global keyword match for flow "${flow.name}"`);
         }
@@ -553,7 +553,7 @@ serve(async (req) => {
             const nodeKws = splitKeywords(node.data?.keyword || node.data?.keywords || node.data?.trigger_keywords || node.data?.triggerKeywords);
             const matchType = node.data?.matchType || "contains";
             
-            if (nodeKws.some(k => isKeywordMatch(normalizedMsg, k, matchType))) {
+            if (nodeKws.some(k => isKeywordMatch(agentInboundText || messageRaw, k, matchType))) {
               isMatch = true;
               finalStartNodeId = resolveFlowStartNodeId(flow, node);
               console.log(`[webhook-zapi] Node keyword match (${matchType}) for flow "${flow.name}" in node ${node.id}`);
@@ -571,7 +571,7 @@ serve(async (req) => {
           }
         }
 
-        // 4. Legacy fuzzy match fallback (if still no match, check all keywords together)
+        // 4. Legacy fuzzy match fallback (only if absolutely no direct match)
         if (!isMatch) {
           const allNodeKeywords = (flow.nodes || [])
             .filter((n: any) => n.data?.keyword || n.data?.keywords || n.data?.trigger_keywords || n.data?.triggerKeywords)
