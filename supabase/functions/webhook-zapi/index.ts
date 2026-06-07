@@ -514,19 +514,19 @@ serve(async (req) => {
       console.log("[webhook-zapi] inbound detail:", { userId, phone, chatId, isGroup, msg: messageRaw.slice(0, 80) });
 
       
-      const { data: activeFlowStates, error: activeErr } = await supabase.from("flow_captured_data").select("*").eq("user_id", userId).eq("phone", phone).not("last_node_id", "is", null);
-      console.log("[webhook-zapi] activeFlows check:", { count: activeFlowStates?.length || 0, error: activeErr?.message, userId, phone });
+      const { data: activeFlowStates, error: activeErr } = await supabase.from("flow_captured_data").select("*").eq("user_id", userId).eq("phone", actorPhone).not("last_node_id", "is", null);
+      console.log("[webhook-zapi] activeFlows check:", { count: activeFlowStates?.length || 0, error: activeErr?.message, userId, actorPhone });
       
       if (activeFlowStates && activeFlowStates.length > 0) {
         for (const flowState of activeFlowStates) {
           console.log("[webhook-zapi] resuming flow", flowState.flow_id, "at node", flowState.last_node_id);
           const { data: flow } = await supabase.from("flow_automations").select("*").eq("id", flowState.flow_id).single();
           if (flow && flow.active === true && isZapiWhatsAppFlow(flow) && flowMatchesChatType(flow, isGroup)) {
-            await executeFlow(supabase, userId, phone, flow, flowState.last_node_id, flowState.captured_data || {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText, __is_resuming: true });
+            await executeFlow(supabase, userId, actorPhone, flow, flowState.last_node_id, flowState.captured_data || {}, instanceData, chatId, isGroup, { ...webhook, __agent_input_text: agentInboundText, __is_resuming: true });
             return new Response("ok", { status: 200, headers: corsHeaders });
           } else {
-            await supabase.from("flow_captured_data").delete().match({ user_id: userId, flow_id: flowState.flow_id, phone });
-            console.log("[webhook-zapi] removed stale/non-whatsapp flow state", { flowId: flowState.flow_id, phone });
+            await supabase.from("flow_captured_data").delete().match({ user_id: userId, flow_id: flowState.flow_id, phone: actorPhone });
+            console.log("[webhook-zapi] removed stale/non-whatsapp flow state", { flowId: flowState.flow_id, phone: actorPhone });
           }
         }
       }
