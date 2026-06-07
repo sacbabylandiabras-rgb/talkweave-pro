@@ -261,12 +261,12 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'company-description' || action === 'company-email' || action === 'company-address' || action === 'company-websites' || action === 'update-business-profile') {
-        const busBody: any = {};
-        if (payload?.description !== undefined) busBody.description = payload.description;
-        if (payload?.email !== undefined) busBody.email = payload.email;
-        if (payload?.address !== undefined) busBody.address = payload.address;
-        if (payload?.websites !== undefined) busBody.websites = Array.isArray(payload.websites) ? payload.websites : [payload.websites].filter(Boolean);
-        if (Object.keys(busBody).length === 0) return new Response(JSON.stringify({ error: 'Nenhum campo para atualizar' }), { status: 400, headers: corsHeaders });
+        const bBody: any = {};
+        if (payload?.description !== undefined) bBody.description = payload.description;
+        if (payload?.email !== undefined) bBody.email = payload.email;
+        if (payload?.address !== undefined) bBody.address = payload.address;
+        if (payload?.websites !== undefined) bBody.websites = Array.isArray(payload.websites) ? payload.websites : [payload.websites].filter(Boolean);
+        if (Object.keys(bBody).length === 0) return new Response(JSON.stringify({ error: 'Nenhum campo para atualizar' }), { status: 400, headers: corsHeaders });
         
         const res = await fetch(withToken(`/business/update/profile/${inst}`), {
           method: 'POST',
