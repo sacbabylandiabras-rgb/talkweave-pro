@@ -313,15 +313,15 @@ Deno.serve(async (req) => {
 
 
       if (action.startsWith('set-')) {
-         const body: any = {};
+         const setBody: any = {};
          const val = String(payload.visualizationType || '').toLowerCase();
-         if (action === 'set-last-seen') body.last = val;
-         if (action === 'set-photo-visualization') body.profile = val;
-         if (action === 'set-privacy-description') body.status = val;
-         if (action === 'set-group-add-permission') body.groupadd = val;
-         if (action === 'set-privacy-online') body.online = val;
-         if (action === 'set-read-receipts') body.readreceipts = payload.active ? 'all' : 'none';
-          if (Object.keys(body).length === 0) return new Response(JSON.stringify({ error: 'Action not supported' }), { status: 400, headers: corsHeaders });
+         if (action === 'set-last-seen') setBody.last = val;
+         if (action === 'set-photo-visualization') setBody.profile = val;
+         if (action === 'set-privacy-description') setBody.status = val;
+         if (action === 'set-group-add-permission') setBody.groupadd = val;
+         if (action === 'set-privacy-online') setBody.online = val;
+         if (action === 'set-read-receipts') setBody.readreceipts = payload.active ? 'all' : 'none';
+          if (Object.keys(setBody).length === 0) return new Response(JSON.stringify({ error: 'Action not supported' }), { status: 400, headers: corsHeaders });
 
          const res = await fetch(withToken(`/instance/updatePrivacy/${inst}`), {
            method: 'POST',
