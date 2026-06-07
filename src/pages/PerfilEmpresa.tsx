@@ -1210,7 +1210,7 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
 const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiInstance[]; open: boolean; onOpenChange: (v: boolean) => void }) => {
   const { toast } = useToast();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [submitting, setSubmitting] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [productName, setProductName] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
@@ -1338,7 +1338,7 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
   const [description, setDescription] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) setSelectedIds(instances.map((i) => i.id));
