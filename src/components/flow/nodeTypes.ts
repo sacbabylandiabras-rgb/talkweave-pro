@@ -1,4 +1,5 @@
 // src/components/flow/nodeTypes.ts
+import type { NodeTypes } from "reactflow";
 import { BlocoInicialNode } from "./BlocoInicialNode";
 import { BlocoGatilhoNode } from "./BlocoGatilhoNode";
 import { BlocoGatewayTriggerNode } from "./BlocoGatewayTriggerNode";
@@ -17,7 +18,7 @@ import { BlocoAgentToolNode } from "./BlocoAgentToolNode";
  *    fluxos já salvos no banco;
  *  - chave curta (`inicio`, `conteudo`, …) usada em novos templates.
  */
-export const nodeTypes = {
+export const nodeTypes: NodeTypes = {
   // Legacy (chaves usadas pelos fluxos persistidos)
   blocoInicial: BlocoInicialNode,
   blocoGatilho: BlocoGatilhoNode,
