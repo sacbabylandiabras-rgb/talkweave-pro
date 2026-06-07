@@ -219,9 +219,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     color: "text-amber-500",
     mode: "contacts",
     nodes: [
-      baseInicial,
+      createInitialNode("rc-1"),
       {
-        id: "2",
+        id: "rc-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -231,7 +231,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "3",
+        id: "rc-3",
         type: "blocoAcao",
         position: { x: 250, y: 400 },
         data: {
@@ -241,7 +241,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
       {
-        id: "4",
+        id: "rc-4",
         type: "blocoConteudo",
         position: { x: 250, y: 580 },
         data: {
@@ -251,7 +251,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2"), edge("2", "3"), edge("3", "4")],
+    edges: [edge("rc-1", "rc-2"), edge("rc-2", "rc-3"), edge("rc-3", "rc-4")],
   },
   {
     id: "pos-venda",
