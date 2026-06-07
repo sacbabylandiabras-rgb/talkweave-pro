@@ -359,7 +359,7 @@ export const useAdminZapiInstances = (userId?: string) => {
 
    const updateInstance = async (instanceId: string, uid: string, updates: Partial<{
      instance_name: string; zapi_instance_id: string; zapi_token: string; zapi_client_token: string; is_default: boolean; is_active: boolean;
-       api_provider: 'zapi' | 'uazapi' | 'meta';
+       api_provider: 'zapi' | 'uazapi' | 'meta' | 'evolution';
        evolution_api_url: string;
        evolution_api_key: string;
          instance_type: 'web';
