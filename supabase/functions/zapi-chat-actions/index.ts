@@ -21,11 +21,9 @@ function formatErrorMessage(value: unknown, fallback = 'Erro ao processar solici
 async function resolveCreds(req: Request, instanceDbId?: string) {
   const auth = req.headers.get('authorization');
   if (!auth) throw new Error('Unauthorized');
-  const userClient = createClient(SUPABASE_URL, SERVICE_KEY, {
-    global: { headers: { Authorization: auth } },
-  });
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
-  const { data: { user }, error } = await userClient.auth.getUser();
+  const token = auth.replace(/^Bearer\s+/i, '');
+  const { data: { user }, error } = await admin.auth.getUser(token);
   if (error || !user) throw new Error('Unauthorized');
 
   const instanceSelect = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_type, evolution_api_url, evolution_api_key, instance_name';
