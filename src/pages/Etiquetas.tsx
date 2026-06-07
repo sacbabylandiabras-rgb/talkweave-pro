@@ -33,11 +33,11 @@ const formatErrorMessage = (value: unknown, fallback = "Não foi possível concl
 };
 
 const Etiquetas = () => {
-  const { instances: allInstances, loading: loadingInstances } = useZapiInstances({ provider: 'zapi' });
-   const instances = useMemo(
-     () => allInstances.filter((i: any) => (i.api_provider || 'zapi') === 'zapi' && !isMobileZapiInstance(i)),
-     [allInstances],
-   );
+  const { instances: allInstances, loading: loadingInstances } = useZapiInstances();
+  const instances = useMemo(
+    () => allInstances.filter((i: any) => !isMobileZapiInstance(i) && (i.api_provider === 'uazapi' || i.api_provider === 'zapi')),
+    [allInstances],
+  );
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
   const [tags, setTags] = useState<WhatsappTag[]>([]);
   const [tagColors, setTagColors] = useState<TagColor[]>([]);
