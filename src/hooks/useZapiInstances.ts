@@ -77,9 +77,8 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
       return provider === providerFilter.toLowerCase();
     }
 
-    // UAZAPI é reservada exclusivamente para a página de extração de membros.
-    // Em qualquer outra listagem (sem providerFilter explícito), ocultamos.
-    if (provider === 'uazapi') return false;
+    // UAZAPI agora é suportada globalmente.
+    // if (provider === 'uazapi') return false;
 
     // Garante que instâncias Meta passem se não houver filtro ou se o filtro for meta
     if (provider === 'meta') return true;
