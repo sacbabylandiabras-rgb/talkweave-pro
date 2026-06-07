@@ -1180,7 +1180,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <div className="space-y-2">
                  <Label>Visto por Último</Label>
                   <Select 
-                    value={String(privacySettings?.last || privacySettings?.lastSeen || '').toUpperCase() || undefined}
+                    value={(privacySettings?.last || privacySettings?.lastSeen) ? String(privacySettings.last || privacySettings.lastSeen).toUpperCase() : undefined}
                     onValueChange={(v) => updatePrivacyField('last', v.toLowerCase())} 
                     disabled={privacyLoading}
                   >
@@ -1196,7 +1196,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <div className="space-y-2">
                  <Label>Foto do Perfil</Label>
                   <Select 
-                    value={String(privacySettings?.profile || privacySettings?.profilePicture || '').toUpperCase() || undefined}
+                    value={(privacySettings?.profile || privacySettings?.profilePicture) ? String(privacySettings.profile || privacySettings.profilePicture).toUpperCase() : undefined}
                     onValueChange={(v) => updatePrivacyField('profile', v.toLowerCase())} 
                     disabled={privacyLoading}
                   >
@@ -1212,7 +1212,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <div className="space-y-2">
                  <Label>Recado (About)</Label>
                   <Select 
-                    value={String(privacySettings?.status || '').toUpperCase() || undefined}
+                    value={privacySettings?.status ? String(privacySettings.status).toUpperCase() : undefined}
                     onValueChange={(v) => updatePrivacyField('status', v.toLowerCase())} 
                     disabled={privacyLoading}
                   >
@@ -1228,7 +1228,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <div className="space-y-2">
                  <Label>Quem pode me adicionar a grupos</Label>
                   <Select 
-                    value={String(privacySettings?.groupadd || privacySettings?.groupsAdd || '').toUpperCase() || undefined}
+                    value={(privacySettings?.groupadd || privacySettings?.groupsAdd) ? String(privacySettings.groupadd || privacySettings.groupsAdd).toUpperCase() : undefined}
                     onValueChange={(v) => updatePrivacyField('groupadd', v.toLowerCase())} 
                     disabled={privacyLoading}
                   >
@@ -1243,7 +1243,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                <div className="space-y-2">
                  <Label>Online</Label>
                   <Select 
-                    value={String(privacySettings?.online || '').toUpperCase() || undefined}
+                    value={privacySettings?.online ? String(privacySettings.online).toUpperCase() : undefined}
                     onValueChange={(v) => updatePrivacyField('online', v.toLowerCase())} 
                     disabled={privacyLoading}
                   >
