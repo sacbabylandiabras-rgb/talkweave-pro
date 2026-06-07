@@ -289,7 +289,11 @@ const savedContactsApi = {
           Range: `${from}-${from + pageSize - 1}`,
         },
       });
-      if (!res.ok) break;
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error(`[savedContactsApi] fetch failed status=${res.status}:`, errText);
+        break;
+      }
       const batch = await res.json();
       if (!Array.isArray(batch) || batch.length === 0) break;
       allContacts.push(...batch);
