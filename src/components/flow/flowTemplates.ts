@@ -412,9 +412,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     color: "text-emerald-500",
     mode: "groups",
     nodes: [
-      baseInicial,
+      createInitialNode("le-1"),
       {
-        id: "2",
+        id: "le-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -424,7 +424,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2")],
+    edges: [edge("le-1", "le-2")],
   },
   {
     id: "enquete-grupo",
@@ -434,9 +434,9 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     color: "text-pink-500",
     mode: "groups",
     nodes: [
-      baseInicial,
+      createInitialNode("eg-1"),
       {
-        id: "2",
+        id: "eg-2",
         type: "blocoConteudo",
         position: { x: 250, y: 220 },
         data: {
@@ -451,7 +451,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         },
       },
     ],
-    edges: [edge("1", "2")],
+    edges: [edge("eg-1", "eg-2")],
   },
 ];
 
