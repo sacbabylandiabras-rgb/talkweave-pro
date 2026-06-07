@@ -549,7 +549,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
          try {
            // Try /instance/status first (it's what get-device-status uses and is often more reliable)
            const res = await fetch(`${apiUrl}/instance/status/${instance.instance_name || instance.zapi_instance_id}?token=${encodeURIComponent(apiToken)}`, {
-             headers: { "Content-Type": "application/json", "token": apiToken, "Authorization": `Bearer ${apiToken}` }
+             headers: { "Content-Type": "application/json", "token": apiToken, "Authorization": `Bearer ${apiToken}`, "apikey": apiToken }
            });
            
            if (res.ok) {
