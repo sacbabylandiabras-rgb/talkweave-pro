@@ -115,19 +115,26 @@ Deno.serve(async (req) => {
 
       if (action.startsWith('set-')) {
          const body: any = {};
-         if (action === 'set-last-seen') body.lastSeen = payload.visualizationType;
-         if (action === 'set-photo-visualization') body.profilePicture = payload.visualizationType;
-         if (action === 'set-privacy-description') body.status = payload.visualizationType;
-         if (action === 'set-group-add-permission') body.groupsAdd = payload.visualizationType;
-         if (action === 'set-read-receipts') body.readReceipts = payload.active ? 'all' : 'none';
-         if (action === 'set-messages-duration') body.disappearingMessages = String(payload.duration);
+         const val = String(payload.visualizationType || '').toLowerCase();
+
+         if (action === 'set-last-seen') body.last = val;
+         if (action === 'set-photo-visualization') body.profile = val;
+         if (action === 'set-privacy-description') body.status = val;
+         if (action === 'set-group-add-permission') body.groupadd = val;
+         if (action === 'set-privacy-online') body.online = val;
+         if (action === 'set-read-receipts') body.readreceipts = payload.active ? 'all' : 'none';
+         if (action === 'set-messages-duration') body.disappearing = String(payload.duration);
 
          const res = await fetch(withToken('/instance/privacy'), {
            method: 'POST',
            headers: { 'Content-Type': 'application/json', token: apiToken },
            body: JSON.stringify(body) 
          });
-         return new Response(JSON.stringify(await res.json()), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+         const data = await res.json();
+         if (!res.ok) {
+           return new Response(JSON.stringify({ error: data.message || 'Erro ao atualizar' }), { status: res.status, headers: corsHeaders });
+         }
+         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       
       return new Response(JSON.stringify({ error: 'Action not supported for this provider' }), { status: 400, headers: corsHeaders });
