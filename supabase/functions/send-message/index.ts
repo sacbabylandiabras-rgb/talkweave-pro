@@ -1135,6 +1135,18 @@ serve(async (req) => {
         zapiResponse = await fetch(`${baseUrl}/send-button-actions`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken }, body: JSON.stringify({ phone: resolvedPhone, message: message || title, ...(footer ? { footer } : {}), buttonActions: [{ id: '1', type: 'URL', label: buttonLabel, url: mapsUrl }] }) });
         logMessage = `📍 ${title} (com botão)`;
         zapiData = await parseZapiResponse(zapiResponse, resolvedPhone, instanceId, 'location-button');
+      } else if (specialType === 'call' && isUazapi) {
+        // UAZAPI specific call endpoint: https://docs.uazapi.com/endpoint/post/call~make
+        const res = await fetch(`${baseUrl}/call/make`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'token': token },
+          body: JSON.stringify({ number: resolvedPhone }),
+        });
+        zapiData = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Response(JSON.stringify({ error: zapiData?.message || 'Erro ao realizar ligação na UAZAPI', details: zapiData }), { status: res.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        logMessage = `📞 Ligação iniciada via UAZAPI`;
       } else if (specialType === 'request_payment' && specialPayload) {
         const pixBody: Record<string, unknown> = { phone: resolvedPhone, pixKey: specialPayload.pixKey || '', type: String(specialPayload.pixKeyType || 'cpf').toUpperCase(), merchantName: specialPayload.merchantName || specialPayload.recipientName || '' };
         if (specialPayload.amount) pixBody.value = Number(String(specialPayload.amount).replace(',', '.')) || 0;

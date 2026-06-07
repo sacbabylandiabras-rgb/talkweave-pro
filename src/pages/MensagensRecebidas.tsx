@@ -1499,7 +1499,19 @@ const ChatView = (props: ChatViewProps) => {
                       Para conversar por voz, é necessário configurar um ramal (Zoiper/MicroSIP).
                     </p>
                   </div>
-                </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground uppercase">Ligação UAZAPI</Label>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-[11px] h-8 gap-1.5 border-green-200 hover:bg-green-50 px-2"
+                      onClick={() => conversation && onSendMessage(conversation.phone, "", { specialType: "call", specialPayload: { type: "call" } })}
+                      title="Realizar ligação via UAZAPI"
+                    >
+                      <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />
+                      Ligar (UAZAPI)
+                    </Button>
+                  </div>
                 <Button
                   variant="ghost"
                   className="w-full justify-start text-sm h-9 gap-2"
