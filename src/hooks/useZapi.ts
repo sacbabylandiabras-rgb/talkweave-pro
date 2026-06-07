@@ -1481,8 +1481,8 @@ const getZAPIConfig = async () => {
   const addAdmin = (payload: { phone: string, participantPhone: string }) => invokeGroupAction('add-admin', payload);
   const removeAdmin = (payload: { phone: string, participantPhone: string }) => invokeGroupAction('remove-admin', payload);
   const leaveGroup = (payload: { phone: string }) => invokeGroupAction('leave-group', payload);
-  const getGroupMetadata = (phone: string) => invokeGroupAction('metadata-group', null, phone);
-  const getLightGroupMetadata = (phone: string) => invokeGroupAction('light-group-metadata', null, phone);
+  const getGroupMetadata = (phone: string) => invokeGroupAction('get-group-info', null, phone);
+  const getLightGroupMetadata = (phone: string) => invokeGroupAction('get-group-info', null, phone);
   const getGroupInvitationMetadata = (inviteUrl: string) => invokeGroupAction('group-invitation-metadata', { inviteUrl });
   const updateGroupSettings = (payload: { phone: string, editGroup?: boolean, sendMessage?: boolean }) => invokeGroupAction('update-group-settings', payload);
   const updateGroupDescription = (payload: { phone: string, description: string }) => invokeGroupAction('update-group-description', payload);
