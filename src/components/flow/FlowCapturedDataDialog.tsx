@@ -64,7 +64,10 @@ export default function FlowCapturedDataDialog({ open, onOpenChange, flowId, flo
       if (flowId) query = query.eq("flow_id", flowId);
       const { data, error } = await query;
       if (error) throw error;
-      setRows((data || []) as unknown as CapturedRow[]);
+      if (data != null && !Array.isArray(data)) {
+        throw new Error("Formato de dados inesperado");
+      }
+      setRows((data ?? []) as unknown as CapturedRow[]);
     } catch (e: any) {
       toast.error(e.message || "Erro ao carregar dados capturados");
     } finally {
