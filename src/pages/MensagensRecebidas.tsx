@@ -1424,7 +1424,7 @@ const ChatView = (props: ChatViewProps) => {
           </div>
           <div className="flex items-center gap-2">
             <p className="text-xs text-muted-foreground">
-              {conversation.contactName ? formatPhone(conversation.phone) : `${conversation.messages.length} mensagens`}
+              {conversation.contactName ? (conversation.phone.includes("-") && !conversation.phone.startsWith("+") ? conversation.phone : formatPhone(conversation.phone)) : `${conversation.messages.length} mensagens`}
             </p>
             {conversation.messages.some((m) => (m as any).tags?.length > 0) && (
               <div className="flex gap-1 flex-wrap">
