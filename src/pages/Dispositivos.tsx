@@ -1008,9 +1008,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             <Badge variant={isOnline ? 'default' : 'secondary'} className="text-[10px]">
               {isOnline ? 'Online' : 'Offline'}
             </Badge>
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={() => setShowSettings(true)}>
-              <Edit2 className="w-3.5 h-3.5" />
-            </Button>
+            {(instance.api_provider === 'zapi' || !instance.api_provider) && (
+              <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={() => setShowSettings(true)}>
+                <Edit2 className="w-3.5 h-3.5" />
+              </Button>
+            )}
           </div>
         </div>
 
@@ -1361,14 +1363,16 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label className="text-xs uppercase text-muted-foreground font-semibold">Instance ID</Label>
-              <Input 
-                value={editForm.zapi_instance_id} 
-                onChange={(e) => setEditForm({...editForm, zapi_instance_id: e.target.value})}
-                placeholder="Ex: 3F32C5..."
-              />
-            </div>
+            {(instance.api_provider === 'zapi' || !instance.api_provider) && (
+              <div className="space-y-2">
+                <Label className="text-xs uppercase text-muted-foreground font-semibold">Instance ID</Label>
+                <Input 
+                  value={editForm.zapi_instance_id} 
+                  onChange={(e) => setEditForm({...editForm, zapi_instance_id: e.target.value})}
+                  placeholder="Ex: 3F32C5..."
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label className="text-xs uppercase text-muted-foreground font-semibold">Instance Token</Label>
               <Input 
@@ -1387,7 +1391,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                 type="password"
               />
               <p className="text-[10px] text-muted-foreground">
-                Este token é encontrado na aba "Segurança" dentro do painel Z-API. É o "Account Security Token".
+                Este token é encontrado nas configurações de segurança do seu provedor.
               </p>
             </div>
             <div className="flex justify-end gap-2 pt-2">
