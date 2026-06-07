@@ -281,7 +281,7 @@ const savedContactsApi = {
     let from = 0;
     let hasMore = true;
     while (hasMore && allContacts.length < 25000) {
-      const res = await fetch(`${supabaseUrl}/rest/v1/saved_contacts?select=phone,name,profile_picture_url,updated_at,is_community,agent_stage,pipeline_id&order=phone.asc`, {
+      const res = await fetch(`${supabaseUrl}/rest/v1/saved_contacts?select=phone,name,profile_picture_url,updated_at,is_community&order=phone.asc`, {
         headers: {
           apikey: supabaseKey,
           Authorization: `Bearer ${token}`,
@@ -289,7 +289,11 @@ const savedContactsApi = {
           Range: `${from}-${from + pageSize - 1}`,
         },
       });
-      if (!res.ok) break;
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error(`[savedContactsApi] fetch failed status=${res.status}:`, errText);
+        break;
+      }
       const batch = await res.json();
       if (!Array.isArray(batch) || batch.length === 0) break;
       allContacts.push(...batch);
