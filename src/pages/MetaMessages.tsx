@@ -1290,7 +1290,7 @@ const ChatView = ({
                       <div className="flex justify-start gap-2 items-end">
                         {isGroupPhone(conversation.phone) && (
                           <Avatar className="w-8 h-8 shrink-0 border border-border overflow-hidden bg-muted flex items-center justify-center">
-                            {senderPhoto && <AvatarImage src={senderPhoto} className="object-cover" />}
+                            {getHttpAvatarUrl(senderPhoto) && <AvatarImage src={getHttpAvatarUrl(senderPhoto)!} className="object-cover" />}
                             <AvatarFallback className="text-[10px] font-semibold">
                               {(msg.sender_name || msg.sender_phone || '?').replace(/[^A-Za-zÀ-ú0-9]/g, '').slice(0, 2).toUpperCase() || '?'}
                             </AvatarFallback>
