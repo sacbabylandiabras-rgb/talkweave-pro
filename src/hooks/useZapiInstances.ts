@@ -27,6 +27,8 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export const isMobileZapiInstance = (instance: Pick<ZapiInstance, 'instance_name' | 'instance_type'>) => {
   const type = String(instance.instance_type || '').trim().toLowerCase();
   const name = String(instance.instance_name || '').trim().toLowerCase();
+  const isWarmup = provider.includes('warmup') || name.includes('aquecimento') || name.includes('warmup');
+  if (isWarmup) return false;
   return type === 'mobile' || /^mobile\b/.test(name);
 };
 
