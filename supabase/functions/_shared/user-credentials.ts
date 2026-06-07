@@ -14,7 +14,8 @@ const isWhatsAppInstance = (instance: any) => {
   const provider = String(instance?.api_provider || 'zapi').toLowerCase();
   const type = String(instance?.instance_type || '').toLowerCase();
   const name = String(instance?.instance_name || '').toLowerCase();
-  return (provider === 'uazapi' || provider === 'uazapi_warmup') && type !== 'mobile' && !name.includes('mobile');
+  const hasCurrentCredentials = Boolean(instance?.evolution_api_url && instance?.zapi_token);
+  return (provider === 'uazapi' || provider === 'uazapi_warmup') && hasCurrentCredentials && type !== 'mobile' && !name.includes('mobile');
 };
 
 export async function getUserZAPICredentials(
@@ -45,7 +46,8 @@ export async function getUserZAPICredentials(
     .eq('user_id', user.id)
     .eq('is_active', true)
     .in('api_provider', ['uazapi', 'uazapi_warmup'])
-    .order('is_default', { ascending: false });
+    .order('is_default', { ascending: false })
+    .order('updated_at', { ascending: false });
 
   const zapi = zapiInstances?.find(isWhatsAppInstance);
   
