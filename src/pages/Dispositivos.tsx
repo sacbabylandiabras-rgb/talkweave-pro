@@ -2720,11 +2720,11 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
 };
 
 const Dispositivos = () => {
-  const { instances: allInstances, loading, refetch } = useZapiInstances({ provider: 'zapi' });
-    // Exibir apenas instâncias de uso (Z-API Web), ocultando legados Mobile
+  const { instances: allInstances, loading, refetch } = useZapiInstances();
+    // Exibir apenas instâncias de uso (Z-API/UAZAPI Web), ocultando legados Mobile
     const instances = useMemo(() => {
       return allInstances.filter(
-         (i) => (i.api_provider || 'zapi') === 'zapi' && !isMobileZapiInstance(i)
+         (i) => (i.api_provider === 'zapi' || i.api_provider === 'uazapi' || !i.api_provider) && !isMobileZapiInstance(i)
       );
     }, [allInstances]);
 

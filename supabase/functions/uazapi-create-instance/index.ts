@@ -89,7 +89,11 @@ serve(async (req: Request) => {
           instance_name: instanceName,
           zapi_instance_id: data.name || instanceName,
           zapi_token: data.token,
-          zapi_client_token: adminToken, // Ou o que for necessário para autenticar chamadas futuras
+          zapi_client_token: data.token,
+          api_provider: 'uazapi',
+          evolution_api_url: apiUrl,
+          instance_type: 'web',
+          is_active: true,
           status: "disconnected"
         });
       
