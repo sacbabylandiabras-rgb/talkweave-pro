@@ -185,11 +185,22 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'list-products') {
-        const jid = payload?.phone 
-          ? (String(payload.phone).includes('@') ? payload.phone : `${String(payload.phone).replace(/\D/g, '')}@s.whatsapp.net`)
-          : (creds.owner ? (String(creds.owner).includes('@') ? creds.owner : `${String(creds.owner).replace(/\D/g, '')}@s.whatsapp.net`) : null);
-        
-        if (!jid) return new Response(JSON.stringify({ error: 'JID do proprietário não encontrado' }), { status: 400, headers: corsHeaders });
+        let jid: string | null = null;
+        if (payload?.phone) {
+          jid = String(payload.phone).includes('@') ? payload.phone : `${String(payload.phone).replace(/\D/g, '')}@s.whatsapp.net`;
+        } else {
+          // Buscar owner via /instance/status
+          try {
+            const statusRes = await fetch(`${apiUrl}/instance/status`, { headers: { token: apiToken } });
+            const statusRaw = await statusRes.json().catch(() => ({}));
+            const owner = statusRaw?.instance?.owner;
+            if (owner) {
+              jid = String(owner).includes('@') ? String(owner) : `${String(owner).replace(/\D/g, '')}@s.whatsapp.net`;
+            }
+          } catch (_) {}
+        }
+
+        if (!jid) return new Response(JSON.stringify({ error: 'Conexão não está ativa ou número não identificado. Verifique se o WhatsApp está conectado.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
         const res = await fetch(`${apiUrl}/business/catalog/list`, {
           method: 'POST',
@@ -197,6 +208,10 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ jid }),
         });
         const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao carregar catálogo' }), { status: res.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
         
         // Map UAZAPI catalog list response to match frontend expectations
         const rawProducts = data?.response || data?.data || [];
