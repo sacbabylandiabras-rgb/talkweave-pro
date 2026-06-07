@@ -1152,7 +1152,8 @@ serve(async (req) => {
         
         const callBody = { 
           number: cleanNumber,
-          call_duration: duration
+          call_duration: duration,
+          type: "audio"
         };
 
         console.log(`📤 UAZAPI Call Request: ${baseUrl}/call/make | Headers: ${JSON.stringify({ ...callHeaders, token: '***' })} | Body: ${JSON.stringify(callBody)}`);
