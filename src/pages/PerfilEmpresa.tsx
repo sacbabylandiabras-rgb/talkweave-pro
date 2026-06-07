@@ -1292,6 +1292,9 @@ const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiI
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+
 
   useEffect(() => {
     if (open) setSelectedIds(instances.map((i) => i.id));
@@ -1301,21 +1304,33 @@ const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiI
   const toggleAll = () => setSelectedIds(allSelected ? [] : instances.map((i) => i.id));
   const toggleOne = (id: string) => setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async () => {
-    if (!productName.trim() || !mediaUrl.trim()) {
-      toast({ title: "Nome e URL da Imagem são obrigatórios", variant: "destructive" });
+    if (!productName.trim() || (!mediaUrl.trim() && !previewUrl)) {
+      toast({ title: "Nome e Imagem são obrigatórios", variant: "destructive" });
       return;
     }
     const targets = instances.filter((i) => selectedIds.includes(i.id));
     setSubmitting(true);
     let success = 0;
+    const finalMedia = previewUrl || mediaUrl.trim();
     for (const inst of targets) {
       try {
         const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
           body: {
             action: "create-product-v2",
             instanceDbId: inst.id,
-            payload: { name: productName.trim(), price: Number(price) || 0, description: description.trim(), mediaUrl: mediaUrl.trim(), currency: "BRL" },
+            payload: { name: productName.trim(), price: Number(price) || 0, description: description.trim(), mediaUrl: finalMedia, currency: "BRL" },
           },
         });
         if (!error && !(data as any)?.error) success++;
@@ -1323,8 +1338,14 @@ const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiI
     }
     setSubmitting(false);
     toast({ title: success > 0 ? "✅ Produto criado" : "❌ Erro", description: `Produto criado em ${success} instância(s)` });
-    if (success > 0) onOpenChange(false);
+    if (success > 0) {
+      setPreviewUrl("");
+      setImageFile(null);
+      setMediaUrl("");
+      onOpenChange(false);
+    }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1354,10 +1375,67 @@ const BulkCreateProduct = ({ instances, open, onOpenChange }: { instances: ZapiI
             <Input type="number" placeholder="Preço" value={price} onChange={(e) => setPrice(e.target.value)} />
           </div>
           <Textarea placeholder="Descrição..." value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
-          <Input placeholder="URL da Imagem" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} />
+          
+          <div className="space-y-3">
+            <Label>Imagem do Produto</Label>
+            <div className="flex items-center gap-4 border p-3 rounded-lg bg-muted/10">
+              {previewUrl ? (
+                <div className="relative w-16 h-16 rounded-md overflow-hidden border">
+                  <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                  <button 
+                    onClick={() => { setPreviewUrl(""); setImageFile(null); }}
+                    className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="w-4 h-4 text-white" />
+                  </button>
+                </div>
+              ) : (
+                <div className="w-16 h-16 rounded-md bg-muted flex items-center justify-center border border-dashed">
+                  <ImageIcon className="w-6 h-6 text-muted-foreground/30" />
+                </div>
+              )}
+              
+              <div className="flex-1 space-y-2">
+                <div className="flex gap-2">
+                  <Input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleFileChange} 
+                    className="hidden" 
+                    id="bulk-product-img"
+                    disabled={submitting}
+                  />
+                  <Button 
+                    asChild 
+                    variant="outline" 
+                    size="sm"
+                    className="flex-1 cursor-pointer"
+                    disabled={submitting}
+                  >
+                    <label htmlFor="bulk-product-img">
+                      <Upload className="w-3 h-3 mr-2" />
+                      Upar Foto
+                    </label>
+                  </Button>
+                </div>
+                {!previewUrl && (
+                  <Input 
+                    placeholder="Ou cole a URL da imagem..." 
+                    value={mediaUrl} 
+                    onChange={(e) => setMediaUrl(e.target.value)} 
+                    disabled={submitting}
+                    className="h-8 text-xs"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+
           <Button onClick={handleSubmit} disabled={submitting || selectedIds.length === 0} className="w-full">
-            {submitting ? <Loader2 className="animate-spin" /> : "Criar Produto"}
+            {submitting ? <Loader2 className="animate-spin mr-2" /> : <PlusCircle className="w-4 h-4 mr-2" />}
+            Criar Produto
           </Button>
+
         </div>
       </DialogContent>
     </Dialog>
