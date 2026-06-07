@@ -333,6 +333,164 @@ Deno.serve(async (req) => {
          return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
+      if (action === 'delete-chat') {
+        const res = await fetch(withToken(`/chat/delete/${inst}`), {
+          method: 'POST',
+          headers: evolutionHeaders,
+          body: JSON.stringify({ number: phone?.replace(/\D/g, '') || payload?.number?.replace(/\D/g, '') }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao deletar conversa' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'archive-chat') {
+        const res = await fetch(withToken(`/chat/archive/${inst}`), {
+          method: 'POST',
+          headers: evolutionHeaders,
+          body: JSON.stringify({ 
+            number: phone?.replace(/\D/g, '') || payload?.number?.replace(/\D/g, ''),
+            archive: payload?.archive ?? true
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao arquivar conversa' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'read-chat') {
+        const res = await fetch(withToken(`/chat/read/${inst}`), {
+          method: 'POST',
+          headers: evolutionHeaders,
+          body: JSON.stringify({ number: phone?.replace(/\D/g, '') || payload?.number?.replace(/\D/g, '') }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao marcar como lida' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'mute-chat') {
+        const res = await fetch(withToken(`/chat/mute/${inst}`), {
+          method: 'POST',
+          headers: evolutionHeaders,
+          body: JSON.stringify({ 
+            number: phone?.replace(/\D/g, '') || payload?.number?.replace(/\D/g, ''),
+            mute: payload?.mute ?? true,
+            duration: payload?.duration ?? 86400
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao silenciar conversa' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'pin-chat') {
+        const res = await fetch(withToken(`/chat/pin/${inst}`), {
+          method: 'POST',
+          headers: evolutionHeaders,
+          body: JSON.stringify({ 
+            number: phone?.replace(/\D/g, '') || payload?.number?.replace(/\D/g, ''),
+            pin: payload?.pin ?? true
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao fixar conversa' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'set-ephemeral') {
+        const res = await fetch(withToken(`/chat/ephemeral/${inst}`), {
+          method: 'POST',
+          headers: evolutionHeaders,
+          body: JSON.stringify({ 
+            number: phone?.replace(/\D/g, '') || payload?.number?.replace(/\D/g, ''),
+            expiration: payload?.duration || payload?.expiration || 0
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao definir mensagens efêmeras' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'get-chat-notes') {
+        const res = await fetch(withToken(`/chat/notes/${inst}`), {
+          method: 'POST',
+          headers: evolutionHeaders,
+          body: JSON.stringify({ number: phone?.replace(/\D/g, '') || payload?.number?.replace(/\D/g, '') }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao buscar notas' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'edit-chat-notes') {
+        const res = await fetch(withToken(`/chat/notes/edit/${inst}`), {
+          method: 'POST',
+          headers: evolutionHeaders,
+          body: JSON.stringify({ 
+            number: phone?.replace(/\D/g, '') || payload?.number?.replace(/\D/g, ''),
+            notes: payload?.notes || ''
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao editar notas' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'get-group-info') {
+        const res = await fetch(withToken(`/group/info/${inst}`), {
+          method: 'POST',
+          headers: evolutionHeaders,
+          body: JSON.stringify({ groupJid: phone || payload?.jid }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao buscar info do grupo' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'leave-group') {
+        const res = await fetch(withToken(`/group/leave/${inst}`), {
+          method: 'POST',
+          headers: evolutionHeaders,
+          body: JSON.stringify({ groupJid: phone || payload?.jid }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao sair do grupo' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'list-groups') {
+        const res = await fetch(withToken(`/group/list/${inst}`), {
+          method: 'GET',
+          headers: evolutionHeaders,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao listar grupos' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'edit-lead') {
+        const res = await fetch(withToken(`/chat/editLead/${inst}`), {
+          method: 'POST',
+          headers: evolutionHeaders,
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao editar lead' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'update-fields-map') {
+        const res = await fetch(withToken(`/instance/updateFieldsMap/${inst}`), {
+          method: 'POST',
+          headers: evolutionHeaders,
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao atualizar mapeamento de campos' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
       // skip send-call-v1 (already handled)
 
       if (action === 'send-call') {
