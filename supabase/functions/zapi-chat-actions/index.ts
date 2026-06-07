@@ -344,6 +344,22 @@ Deno.serve(async (req) => {
       if (action === 'save-privacy') {
         const body: any = {};
         const lc = (v: any) => (v === undefined || v === null || v === '') ? undefined : String(v).toLowerCase();
+
+      if (action === 'get-chat-details') {
+        const jid = payload?.phone || payload?.jid || '';
+        const number = jid.includes('@') ? jid.split('@')[0] : jid.replace(/\D/g, '');
+        const res = await fetch(`${apiUrl}/chat/details`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify({ number, preview: payload?.preview ?? false }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao buscar detalhes do chat' }), { status: res.status, headers: corsHeaders });
+        }
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
         if (payload.last !== undefined) body.last = lc(payload.last);
         if (payload.profile !== undefined) body.profile = lc(payload.profile);
         if (payload.status !== undefined) body.status = lc(payload.status);
