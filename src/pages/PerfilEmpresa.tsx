@@ -1153,9 +1153,27 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
     updateAllInstances("name", profileName.trim()).then(() => setProfileName(""));
   };
 
-  const handleUpdatePictureUrl = () => {
-    if (!imageUrl.trim()) return;
-    updateAllInstances("picture", imageUrl.trim()).then(() => setImageUrl(""));
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUpdatePicture = async () => {
+    if (previewUrl) {
+      await updateAllInstances("picture", previewUrl);
+      setImageFile(null);
+      setPreviewUrl("");
+      setImageUrl("");
+    } else if (imageUrl.trim()) {
+      await updateAllInstances("picture", imageUrl.trim());
+      setImageUrl("");
+    }
   };
 
   return (
@@ -1195,17 +1213,74 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
             </div>
           </div>
           <div className="space-y-3">
-            <Label>Foto de Perfil (URL)</Label>
-            <div className="flex gap-2">
-              <Input type="url" placeholder="https://exemplo.com/foto.jpg" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} disabled={updating} />
-              <Button onClick={handleUpdatePictureUrl} disabled={updating || !imageUrl.trim() || selectedIds.length === 0}>
-                {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar Foto"}
-              </Button>
+            <Label>Foto de Perfil</Label>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                {previewUrl ? (
+                  <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-primary/20">
+                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                    <button 
+                      onClick={() => { setPreviewUrl(""); setImageFile(null); }}
+                      className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="w-5 h-5 text-white" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center border-2 border-dashed border-muted-foreground/20">
+                    <ImageIcon className="w-8 h-8 text-muted-foreground/40" />
+                  </div>
+                )}
+                <div className="flex-1 space-y-2">
+                  <div className="flex gap-2">
+                    <Input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleFileChange} 
+                      className="hidden" 
+                      id="bulk-profile-pic"
+                      disabled={updating}
+                    />
+                    <Button 
+                      asChild 
+                      variant="outline" 
+                      className="flex-1 cursor-pointer"
+                      disabled={updating}
+                    >
+                      <label htmlFor="bulk-profile-pic">
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upar Foto
+                      </label>
+                    </Button>
+                    <Button 
+                      onClick={handleUpdatePicture} 
+                      disabled={updating || (!previewUrl && !imageUrl.trim()) || selectedIds.length === 0}
+                      className="flex-1"
+                    >
+                      {updating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                      {previewUrl ? "Salvar Foto" : "Aplicar"}
+                    </Button>
+                  </div>
+                  {!previewUrl && (
+                    <div className="flex gap-2">
+                      <Input 
+                        type="url" 
+                        placeholder="Ou cole a URL da imagem aqui..." 
+                        value={imageUrl} 
+                        onChange={(e) => setImageUrl(e.target.value)} 
+                        disabled={updating} 
+                        className="text-xs"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </DialogContent>
     </Dialog>
+
   );
 };
 

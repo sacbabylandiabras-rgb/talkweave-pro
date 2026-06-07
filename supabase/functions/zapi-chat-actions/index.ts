@@ -195,8 +195,27 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'company-status' || action === 'update-profile-status') {
-        return new Response(JSON.stringify({ error: 'Atualização de recado não suportada por esta conexão' }), { status: 400, headers: corsHeaders });
+        const res = await fetch(`${apiUrl}/profile/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify({ status: payload?.status ?? payload?.description ?? '' }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao atualizar recado' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
+
+      if (action === 'update-profile-image' || action === 'company-image') {
+        const res = await fetch(`${apiUrl}/profile/image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', token: apiToken },
+          body: JSON.stringify({ image: payload?.image || payload?.url || payload?.value || '' }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return new Response(JSON.stringify({ error: formatErrorMessage(data) || 'Erro ao atualizar imagem' }), { status: res.status, headers: corsHeaders });
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
 
       if (action.startsWith('set-')) {
          const body: any = {};
