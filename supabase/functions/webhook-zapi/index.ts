@@ -87,6 +87,35 @@ function getConnectedPhone(webhook: any): string {
   return onlyDigits(webhook?.connectedPhone || webhook?.connected_phone || webhook?.ownerPhone || webhook?.me?.phone || webhook?.phoneConnected);
 }
 
+function normalizeBoolean(value: unknown): boolean {
+  return value === true || String(value || "").toLowerCase() === "true";
+}
+
+async function resolveWebhookInstance(supabase: any, instanceRef: string, authToken: string) {
+  const select = "id, user_id, zapi_instance_id, zapi_token, zapi_client_token, updated_at, api_provider, instance_name, evolution_api_url";
+  if (instanceRef && /^[\w .:@-]+$/.test(instanceRef)) {
+    const { data } = await supabase
+      .from("zapi_instances")
+      .select(select)
+      .or(`zapi_instance_id.eq.${instanceRef},id.eq.${instanceRef},instance_name.eq.${instanceRef}`)
+      .order("is_active", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data) return data;
+  }
+  if (!authToken) return null;
+  const { data } = await supabase
+    .from("zapi_instances")
+    .select(select)
+    .or(`zapi_token.eq.${authToken},evolution_api_key.eq.${authToken}`)
+    .order("is_active", { ascending: false })
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data || null;
+}
+
 function isOwnConnectedChat(webhook: any, phone: string, chatId: string, senderPhone: string): boolean {
   const connectedPhone = getConnectedPhone(webhook);
   if (!connectedPhone) return false;
@@ -97,8 +126,13 @@ function isOwnConnectedChat(webhook: any, phone: string, chatId: string, senderP
 function isStatusOnlyCallback(type: string, webhook: any, messageRaw: string, mediaUrl: string): boolean {
   const statusOnlyTypes = new Set(["DeliveryCallback", "MessageStatusCallback", "StatusCallback", "MessageStatus"]);
   if (statusOnlyTypes.has(type)) return true;
+  const lowerType = String(type || "").toLowerCase();
   const hasInboundContent = Boolean(normalizeForMatch(messageRaw) || mediaUrl);
-  return !hasInboundContent && (Array.isArray(webhook?.ids) || Boolean(webhook?.messageId && webhook?.zaapId));
+  if (hasInboundContent) return false;
+  if (lowerType.includes("messages_update") || lowerType.includes("message_update") || lowerType.includes("status")) return true;
+  const hasMessageReference = Boolean(webhook?.messageId || webhook?.messageid || webhook?.zaapId || webhook?.id || Array.isArray(webhook?.ids));
+  const hasDeliveryStatus = Boolean(webhook?.status || webhook?.messageStatus || webhook?.ack || webhook?.deliveryStatus);
+  return hasMessageReference && hasDeliveryStatus;
 }
 
 function resolveFlowStartNodeId(flow: any, triggerNode: any): string | undefined {
@@ -399,9 +433,10 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, results }), { status: 200, headers: corsHeaders });
     }
 
-    const isGroup = webhook?.isGroup === true || webhook?.isGroup === "true";
-    const participantPhone = webhook?.participantPhone || webhook?.participant || webhook?.senderPhone || webhook?.sender?.phone || "";
-    let chatId = webhook?.phone || webhook?.chatPhone || "";
+    const messagePayload = webhook?.message || webhook?.msg || webhook?.data?.message || webhook;
+    const isGroup = normalizeBoolean(webhook?.isGroup ?? messagePayload?.isGroup) || String(messagePayload?.chatid || webhook?.phone || webhook?.chatPhone || "").includes("@g.us");
+    const participantPhone = webhook?.participantPhone || webhook?.participant || webhook?.senderPhone || webhook?.sender?.phone || messagePayload?.sender || "";
+    let chatId = webhook?.phone || webhook?.chatPhone || messagePayload?.chatid || "";
 
     if (isGroup || chatId.includes("@g.us")) {
       const rawId = chatId.replace(/@g\.us$/i, "").replace(/-group$/i, "");
@@ -413,9 +448,12 @@ serve(async (req) => {
     const phone = chatId; 
     const actorPhone = isGroup && participantPhone ? participantPhone : chatId;
     
-    const instanceId = webhook?.instanceId || "";
-    const type = webhook?.type || webhook?.notification || (webhook?.buttonsResponseMessage || webhook?.buttonReply ? "ButtonsResponseMessage" : "");
-    const messageId = webhook?.messageId || (webhook?.ids && webhook.ids[0]) || "";
+    const rawInstanceId = webhook?.instanceId || webhook?.instanceid || webhook?.InstanceID || webhook?.instance?.id || webhook?.instance?.name || webhook?.instanceName || webhook?.instance || "";
+    const authToken = req.headers.get("token") || req.headers.get("apikey") || String(webhook?.token || "");
+    const type = webhook?.type || webhook?.notification || webhook?.EventType || webhook?.event || (webhook?.buttonsResponseMessage || webhook?.buttonReply ? "ButtonsResponseMessage" : "");
+    const messageId = webhook?.messageId || webhook?.messageid || messagePayload?.messageid || (webhook?.ids && webhook.ids[0]) || "";
+    const instanceData = await resolveWebhookInstance(supabase, String(rawInstanceId || ""), authToken);
+    const instanceId = instanceData?.zapi_instance_id || String(rawInstanceId || "");
 
     if (["PresenceChatCallback", "PresenceCallback", "ChatPresenceCallback"].includes(type) || ["AVAILABLE", "UNAVAILABLE", "COMPOSING", "RECORDING"].includes(webhook?.status)) {
       return new Response("ok", { status: 200, headers: corsHeaders });
@@ -455,8 +493,7 @@ serve(async (req) => {
       }
     }
 
-    const fromMe = webhook?.fromMe === true || webhook?.fromMe === "true" || webhook?.fromApi === true || webhook?.fromApi === "true";
-    const { data: instanceData } = await supabase.from("zapi_instances").select("id, user_id, zapi_instance_id, zapi_token, zapi_client_token, updated_at, api_provider, instance_name, evolution_api_url").or(`zapi_instance_id.eq.${instanceId},id.eq.${instanceId}`).maybeSingle();
+    const fromMe = normalizeBoolean(webhook?.fromMe ?? messagePayload?.fromMe) || normalizeBoolean(webhook?.fromApi ?? messagePayload?.wasSentByApi);
     const userId = instanceData?.user_id;
 
     if (isStatusOnlyCallback(type, webhook, messageRaw, mediaUrl)) {
