@@ -305,7 +305,7 @@ export default function DashboardMeta() {
               {/* Profile Photo */}
               <div className="relative group">
                 <Avatar className="w-16 h-16 border-2 border-border">
-                  <AvatarImage src={profile.profile_picture_url} />
+                  <AvatarImage src={getHttpAvatarUrl(profile.profile_picture_url) || undefined} />
                   <AvatarFallback className="bg-primary/10 text-primary text-lg">
                     {phoneInfo.verified_name?.[0] || "W"}
                   </AvatarFallback>
