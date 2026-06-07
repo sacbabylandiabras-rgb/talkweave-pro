@@ -1490,24 +1490,82 @@ const ChatView = (props: ChatViewProps) => {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
-                title="Mais opções de chamada"
+                title="Mais opções do chat"
               >
-                <Phone className="w-4 h-4" />
+                <LayoutGrid className="w-4 h-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-56 p-2" align="end">
-              <div className="space-y-1">
-                <div className="p-2 space-y-2">
-                  <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground uppercase">Opções UAZAPI</Label>
+            <PopoverContent className="w-64 p-2" align="end">
+              <div className="space-y-3 p-1">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Ações do Provedor</Label>
+                  <div className="grid grid-cols-2 gap-1.5">
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-[11px] h-8 gap-1.5 border-green-200 hover:bg-green-50 px-2"
-                      onClick={() => conversation && onSendMessage(conversation.phone, "", { specialType: "call", specialPayload: { call_duration: 60 }, preferredInstanceId: conversation.preferredInstanceId || undefined })}
-                      title="Realizar ligação de voz (60s)"
+                      size="sm"
+                      className="justify-start text-[11px] h-8 gap-1.5 px-2 hover:bg-muted"
+                      onClick={() => conversation && (props as any).onReadChat?.(conversation.phone)}
+                      title="Marcar como lida"
                     >
-                      <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />
-                      Ligar (60 segundos)
+                      <CheckCheck className="w-3 h-3 text-blue-500 shrink-0" />
+                      Lida
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="justify-start text-[11px] h-8 gap-1.5 px-2 hover:bg-muted"
+                      onClick={() => conversation && (props as any).onArchiveChat?.(conversation.phone, true)}
+                      title="Arquivar conversa"
+                    >
+                      <FileText className="w-3 h-3 text-amber-500 shrink-0" />
+                      Arquivar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="justify-start text-[11px] h-8 gap-1.5 px-2 hover:bg-muted"
+                      onClick={() => conversation && (props as any).onPinChat?.(conversation.phone, true)}
+                      title="Fixar conversa"
+                    >
+                      <Square className="w-3 h-3 text-orange-500 shrink-0" />
+                      Fixar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="justify-start text-[11px] h-8 gap-1.5 px-2 hover:bg-muted"
+                      onClick={() => conversation && (props as any).onMuteChat?.(conversation.phone, true)}
+                      title="Silenciar (24h)"
+                    >
+                      <Phone className="w-3 h-3 text-slate-500 shrink-0" />
+                      Silenciar
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Chamadas UAZAPI</Label>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-[11px] h-8 gap-1.5 border-green-200 hover:bg-green-50 px-2"
+                    onClick={() => conversation && onSendMessage(conversation.phone, "", { specialType: "call", specialPayload: { call_duration: 60 }, preferredInstanceId: conversation.preferredInstanceId || undefined })}
+                    title="Realizar ligação de voz (60s)"
+                  >
+                    <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />
+                    Ligar (60 segundos)
+                  </Button>
+                </div>
+
+                <div className="space-y-1.5 pt-1 border-t">
+                  <div className="flex flex-col gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="justify-start text-[11px] h-8 gap-1.5 px-2 text-destructive hover:text-destructive hover:bg-destructive/5"
+                      onClick={() => conversation && (props as any).onDeleteChat?.(conversation.phone)}
+                    >
+                      <Trash2 className="w-3 h-3 shrink-0" />
+                      Apagar do WhatsApp
                     </Button>
                   </div>
                 </div>
