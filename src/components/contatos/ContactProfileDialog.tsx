@@ -512,9 +512,9 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
         {/* Header with profile picture */}
         <div className="bg-primary/10 pt-8 pb-6 px-6 flex flex-col items-center gap-3">
           <Avatar className="w-24 h-24 bg-[#DFE5E7] border-4 border-background shadow-lg overflow-hidden">
-            {contact.profilePictureUrl ? (
+            {getHttpAvatarUrl(contact.profilePictureUrl) ? (
               <AvatarImage
-                src={contact.profilePictureUrl}
+                src={getHttpAvatarUrl(contact.profilePictureUrl)!}
                onError={() => (getContactProfilePicture as any)(contact.phone, preferredInstanceId)}
               />
             ) : null}
