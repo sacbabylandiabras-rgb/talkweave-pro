@@ -3212,7 +3212,7 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
                               </div>
                               <div className="flex items-center gap-2.5 mb-2.5">
                                 <Avatar className="h-8 w-8 border border-border/40 shadow-sm shrink-0">
-                                  <AvatarImage src={conv.profilePictureUrl || undefined} />
+                                  <AvatarImage src={getHttpAvatarUrl(conv.profilePictureUrl) || undefined} />
                                   <AvatarFallback className="text-[10px] bg-muted">
                                     <User className="w-4 h-4 text-muted-foreground" />
                                   </AvatarFallback>
