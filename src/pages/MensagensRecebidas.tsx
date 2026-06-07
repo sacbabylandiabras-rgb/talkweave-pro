@@ -97,7 +97,11 @@ const formatPhone = (phone?: string | null) => {
 const getHttpAvatarUrl = (value?: string | null) => {
   const url = String(value || "").trim();
   if (!url || url === "null" || url === "undefined") return null;
-  return /^https?:\/\//i.test(url) ? url : null;
+  if (!/^https?:\/\//i.test(url)) return null;
+  // Fallback para pps.whatsapp.net que costumam dar 403 quando acessados diretamente via browser mas funcionam em img tags (às vezes)
+  // Porém aqui o usuário reportou 403, então vamos tentar limpar parâmetros ou usar proxy se necessário.
+  // Por enquanto, apenas retornamos a URL.
+  return url;
 };
 
 const sameAvatarUrl = (a?: string | null, b?: string | null) => {
@@ -672,12 +676,13 @@ const ConversationList = ({
                 </div>
               )}
               <Avatar className="h-11 w-11 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
-                {conv.profilePictureUrl ? (
+                {conv.profilePictureUrl && !conv.profilePictureUrl.includes("pps.whatsapp.net") ? (
                   <AvatarImage
                     src={conv.profilePictureUrl}
                     className="h-full w-full object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).onerror = null;
+                      (e.target as HTMLImageElement).style.display = 'none';
                     }}
                   />
                 ) : null}
@@ -1398,10 +1403,11 @@ const ChatView = (props: ChatViewProps) => {
         )}
         <Avatar className="h-10 w-10 shrink-0 border border-border/50 overflow-hidden bg-muted flex items-center justify-center">
           <AvatarImage
-            src={conversation.profilePictureUrl || undefined}
+            src={(conversation.profilePictureUrl && !conversation.profilePictureUrl.includes("pps.whatsapp.net")) ? conversation.profilePictureUrl : undefined}
             className="h-full w-full object-cover"
             onError={(e) => {
               (e.target as HTMLImageElement).onerror = null;
+              (e.target as HTMLImageElement).style.display = 'none';
             }}
           />
           <AvatarFallback className="bg-[#DFE5E7] flex h-full w-full items-center justify-center rounded-full">
@@ -1580,12 +1586,15 @@ const ChatView = (props: ChatViewProps) => {
                       <div className="flex justify-start gap-2 items-end">
                         {!isGroupPhone(conversation.phone) ? (
                           <Avatar className="w-8 h-8 shrink-0 border border-border overflow-hidden bg-muted flex items-center justify-center">
-                            {senderPhoto && (
+                            {senderPhoto && !senderPhoto.includes("pps.whatsapp.net") && (
                               <AvatarImage
                                 src={senderPhoto}
                                 className="object-cover"
                                 referrerPolicy="no-referrer"
                                 crossOrigin="anonymous"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
                               />
                             )}
                             <AvatarFallback className="text-[10px] font-semibold">
@@ -1597,12 +1606,15 @@ const ChatView = (props: ChatViewProps) => {
                           </Avatar>
                         ) : (
                           <Avatar className="w-8 h-8 shrink-0 border border-border overflow-hidden bg-muted flex items-center justify-center">
-                            {senderPhoto && (
+                            {senderPhoto && !senderPhoto.includes("pps.whatsapp.net") && (
                               <AvatarImage
                                 src={senderPhoto}
                                 className="object-cover"
                                 referrerPolicy="no-referrer"
                                 crossOrigin="anonymous"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
                               />
                             )}
                             <AvatarFallback className="text-[10px] font-semibold">
