@@ -2413,13 +2413,13 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
     () =>
       allInstances.filter((i: any) => {
         const provider = (i.api_provider || "zapi").toLowerCase();
-        return provider === "zapi";
+        return provider === "zapi" || provider === "uazapi" || provider === "uazapi_warmup";
       }),
     [allInstances],
   );
   const activeInstance = useMemo(() => {
     const provider = ((rawActiveInstance as any)?.api_provider || "zapi").toLowerCase();
-    const isSupported = provider === "zapi";
+    const isSupported = provider === "zapi" || provider === "uazapi" || provider === "uazapi_warmup";
     return rawActiveInstance && isSupported
       ? rawActiveInstance
       : instances.find((i: any) => i.is_default) || instances[0] || null;
