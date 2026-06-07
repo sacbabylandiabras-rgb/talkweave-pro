@@ -902,14 +902,20 @@ serve(async (req) => {
                     if (!p.__flow__) continue;
 
                     // Keyword filter
-                    const keywords = (p.nodes?.find((n: any) => n.type === "igGatilho")?.data?.keywords || "")
-                      .split(",")
-                      .map((k: string) => k.trim().toLowerCase())
-                      .filter(Boolean);
+                    const triggerNode = p.nodes?.find((n: any) => n.type === "igGatilho" || n.type === "blocoGatilho" || n.type === "gatilho");
+                    const kwsRaw = triggerNode?.data?.keywords || triggerNode?.data?.keyword || "";
+                    const keywords = Array.isArray(kwsRaw) 
+                      ? kwsRaw 
+                      : kwsRaw.split(/[\n,;]/).map((k: string) => k.trim().toLowerCase()).filter(Boolean);
+                    const matchType = triggerNode?.data?.matchType || "contains";
 
                     if (keywords.length > 0) {
                       const commentText = (comment.text || "").toLowerCase();
-                      const matches = keywords.some((k: string) => commentText.includes(k));
+                      const matches = keywords.some((k: string) => {
+                        const nk = k.toLowerCase().trim();
+                        if (matchType === "exact") return commentText === nk;
+                        return commentText.includes(nk);
+                      });
                       if (!matches) continue;
                     }
 
