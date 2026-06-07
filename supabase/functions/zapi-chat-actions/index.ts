@@ -326,7 +326,7 @@ Deno.serve(async (req) => {
          const res = await fetch(withToken(`/instance/updatePrivacy/${inst}`), {
            method: 'POST',
            headers: evolutionHeaders,
-           body: JSON.stringify(body) 
+           body: JSON.stringify(setBody) 
          });
          const data = await res.json();
          if (!res.ok) return new Response(JSON.stringify({ error: data.message || 'Erro' }), { status: res.status, headers: corsHeaders });
