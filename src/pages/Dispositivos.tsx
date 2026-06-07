@@ -549,7 +549,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
          try {
            // Try /instance/status first (it's what get-device-status uses and is often more reliable)
            const res = await fetch(`${apiUrl}/instance/status/${instance.instance_name || instance.zapi_instance_id}?token=${encodeURIComponent(apiToken)}`, {
-             headers: { "Content-Type": "application/json", "token": apiToken, "Authorization": `Bearer ${apiToken}` }
+             headers: { "Content-Type": "application/json", "token": apiToken, "Authorization": `Bearer ${apiToken}`, "apikey": apiToken }
            });
            
            if (res.ok) {
@@ -558,13 +558,16 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
              const num = d?.instance?.number || d?.status?.checked_instance?.number || d?.number || null;
              if (num) foundPhone = num;
              const pic = d?.instance?.profilePictureUrl || d?.profilePictureUrl || d?.instance?.profilePicUrl || null;
-             if (pic) setProfilePicUrl(pic);
+             if (pic) {
+               console.log("Setting profile pic from status:", pic);
+               setProfilePicUrl(pic);
+             }
            }
            
            // If we still don't have a picture, try /instance endpoint
            if (!foundPhone || !profilePicUrl) {
              const resInst = await fetch(`${apiUrl}/instance?token=${encodeURIComponent(apiToken)}`, {
-               headers: { "Content-Type": "application/json", "token": apiToken, "Authorization": `Bearer ${apiToken}` }
+               headers: { "Content-Type": "application/json", "token": apiToken, "Authorization": `Bearer ${apiToken}`, "apikey": apiToken }
              });
              if (resInst.ok) {
                const list = await resInst.json();
@@ -574,7 +577,11 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
                
                if (instData) {
                  if (!foundPhone) foundPhone = instData.number || instData.phone;
-                 if (!profilePicUrl) setProfilePicUrl(instData.profilePictureUrl || instData.profilePicUrl);
+                  const instancePic = instData.profilePictureUrl || instData.profilePicUrl;
+                  if (instancePic) {
+                    console.log("Setting profile pic from instance list:", instancePic);
+                    setProfilePicUrl(instancePic);
+                  }
                }
              }
            }
@@ -765,7 +772,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
 
   // Fetch phone when connected
   useEffect(() => {
-    if (deviceStatus?.connected === true && !connectedPhone) {
+    if (deviceStatus?.connected === true) {
       fetchConnectedPhone();
     }
   }, [deviceStatus?.connected]);
