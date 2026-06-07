@@ -340,13 +340,13 @@ Deno.serve(async (req) => {
         if (!number) {
           return new Response(JSON.stringify({ error: 'Número inválido' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
-        const duration = Number(payload?.callDuration ?? payload?.duration ?? 15) || 15;
+        const dur = Number(payload?.callDuration ?? payload?.duration ?? 15) || 15;
         // Try multiple known endpoints across providers
-        const attempts = [
-          { url: withToken(`/message/sendCall/${inst}`), body: { number, delay: duration } },
-          { url: withToken(`/message/fake-call/${inst}`), body: { number, duration } },
-          { url: withToken(`/call/make/${inst}`), body: { number, duration } },
-          { url: withToken(`/message/sendCall/${inst}`), body: { number, duration } },
+        const callAttempts = [
+          { url: withToken(`/message/sendCall/${inst}`), body: { number, delay: dur } },
+          { url: withToken(`/message/fake-call/${inst}`), body: { number, duration: dur } },
+          { url: withToken(`/call/make/${inst}`), body: { number, duration: dur } },
+          { url: withToken(`/message/sendCall/${inst}`), body: { number, duration: dur } },
         ];
         let lastStatus = 0;
         let lastData: any = null;
