@@ -486,28 +486,28 @@ Deno.serve(async (req) => {
     const zapiHeaders = { 'Content-Type': 'application/json', 'Client-Token': creds.clientToken };
 
     // This is a minimal Z-API bridge for the privacy actions called by Dispositivos.tsx
-    let method = 'GET';
-    let path = '';
-    let body = null;
+    let zMethod = 'GET';
+    let zPath = '';
+    let zBody = null;
 
-    if (action === 'get-disallowed-contacts') path = '/privacy/disallowed-contacts';
-    if (action === 'set-last-seen') { method = 'POST'; path = '/privacy/last-seen'; body = { visualizationType: payload.visualizationType }; }
-    if (action === 'set-photo-visualization') { method = 'POST'; path = '/privacy/photo'; body = { visualizationType: payload.visualizationType }; }
-    if (action === 'set-privacy-description') { method = 'POST'; path = '/privacy/description'; body = { visualizationType: payload.visualizationType }; }
-    if (action === 'set-group-add-permission') { method = 'POST'; path = '/privacy/group-add'; body = { visualizationType: payload.visualizationType }; }
-    if (action === 'set-privacy-online') { method = 'POST'; path = '/privacy/online'; body = { visualizationType: payload.visualizationType }; }
-    if (action === 'set-read-receipts') { method = 'POST'; path = `/privacy/read-receipts?value=${payload.active ? 'enable' : 'disable'}`; }
+    if (action === 'get-disallowed-contacts') zPath = '/privacy/disallowed-contacts';
+    if (action === 'set-last-seen') { zMethod = 'POST'; zPath = '/privacy/last-seen'; zBody = { visualizationType: payload.visualizationType }; }
+    if (action === 'set-photo-visualization') { zMethod = 'POST'; zPath = '/privacy/photo'; zBody = { visualizationType: payload.visualizationType }; }
+    if (action === 'set-privacy-description') { zMethod = 'POST'; zPath = '/privacy/description'; zBody = { visualizationType: payload.visualizationType }; }
+    if (action === 'set-group-add-permission') { zMethod = 'POST'; zPath = '/privacy/group-add'; zBody = { visualizationType: payload.visualizationType }; }
+    if (action === 'set-privacy-online') { zMethod = 'POST'; zPath = '/privacy/online'; zBody = { visualizationType: payload.visualizationType }; }
+    if (action === 'set-read-receipts') { zMethod = 'POST'; zPath = `/privacy/read-receipts?value=${payload.active ? 'enable' : 'disable'}`; }
     if (action === 'set-messages-duration') {
        const map: any = { '0': 'disable', '86400': 'hours24', '604800': 'days7', '7776000': 'days90' };
-       path = `/privacy/messages-duration?value=${map[String(payload.duration)] || 'disable'}`;
-       method = 'POST';
+       zPath = `/privacy/messages-duration?value=${map[String(payload.duration)] || 'disable'}`;
+       zMethod = 'POST';
     }
 
-    if (!path) return new Response(JSON.stringify({ error: 'Action not supported' }), { status: 400, headers: corsHeaders });
+    if (!zPath) return new Response(JSON.stringify({ error: 'Action not supported' }), { status: 400, headers: corsHeaders });
 
-    const res = await fetch(zapiUrl + path, { method, headers: zapiHeaders, body: body ? JSON.stringify(body) : null });
-    const data = await res.json();
-    return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: res.status });
+    const zRes = await fetch(zapiUrl + zPath, { method: zMethod, headers: zapiHeaders, body: zBody ? JSON.stringify(zBody) : null });
+    const zData = await zRes.json();
+    return new Response(JSON.stringify(zData), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: zRes.status });
 
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
