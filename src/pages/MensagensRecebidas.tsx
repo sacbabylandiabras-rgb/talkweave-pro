@@ -751,6 +751,7 @@ interface ChatViewProps {
   onBack: () => void;
   isMobile: boolean;
   savedContacts: Map<string, any>;
+  lidMap?: Map<string, string>;
   onSaveContact: (phone: string, currentName: string) => void;
   onFetchPhoto: (phone: string, force?: boolean) => void;
   loadingPhoto: boolean;
