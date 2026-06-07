@@ -333,7 +333,7 @@ Deno.serve(async (req) => {
          return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      // skip send-call (already handled)
+      // skip send-call-v1 (already handled)
 
       if (action === 'send-call') {
         const number = (phone || '').replace(/\D/g, '');
