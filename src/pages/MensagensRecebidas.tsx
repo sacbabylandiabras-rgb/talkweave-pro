@@ -3109,6 +3109,10 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
                 onDeleteConversation={async (phone) => {
                   await deleteConversation(phone);
                 }}
+                onReadChat={readChat}
+                onArchiveChat={archiveChat}
+                onPinChat={pinChat}
+                onMuteChat={muteChat}
                 onUpdate={refetch}
               />
             )}
