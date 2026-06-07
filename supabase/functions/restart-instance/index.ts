@@ -15,10 +15,9 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('authorization');
     if (!authHeader) throw new Error('No authorization header');
 
-    const userClient = createClient(supabaseUrl, supabaseServiceKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    const userClient = createClient(supabaseUrl, supabaseServiceKey);
+    const token = authHeader.replace(/^Bearer\s+/i, '');
+    const { data: { user }, error: userError } = await userClient.auth.getUser(token);
     if (userError || !user) throw new Error('Unauthorized');
 
     const { instanceId } = await req.json();
@@ -44,36 +43,46 @@ Deno.serve(async (req) => {
         throw new Error('Configuração de conexão incompleta');
       }
 
-      // Try multiple possible restart endpoints for Evolution/UAZAPI
-      const endpoints = [
-        `${apiUrl}/instance/restart`,
-        `${apiUrl}/instance/logout`, // Sometimes used to force a clean start
+      const adminToken = Deno.env.get('UAZAPI_ADMIN_TOKEN') || '';
+      const instanceRef = instance.zapi_instance_id || instance.instance_name || '';
+      const authHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'token': apiToken,
+        'apikey': apiToken,
+        'Authorization': `Bearer ${apiToken}`,
+      };
+      if (adminToken) authHeaders['admintoken'] = adminToken;
+
+      const attempts = [
+        { url: `${apiUrl}/instance/restart`, body: {} },
+        { url: `${apiUrl}/instance/restart`, body: instanceRef ? { instance: instanceRef } : {} },
+        { url: `${apiUrl}/v1/instance/restart`, body: instanceRef ? { instance: instanceRef } : {} },
+        { url: `${apiUrl}/instance/restart?token=${encodeURIComponent(apiToken)}`, body: {} },
+        { url: `${apiUrl}/instance/disconnect`, body: {} },
       ];
 
-      let lastError = null;
-      for (const url of endpoints) {
+      let lastError = 'endpoint não respondeu';
+      for (const attempt of attempts) {
         try {
-          const res = await fetch(url, {
+          const res = await fetch(attempt.url, {
             method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json', 
-              'token': apiToken,
-              'apikey': apiToken,
-              'Authorization': `Bearer ${apiToken}`
-            },
+            headers: authHeaders,
+            body: JSON.stringify(attempt.body),
           });
+          const raw = await res.text();
+          let data: any = {};
+          try { data = raw ? JSON.parse(raw) : {}; } catch { data = { message: raw }; }
 
           if (res.ok) {
-            const data = await res.json().catch(() => ({}));
             return new Response(JSON.stringify({ 
               success: true, 
               data, 
               message: 'Instância reiniciada com sucesso.' 
             }), { headers: jsonHeaders });
           }
-          lastError = await res.text();
+          lastError = data?.message || data?.error || data?.details?.error || raw || `HTTP ${res.status}`;
         } catch (e) {
-          lastError = e.message;
+          lastError = e instanceof Error ? e.message : String(e);
         }
       }
 
