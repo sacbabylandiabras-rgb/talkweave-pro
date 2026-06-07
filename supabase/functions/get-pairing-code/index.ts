@@ -31,7 +31,8 @@ serve(async (req) => {
       const apiToken = inst.evolution_api_key || inst.zapi_token || ''
       if (!apiUrl || !apiToken) throw new Error('Credenciais da conexão atual não configuradas')
       
-      const res = await fetch(`${apiUrl}/instance/connect/phone`, {
+      const digits = String(phoneNumber || '').replace(/\D/g, '')
+      const res = await fetch(`${apiUrl}/instance/connect`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 
@@ -39,11 +40,12 @@ serve(async (req) => {
           'apikey': apiToken,
           'Authorization': `Bearer ${apiToken}`
         },
-        body: JSON.stringify({ number: phoneNumber })
+        body: JSON.stringify({ phone: digits })
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.message || data?.error || 'Falha ao gerar código de conexão')
-      return new Response(JSON.stringify({ success: true, data: { pairingCode: data?.code || data?.pairingCode } }), {
+      const pairingCode = data?.instance?.paircode || data?.paircode || data?.code || data?.pairingCode || null
+      return new Response(JSON.stringify({ success: true, data: { pairingCode } }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     } else {
