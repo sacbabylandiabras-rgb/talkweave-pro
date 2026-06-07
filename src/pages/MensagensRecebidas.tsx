@@ -98,9 +98,11 @@ const getHttpAvatarUrl = (value?: string | null) => {
   const url = String(value || "").trim();
   if (!url || url === "null" || url === "undefined") return null;
   if (!/^https?:\/\//i.test(url)) return null;
-  // Fallback para pps.whatsapp.net que costumam dar 403 quando acessados diretamente via browser mas funcionam em img tags (às vezes)
-  // Porém aqui o usuário reportou 403, então vamos tentar limpar parâmetros ou usar proxy se necessário.
-  // Por enquanto, apenas retornamos a URL.
+  
+  // Se for pps.whatsapp.net, retornamos null para evitar o erro 403 (Forbidden)
+  // que o usuário está enfrentando consistentemente.
+  if (url.includes("pps.whatsapp.net")) return null;
+  
   return url;
 };
 
