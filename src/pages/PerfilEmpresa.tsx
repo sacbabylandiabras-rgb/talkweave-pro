@@ -1121,6 +1121,8 @@ const BulkProfileUpdate = ({ instances, open, onOpenChange }: { instances: ZapiI
             token: inst.zapi_token,
             clientToken: inst.zapi_client_token,
             provider: inst.api_provider,
+            apiUrl: inst.evolution_api_url,
+            apiKey: inst.evolution_api_key,
           },
         });
         if (error) {
@@ -1338,26 +1340,44 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
   const [description, setDescription] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) setSelectedIds(instances.map((i) => i.id));
   }, [open, instances]);
 
-  const applyToAll = async (action: string, payload: any) => {
-    setSubmitting(true);
-    let success = 0;
+  const applyToAll = async (action: string, payload: any, label: string) => {
     const targets = instances.filter((i) => selectedIds.includes(i.id));
+    if (targets.length === 0) {
+      toast({ title: "Selecione ao menos uma instância", variant: "destructive" });
+      return;
+    }
+    setSubmitting(action);
+    let success = 0;
+    let failed = 0;
+    const errors: string[] = [];
     for (const inst of targets) {
       try {
-        const { error } = await supabase.functions.invoke("zapi-chat-actions", {
+        const { data, error } = await supabase.functions.invoke("zapi-chat-actions", {
           body: { action, instanceDbId: inst.id, payload },
         });
-        if (!error) success++;
-      } catch (err) {}
+        if (error) throw new Error(await getInvokeErrorMessage(error, "Falha ao atualizar"));
+        if ((data as any)?.error) throw new Error(formatErrorMessage((data as any).error));
+        success++;
+      } catch (err) {
+        failed++;
+        errors.push(`${inst.instance_name || inst.zapi_instance_id}: ${err instanceof Error ? err.message : "Erro"}`);
+      }
     }
-    setSubmitting(false);
-    toast({ title: "✅ Atualizado", description: `${success} instâncias atualizadas.` });
+    setSubmitting(null);
+    toast({
+      title: success > 0 ? `✅ ${label} atualizado` : "❌ Erro",
+      description: failed > 0
+        ? `${success} de ${targets.length} atualizada(s). Erros:\n${errors.slice(0, 3).join("\n")}${errors.length > 3 ? `\n+${errors.length - 3} outros` : ""}`
+        : `Aplicado em ${success} instância(s)`,
+      variant: failed === targets.length ? "destructive" : "default",
+      duration: failed > 0 ? 8000 : 3000,
+    });
   };
 
   return (
@@ -1371,21 +1391,27 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
             <Label>Descrição</Label>
             <div className="flex gap-2">
               <Input value={description} onChange={(e) => setDescription(e.target.value)} />
-              <Button onClick={() => applyToAll('company-description', { description })} disabled={submitting}>Aplicar</Button>
+              <Button onClick={() => applyToAll('company-description', { description }, 'Descrição')} disabled={!!submitting || !description.trim() || selectedIds.length === 0}>
+                {submitting === 'company-description' ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+              </Button>
             </div>
           </div>
           <div className="space-y-2">
             <Label>E-mail</Label>
             <div className="flex gap-2">
               <Input value={email} onChange={(e) => setEmail(e.target.value)} />
-              <Button onClick={() => applyToAll('company-email', { email })} disabled={submitting}>Aplicar</Button>
+              <Button onClick={() => applyToAll('company-email', { email }, 'E-mail')} disabled={!!submitting || !email.trim() || selectedIds.length === 0}>
+                {submitting === 'company-email' ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+              </Button>
             </div>
           </div>
           <div className="space-y-2">
             <Label>Endereço</Label>
             <div className="flex gap-2">
               <Input value={address} onChange={(e) => setAddress(e.target.value)} />
-              <Button onClick={() => applyToAll('company-address', { address })} disabled={submitting}>Aplicar</Button>
+              <Button onClick={() => applyToAll('company-address', { address }, 'Endereço')} disabled={!!submitting || !address.trim() || selectedIds.length === 0}>
+                {submitting === 'company-address' ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+              </Button>
             </div>
           </div>
         </div>
