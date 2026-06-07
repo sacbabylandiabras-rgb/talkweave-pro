@@ -136,7 +136,9 @@ export function ListarDadosCrmEditor({
               max={50}
               value={cfg.limit}
               onChange={(e) => {
-                const n = Math.max(1, Math.min(50, Number(e.target.value) || 1));
+                const val = e.target.value;
+                if (val !== "" && !/^\d+$/.test(val)) return;
+                const n = Math.max(1, Math.min(50, Number(val) || 1));
                 update({ limit: n });
               }}
               className="h-7 w-16 text-[12px] text-right"
