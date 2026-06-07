@@ -1586,12 +1586,15 @@ const ChatView = (props: ChatViewProps) => {
                       <div className="flex justify-start gap-2 items-end">
                         {!isGroupPhone(conversation.phone) ? (
                           <Avatar className="w-8 h-8 shrink-0 border border-border overflow-hidden bg-muted flex items-center justify-center">
-                            {senderPhoto && (
+                            {senderPhoto && !senderPhoto.includes("pps.whatsapp.net") && (
                               <AvatarImage
                                 src={senderPhoto}
                                 className="object-cover"
                                 referrerPolicy="no-referrer"
                                 crossOrigin="anonymous"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
                               />
                             )}
                             <AvatarFallback className="text-[10px] font-semibold">
