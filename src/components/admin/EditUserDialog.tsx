@@ -369,7 +369,7 @@ export const EditUserDialog = ({ user, open, onOpenChange, onSuccess }: EditUser
                     }}
                   >
                     <Plus className="w-3 h-3 mr-1" />
-                    {showAddForm === 'uazapi' ? "Fechar" : "Adicionar Extrair Membro"}
+                    {showAddForm === 'uazapi' ? "Fechar" : "Adicionar Instância"}
                   </Button>
                </div>
  
