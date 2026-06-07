@@ -9,7 +9,6 @@ import {
   rememberGroupDisplayName,
   resolveGroupConversationName,
 } from "@/lib/group-name-resolution";
-}
 
 export interface MessageLog {
   id: string;
