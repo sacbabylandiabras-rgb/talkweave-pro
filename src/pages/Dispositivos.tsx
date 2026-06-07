@@ -2732,6 +2732,85 @@ const Dispositivos = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
+  const [maxInstances, setMaxInstances] = useState<number>(1);
+
+  useEffect(() => {
+    const fetchMaxInstances = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('max_instances')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (profile?.max_instances) {
+        setMaxInstances(profile.max_instances);
+      }
+    };
+    fetchMaxInstances();
+  }, []);
+
+  const handleCreateInstance = async () => {
+    if (!newInstanceName.trim()) {
+      toast({ title: "Informe um nome para a instância", variant: "destructive" });
+      return;
+    }
+
+    if (instances.length >= maxInstances) {
+      toast({ 
+        title: "Limite atingido", 
+        description: `Seu plano permite no máximo ${maxInstances} instância(s). Faça upgrade para adicionar mais.`,
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { data, error } = await supabase.functions.invoke("uazapi-create-instance", {
+        body: { instanceName: newInstanceName.trim() },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.message || data.error);
+
+      // Save to database
+      const instanceData = data?.instance || data;
+      const { error: dbError } = await supabase.from('zapi_instances').insert({
+        user_id: user.id,
+        instance_name: newInstanceName.trim(),
+        zapi_instance_id: instanceData.instanceId || instanceData.instanceName || newInstanceName.trim(),
+        zapi_token: instanceData.token || instanceData.instanceToken,
+        zapi_client_token: instanceData.token || instanceData.instanceToken, // Using same token as client token for Evolution
+        api_provider: 'uazapi',
+        evolution_api_url: (import.meta as any).env.VITE_UAZAPI_SERVER_URL || "https://minhapionline.uazapi.com",
+        is_active: true,
+        is_default: instances.length === 0,
+        instance_type: 'web'
+      });
+
+      if (dbError) throw dbError;
+
+      toast({ title: "✅ Instância criada com sucesso!" });
+      setCreateOpen(false);
+      setNewInstanceName("");
+      refetch();
+    } catch (err: any) {
+      toast({ title: "❌ Erro ao criar instância", description: err.message, variant: "destructive" });
+    } finally {
+      setCreating(true);
+      // Force reload to update UI
+      setTimeout(() => {
+        setCreating(false);
+        refetch();
+      }, 1500);
+    }
+  };
 
   return (
     <div className="space-y-4">
