@@ -1485,7 +1485,7 @@ const ChatView = (props: ChatViewProps) => {
                     <Button
                       variant="outline"
                       className="w-full justify-start text-[11px] h-8 gap-1.5 border-green-200 hover:bg-green-50 px-2"
-                      onClick={() => conversation && onSendMessage(conversation.phone, "", { specialType: "call", specialPayload: { call_duration: 60 }, preferredInstanceId: conversation.preferredInstanceId })}
+                      onClick={() => conversation && onSendMessage(conversation.phone, "", { specialType: "call", specialPayload: { call_duration: 60 }, preferredInstanceId: conversation.preferredInstanceId || undefined })}
                       title="Realizar ligação de voz (60s)"
                     >
                       <PhoneCall className="w-3 h-3 text-green-600 shrink-0" />
@@ -3007,7 +3007,8 @@ const MensagensRecebidas = ({ mode = "chat" }: { mode?: "chat" | "pipeline" }) =
                 }}
                 onSendCall={async (phone, duration) => {
                   const cleanPhone = String(phone || "").replace(/\D/g, "");
-                  await sendCallZapi(cleanPhone, duration);
+                  const conv = conversations.find((c) => c.phone === normalizeSelectedConversationPhone(phone) || c.phone === phone);
+                  await sendCallZapi(cleanPhone, duration, undefined, conv?.preferredInstanceId || undefined);
                 }}
                 onForwardMessage={async (phone, messageId) => {
                   const destination = window.prompt("Encaminhar mensagem para qual número? (ex: 5511999998888)");
