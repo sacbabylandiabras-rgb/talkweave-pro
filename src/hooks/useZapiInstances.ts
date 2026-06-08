@@ -246,6 +246,7 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
 
       const deduped = normalizeInstances(allInstances, options?.includeWarmup, options?.provider);
       const finalList = allowedInstanceIds ? deduped.filter(i => allowedInstanceIds!.includes(i.id)) : deduped;
+      console.log("Final instances list length:", finalList.length);
       setInstances(finalList);
       setActiveInstance((current) => finalList.find(i => i.id === current?.id) || finalList.find(i => i.is_default) || finalList[0] || null);
       writeCachedInstances(user.id, deduped, options?.includeMeta);
