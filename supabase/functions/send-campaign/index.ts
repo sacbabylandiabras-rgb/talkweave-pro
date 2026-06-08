@@ -2454,12 +2454,7 @@ serve(async (req) => {
           console.log(`🚀 [Dispatch] Provider: ${instApiProvider}, URL: ${zapiUrl}`);
           console.log(`📦 [Dispatch] Payload: ${JSON.stringify({ ...requestBody, phone: contact.phone })}`);
 
-          const endpoint = "/" + zapiUrl.split("/").pop();
-          const zapiResponse = await fetch(zapiUrl, {
-            method: "POST",
-            headers: getUniversalHeaders(),
-            body: JSON.stringify(mapUniversalPayload(endpoint, requestBody)),
-          });
+          const zapiResponse = await performUniversalSend(semanticEndpoint || "/" + zapiUrl.split("/").pop(), requestBody);
 
           let zapiResult: any = {};
           try {
