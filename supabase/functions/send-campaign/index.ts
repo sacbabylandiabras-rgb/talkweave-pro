@@ -1958,11 +1958,18 @@ serve(async (req) => {
           const body = mapUniversalPayload(semanticEndpoint, payload);
           
           console.log(`📤 Sending campaign message via ${instApiProvider}: ${url}`);
-          return fetch(url, {
+          const resp = await fetch(url, {
             method,
             headers,
             body: JSON.stringify(body)
           });
+          
+          if (!resp.ok) {
+             const errorText = await resp.clone().text();
+             console.log(`📬 HTTP Error from ${instApiProvider}: status=${resp.status}, body=${errorText}`);
+          }
+          
+          return resp;
         };
 
         let zapiUrl: string = "";
