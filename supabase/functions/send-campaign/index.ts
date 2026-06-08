@@ -1929,7 +1929,7 @@ serve(async (req) => {
           if (endpoint === "/send-button-actions" || endpoint === "/send-button-list") {
              const buttons = (payload.buttonActions || payload.buttonList?.buttons || []).map((b: any, i: number) => {
                const btn: any = {
-                 id: b.id || String(i + 1),
+                 index: i + 1,
                  displayText: b.label || b.text || "Botão",
                  type: "reply"
                };
@@ -1946,8 +1946,7 @@ serve(async (req) => {
              });
              return { 
                number, 
-               title: payload.title || "", 
-               description: payload.message || "", 
+               text: payload.message || payload.description || "", 
                footer: payload.footer || "", 
                buttons 
              };
