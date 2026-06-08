@@ -21,7 +21,7 @@ interface Newsletter {
 }
 
 export default function CanaisTab() {
-   const { instances, activeInstance, selectInstance } = useZapiInstances({ provider: 'zapi' });
+   const { instances, activeInstance, selectInstance } = useZapiInstances();
   const [instanceId, setInstanceId] = useState<string>("");
   const [newsletters, setNewsletters] = useState<Newsletter[]>([]);
   const [loading, setLoading] = useState(false);
