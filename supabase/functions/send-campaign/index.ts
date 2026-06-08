@@ -43,6 +43,7 @@ interface ResolvedInstance {
   zapiClientToken: string;
   instanceName: string;
   apiProvider?: string;
+  evolutionApiUrl?: string | null;
 }
 
 type CampaignCredentials = {
@@ -53,6 +54,7 @@ type CampaignCredentials = {
   instanceName: string;
   dbId?: string;
   apiProvider?: string;
+  evolutionApiUrl?: string | null;
 };
 
 const PUBLIC_TRACKING_URL = "https://go.zaplynxpro.online/r";
