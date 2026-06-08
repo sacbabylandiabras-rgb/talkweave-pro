@@ -692,10 +692,25 @@ const sendZapiLocationButtonFollowUp = async (baseUrl: string, clientToken: stri
     buttonActions: [{ type: "URL", label: buttonLabel, url: normalizedUrl }],
   };
 
-  const res = await fetch(`${baseUrl}/send-button-actions`, {
+  const isUazapi = baseUrl.includes("message/send");
+  const headers = isUazapi 
+    ? { "Content-Type": "application/json", token: clientToken, apikey: clientToken }
+    : { "Content-Type": "application/json", "Client-Token": clientToken };
+    
+  const finalUrl = isUazapi 
+    ? baseUrl.replace("/message/send/", "/message/sendButtons/") 
+    : `${baseUrl}/send-button-actions`;
+
+  const res = await fetch(finalUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Client-Token": clientToken },
-    body: JSON.stringify(body),
+    headers,
+    body: JSON.stringify(isUazapi ? { 
+      number: phone.replace(/\D/g, ""), 
+      title: special.locTitle || "", 
+      description: message, 
+      footer: special.locAddress || "", 
+      buttons: [{ buttonId: "1", buttonText: { displayText: buttonLabel }, type: 2, nativeContent: { url: normalizedUrl } }] 
+    } : body),
   });
   let data: any = {};
   try {
@@ -1937,10 +1952,10 @@ serve(async (req) => {
           return { ...payload, number };
         };
 
-        const performUniversalSend = async (endpoint: string, payload: any, method: string = "POST") => {
-          const url = getUniversalUrl(endpoint);
+        const performUniversalSend = async (semanticEndpoint: string, payload: any, method: string = "POST") => {
+          const url = getUniversalUrl(semanticEndpoint);
           const headers = getUniversalHeaders();
-          const body = mapUniversalPayload(endpoint, payload);
+          const body = mapUniversalPayload(semanticEndpoint, payload);
           
           console.log(`📤 Sending campaign message via ${instApiProvider}: ${url}`);
           return fetch(url, {
@@ -1951,6 +1966,7 @@ serve(async (req) => {
         };
 
         let zapiUrl: string = "";
+        let semanticEndpoint: string = "";
         let requestBody: any = {};
         const baseZapiUrl = getUniversalUrl("");
 
@@ -2087,7 +2103,7 @@ serve(async (req) => {
           const hasActionButtonsInFormatted = zapiButtons.some((b: any) => b.type === "URL" || b.type === "CALL");
 
           if (!hasActionButtonsInFormatted) {
-            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list`;
+            semanticEndpoint = "/send-button-list";
             const listPayload = {
               phone: contact.phone,
               message: fullMessage || " ",
@@ -2103,11 +2119,7 @@ serve(async (req) => {
               ...(campaignViewOnce ? { viewOnce: true } : {}),
             };
 
-            const listResponse = await fetch(listEndpoint, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "Client-Token": instClientToken },
-              body: JSON.stringify(listPayload),
-            });
+            const listResponse = await performUniversalSend(semanticEndpoint, listPayload);
 
             if (listResponse.ok) {
               const result = await listResponse.json();
@@ -2200,7 +2212,7 @@ serve(async (req) => {
           const sType = templateType === "audio_video_botoes" ? "video" : "image";
 
           if (secondaryUrl && !hasActionButtonsInFormatted && (sType === "image" || sType === "video")) {
-            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list`;
+            semanticEndpoint = "/send-button-list";
             const listPayload: any = {
               phone: contact.phone,
               message: fullMessage || " ",
@@ -2215,11 +2227,7 @@ serve(async (req) => {
               },
             };
 
-            const listResponse = await fetch(listEndpoint, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "Client-Token": instClientToken },
-              body: JSON.stringify(listPayload),
-            });
+            const listResponse = await performUniversalSend(semanticEndpoint, listPayload);
 
             if (listResponse.ok) {
               const result = await listResponse.json();
@@ -2256,7 +2264,7 @@ serve(async (req) => {
           const hasActionButtonsInFormatted = zapiButtons.some((b: any) => b.type === "URL" || b.type === "CALL");
 
           if (!hasActionButtonsInFormatted) {
-            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list`;
+            semanticEndpoint = "/send-button-list";
             const listPayload = {
               phone: contact.phone,
               message: fullMessage || " ",
@@ -2271,11 +2279,7 @@ serve(async (req) => {
               },
             };
 
-            const listResponse = await fetch(listEndpoint, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "Client-Token": instClientToken },
-              body: JSON.stringify(listPayload),
-            });
+            const listResponse = await performUniversalSend(semanticEndpoint, listPayload);
 
             if (listResponse.ok) {
               const result = await listResponse.json();
@@ -2343,13 +2347,16 @@ serve(async (req) => {
         } else if (templateType === "status") {
           const statusType = String((campaignTemplate as any).status_type || "text").toLowerCase();
           if (statusType === "image") {
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-status-image`;
+            semanticEndpoint = "/send-status-image";
+            zapiUrl = getUniversalUrl(semanticEndpoint);
             requestBody = { image: campaignTemplate.media_url, caption: fullMessage };
           } else if (statusType === "video") {
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-status-video`;
+            semanticEndpoint = "/send-status-video";
+            zapiUrl = getUniversalUrl(semanticEndpoint);
             requestBody = { video: campaignTemplate.media_url, caption: fullMessage };
           } else {
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-status-text`;
+            semanticEndpoint = "/send-status-text";
+            zapiUrl = getUniversalUrl(semanticEndpoint);
             requestBody = { message: fullMessage };
           }
           requestBody.phone = "status@broadcast";
@@ -2363,7 +2370,8 @@ serve(async (req) => {
             .pop()
             ?.toLowerCase();
           const extension = (mimeExt && mimeExt !== "octet-stream" ? mimeExt : urlExt) || "pdf";
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-document/${extension}`;
+          semanticEndpoint = `/send-document/${extension}`;
+          zapiUrl = getUniversalUrl(semanticEndpoint);
           requestBody = {
             phone: contact.phone,
             document: campaignTemplate.media_url,
@@ -2385,7 +2393,8 @@ serve(async (req) => {
               rowId: String(it.id || `opt_${idx + 1}`),
             }));
 
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list`;
+          semanticEndpoint = "/send-button-list";
+          zapiUrl = getUniversalUrl(semanticEndpoint);
           requestBody = {
             phone: contact.phone,
             message: fullMessage || " ",
@@ -2412,7 +2421,8 @@ serve(async (req) => {
             }));
           if (cleanItems.length === 0) throw new Error('Template tipo "lista" requer pelo menos um item');
 
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-option-list`;
+          semanticEndpoint = "/send-option-list";
+          zapiUrl = getUniversalUrl(semanticEndpoint);
           requestBody = {
             phone: contact.phone,
             message: fullMessage || " ",
@@ -2423,11 +2433,13 @@ serve(async (req) => {
             },
           };
         } else if (hasButtons) {
-          zapiUrl = getUniversalUrl("/send-button-actions");
+          semanticEndpoint = "/send-button-actions";
+          zapiUrl = getUniversalUrl(semanticEndpoint);
           const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage, reusableSendId);
           requestBody = { phone: contact.phone, ...buttonPayload };
         } else {
-          zapiUrl = getUniversalUrl("/send-text");
+          semanticEndpoint = "/send-text";
+          zapiUrl = getUniversalUrl(semanticEndpoint);
           requestBody = { phone: contact.phone, message: fullMessage };
         }
 
@@ -2450,12 +2462,7 @@ serve(async (req) => {
           console.log(`🚀 [Dispatch] Provider: ${instApiProvider}, URL: ${zapiUrl}`);
           console.log(`📦 [Dispatch] Payload: ${JSON.stringify({ ...requestBody, phone: contact.phone })}`);
 
-          const endpoint = "/" + zapiUrl.split("/").pop();
-          const zapiResponse = await fetch(zapiUrl, {
-            method: "POST",
-            headers: getUniversalHeaders(),
-            body: JSON.stringify(mapUniversalPayload(endpoint, requestBody)),
-          });
+          const zapiResponse = await performUniversalSend(semanticEndpoint || "/" + zapiUrl.split("/").pop(), requestBody);
 
           let zapiResult: any = {};
           try {
