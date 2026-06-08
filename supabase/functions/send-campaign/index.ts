@@ -2413,7 +2413,8 @@ serve(async (req) => {
             }));
           if (cleanItems.length === 0) throw new Error('Template tipo "lista" requer pelo menos um item');
 
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-option-list`;
+          semanticEndpoint = "/send-option-list";
+          zapiUrl = getUniversalUrl(semanticEndpoint);
           requestBody = {
             phone: contact.phone,
             message: fullMessage || " ",
