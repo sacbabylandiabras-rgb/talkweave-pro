@@ -579,7 +579,7 @@ serve(async (req) => {
         const number = (body.phone || body.number || "").replace(/\D/g, "");
         
         // Ensure token is also in query string for maximum compatibility
-        const withToken = (p: string) => `${p}${p.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+        const withToken = (p: string) => `${p}${p.includes('?') ? '&' : '?'}apikey=${encodeURIComponent(token)}`;
 
         if (endpoint === '/send-text') {
           finalEndpoint = withToken(`/message/sendText/${inst}`);
