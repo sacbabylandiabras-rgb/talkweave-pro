@@ -2367,7 +2367,8 @@ serve(async (req) => {
             .pop()
             ?.toLowerCase();
           const extension = (mimeExt && mimeExt !== "octet-stream" ? mimeExt : urlExt) || "pdf";
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-document/${extension}`;
+          semanticEndpoint = `/send-document/${extension}`;
+          zapiUrl = getUniversalUrl(semanticEndpoint);
           requestBody = {
             phone: contact.phone,
             document: campaignTemplate.media_url,
