@@ -43,6 +43,7 @@ interface ResolvedInstance {
   zapiClientToken: string;
   instanceName: string;
   apiProvider?: string;
+  evolutionApiUrl?: string | null;
 }
 
 type CampaignCredentials = {
@@ -53,6 +54,7 @@ type CampaignCredentials = {
   instanceName: string;
   dbId?: string;
   apiProvider?: string;
+  evolutionApiUrl?: string | null;
 };
 
 const PUBLIC_TRACKING_URL = "https://go.zaplynxpro.online/r";
@@ -104,8 +106,8 @@ const mapResolvedInstance = (
   const instanceName = String(instance.instance_name || "").toLowerCase();
   const instanceType = String(instance.instance_type || "").toLowerCase();
 
-  // EXCLUSION: Only allow 'zapi' provider for campaigns as requested by user
-  if (provider !== "zapi" || instanceType === "mobile" || instanceName.includes("mobile")) {
+  // Support all providers including UAZAPI
+  if (instanceType === "mobile" || instanceName.includes("mobile")) {
     return null;
   }
 
@@ -118,7 +120,8 @@ const mapResolvedInstance = (
     zapiToken: instance.zapi_token || "",
     zapiClientToken: instance.zapi_client_token || "",
     instanceName: instance.instance_name || "Instância",
-    apiProvider: "zapi",
+    apiProvider: provider,
+    evolutionApiUrl: instance.evolution_api_url,
   };
 };
 
@@ -132,7 +135,7 @@ const resolvePreferredUserInstance = async (supabase: any, userId: string): Prom
     .eq("user_id", userId)
     .eq("is_default", true)
     .eq("is_active", true)
-    .eq("api_provider", "zapi") // Only Z-API
+    .in("api_provider", ["zapi", "uazapi", "uazapi_warmup", "evolution"])
     .not("instance_name", "ilike", "%Mobile%")
     .maybeSingle();
 
@@ -144,7 +147,7 @@ const resolvePreferredUserInstance = async (supabase: any, userId: string): Prom
     .select(selectFields)
     .eq("user_id", userId)
     .eq("is_active", true)
-    .eq("api_provider", "zapi") // Only Z-API
+    .in("api_provider", ["zapi", "uazapi", "uazapi_warmup", "evolution"])
     .order("created_at", { ascending: true })
     .limit(25);
 
@@ -159,6 +162,7 @@ const buildCampaignCredentials = (userId: string, instance: ResolvedInstance): C
   instanceName: instance.instanceName,
   dbId: instance.dbId,
   apiProvider: instance.apiProvider || "zapi",
+  evolutionApiUrl: instance.evolutionApiUrl,
 });
 
 const getAuthenticatedUserId = async (req: Request, supabaseUrl: string, supabaseServiceKey: string) => {
@@ -199,34 +203,19 @@ const resolveContactInstance = async (
       "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key",
     )
     .eq("user_id", userId)
-    .eq("zapi_instance_id", sourceInstanceId)
-    .eq("api_provider", "zapi") // Only Z-API
-    // EXCLUSION: If user specifically said to stop using "Mobile" instances
+    .in("api_provider", ["zapi", "uazapi", "uazapi_warmup", "evolution"])
     .not("instance_name", "ilike", "%Mobile%");
 
-  if (!allowInactive) byZapiQuery = byZapiQuery.eq("is_active", true);
-  const { data: byZapiInstanceId } = await byZapiQuery.maybeSingle();
-
-  instance = byZapiInstanceId;
-
-  if (!instance) {
-    let byTableQuery = supabase
-      .from("zapi_instances")
-      .select(
-        "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key",
-      )
-      .eq("user_id", userId)
-      .eq("id", sourceInstanceId)
-      .eq("api_provider", "zapi") // Only Z-API
-      .not("instance_name", "ilike", "%Mobile%");
-
-    if (!allowInactive) byTableQuery = byTableQuery.eq("is_active", true);
-    const { data: byTableId } = await byTableQuery.maybeSingle();
-
-    instance = byTableId;
+  if (isUuid(sourceInstanceId)) {
+    byZapiQuery = byZapiQuery.or(`zapi_instance_id.eq.${sourceInstanceId},id.eq.${sourceInstanceId}`);
+  } else {
+    byZapiQuery = byZapiQuery.eq("zapi_instance_id", sourceInstanceId);
   }
 
-  return mapResolvedInstance(instance);
+  if (!allowInactive) byZapiQuery = byZapiQuery.eq("is_active", true);
+  const { data: foundInstance } = await byZapiQuery.maybeSingle();
+
+  return mapResolvedInstance(foundInstance);
 };
 
 const resolveGroupInstanceFromInboundLogs = async (
@@ -272,15 +261,21 @@ const resolveGroupInstanceFromInboundLogs = async (
 
   if (!resolvedGroupInstanceId) return null;
 
-  const { data: correctInstance } = await supabase
+  let query = supabase
     .from("zapi_instances")
     .select(
       "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key",
     )
-    .or(`zapi_instance_id.eq.${resolvedGroupInstanceId},id.eq.${resolvedGroupInstanceId}`)
     .eq("user_id", userId)
-    .eq("is_active", true)
-    .maybeSingle();
+    .eq("is_active", true);
+
+  if (isUuid(resolvedGroupInstanceId)) {
+    query = query.or(`zapi_instance_id.eq.${resolvedGroupInstanceId},id.eq.${resolvedGroupInstanceId}`);
+  } else {
+    query = query.eq("zapi_instance_id", resolvedGroupInstanceId);
+  }
+
+  const { data: correctInstance } = await query.maybeSingle();
 
   const correctInstanceRow = correctInstance as {
     zapi_instance_id?: string | null;
@@ -488,6 +483,11 @@ const parseSpecialTemplate = (content?: string | null) => {
   } catch {
     return null;
   }
+};
+
+const isUuid = (val: string | null | undefined): boolean => {
+  if (!val) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 };
 
 const parseCoordinate = (value: unknown): string | null => {
@@ -918,7 +918,7 @@ serve(async (req) => {
           .select("*")
           .eq("user_id", _userId)
           .eq("is_active", true)
-          .eq("api_provider", "zapi")
+          .in("api_provider", ["zapi", "uazapi", "uazapi_warmup", "evolution"])
           .limit(1)
           .maybeSingle();
         continuationInstance = fallbackInst ? mapResolvedInstance(fallbackInst) : null;
@@ -958,7 +958,8 @@ serve(async (req) => {
           clientToken: baseCredentials.clientToken,
           userId: baseCredentials.userId,
           instanceName: baseCredentials.instanceName,
-          apiProvider: "zapi",
+          apiProvider: baseCredentials.provider,
+          evolutionApiUrl: baseCredentials.evolutionApiUrl,
         };
       }
 
@@ -996,17 +997,27 @@ serve(async (req) => {
         )
         .eq("user_id", credentials.userId)
         .eq("is_active", true)
-        .eq("api_provider", "zapi");
+        .in("api_provider", ["zapi", "uazapi", "uazapi_warmup", "evolution"]);
 
       if (typeof requestedInstanceIdRaw === "string" && requestedInstanceIdRaw.startsWith("rotate:")) {
         const specificIds = requestedInstanceIdRaw.replace("rotate:", "").split(",").filter(Boolean);
         if (specificIds.length > 0) {
+          const uuids = specificIds.filter(isUuid);
+          const nonUuuids = specificIds.filter(id => !isUuid(id));
+          
           console.log(
-            `🎯 [Mode] Rotation restricted to ${specificIds.length} specific instances: ${specificIds.join(", ")}`,
+            `🎯 [Mode] Rotation restricted to ${specificIds.length} specific instances`,
           );
-          query = query.in("id", specificIds);
+          
+          if (uuids.length > 0 && nonUuuids.length > 0) {
+             query = query.or(`id.in.(${uuids.join(',')}),zapi_instance_id.in.(${nonUuuids.map(id => `"${id}"`).join(',')})`);
+          } else if (uuids.length > 0) {
+             query = query.in("id", uuids);
+          } else if (nonUuuids.length > 0) {
+             query = query.in("zapi_instance_id", nonUuuids);
+          }
         } else {
-          query = query.or("api_provider.is.null,api_provider.eq.zapi");
+          query = query.in("api_provider", ["zapi", "uazapi", "uazapi_warmup", "evolution"]);
         }
       } else {
         console.log(`🔄 [Mode] Rotating through all active instances for user ${credentials.userId}`);
@@ -1839,10 +1850,89 @@ serve(async (req) => {
         const instId = currentInstance.zapiInstanceId;
         const instToken = currentInstance.zapiToken;
         const instClientToken = currentInstance.zapiClientToken;
+        const instApiProvider = currentInstance.apiProvider || "zapi";
+        const instEvolutionUrl = currentInstance.evolutionApiUrl;
+        const instName = currentInstance.instanceName;
+
+        const isUazapi = instApiProvider === "uazapi" || instApiProvider === "uazapi_warmup" || instApiProvider === "evolution";
+        const uazapiBaseUrl = instEvolutionUrl?.replace(/\/+$/, "");
+
+        const getUniversalUrl = (endpoint: string) => {
+          if (isUazapi && uazapiBaseUrl) {
+            const withToken = (p: string) => `${p}${p.includes("?") ? "&" : "?"}token=${encodeURIComponent(instToken)}`;
+            const inst = instName || instId;
+            
+            if (endpoint === "/send-text") return uazapiBaseUrl + withToken(`/message/sendText/${inst}`);
+            if (endpoint === "/send-image") return uazapiBaseUrl + withToken(`/message/sendMedia/${inst}`);
+            if (endpoint === "/send-video") return uazapiBaseUrl + withToken(`/message/sendMedia/${inst}`);
+            if (endpoint === "/send-audio") return uazapiBaseUrl + withToken(`/message/sendMedia/${inst}`);
+            if (endpoint.startsWith("/send-document")) return uazapiBaseUrl + withToken(`/message/sendMedia/${inst}`);
+            if (endpoint === "/send-button-actions") return uazapiBaseUrl + withToken(`/message/sendButtons/${inst}`);
+            if (endpoint === "/send-button-list") return uazapiBaseUrl + withToken(`/message/sendButtons/${inst}`);
+            if (endpoint === "/send-ptv") return uazapiBaseUrl + withToken(`/message/sendMedia/${inst}`);
+            
+            return uazapiBaseUrl + withToken(endpoint.replace(/^\/send-/, "/message/send/"));
+          }
+          return `https://api.z-api.io/instances/${instId}/token/${instToken}${endpoint}`;
+        };
+
+        const getUniversalHeaders = () => {
+          if (isUazapi) {
+            return { "Content-Type": "application/json", token: instToken, apikey: instToken };
+          }
+          return { "Content-Type": "application/json", "Client-Token": instClientToken };
+        };
+
+        const mapUniversalPayload = (endpoint: string, payload: any) => {
+          if (!isUazapi) return payload;
+
+          const number = (payload.phone || "").replace(/\D/g, "");
+          if (endpoint === "/send-text") {
+             return { number, text: payload.message || "", linkPreview: true };
+          }
+          if (endpoint === "/send-image") {
+             return { number, media: payload.image, type: "image", caption: payload.caption || "" };
+          }
+          if (endpoint === "/send-video") {
+             return { number, media: payload.video, type: "video", caption: payload.caption || "" };
+          }
+          if (endpoint === "/send-audio") {
+             return { number, media: payload.audio, type: "audio" };
+          }
+          if (endpoint.startsWith("/send-document")) {
+             return { number, media: payload.document, type: "document", caption: payload.caption || "", fileName: payload.fileName || "" };
+          }
+          if (endpoint === "/send-button-actions" || endpoint === "/send-button-list") {
+             const buttons = (payload.buttonActions || payload.buttonList?.buttons || []).map((b: any, i: number) => ({
+               buttonId: b.id || String(i + 1),
+               buttonText: { displayText: b.label || b.text || "Botão" },
+               type: 1
+             }));
+             return { number, title: payload.title || "", description: payload.message || "", footer: payload.footer || "", buttons };
+          }
+          if (endpoint === "/send-ptv") {
+             return { number, media: payload.ptv, type: "ptv" };
+          }
+          
+          return { ...payload, number };
+        };
+
+        const performUniversalSend = async (endpoint: string, payload: any, method: string = "POST") => {
+          const url = getUniversalUrl(endpoint);
+          const headers = getUniversalHeaders();
+          const body = mapUniversalPayload(endpoint, payload);
+          
+          console.log(`📤 Sending campaign message via ${instApiProvider}: ${url}`);
+          return fetch(url, {
+            method,
+            headers,
+            body: JSON.stringify(body)
+          });
+        };
 
         let zapiUrl: string = "";
         let requestBody: any = {};
-        const baseZapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
+        const baseZapiUrl = getUniversalUrl("");
 
         if (isLidIdentifier(contact.phone)) {
           console.log(`📞 [Z-API] Enviando @lid: ${contact.phone}`);
@@ -1873,10 +1963,11 @@ serve(async (req) => {
           requestBody = specialBody;
 
           if (zapiUrl) {
+            const endpoint = "/" + zapiUrl.split("/").pop();
             const zapiResponse = await fetch(zapiUrl, {
               method: "POST",
-              headers: { "Content-Type": "application/json", "Client-Token": instClientToken },
-              body: JSON.stringify(requestBody),
+              headers: getUniversalHeaders(),
+              body: JSON.stringify(mapUniversalPayload(endpoint, requestBody)),
             });
 
             let zapiResult: any = {};
@@ -1947,7 +2038,7 @@ serve(async (req) => {
             return item;
           });
 
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-carousel`;
+          zapiUrl = getUniversalUrl("/send-carousel");
           requestBody = {
             phone: contact.phone,
             message: fullMessage || " ",
@@ -1957,8 +2048,8 @@ serve(async (req) => {
           console.log("[send-campaign] Enviando carrossel Z-API:", JSON.stringify(requestBody));
           const carouselResponse = await fetch(zapiUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Client-Token": instClientToken },
-            body: JSON.stringify(requestBody),
+            headers: getUniversalHeaders(),
+            body: JSON.stringify(mapUniversalPayload("/send-carousel", requestBody)),
           });
           const carouselText = await carouselResponse.text();
           console.log("[send-campaign] Resposta carrossel Z-API:", carouselResponse.status, carouselText);
@@ -2015,7 +2106,7 @@ serve(async (req) => {
               throw new Error(`Erro ao enviar botões de lista (video): ${JSON.stringify(errorBody)}`);
             }
 
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+            zapiUrl = getUniversalUrl("/send-button-actions");
             const buttonPayload = buildZapiButtonActionPayload(
               campaignTemplate.buttons,
               fullMessage || " ",
@@ -2028,7 +2119,7 @@ serve(async (req) => {
               ...(campaignViewOnce ? { viewOnce: true } : {}),
             };
           } else {
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+            zapiUrl = getUniversalUrl("/send-button-actions");
             const buttonPayload = buildZapiButtonActionPayload(
               campaignTemplate.buttons,
               fullMessage || " ",
@@ -2042,16 +2133,16 @@ serve(async (req) => {
             };
           }
         } else if (templateType === "video_botoes" && hasMedia && hasButtons && campaignIsPtv) {
-          const ptvUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-ptv`;
+          const ptvUrl = getUniversalUrl("/send-ptv");
           const ptvResponse = await fetch(ptvUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Client-Token": instClientToken },
-            body: JSON.stringify({ phone: contact.phone, ptv: campaignTemplate.media_url }),
+            headers: getUniversalHeaders(),
+            body: JSON.stringify(mapUniversalPayload("/send-ptv", { phone: contact.phone, ptv: campaignTemplate.media_url })),
           });
           if (!ptvResponse.ok) throw new Error(`Erro ao enviar PTV: ${await ptvResponse.text()}`);
 
           await sleep(Math.max(delayMs / 2, 1000));
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+          zapiUrl = getUniversalUrl("/send-button-actions");
           const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage, reusableSendId);
           requestBody = { phone: contact.phone, ...buttonPayload };
         } else if (
@@ -2061,11 +2152,11 @@ serve(async (req) => {
           hasMedia &&
           hasButtons
         ) {
-          const audioUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-audio`;
+          const audioUrl = getUniversalUrl("/send-audio");
           const audioResponse = await fetch(audioUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Client-Token": instClientToken },
-            body: JSON.stringify({ phone: contact.phone, audio: campaignTemplate.media_url, waveform: true }),
+            headers: getUniversalHeaders(),
+            body: JSON.stringify(mapUniversalPayload("/send-audio", { phone: contact.phone, audio: campaignTemplate.media_url, waveform: true })),
           });
           if (!audioResponse.ok) throw new Error(`Erro ao enviar áudio: ${await audioResponse.text()}`);
 
@@ -2125,7 +2216,7 @@ serve(async (req) => {
             }
           }
 
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+          zapiUrl = getUniversalUrl("/send-button-actions");
           const buttonPayload = buildZapiButtonActionPayload(
             campaignTemplate.buttons,
             fullMessage || " ",
@@ -2183,7 +2274,7 @@ serve(async (req) => {
               throw new Error(`Erro ao enviar botões de lista (image): ${JSON.stringify(errorBody)}`);
             }
 
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+            zapiUrl = getUniversalUrl("/send-button-actions");
             const buttonPayload = buildZapiButtonActionPayload(
               campaignTemplate.buttons,
               fullMessage || " ",
@@ -2195,7 +2286,7 @@ serve(async (req) => {
               image: campaignTemplate.media_url,
             };
           } else {
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+            zapiUrl = getUniversalUrl("/send-button-actions");
             const buttonPayload = buildZapiButtonActionPayload(
               campaignTemplate.buttons,
               fullMessage || " ",
@@ -2209,15 +2300,15 @@ serve(async (req) => {
           }
         } else if (templateType === "imagem") {
           if (!hasMedia) throw new Error('Template tipo "imagem" requer uma imagem');
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-image`;
+          zapiUrl = getUniversalUrl("/send-image");
           requestBody = { phone: contact.phone, image: campaignTemplate.media_url, caption: fullMessage };
         } else if (templateType === "video") {
           if (!hasMedia) throw new Error('Template tipo "video" requer um vídeo');
           if (campaignIsPtv) {
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-ptv`;
+            zapiUrl = getUniversalUrl("/send-ptv");
             requestBody = { phone: contact.phone, ptv: campaignTemplate.media_url };
           } else {
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-video`;
+            zapiUrl = getUniversalUrl("/send-video");
             requestBody = {
               phone: contact.phone,
               video: campaignTemplate.media_url,
@@ -2227,7 +2318,7 @@ serve(async (req) => {
           }
         } else if (templateType === "audio") {
           if (!hasMedia) throw new Error('Template tipo "audio" requer um áudio');
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-audio`;
+          zapiUrl = getUniversalUrl("/send-audio");
           requestBody = { phone: contact.phone, audio: campaignTemplate.media_url, waveform: true };
         } else if (templateType === "status") {
           const statusType = String((campaignTemplate as any).status_type || "text").toLowerCase();
@@ -2312,11 +2403,11 @@ serve(async (req) => {
             },
           };
         } else if (hasButtons) {
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+          zapiUrl = getUniversalUrl("/send-button-actions");
           const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage, reusableSendId);
           requestBody = { phone: contact.phone, ...buttonPayload };
         } else {
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-text`;
+          zapiUrl = getUniversalUrl("/send-text");
           requestBody = { phone: contact.phone, message: fullMessage };
         }
 
@@ -2325,24 +2416,25 @@ serve(async (req) => {
           if (tagId && tagId !== "none" && !isGroupDestination(contact.phone)) {
             try {
               console.log(`🏷️ Applying tag ${tagId} to ${contact.phone}`);
-              const tagUrl = `${baseZapiUrl}/add-tag-chat`;
+              const tagUrl = getUniversalUrl("/add-tag-chat");
               await fetch(tagUrl, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "Client-Token": instClientToken },
-                body: JSON.stringify({ phone: contact.phone, tagId }),
+                headers: getUniversalHeaders(),
+                body: JSON.stringify(mapUniversalPayload("/add-tag-chat", { phone: contact.phone, tagId })),
               });
             } catch (tagErr) {
               console.error(`⚠️ Failed to apply tag to ${contact.phone}:`, tagErr);
             }
           }
 
-          console.log(`🚀 [Dispatch] Z-API URL: ${zapiUrl}`);
-          console.log(`📦 [Dispatch] Z-API Payload: ${JSON.stringify({ ...requestBody, phone: contact.phone })}`);
+          console.log(`🚀 [Dispatch] Provider: ${instApiProvider}, URL: ${zapiUrl}`);
+          console.log(`📦 [Dispatch] Payload: ${JSON.stringify({ ...requestBody, phone: contact.phone })}`);
 
+          const endpoint = "/" + zapiUrl.split("/").pop();
           const zapiResponse = await fetch(zapiUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Client-Token": instClientToken },
-            body: JSON.stringify(requestBody),
+            headers: getUniversalHeaders(),
+            body: JSON.stringify(mapUniversalPayload(endpoint, requestBody)),
           });
 
           let zapiResult: any = {};
