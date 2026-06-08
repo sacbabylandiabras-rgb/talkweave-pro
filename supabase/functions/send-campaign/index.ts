@@ -217,7 +217,7 @@ const resolveContactInstance = async (
       )
       .eq("user_id", userId)
       .eq("id", sourceInstanceId)
-      .eq("api_provider", "zapi") // Only Z-API
+      .in("api_provider", ["zapi", "uazapi", "uazapi_warmup", "evolution"])
       .not("instance_name", "ilike", "%Mobile%");
 
     if (!allowInactive) byTableQuery = byTableQuery.eq("is_active", true);
