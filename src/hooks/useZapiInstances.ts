@@ -110,6 +110,7 @@ const fetchInstancesWithRetry = async (userId: string): Promise<ZapiInstance[]> 
   let lastError: any = null;
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
+    console.log("Fetching instances for user", userId);
     const { data, error } = await fromZapiInstances()
       .select('*')
       .eq('user_id', userId)
