@@ -38,8 +38,10 @@ const readCachedInstances = (userId: string): ZapiInstance[] | null => {
     const raw = localStorage.getItem(`${INSTANCES_CACHE_PREFIX}${userId}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
+    console.log("Reading cached instances for user", userId, ":", parsed?.instances?.length);
     return Array.isArray(parsed?.instances) ? parsed.instances : null;
-  } catch {
+  } catch (e) {
+    console.error("Error reading cached instances:", e);
     return null;
   }
 };
