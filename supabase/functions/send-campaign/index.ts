@@ -1928,22 +1928,28 @@ serve(async (req) => {
           if (endpoint === "/send-button-actions" || endpoint === "/send-button-list") {
              const buttons = (payload.buttonActions || payload.buttonList?.buttons || []).map((b: any, i: number) => {
                const btn: any = {
-                 buttonId: b.id || String(i + 1),
-                 buttonText: { displayText: b.label || b.text || "Botão" },
-                 type: 1
+                 id: b.id || String(i + 1),
+                 displayText: b.label || b.text || "Botão",
+                 type: "reply"
                };
                
                if (b.type === "URL" && b.url) {
-                 btn.type = 2; // URL button
-                 btn.nativeContent = { url: b.url };
+                 btn.type = "url";
+                 btn.url = b.url;
                } else if (b.type === "CALL" && b.phone) {
-                 btn.type = 3; // Call button
-                 btn.nativeContent = { phoneNumber: b.phone };
+                 btn.type = "call";
+                 btn.phoneNumber = b.phone;
                }
                
                return btn;
              });
-             return { number, title: payload.title || "", description: payload.message || "", footer: payload.footer || "", buttons };
+             return { 
+               number, 
+               title: payload.title || "", 
+               description: payload.message || "", 
+               footer: payload.footer || "", 
+               buttons 
+             };
           }
           if (endpoint === "/send-ptv") {
              return { number, media: payload.ptv, type: "ptv" };
