@@ -2048,8 +2048,8 @@ serve(async (req) => {
           console.log("[send-campaign] Enviando carrossel Z-API:", JSON.stringify(requestBody));
           const carouselResponse = await fetch(zapiUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Client-Token": instClientToken },
-            body: JSON.stringify(requestBody),
+            headers: getUniversalHeaders(),
+            body: JSON.stringify(mapUniversalPayload("/send-carousel", requestBody)),
           });
           const carouselText = await carouselResponse.text();
           console.log("[send-campaign] Resposta carrossel Z-API:", carouselResponse.status, carouselText);
