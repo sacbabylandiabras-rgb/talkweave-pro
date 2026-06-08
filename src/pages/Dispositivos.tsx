@@ -841,9 +841,8 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
   useEffect(() => {
     fetchDeviceStatus();
     // Poll faster when connect dialog is open
-    // Aumentamos o intervalo padrão para 30s quando não está tentando conectar
-    // para reduzir chamadas desnecessárias que podem ser interpretadas como erro de rede.
-    const interval = showConnect ? 3000 : 30000;
+    // Retornamos para 10s para garantir atualização em tempo real sem excesso.
+    const interval = showConnect ? 3000 : 10000;
     const statusInterval = setInterval(fetchDeviceStatus, interval);
     return () => clearInterval(statusInterval);
   }, [instance.id, showConnect]);
