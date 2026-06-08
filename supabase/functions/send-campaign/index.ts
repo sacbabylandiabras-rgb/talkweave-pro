@@ -918,7 +918,7 @@ serve(async (req) => {
           .select("*")
           .eq("user_id", _userId)
           .eq("is_active", true)
-          .eq("api_provider", "zapi")
+          .in("api_provider", ["zapi", "uazapi", "uazapi_warmup", "evolution"])
           .limit(1)
           .maybeSingle();
         continuationInstance = fallbackInst ? mapResolvedInstance(fallbackInst) : null;
