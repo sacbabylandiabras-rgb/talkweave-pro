@@ -2464,7 +2464,7 @@ serve(async (req) => {
           } catch {}
 
           const explicitError = getZapiExplicitError(zapiResult);
-          const confirmed = isZapiConfirmed(zapiResult);
+          const confirmed = isZapiConfirmed(zapiResult, zapiResponse.status);
           const messageIdFromResponse = getZapiAckId(zapiResult);
 
           console.log(
