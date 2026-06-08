@@ -2499,13 +2499,13 @@ const BulkBusinessInfo = ({ instances, open, onOpenChange }: { instances: ZapiIn
 
 const Dispositivos = () => {
   const { instances: allInstances, loading, refetch } = useZapiInstances();
-    // Exibir apenas instâncias de uso (Z-API/UAZAPI Web), ocultando legados Mobile
+    // Exibir apenas instâncias de uso (UAZAPI), ocultando legados Mobile
     const instances = useMemo(() => {
       return allInstances.filter(
          (i) => {
            const provider = String(i.api_provider || '').toLowerCase();
-           const hasCurrentConnection = provider === 'uazapi' && Boolean(i.evolution_api_url && (i.evolution_api_key || i.zapi_token));
-           return hasCurrentConnection && !isMobileZapiInstance(i);
+           // Mostra instâncias UAZAPI ou qualquer uma que não seja mobile
+           return (provider === 'uazapi' || provider === 'zapi') && !isMobileZapiInstance(i);
          }
       );
     }, [allInstances]);
