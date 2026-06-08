@@ -2426,13 +2426,14 @@ serve(async (req) => {
             }
           }
 
-          console.log(`🚀 [Dispatch] Z-API URL: ${zapiUrl}`);
-          console.log(`📦 [Dispatch] Z-API Payload: ${JSON.stringify({ ...requestBody, phone: contact.phone })}`);
+          console.log(`🚀 [Dispatch] Provider: ${instApiProvider}, URL: ${zapiUrl}`);
+          console.log(`📦 [Dispatch] Payload: ${JSON.stringify({ ...requestBody, phone: contact.phone })}`);
 
+          const endpoint = "/" + zapiUrl.split("/").pop();
           const zapiResponse = await fetch(zapiUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Client-Token": instClientToken },
-            body: JSON.stringify(requestBody),
+            headers: getUniversalHeaders(),
+            body: JSON.stringify(mapUniversalPayload(endpoint, requestBody)),
           });
 
           let zapiResult: any = {};
