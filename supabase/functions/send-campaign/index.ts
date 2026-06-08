@@ -2402,11 +2402,11 @@ serve(async (req) => {
             },
           };
         } else if (hasButtons) {
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+          zapiUrl = getUniversalUrl("/send-button-actions");
           const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage, reusableSendId);
           requestBody = { phone: contact.phone, ...buttonPayload };
         } else {
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-text`;
+          zapiUrl = getUniversalUrl("/send-text");
           requestBody = { phone: contact.phone, message: fullMessage };
         }
 
