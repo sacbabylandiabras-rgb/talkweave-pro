@@ -1002,12 +1002,22 @@ serve(async (req) => {
       if (typeof requestedInstanceIdRaw === "string" && requestedInstanceIdRaw.startsWith("rotate:")) {
         const specificIds = requestedInstanceIdRaw.replace("rotate:", "").split(",").filter(Boolean);
         if (specificIds.length > 0) {
+          const uuids = specificIds.filter(isUuid);
+          const nonUuuids = specificIds.filter(id => !isUuid(id));
+          
           console.log(
-            `🎯 [Mode] Rotation restricted to ${specificIds.length} specific instances: ${specificIds.join(", ")}`,
+            `🎯 [Mode] Rotation restricted to ${specificIds.length} specific instances`,
           );
-          query = query.in("id", specificIds);
+          
+          if (uuids.length > 0 && nonUuuids.length > 0) {
+             query = query.or(`id.in.(${uuids.join(',')}),zapi_instance_id.in.(${nonUuuids.map(id => `"${id}"`).join(',')})`);
+          } else if (uuids.length > 0) {
+             query = query.in("id", uuids);
+          } else if (nonUuuids.length > 0) {
+             query = query.in("zapi_instance_id", nonUuuids);
+          }
         } else {
-          query = query.or("api_provider.is.null,api_provider.eq.zapi");
+          query = query.in("api_provider", ["zapi", "uazapi", "uazapi_warmup", "evolution"]);
         }
       } else {
         console.log(`🔄 [Mode] Rotating through all active instances for user ${credentials.userId}`);
