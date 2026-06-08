@@ -132,7 +132,7 @@ const resolvePreferredUserInstance = async (supabase: any, userId: string): Prom
     .eq("user_id", userId)
     .eq("is_default", true)
     .eq("is_active", true)
-    .eq("api_provider", "zapi") // Only Z-API
+    .in("api_provider", ["zapi", "uazapi", "uazapi_warmup", "evolution"])
     .not("instance_name", "ilike", "%Mobile%")
     .maybeSingle();
 
