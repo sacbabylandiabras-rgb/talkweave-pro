@@ -373,9 +373,6 @@ const deactivateInstance = async (supabase: any, dbId: string, reason: string) =
 
 const isZapiConfirmed = (payload: any) => {
   const ackId = getZapiAckId(payload);
-  const status = String(payload?.status || payload?.message?.status || "").toUpperCase();
-  const result = String(payload?.result || "").toUpperCase();
-
   const error = String(payload?.error || payload?.message || "").toLowerCase();
   const status = String(payload?.status || payload?.message?.status || payload?.response?.status || "").toUpperCase();
   const result = String(payload?.result || "").toUpperCase();
