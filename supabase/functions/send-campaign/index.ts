@@ -162,6 +162,7 @@ const buildCampaignCredentials = (userId: string, instance: ResolvedInstance): C
   instanceName: instance.instanceName,
   dbId: instance.dbId,
   apiProvider: instance.apiProvider || "zapi",
+  evolutionApiUrl: instance.evolutionApiUrl,
 });
 
 const getAuthenticatedUserId = async (req: Request, supabaseUrl: string, supabaseServiceKey: string) => {
