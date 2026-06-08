@@ -2416,11 +2416,11 @@ serve(async (req) => {
           if (tagId && tagId !== "none" && !isGroupDestination(contact.phone)) {
             try {
               console.log(`🏷️ Applying tag ${tagId} to ${contact.phone}`);
-              const tagUrl = `${baseZapiUrl}/add-tag-chat`;
+              const tagUrl = getUniversalUrl("/add-tag-chat");
               await fetch(tagUrl, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "Client-Token": instClientToken },
-                body: JSON.stringify({ phone: contact.phone, tagId }),
+                headers: getUniversalHeaders(),
+                body: JSON.stringify(mapUniversalPayload("/add-tag-chat", { phone: contact.phone, tagId })),
               });
             } catch (tagErr) {
               console.error(`⚠️ Failed to apply tag to ${contact.phone}:`, tagErr);
