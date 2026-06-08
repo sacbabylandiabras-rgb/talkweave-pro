@@ -382,11 +382,11 @@ const isZapiConfirmed = (payload: any) => {
   // Se tem erro explícito de negação, não confirma
   if (payload?.error === true || payload?.success === false) return false;
 
-  // Se tem ackId, o Z-API aceitou a mensagem — confirmado
-  if (Boolean(ackId)) return true;
+  // Se tem ackId ou similar (UAZAPI usa messageId ou key.id), aceitou
+  if (Boolean(ackId) || payload?.messageId || payload?.key?.id) return true;
 
   // Sem ackId mas com status de sucesso explícito também confirma
-  const successStatuses = ["SENT", "SUCCESS", "OK", "PENDING", "QUEUED", "ENQUEUED", "ACCEPTED", "PROCESSING"];
+  const successStatuses = ["SENT", "SUCCESS", "OK", "PENDING", "QUEUED", "ENQUEUED", "ACCEPTED", "PROCESSING", "200"];
   const deliveryStatuses = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME"];
   return successStatuses.includes(status) || successStatuses.includes(result) || deliveryStatuses.includes(status);
 };
