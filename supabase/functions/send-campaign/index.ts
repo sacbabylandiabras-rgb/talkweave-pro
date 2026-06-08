@@ -2197,7 +2197,7 @@ serve(async (req) => {
           const sType = templateType === "audio_video_botoes" ? "video" : "image";
 
           if (secondaryUrl && !hasActionButtonsInFormatted && (sType === "image" || sType === "video")) {
-            const listEndpoint = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list`;
+            semanticEndpoint = "/send-button-list";
             const listPayload: any = {
               phone: contact.phone,
               message: fullMessage || " ",
@@ -2212,11 +2212,7 @@ serve(async (req) => {
               },
             };
 
-            const listResponse = await fetch(listEndpoint, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "Client-Token": instClientToken },
-              body: JSON.stringify(listPayload),
-            });
+            const listResponse = await performUniversalSend(semanticEndpoint, listPayload);
 
             if (listResponse.ok) {
               const result = await listResponse.json();
