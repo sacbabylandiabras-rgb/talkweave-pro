@@ -1867,7 +1867,7 @@ serve(async (req) => {
 
         const getUniversalUrl = (endpoint: string) => {
           if (isUazapi && uazapiBaseUrl) {
-            const withToken = (p: string) => `${p}${p.includes("?") ? "&" : "?"}token=${encodeURIComponent(instToken)}`;
+            const withToken = (p: string) => `${p}${p.includes("?") ? "&" : "?"}apikey=${encodeURIComponent(instToken)}`;
             const inst = instName || instId;
             
             if (endpoint === "/send-text") return uazapiBaseUrl + withToken(`/message/sendText/${inst}`);
