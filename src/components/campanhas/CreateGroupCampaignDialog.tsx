@@ -32,7 +32,7 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
    const { groups, loading: loadingGroups, refetch: refetchGroups } = useWhatsAppGroups({
      provider: 'zapi_no_warmup_meta'
    });
-   const { instances: allInstances, activeInstance } = useZapiInstances();
+   const { instances: allInstances, activeInstance } = useZapiInstances({ provider: 'all' });
    
    const instances = useMemo(() => allInstances.filter(i => {
      const provider = (i.api_provider || 'zapi').toLowerCase();
