@@ -141,7 +141,7 @@ interface InstancePickerProps {
 
 const InstancePicker = ({ instances, onSelect }: InstancePickerProps) => (
   <InstanceSelector
-    providerFilter="zapi"
+    providerFilter="all"
     allowMultiple={true}
     useSavedSelection={false}
     onMultiInstanceChange={(ids) => {
