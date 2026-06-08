@@ -38,8 +38,10 @@ const readCachedInstances = (userId: string): ZapiInstance[] | null => {
     const raw = localStorage.getItem(`${INSTANCES_CACHE_PREFIX}${userId}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
+    console.log("Reading cached instances for user", userId, ":", parsed?.instances?.length);
     return Array.isArray(parsed?.instances) ? parsed.instances : null;
-  } catch {
+  } catch (e) {
+    console.error("Error reading cached instances:", e);
     return null;
   }
 };
@@ -85,11 +87,12 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
 
     // UAZAPI agora é suportada globalmente.
     if (provider === 'uazapi') return true;
+    if (provider === 'zapi') return true;
 
     // Garante que instâncias Meta passem se não houver filtro ou se o filtro for meta
     if (provider === 'meta') return true;
 
-    return true;
+    return provider === 'zapi' || provider === 'uazapi';
   })) {
     const key = [instance.zapi_instance_id, instance.instance_name].join('::');
     const previous = dedupedMap.get(key);
@@ -107,6 +110,7 @@ const fetchInstancesWithRetry = async (userId: string): Promise<ZapiInstance[]> 
   let lastError: any = null;
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
+    console.log("Fetching instances for user", userId);
     const { data, error } = await fromZapiInstances()
       .select('*')
       .eq('user_id', userId)
@@ -116,8 +120,7 @@ const fetchInstancesWithRetry = async (userId: string): Promise<ZapiInstance[]> 
 
     if (!error) {
       const zapiData = (data || []) as ZapiInstance[];
-      
-
+      console.log("Found instances in DB:", zapiData.length);
       return zapiData;
     }
     lastError = error;
@@ -243,6 +246,7 @@ export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?:
 
       const deduped = normalizeInstances(allInstances, options?.includeWarmup, options?.provider);
       const finalList = allowedInstanceIds ? deduped.filter(i => allowedInstanceIds!.includes(i.id)) : deduped;
+      console.log("Final instances list length:", finalList.length);
       setInstances(finalList);
       setActiveInstance((current) => finalList.find(i => i.id === current?.id) || finalList.find(i => i.is_default) || finalList[0] || null);
       writeCachedInstances(user.id, deduped, options?.includeMeta);
