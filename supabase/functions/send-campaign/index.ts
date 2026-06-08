@@ -386,7 +386,7 @@ const isZapiConfirmed = (payload: any, httpStatus?: number) => {
   if (Boolean(ackId) || payload?.messageId || payload?.key?.id || payload?.id) return true;
 
   // Sem ackId mas com status de sucesso explícito também confirma
-  const successStatuses = ["SENT", "SUCCESS", "OK", "PENDING", "QUEUED", "ENQUEUED", "ACCEPTED", "PROCESSING", "200", "405"];
+  const successStatuses = ["SENT", "SUCCESS", "OK", "PENDING", "QUEUED", "ENQUEUED", "ACCEPTED", "PROCESSING", "200", "201"];
   const deliveryStatuses = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME"];
   
   const isSuccessStatus = successStatuses.includes(statusStr) || 
@@ -394,7 +394,7 @@ const isZapiConfirmed = (payload: any, httpStatus?: number) => {
                          deliveryStatuses.includes(statusStr) ||
                          httpStatus === 200 ||
                          httpStatus === 201 ||
-                         httpStatus === 405;
+                         httpStatus === 201;
 
   return isSuccessStatus;
 };
@@ -1883,7 +1883,7 @@ serve(async (req) => {
         const getUniversalUrl = (endpoint: string) => {
           if (isUazapi && uazapiBaseUrl) {
             const withToken = (p: string) => `${p}${p.includes("?") ? "&" : "?"}apikey=${encodeURIComponent(instToken)}`;
-            const inst = instName || instId;
+            const inst = instId || instName;
             
             if (endpoint === "/send-text") return uazapiBaseUrl + withToken(`/message/sendText/${inst}`);
             if (endpoint === "/send-image") return uazapiBaseUrl + withToken(`/message/sendMedia/${inst}`);
@@ -1958,11 +1958,18 @@ serve(async (req) => {
           const body = mapUniversalPayload(semanticEndpoint, payload);
           
           console.log(`📤 Sending campaign message via ${instApiProvider}: ${url}`);
-          return fetch(url, {
+          const resp = await fetch(url, {
             method,
             headers,
             body: JSON.stringify(body)
           });
+          
+          if (!resp.ok) {
+             const errorText = await resp.clone().text();
+             console.log(`📬 HTTP Error from ${instApiProvider}: status=${resp.status}, body=${errorText}`);
+          }
+          
+          return resp;
         };
 
         let zapiUrl: string = "";
