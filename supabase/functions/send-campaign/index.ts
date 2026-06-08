@@ -120,7 +120,8 @@ const mapResolvedInstance = (
     zapiToken: instance.zapi_token || "",
     zapiClientToken: instance.zapi_client_token || "",
     instanceName: instance.instance_name || "Instância",
-    apiProvider: "zapi",
+    apiProvider: provider,
+    evolutionApiUrl: instance.evolution_api_url,
   };
 };
 
