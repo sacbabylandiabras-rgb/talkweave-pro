@@ -28,7 +28,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
   const { createCampaign, sendCampaign } = useCampaigns();
   const { templates } = useMessageTemplates();
   const { contacts, loading: loadingContacts } = useContacts({ enabled: open });
-  const { instances: allInstances } = useZapiInstances();
+  const { instances: allInstances } = useZapiInstances({ provider: 'all' });
 
   const instances = useMemo(() => allInstances.filter(i => {
     const provider = (i.api_provider || 'zapi').toLowerCase();

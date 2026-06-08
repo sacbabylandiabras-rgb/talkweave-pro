@@ -141,7 +141,7 @@ interface InstancePickerProps {
 
 const InstancePicker = ({ instances, onSelect }: InstancePickerProps) => (
   <InstanceSelector
-    providerFilter="zapi"
+    providerFilter="all"
     allowMultiple={true}
     useSavedSelection={false}
     onMultiInstanceChange={(ids) => {
@@ -215,7 +215,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps) => {
   } = useCampaigns();
 
   const { toast } = useToast();
-  const { instances, activeInstance } = useZapiInstances({ provider: "zapi" });
+  const { instances, activeInstance } = useZapiInstances({ provider: "all" });
 
   // ── Dialog states ──────────────────────────────────────────────────────────
   const [showCreateDialog, setShowCreateDialog] = useState(false);
