@@ -1917,6 +1917,19 @@ serve(async (req) => {
           return { ...payload, number };
         };
 
+        const performUniversalSend = async (endpoint: string, payload: any, method: string = "POST") => {
+          const url = getUniversalUrl(endpoint);
+          const headers = getUniversalHeaders();
+          const body = mapUniversalPayload(endpoint, payload);
+          
+          console.log(`📤 Sending campaign message via ${instApiProvider}: ${url}`);
+          return fetch(url, {
+            method,
+            headers,
+            body: JSON.stringify(body)
+          });
+        };
+
         let zapiUrl: string = "";
         let requestBody: any = {};
         const baseZapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
