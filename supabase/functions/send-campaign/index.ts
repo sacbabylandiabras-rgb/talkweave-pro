@@ -203,34 +203,19 @@ const resolveContactInstance = async (
       "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key",
     )
     .eq("user_id", userId)
-    .eq("zapi_instance_id", sourceInstanceId)
     .in("api_provider", ["zapi", "uazapi", "uazapi_warmup", "evolution"])
-    // EXCLUSION: If user specifically said to stop using "Mobile" instances
     .not("instance_name", "ilike", "%Mobile%");
 
-  if (!allowInactive) byZapiQuery = byZapiQuery.eq("is_active", true);
-  const { data: byZapiInstanceId } = await byZapiQuery.maybeSingle();
-
-  instance = byZapiInstanceId;
-
-  if (!instance) {
-    let byTableQuery = supabase
-      .from("zapi_instances")
-      .select(
-        "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key",
-      )
-      .eq("user_id", userId)
-      .eq("id", sourceInstanceId)
-      .in("api_provider", ["zapi", "uazapi", "uazapi_warmup", "evolution"])
-      .not("instance_name", "ilike", "%Mobile%");
-
-    if (!allowInactive) byTableQuery = byTableQuery.eq("is_active", true);
-    const { data: byTableId } = await byTableQuery.maybeSingle();
-
-    instance = byTableId;
+  if (isUuid(sourceInstanceId)) {
+    byZapiQuery = byZapiQuery.or(`zapi_instance_id.eq.${sourceInstanceId},id.eq.${sourceInstanceId}`);
+  } else {
+    byZapiQuery = byZapiQuery.eq("zapi_instance_id", sourceInstanceId);
   }
 
-  return mapResolvedInstance(instance);
+  if (!allowInactive) byZapiQuery = byZapiQuery.eq("is_active", true);
+  const { data: foundInstance } = await byZapiQuery.maybeSingle();
+
+  return mapResolvedInstance(foundInstance);
 };
 
 const resolveGroupInstanceFromInboundLogs = async (
