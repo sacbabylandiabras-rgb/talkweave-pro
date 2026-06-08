@@ -494,6 +494,11 @@ const parseSpecialTemplate = (content?: string | null) => {
   }
 };
 
+const isUuid = (val: string | null | undefined): boolean => {
+  if (!val) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+};
+
 const parseCoordinate = (value: unknown): string | null => {
   const raw = String(value ?? "").trim();
   const match = raw.match(/-?\d+(?:[\.,]\d+)?/);
