@@ -1943,7 +1943,19 @@ serve(async (req) => {
                
                return btn;
              });
-             return { number, title: payload.title || "", description: payload.message || "", footer: payload.footer || "", buttons };
+             return { 
+               number, 
+               title: payload.title || "", 
+               description: payload.message || "", 
+               footer: payload.footer || "", 
+               buttons: buttons.map((b: any) => ({
+                 type: b.type === 2 ? "url" : b.type === 3 ? "call" : "reply",
+                 displayText: b.buttonText.displayText,
+                 url: b.nativeContent?.url,
+                 phoneNumber: b.nativeContent?.phoneNumber,
+                 id: b.buttonId
+               }))
+             };
           }
           if (endpoint === "/send-ptv") {
              return { number, media: payload.ptv, type: "ptv" };
