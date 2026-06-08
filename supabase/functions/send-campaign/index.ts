@@ -394,7 +394,7 @@ const isZapiConfirmed = (payload: any, httpStatus?: number) => {
                          deliveryStatuses.includes(statusStr) ||
                          httpStatus === 200 ||
                          httpStatus === 201 ||
-                         httpStatus === 405;
+                         httpStatus === 201;
 
   return isSuccessStatus;
 };
