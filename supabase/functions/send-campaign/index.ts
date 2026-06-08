@@ -2317,7 +2317,7 @@ serve(async (req) => {
           }
         } else if (templateType === "audio") {
           if (!hasMedia) throw new Error('Template tipo "audio" requer um áudio');
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-audio`;
+          zapiUrl = getUniversalUrl("/send-audio");
           requestBody = { phone: contact.phone, audio: campaignTemplate.media_url, waveform: true };
         } else if (templateType === "status") {
           const statusType = String((campaignTemplate as any).status_type || "text").toLowerCase();
