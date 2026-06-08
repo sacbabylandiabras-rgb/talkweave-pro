@@ -90,7 +90,7 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
     // Garante que instâncias Meta passem se não houver filtro ou se o filtro for meta
     if (provider === 'meta') return true;
 
-    return true;
+    return provider === 'zapi' || provider === 'uazapi';
   })) {
     const key = [instance.zapi_instance_id, instance.instance_name].join('::');
     const previous = dedupedMap.get(key);
