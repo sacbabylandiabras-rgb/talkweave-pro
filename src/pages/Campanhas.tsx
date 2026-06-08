@@ -215,7 +215,7 @@ const Campanhas = ({ mode = "contacts" }: CampanhasProps) => {
   } = useCampaigns();
 
   const { toast } = useToast();
-  const { instances, activeInstance } = useZapiInstances({ provider: "zapi" });
+  const { instances, activeInstance } = useZapiInstances({ provider: "all" });
 
   // ── Dialog states ──────────────────────────────────────────────────────────
   const [showCreateDialog, setShowCreateDialog] = useState(false);
