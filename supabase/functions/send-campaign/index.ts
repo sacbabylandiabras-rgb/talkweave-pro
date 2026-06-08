@@ -2344,13 +2344,16 @@ serve(async (req) => {
         } else if (templateType === "status") {
           const statusType = String((campaignTemplate as any).status_type || "text").toLowerCase();
           if (statusType === "image") {
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-status-image`;
+            semanticEndpoint = "/send-status-image";
+            zapiUrl = getUniversalUrl(semanticEndpoint);
             requestBody = { image: campaignTemplate.media_url, caption: fullMessage };
           } else if (statusType === "video") {
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-status-video`;
+            semanticEndpoint = "/send-status-video";
+            zapiUrl = getUniversalUrl(semanticEndpoint);
             requestBody = { video: campaignTemplate.media_url, caption: fullMessage };
           } else {
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-status-text`;
+            semanticEndpoint = "/send-status-text";
+            zapiUrl = getUniversalUrl(semanticEndpoint);
             requestBody = { message: fullMessage };
           }
           requestBody.phone = "status@broadcast";
