@@ -2133,11 +2133,11 @@ serve(async (req) => {
             };
           }
         } else if (templateType === "video_botoes" && hasMedia && hasButtons && campaignIsPtv) {
-          const ptvUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-ptv`;
+          const ptvUrl = getUniversalUrl("/send-ptv");
           const ptvResponse = await fetch(ptvUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Client-Token": instClientToken },
-            body: JSON.stringify({ phone: contact.phone, ptv: campaignTemplate.media_url }),
+            headers: getUniversalHeaders(),
+            body: JSON.stringify(mapUniversalPayload("/send-ptv", { phone: contact.phone, ptv: campaignTemplate.media_url })),
           });
           if (!ptvResponse.ok) throw new Error(`Erro ao enviar PTV: ${await ptvResponse.text()}`);
 
