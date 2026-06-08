@@ -692,10 +692,25 @@ const sendZapiLocationButtonFollowUp = async (baseUrl: string, clientToken: stri
     buttonActions: [{ type: "URL", label: buttonLabel, url: normalizedUrl }],
   };
 
-  const res = await fetch(`${baseUrl}/send-button-actions`, {
+  const isUazapi = baseUrl.includes("message/send");
+  const headers = isUazapi 
+    ? { "Content-Type": "application/json", token: clientToken, apikey: clientToken }
+    : { "Content-Type": "application/json", "Client-Token": clientToken };
+    
+  const finalUrl = isUazapi 
+    ? baseUrl.replace("/message/send/", "/message/sendButtons/") 
+    : `${baseUrl}/send-button-actions`;
+
+  const res = await fetch(finalUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Client-Token": clientToken },
-    body: JSON.stringify(body),
+    headers,
+    body: JSON.stringify(isUazapi ? { 
+      number: phone.replace(/\D/g, ""), 
+      title: special.locTitle || "", 
+      description: message, 
+      footer: special.locAddress || "", 
+      buttons: [{ buttonId: "1", buttonText: { displayText: buttonLabel }, type: 2, nativeContent: { url: normalizedUrl } }] 
+    } : body),
   });
   let data: any = {};
   try {
