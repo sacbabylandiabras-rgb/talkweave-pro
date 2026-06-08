@@ -1937,10 +1937,10 @@ serve(async (req) => {
           return { ...payload, number };
         };
 
-        const performUniversalSend = async (endpoint: string, payload: any, method: string = "POST") => {
-          const url = getUniversalUrl(endpoint);
+        const performUniversalSend = async (semanticEndpoint: string, payload: any, method: string = "POST") => {
+          const url = getUniversalUrl(semanticEndpoint);
           const headers = getUniversalHeaders();
-          const body = mapUniversalPayload(endpoint, payload);
+          const body = mapUniversalPayload(semanticEndpoint, payload);
           
           console.log(`📤 Sending campaign message via ${instApiProvider}: ${url}`);
           return fetch(url, {
