@@ -84,7 +84,7 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
     }
 
     // UAZAPI agora é suportada globalmente.
-    // if (provider === 'uazapi') return false;
+    if (provider === 'uazapi') return true;
 
     // Garante que instâncias Meta passem se não houver filtro ou se o filtro for meta
     if (provider === 'meta') return true;

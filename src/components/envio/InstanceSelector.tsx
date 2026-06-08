@@ -33,7 +33,7 @@ const InstanceSelector = ({
     selectInstance,
     loading,
   } = useZapiInstances({
-    provider: hookProvider === "zapi" ? "zapi" : (hookProvider === "uazapi" ? "uazapi" : undefined),
+    provider: hookProvider,
     includeMeta: providerFilter === "all" || providerFilter === "meta",
   });
 
