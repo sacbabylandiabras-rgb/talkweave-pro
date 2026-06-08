@@ -2037,7 +2037,7 @@ serve(async (req) => {
             return item;
           });
 
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-carousel`;
+          zapiUrl = getUniversalUrl("/send-carousel");
           requestBody = {
             phone: contact.phone,
             message: fullMessage || " ",
