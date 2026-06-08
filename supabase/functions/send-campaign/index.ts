@@ -104,8 +104,8 @@ const mapResolvedInstance = (
   const instanceName = String(instance.instance_name || "").toLowerCase();
   const instanceType = String(instance.instance_type || "").toLowerCase();
 
-  // EXCLUSION: Only allow 'zapi' provider for campaigns as requested by user
-  if (provider !== "zapi" || instanceType === "mobile" || instanceName.includes("mobile")) {
+  // Support all providers including UAZAPI
+  if (instanceType === "mobile" || instanceName.includes("mobile")) {
     return null;
   }
 
