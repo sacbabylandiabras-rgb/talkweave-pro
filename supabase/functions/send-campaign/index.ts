@@ -261,15 +261,21 @@ const resolveGroupInstanceFromInboundLogs = async (
 
   if (!resolvedGroupInstanceId) return null;
 
-  const { data: correctInstance } = await supabase
+  let query = supabase
     .from("zapi_instances")
     .select(
       "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key",
     )
-    .or(`zapi_instance_id.eq."${resolvedGroupInstanceId}",id.eq."${resolvedGroupInstanceId}"`)
     .eq("user_id", userId)
-    .eq("is_active", true)
-    .maybeSingle();
+    .eq("is_active", true);
+
+  if (isUuid(resolvedGroupInstanceId)) {
+    query = query.or(`zapi_instance_id.eq.${resolvedGroupInstanceId},id.eq.${resolvedGroupInstanceId}`);
+  } else {
+    query = query.eq("zapi_instance_id", resolvedGroupInstanceId);
+  }
+
+  const { data: correctInstance } = await query.maybeSingle();
 
   const correctInstanceRow = correctInstance as {
     zapi_instance_id?: string | null;
