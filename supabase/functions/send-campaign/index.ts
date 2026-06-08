@@ -996,7 +996,7 @@ serve(async (req) => {
         )
         .eq("user_id", credentials.userId)
         .eq("is_active", true)
-        .eq("api_provider", "zapi");
+        .in("api_provider", ["zapi", "uazapi", "uazapi_warmup", "evolution"]);
 
       if (typeof requestedInstanceIdRaw === "string" && requestedInstanceIdRaw.startsWith("rotate:")) {
         const specificIds = requestedInstanceIdRaw.replace("rotate:", "").split(",").filter(Boolean);
