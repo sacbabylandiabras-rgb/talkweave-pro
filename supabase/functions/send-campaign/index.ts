@@ -1850,6 +1850,72 @@ serve(async (req) => {
         const instId = currentInstance.zapiInstanceId;
         const instToken = currentInstance.zapiToken;
         const instClientToken = currentInstance.zapiClientToken;
+        const instApiProvider = currentInstance.apiProvider || "zapi";
+        const instEvolutionUrl = currentInstance.evolutionApiUrl;
+        const instName = currentInstance.instanceName;
+
+        const isUazapi = instApiProvider === "uazapi" || instApiProvider === "uazapi_warmup" || instApiProvider === "evolution";
+        const uazapiBaseUrl = instEvolutionUrl?.replace(/\/+$/, "");
+
+        const getUniversalUrl = (endpoint: string) => {
+          if (isUazapi && uazapiBaseUrl) {
+            const withToken = (p: string) => `${p}${p.includes("?") ? "&" : "?"}token=${encodeURIComponent(instToken)}`;
+            const inst = instName || instId;
+            
+            if (endpoint === "/send-text") return uazapiBaseUrl + withToken(`/message/sendText/${inst}`);
+            if (endpoint === "/send-image") return uazapiBaseUrl + withToken(`/message/sendMedia/${inst}`);
+            if (endpoint === "/send-video") return uazapiBaseUrl + withToken(`/message/sendMedia/${inst}`);
+            if (endpoint === "/send-audio") return uazapiBaseUrl + withToken(`/message/sendMedia/${inst}`);
+            if (endpoint.startsWith("/send-document")) return uazapiBaseUrl + withToken(`/message/sendMedia/${inst}`);
+            if (endpoint === "/send-button-actions") return uazapiBaseUrl + withToken(`/message/sendButtons/${inst}`);
+            if (endpoint === "/send-button-list") return uazapiBaseUrl + withToken(`/message/sendButtons/${inst}`);
+            if (endpoint === "/send-ptv") return uazapiBaseUrl + withToken(`/message/sendMedia/${inst}`);
+            
+            return uazapiBaseUrl + withToken(endpoint.replace(/^\/send-/, "/message/send/"));
+          }
+          return `https://api.z-api.io/instances/${instId}/token/${instToken}${endpoint}`;
+        };
+
+        const getUniversalHeaders = () => {
+          if (isUazapi) {
+            return { "Content-Type": "application/json", token: instToken, apikey: instToken };
+          }
+          return { "Content-Type": "application/json", "Client-Token": instClientToken };
+        };
+
+        const mapUniversalPayload = (endpoint: string, payload: any) => {
+          if (!isUazapi) return payload;
+
+          const number = (payload.phone || "").replace(/\D/g, "");
+          if (endpoint === "/send-text") {
+             return { number, text: payload.message || "", linkPreview: true };
+          }
+          if (endpoint === "/send-image") {
+             return { number, media: payload.image, type: "image", caption: payload.caption || "" };
+          }
+          if (endpoint === "/send-video") {
+             return { number, media: payload.video, type: "video", caption: payload.caption || "" };
+          }
+          if (endpoint === "/send-audio") {
+             return { number, media: payload.audio, type: "audio" };
+          }
+          if (endpoint.startsWith("/send-document")) {
+             return { number, media: payload.document, type: "document", caption: payload.caption || "", fileName: payload.fileName || "" };
+          }
+          if (endpoint === "/send-button-actions" || endpoint === "/send-button-list") {
+             const buttons = (payload.buttonActions || payload.buttonList?.buttons || []).map((b: any, i: number) => ({
+               buttonId: b.id || String(i + 1),
+               buttonText: { displayText: b.label || b.text || "Botão" },
+               type: 1
+             }));
+             return { number, title: payload.title || "", description: payload.message || "", footer: payload.footer || "", buttons };
+          }
+          if (endpoint === "/send-ptv") {
+             return { number, media: payload.ptv, type: "ptv" };
+          }
+          
+          return { ...payload, number };
+        };
 
         let zapiUrl: string = "";
         let requestBody: any = {};
