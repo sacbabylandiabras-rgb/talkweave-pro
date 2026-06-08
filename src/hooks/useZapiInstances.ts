@@ -120,8 +120,7 @@ const fetchInstancesWithRetry = async (userId: string): Promise<ZapiInstance[]> 
 
     if (!error) {
       const zapiData = (data || []) as ZapiInstance[];
-      
-
+      console.log("Found instances in DB:", zapiData.length);
       return zapiData;
     }
     lastError = error;
