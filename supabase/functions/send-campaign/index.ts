@@ -1932,7 +1932,7 @@ serve(async (req) => {
 
         let zapiUrl: string = "";
         let requestBody: any = {};
-        const baseZapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}`;
+        const baseZapiUrl = getUniversalUrl("");
 
         if (isLidIdentifier(contact.phone)) {
           console.log(`📞 [Z-API] Enviando @lid: ${contact.phone}`);
