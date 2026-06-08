@@ -81,18 +81,12 @@ const normalizeInstances = (items: ZapiInstance[], includeWarmup = false, provid
     if (isWarmup && !includeWarmup) return false;
 
     // Se um provedor específico for solicitado, filtramos por ele (respeitando warmup acima)
-    if (providerFilter) {
+    if (providerFilter && providerFilter !== 'all') {
       return provider === providerFilter.toLowerCase();
     }
 
-    // UAZAPI agora é suportada globalmente.
-    if (provider === 'uazapi') return true;
-    if (provider === 'zapi') return true;
-
-    // Garante que instâncias Meta passem se não houver filtro ou se o filtro for meta
-    if (provider === 'meta') return true;
-
-    return provider === 'zapi' || provider === 'uazapi';
+    // UAZAPI, Z-API e Meta agora são suportadas globalmente.
+    return provider === 'uazapi' || provider === 'zapi' || provider === 'meta';
   })) {
     const key = [instance.zapi_instance_id, instance.instance_name].join('::');
     const previous = dedupedMap.get(key);
