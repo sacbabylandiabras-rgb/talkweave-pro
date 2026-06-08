@@ -2299,15 +2299,15 @@ serve(async (req) => {
           }
         } else if (templateType === "imagem") {
           if (!hasMedia) throw new Error('Template tipo "imagem" requer uma imagem');
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-image`;
+          zapiUrl = getUniversalUrl("/send-image");
           requestBody = { phone: contact.phone, image: campaignTemplate.media_url, caption: fullMessage };
         } else if (templateType === "video") {
           if (!hasMedia) throw new Error('Template tipo "video" requer um vídeo');
           if (campaignIsPtv) {
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-ptv`;
+            zapiUrl = getUniversalUrl("/send-ptv");
             requestBody = { phone: contact.phone, ptv: campaignTemplate.media_url };
           } else {
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-video`;
+            zapiUrl = getUniversalUrl("/send-video");
             requestBody = {
               phone: contact.phone,
               video: campaignTemplate.media_url,
