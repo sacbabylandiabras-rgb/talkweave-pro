@@ -377,16 +377,19 @@ const isZapiConfirmed = (payload: any) => {
   const result = String(payload?.result || "").toUpperCase();
 
   const error = String(payload?.error || payload?.message || "").toLowerCase();
+  const status = String(payload?.status || payload?.message?.status || payload?.response?.status || "").toUpperCase();
+  const result = String(payload?.result || "").toUpperCase();
+
   if (error.includes("likely shadow ban")) return false;
 
   // Se tem erro explícito de negação, não confirma
   if (payload?.error === true || payload?.success === false) return false;
 
   // Se tem ackId ou similar (UAZAPI usa messageId ou key.id), aceitou
-  if (Boolean(ackId) || payload?.messageId || payload?.key?.id) return true;
+  if (Boolean(ackId) || payload?.messageId || payload?.key?.id || payload?.id) return true;
 
   // Sem ackId mas com status de sucesso explícito também confirma
-  const successStatuses = ["SENT", "SUCCESS", "OK", "PENDING", "QUEUED", "ENQUEUED", "ACCEPTED", "PROCESSING", "200"];
+  const successStatuses = ["SENT", "SUCCESS", "OK", "PENDING", "QUEUED", "ENQUEUED", "ACCEPTED", "PROCESSING", "200", "405"];
   const deliveryStatuses = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME"];
   return successStatuses.includes(status) || successStatuses.includes(result) || deliveryStatuses.includes(status);
 };
