@@ -1885,16 +1885,17 @@ serve(async (req) => {
             const withToken = (p: string) => `${p}${p.includes("?") ? "&" : "?"}apikey=${encodeURIComponent(instToken)}`;
             const inst = instId || instName;
             
+            // UAZAPI uses /message/sendText, /message/sendMedia, /message/sendButtons without the ID at the end in many versions,
+            // or uses /message/send/text/{inst}. Standardizing to /message/send.../{inst}
             if (endpoint === "/send-text") return uazapiBaseUrl + withToken(`/message/sendText/${inst}`);
             if (endpoint === "/send-image") return uazapiBaseUrl + withToken(`/message/sendMedia/${inst}`);
             if (endpoint === "/send-video") return uazapiBaseUrl + withToken(`/message/sendMedia/${inst}`);
             if (endpoint === "/send-audio") return uazapiBaseUrl + withToken(`/message/sendMedia/${inst}`);
             if (endpoint.startsWith("/send-document")) return uazapiBaseUrl + withToken(`/message/sendMedia/${inst}`);
-            if (endpoint === "/send-button-actions") return uazapiBaseUrl + withToken(`/message/sendButtons/${inst}`);
-            if (endpoint === "/send-button-list") return uazapiBaseUrl + withToken(`/message/sendButtons/${inst}`);
+            if (endpoint === "/send-button-actions" || endpoint === "/send-button-list") return uazapiBaseUrl + withToken(`/message/sendButtons/${inst}`);
             if (endpoint === "/send-ptv") return uazapiBaseUrl + withToken(`/message/sendMedia/${inst}`);
             
-            return uazapiBaseUrl + withToken(endpoint.replace(/^\/send-/, "/message/send/"));
+            return uazapiBaseUrl + withToken(endpoint.replace(/^\/send-/, "/message/sendText/"));
           }
           return `https://api.z-api.io/instances/${instId}/token/${instToken}${endpoint}`;
         };
