@@ -962,7 +962,8 @@ serve(async (req) => {
           clientToken: baseCredentials.clientToken,
           userId: baseCredentials.userId,
           instanceName: baseCredentials.instanceName,
-          apiProvider: "zapi",
+          apiProvider: baseCredentials.provider,
+          evolutionApiUrl: baseCredentials.evolutionApiUrl,
         };
       }
 
