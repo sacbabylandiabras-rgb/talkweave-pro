@@ -125,7 +125,7 @@ const fetchInstancesWithRetry = async (userId: string): Promise<ZapiInstance[]> 
   throw lastError;
 };
 
-export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?: string, includeMeta?: boolean }) => {
+export const useZapiInstances = (options?: { includeWarmup?: boolean, provider?: string | "all", includeMeta?: boolean }) => {
   const [instances, setInstances] = useState<ZapiInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeInstance, setActiveInstance] = useState<ZapiInstance | null>(null);
