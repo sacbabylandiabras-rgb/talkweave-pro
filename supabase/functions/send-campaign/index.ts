@@ -1963,10 +1963,11 @@ serve(async (req) => {
           requestBody = specialBody;
 
           if (zapiUrl) {
+            const endpoint = "/" + zapiUrl.split("/").pop();
             const zapiResponse = await fetch(zapiUrl, {
               method: "POST",
-              headers: { "Content-Type": "application/json", "Client-Token": instClientToken },
-              body: JSON.stringify(requestBody),
+              headers: getUniversalHeaders(),
+              body: JSON.stringify(mapUniversalPayload(endpoint, requestBody)),
             });
 
             let zapiResult: any = {};
