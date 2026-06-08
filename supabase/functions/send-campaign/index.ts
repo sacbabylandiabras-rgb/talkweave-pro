@@ -2215,7 +2215,7 @@ serve(async (req) => {
             }
           }
 
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+          zapiUrl = getUniversalUrl("/send-button-actions");
           const buttonPayload = buildZapiButtonActionPayload(
             campaignTemplate.buttons,
             fullMessage || " ",
