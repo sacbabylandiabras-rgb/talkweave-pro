@@ -1883,7 +1883,7 @@ serve(async (req) => {
         const getUniversalUrl = (endpoint: string) => {
           if (isUazapi && uazapiBaseUrl) {
             const withToken = (p: string) => `${p}${p.includes("?") ? "&" : "?"}apikey=${encodeURIComponent(instToken)}`;
-            const inst = instName || instId;
+            const inst = instId || instName;
             
             if (endpoint === "/send-text") return uazapiBaseUrl + withToken(`/message/sendText/${inst}`);
             if (endpoint === "/send-image") return uazapiBaseUrl + withToken(`/message/sendMedia/${inst}`);
