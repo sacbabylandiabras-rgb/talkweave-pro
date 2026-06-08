@@ -1951,6 +1951,7 @@ serve(async (req) => {
         };
 
         let zapiUrl: string = "";
+        let semanticEndpoint: string = "";
         let requestBody: any = {};
         const baseZapiUrl = getUniversalUrl("");
 
