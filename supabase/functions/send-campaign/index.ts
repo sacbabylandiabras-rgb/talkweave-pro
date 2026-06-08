@@ -2390,7 +2390,8 @@ serve(async (req) => {
               rowId: String(it.id || `opt_${idx + 1}`),
             }));
 
-          zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-list`;
+          semanticEndpoint = "/send-button-list";
+          zapiUrl = getUniversalUrl(semanticEndpoint);
           requestBody = {
             phone: contact.phone,
             message: fullMessage || " ",
