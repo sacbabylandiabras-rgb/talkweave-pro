@@ -575,7 +575,7 @@ serve(async (req) => {
       if (isUazapi) {
         // Evolution API / UAZAPI v2 mapping
         // We use the instance name in the path if available, or fallback to the instanceId
-        const inst = uazapiInstanceName || instanceId;
+        const inst = instanceId || uazapiInstanceName;
         const number = (body.phone || body.number || "").replace(/\D/g, "");
         
         // Ensure token is also in query string for maximum compatibility
