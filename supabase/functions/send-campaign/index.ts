@@ -144,7 +144,7 @@ const resolvePreferredUserInstance = async (supabase: any, userId: string): Prom
     .select(selectFields)
     .eq("user_id", userId)
     .eq("is_active", true)
-    .eq("api_provider", "zapi") // Only Z-API
+    .in("api_provider", ["zapi", "uazapi", "uazapi_warmup", "evolution"])
     .order("created_at", { ascending: true })
     .limit(25);
 
