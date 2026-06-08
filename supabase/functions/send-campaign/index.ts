@@ -371,10 +371,10 @@ const deactivateInstance = async (supabase: any, dbId: string, reason: string) =
   }
 };
 
-const isZapiConfirmed = (payload: any) => {
+const isZapiConfirmed = (payload: any, httpStatus?: number) => {
   const ackId = getZapiAckId(payload);
   const error = String(payload?.error || payload?.message || "").toLowerCase();
-  const status = String(payload?.status || payload?.message?.status || payload?.response?.status || "").toUpperCase();
+  const statusStr = String(payload?.status || payload?.message?.status || payload?.response?.status || "").toUpperCase();
   const result = String(payload?.result || "").toUpperCase();
 
   if (error.includes("likely shadow ban")) return false;
@@ -388,7 +388,15 @@ const isZapiConfirmed = (payload: any) => {
   // Sem ackId mas com status de sucesso explícito também confirma
   const successStatuses = ["SENT", "SUCCESS", "OK", "PENDING", "QUEUED", "ENQUEUED", "ACCEPTED", "PROCESSING", "200", "405"];
   const deliveryStatuses = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME"];
-  return successStatuses.includes(status) || successStatuses.includes(result) || deliveryStatuses.includes(status);
+  
+  const isSuccessStatus = successStatuses.includes(statusStr) || 
+                         successStatuses.includes(result) || 
+                         deliveryStatuses.includes(statusStr) ||
+                         httpStatus === 200 ||
+                         httpStatus === 201 ||
+                         httpStatus === 405;
+
+  return isSuccessStatus;
 };
 
 const isGroupDestination = (phone: string) =>
@@ -2456,7 +2464,7 @@ serve(async (req) => {
           } catch {}
 
           const explicitError = getZapiExplicitError(zapiResult);
-          const confirmed = isZapiConfirmed(zapiResult);
+          const confirmed = isZapiConfirmed(zapiResult, zapiResponse.status);
           const messageIdFromResponse = getZapiAckId(zapiResult);
 
           console.log(
