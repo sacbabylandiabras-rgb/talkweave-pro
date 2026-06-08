@@ -2273,7 +2273,7 @@ serve(async (req) => {
               throw new Error(`Erro ao enviar botões de lista (image): ${JSON.stringify(errorBody)}`);
             }
 
-            zapiUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-button-actions`;
+            zapiUrl = getUniversalUrl("/send-button-actions");
             const buttonPayload = buildZapiButtonActionPayload(
               campaignTemplate.buttons,
               fullMessage || " ",
