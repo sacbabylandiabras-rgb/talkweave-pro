@@ -2424,11 +2424,13 @@ serve(async (req) => {
             },
           };
         } else if (hasButtons) {
-          zapiUrl = getUniversalUrl("/send-button-actions");
+          semanticEndpoint = "/send-button-actions";
+          zapiUrl = getUniversalUrl(semanticEndpoint);
           const buttonPayload = buildZapiButtonActionPayload(campaignTemplate.buttons, fullMessage, reusableSendId);
           requestBody = { phone: contact.phone, ...buttonPayload };
         } else {
-          zapiUrl = getUniversalUrl("/send-text");
+          semanticEndpoint = "/send-text";
+          zapiUrl = getUniversalUrl(semanticEndpoint);
           requestBody = { phone: contact.phone, message: fullMessage };
         }
 
