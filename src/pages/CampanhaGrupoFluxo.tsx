@@ -64,7 +64,7 @@ export default function CampanhaGrupoFluxo() {
     const provider = (i.api_provider || 'zapi').toLowerCase();
     const name = (i.instance_name || '').toLowerCase();
     if (name.includes('aquecimento') || name.includes('warmup')) return false;
-    return provider !== 'meta';
+    return provider === 'zapi' || provider === 'uazapi';
   }), [allInstances]);
 
   const [step, setStep] = useState(1);
