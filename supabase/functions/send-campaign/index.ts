@@ -281,7 +281,7 @@ const resolveGroupInstanceFromInboundLogs = async (
     .select(
       "id, zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, evolution_api_url, evolution_api_key",
     )
-    .or(`zapi_instance_id.eq.${resolvedGroupInstanceId},id.eq.${resolvedGroupInstanceId}`)
+    .or(`zapi_instance_id.eq."${resolvedGroupInstanceId}",id.eq."${resolvedGroupInstanceId}"`)
     .eq("user_id", userId)
     .eq("is_active", true)
     .maybeSingle();
