@@ -2152,11 +2152,11 @@ serve(async (req) => {
           hasMedia &&
           hasButtons
         ) {
-          const audioUrl = `https://api.z-api.io/instances/${instId}/token/${instToken}/send-audio`;
+          const audioUrl = getUniversalUrl("/send-audio");
           const audioResponse = await fetch(audioUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Client-Token": instClientToken },
-            body: JSON.stringify({ phone: contact.phone, audio: campaignTemplate.media_url, waveform: true }),
+            headers: getUniversalHeaders(),
+            body: JSON.stringify(mapUniversalPayload("/send-audio", { phone: contact.phone, audio: campaignTemplate.media_url, waveform: true })),
           });
           if (!audioResponse.ok) throw new Error(`Erro ao enviar áudio: ${await audioResponse.text()}`);
 
