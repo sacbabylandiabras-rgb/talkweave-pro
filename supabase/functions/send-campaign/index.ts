@@ -200,7 +200,7 @@ const resolveContactInstance = async (
     )
     .eq("user_id", userId)
     .eq("zapi_instance_id", sourceInstanceId)
-    .eq("api_provider", "zapi") // Only Z-API
+    .in("api_provider", ["zapi", "uazapi", "uazapi_warmup", "evolution"])
     // EXCLUSION: If user specifically said to stop using "Mobile" instances
     .not("instance_name", "ilike", "%Mobile%");
 
