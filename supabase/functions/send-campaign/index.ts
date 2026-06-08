@@ -386,7 +386,7 @@ const isZapiConfirmed = (payload: any, httpStatus?: number) => {
   if (Boolean(ackId) || payload?.messageId || payload?.key?.id || payload?.id) return true;
 
   // Sem ackId mas com status de sucesso explícito também confirma
-  const successStatuses = ["SENT", "SUCCESS", "OK", "PENDING", "QUEUED", "ENQUEUED", "ACCEPTED", "PROCESSING", "200", "405"];
+  const successStatuses = ["SENT", "SUCCESS", "OK", "PENDING", "QUEUED", "ENQUEUED", "ACCEPTED", "PROCESSING", "200", "201"];
   const deliveryStatuses = ["DELIVERED", "RECEIVED", "READ", "READ_BY_ME"];
   
   const isSuccessStatus = successStatuses.includes(statusStr) || 
