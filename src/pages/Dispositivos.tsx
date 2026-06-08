@@ -1082,11 +1082,6 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
               <span className="text-[10px] text-muted-foreground font-mono truncate" title={instance.zapi_instance_id}>
                 ID Sistema: {instance.zapi_instance_id}
               </span>
-              {deviceStatus?.raw?.instance?.name && deviceStatus.raw.instance.name !== instance.zapi_instance_id && (
-                <span className="text-[10px] text-primary/70 font-mono truncate">
-                  ID Conexão: {deviceStatus.raw.instance.name}
-                </span>
-              )}
             </div>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
