@@ -441,36 +441,51 @@ export type Database = {
         Row: {
           created_at: string | null
           delay_seconds: number | null
+          description: string | null
           id: string
           instance_id: string | null
           message: string
           name: string
+          recurrence_pattern: string | null
+          schedule_type: string | null
           scheduled_at: string | null
           status: string | null
+          target_audience: Json | null
+          template_id: string | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
           created_at?: string | null
           delay_seconds?: number | null
+          description?: string | null
           id?: string
           instance_id?: string | null
           message: string
           name: string
+          recurrence_pattern?: string | null
+          schedule_type?: string | null
           scheduled_at?: string | null
           status?: string | null
+          target_audience?: Json | null
+          template_id?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
           created_at?: string | null
           delay_seconds?: number | null
+          description?: string | null
           id?: string
           instance_id?: string | null
           message?: string
           name?: string
+          recurrence_pattern?: string | null
+          schedule_type?: string | null
           scheduled_at?: string | null
           status?: string | null
+          target_audience?: Json | null
+          template_id?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -573,6 +588,71 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      flow_automations: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          id: string
+          keyword: string | null
+          name: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          keyword?: string | null
+          name: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          keyword?: string | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      flow_captured_data: {
+        Row: {
+          contact_id: string | null
+          created_at: string | null
+          data: Json | null
+          flow_id: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string | null
+          data?: Json | null
+          flow_id?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string | null
+          data?: Json | null
+          flow_id?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_captured_data_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flow_automations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       gateway_affiliates: {
         Row: {
