@@ -641,7 +641,7 @@ const EnviarMensagem = () => {
               .eq('id', (campanha as any).id)
               .single();
 
-           if (campaignCheck?.status === 'paused' || campaignCheck?.status === 'cancelled') {
+           if ((campaignCheck as any)?.status === 'paused' || (campaignCheck as any)?.status === 'cancelled') {
              interrompidoExternamente = true;
              try {
                const { data: sessionData } = await supabase.auth.getSession();
