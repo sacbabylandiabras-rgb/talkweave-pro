@@ -622,10 +622,10 @@ const EnviarMensagem = () => {
 
        for (let i = 0; i < contatosProcessados.length; i++) {
          if (cancelarEnvioRef.current) {
-           await supabase
-             .from('campaigns')
-             .update({ status: 'paused' })
-             .eq('id', campanha.id);
+            await supabase
+              .from('campaigns' as any)
+              .update({ status: 'paused' } as any)
+              .eq('id', (campanha as any).id);
            
            toast({
              title: "Envio pausado",
@@ -635,11 +635,11 @@ const EnviarMensagem = () => {
          }
 
          {
-           const { data: campaignCheck } = await supabase
-             .from('campaigns')
-             .select('status')
-             .eq('id', campanha.id)
-             .single();
+            const { data: campaignCheck } = await supabase
+              .from('campaigns' as any)
+              .select('status')
+              .eq('id', (campanha as any).id)
+              .single();
 
            if (campaignCheck?.status === 'paused' || campaignCheck?.status === 'cancelled') {
              interrompidoExternamente = true;
