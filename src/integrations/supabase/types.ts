@@ -3686,6 +3686,7 @@ export type Database = {
           instance_name: string | null
           instance_token: string | null
           instance_type: string | null
+          is_active: boolean | null
           is_default: boolean | null
           name: string | null
           provider: string | null
@@ -3705,6 +3706,7 @@ export type Database = {
           instance_name?: string | null
           instance_token?: string | null
           instance_type?: string | null
+          is_active?: boolean | null
           is_default?: boolean | null
           name?: string | null
           provider?: string | null
@@ -3724,6 +3726,7 @@ export type Database = {
           instance_name?: string | null
           instance_token?: string | null
           instance_type?: string | null
+          is_active?: boolean | null
           is_default?: boolean | null
           name?: string | null
           provider?: string | null
