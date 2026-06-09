@@ -173,39 +173,39 @@ export const useCampaigns = () => {
         )
         .single();
 
-      const campaignData = data as any;
+      const newCampaign = data as any;
       if (error) throw error;
 
       setCampaigns((prev) => [
         {
-          id: campaignData.id,
-          name: campaignData.name,
-          description: campaignData.description || undefined,
-          template_id: campaignData.template_id || undefined,
-          status: (campaignData.status as Campaign["status"]) || "draft",
+          id: newCampaign.id,
+          name: newCampaign.name,
+          description: newCampaign.description || undefined,
+          template_id: newCampaign.template_id || undefined,
+          status: (newCampaign.status as Campaign["status"]) || "draft",
           target_audience:
-            typeof campaignData.target_audience === "object" && campaignData.target_audience !== null
-              ? (campaignData.target_audience as Record<string, any>)
+            typeof newCampaign.target_audience === "object" && newCampaign.target_audience !== null
+              ? (newCampaign.target_audience as Record<string, any>)
               : {},
-          schedule_type: (campaignData.schedule_type as Campaign["schedule_type"]) || "immediate",
-          scheduled_at: campaignData.scheduled_at || undefined,
-          recurrence_pattern: campaignData.recurrence_pattern || undefined,
-          delay_seconds: campaignData.delay_seconds ?? undefined,
-          created_at: campaignData.created_at,
-          updated_at: campaignData.updated_at,
-          template: campaignData.template
+          schedule_type: (newCampaign.schedule_type as Campaign["schedule_type"]) || "immediate",
+          scheduled_at: newCampaign.scheduled_at || undefined,
+          recurrence_pattern: newCampaign.recurrence_pattern || undefined,
+          delay_seconds: newCampaign.delay_seconds ?? undefined,
+          created_at: newCampaign.created_at,
+          updated_at: newCampaign.updated_at,
+          template: newCampaign.template
             ? {
-                id: campaignData.template.id,
-                name: campaignData.template.name,
-                category: campaignData.template.category,
-                content: campaignData.template.content,
-                variables: Array.isArray(campaignData.template.variables)
-                  ? campaignData.template.variables.filter((v: any) => typeof v === "string")
+                id: newCampaign.template.id,
+                name: newCampaign.template.name,
+                category: newCampaign.template.category,
+                content: newCampaign.template.content,
+                variables: Array.isArray(newCampaign.template.variables)
+                  ? newCampaign.template.variables.filter((v: any) => typeof v === "string")
                   : [],
-                usage_count: campaignData.template.usage_count || 0,
-                active: campaignData.template.active || false,
-                created_at: campaignData.template.created_at,
-                updated_at: campaignData.template.updated_at,
+                usage_count: newCampaign.template.usage_count || 0,
+                active: newCampaign.template.active || false,
+                created_at: newCampaign.template.created_at,
+                updated_at: newCampaign.template.updated_at,
               }
             : undefined,
         },
