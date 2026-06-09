@@ -96,7 +96,7 @@ export default function TelegramCanalFree() {
     if (!botId) { setFlows([]); return; }
     (async () => {
       const { data } = await supabase
-        .from("flow_automations")
+        .from("flow_automations" as any)
         .select("id, name, bot_id, active")
         .eq("active", true)
         .eq("bot_id", botId)

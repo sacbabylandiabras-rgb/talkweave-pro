@@ -70,7 +70,7 @@ const getZAPIConfig = async () => {
   if (!user) throw new Error('Usuário não autenticado. Faça login para continuar.');
 
   const { data: instances, error } = await supabase
-    .from('zapi_instances')
+    .from('zapi_instances' as any)
     .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, instance_type, evolution_api_url, evolution_api_key')
     .eq('user_id', user.id)
     .eq('is_active', true)
@@ -81,7 +81,7 @@ const getZAPIConfig = async () => {
 
   if (error) throw new Error('Erro ao buscar credenciais: ' + error.message);
 
-  const instance = instances?.find((item) => {
+  const instance = (instances as any)?.find((item: any) => {
     const token = item.evolution_api_key || item.zapi_token;
     return !isMobileZapiInstance(item as any) && Boolean(item.evolution_api_url && token);
   });
@@ -91,14 +91,14 @@ const getZAPIConfig = async () => {
   }
 
   return {
-    dbId: instance.id,
-    instanceId: instance.zapi_instance_id,
-    token: instance.evolution_api_key || instance.zapi_token,
-    clientToken: instance.zapi_client_token,
-    provider: instance.api_provider || 'evolution',
-    evolutionApiUrl: instance.evolution_api_url,
-    evolutionApiKey: instance.evolution_api_key,
-    instanceName: instance.instance_name,
+    dbId: (instance as any).id,
+    instanceId: (instance as any).zapi_instance_id,
+    token: (instance as any).evolution_api_key || (instance as any).zapi_token,
+    clientToken: (instance as any).zapi_client_token,
+    provider: (instance as any).api_provider || 'evolution',
+    evolutionApiUrl: (instance as any).evolution_api_url,
+    evolutionApiKey: (instance as any).evolution_api_key,
+    instanceName: (instance as any).instance_name,
   };
 };
 

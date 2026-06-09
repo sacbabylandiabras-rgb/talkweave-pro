@@ -128,7 +128,7 @@ const ContactProfileDialog = ({ contact, open, onOpenChange, onUpdate, preferred
       }
 
       const { data, error } = await supabase
-        .from('flow_automations')
+        .from('flow_automations' as any)
         .select('id, name, keyword')
         .eq('user_id', user.id)
         .eq('active', true)

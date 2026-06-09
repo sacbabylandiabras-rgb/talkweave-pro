@@ -151,7 +151,7 @@ export function CreateCampaignDialog({ open, onOpenChange }: CreateCampaignDialo
             instanceToUse = selectedInstanceId;
           }
         }
-        await sendCampaign(campaign.id, contactList, instanceToUse);
+        await sendCampaign((campaign as any).id, contactList, instanceToUse);
       }
 
       toast({

@@ -204,7 +204,7 @@ export default function CampanhaGrupoFluxo() {
       });
 
       if (formData.schedule_type === 'immediate') {
-        console.log(`🚀 Executing immediate campaign send for ${campaign.id}`);
+        console.log(`🚀 Executing immediate campaign send for ${(campaign as any).id}`);
         
         let instanceToUse = null;
         if (formData.instance_selection_mode === 'rotate') {
@@ -222,7 +222,7 @@ export default function CampanhaGrupoFluxo() {
         }
 
         
-        await sendCampaign(campaign.id, groupContacts, instanceToUse);
+        await sendCampaign((campaign as any).id, groupContacts, instanceToUse);
       }
 
       toast({

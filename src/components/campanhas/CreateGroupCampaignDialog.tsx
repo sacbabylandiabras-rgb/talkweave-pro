@@ -229,7 +229,7 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
       });
 
        if (formData.schedule_type === 'immediate') {
-         console.log(`🚀 Executing immediate campaign send for ${campaign.id}`);
+         console.log(`🚀 Executing immediate campaign send for ${(campaign as any).id}`);
          
          // Determinar instância de envio
          let instanceToUse = null;
@@ -245,7 +245,7 @@ export function CreateGroupCampaignDialog({ open, onOpenChange }: CreateGroupCam
            }
          }
          
-         await sendCampaign(campaign.id, groupContacts, instanceToUse);
+         await sendCampaign((campaign as any).id, groupContacts, instanceToUse);
        }
 
       toast({ title: "Campanha criada", description: formData.schedule_type === 'scheduled' 

@@ -77,7 +77,7 @@ export const useCampaigns = () => {
       try {
         if (!isSilent) setLoading(true);
         const { data, error } = await supabase
-          .from("campaigns")
+          .from("campaigns" as any)
           .select(
             `
           *,
@@ -88,7 +88,7 @@ export const useCampaigns = () => {
 
         if (error) throw error;
         setCampaigns(
-          (data || []).map((item) => ({
+          (data as any[] || []).map((item) => ({
             id: item.id,
             name: item.name,
             description: item.description || undefined,
@@ -153,7 +153,7 @@ export const useCampaigns = () => {
       if (!user) throw new Error("Usuário não autenticado");
 
       const { data, error } = await supabase
-        .from("campaigns")
+        .from("campaigns" as any)
         .insert({
           user_id: user.id,
           name: campaignData.name,
@@ -173,38 +173,39 @@ export const useCampaigns = () => {
         )
         .single();
 
+      const newCampaign = data as any;
       if (error) throw error;
 
       setCampaigns((prev) => [
         {
-          id: data.id,
-          name: data.name,
-          description: data.description || undefined,
-          template_id: data.template_id || undefined,
-          status: (data.status as Campaign["status"]) || "draft",
+          id: newCampaign.id,
+          name: newCampaign.name,
+          description: newCampaign.description || undefined,
+          template_id: newCampaign.template_id || undefined,
+          status: (newCampaign.status as Campaign["status"]) || "draft",
           target_audience:
-            typeof data.target_audience === "object" && data.target_audience !== null
-              ? (data.target_audience as Record<string, any>)
+            typeof newCampaign.target_audience === "object" && newCampaign.target_audience !== null
+              ? (newCampaign.target_audience as Record<string, any>)
               : {},
-          schedule_type: (data.schedule_type as Campaign["schedule_type"]) || "immediate",
-          scheduled_at: data.scheduled_at || undefined,
-          recurrence_pattern: data.recurrence_pattern || undefined,
-          delay_seconds: data.delay_seconds ?? undefined,
-          created_at: data.created_at,
-          updated_at: data.updated_at,
-          template: data.template
+          schedule_type: (newCampaign.schedule_type as Campaign["schedule_type"]) || "immediate",
+          scheduled_at: newCampaign.scheduled_at || undefined,
+          recurrence_pattern: newCampaign.recurrence_pattern || undefined,
+          delay_seconds: newCampaign.delay_seconds ?? undefined,
+          created_at: newCampaign.created_at,
+          updated_at: newCampaign.updated_at,
+          template: newCampaign.template
             ? {
-                id: data.template.id,
-                name: data.template.name,
-                category: data.template.category,
-                content: data.template.content,
-                variables: Array.isArray(data.template.variables)
-                  ? data.template.variables.filter((v) => typeof v === "string")
+                id: newCampaign.template.id,
+                name: newCampaign.template.name,
+                category: newCampaign.template.category,
+                content: newCampaign.template.content,
+                variables: Array.isArray(newCampaign.template.variables)
+                  ? newCampaign.template.variables.filter((v: any) => typeof v === "string")
                   : [],
-                usage_count: data.template.usage_count || 0,
-                active: data.template.active || false,
-                created_at: data.template.created_at,
-                updated_at: data.template.updated_at,
+                usage_count: newCampaign.template.usage_count || 0,
+                active: newCampaign.template.active || false,
+                created_at: newCampaign.template.created_at,
+                updated_at: newCampaign.template.updated_at,
               }
             : undefined,
         },
