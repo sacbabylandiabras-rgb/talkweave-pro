@@ -173,38 +173,39 @@ export const useCampaigns = () => {
         )
         .single();
 
+      const campaignData = data as any;
       if (error) throw error;
 
       setCampaigns((prev) => [
         {
-          id: data.id,
-          name: data.name,
-          description: data.description || undefined,
-          template_id: data.template_id || undefined,
-          status: (data.status as Campaign["status"]) || "draft",
+          id: campaignData.id,
+          name: campaignData.name,
+          description: campaignData.description || undefined,
+          template_id: campaignData.template_id || undefined,
+          status: (campaignData.status as Campaign["status"]) || "draft",
           target_audience:
-            typeof data.target_audience === "object" && data.target_audience !== null
-              ? (data.target_audience as Record<string, any>)
+            typeof campaignData.target_audience === "object" && campaignData.target_audience !== null
+              ? (campaignData.target_audience as Record<string, any>)
               : {},
-          schedule_type: (data.schedule_type as Campaign["schedule_type"]) || "immediate",
-          scheduled_at: data.scheduled_at || undefined,
-          recurrence_pattern: data.recurrence_pattern || undefined,
-          delay_seconds: data.delay_seconds ?? undefined,
-          created_at: data.created_at,
-          updated_at: data.updated_at,
-          template: data.template
+          schedule_type: (campaignData.schedule_type as Campaign["schedule_type"]) || "immediate",
+          scheduled_at: campaignData.scheduled_at || undefined,
+          recurrence_pattern: campaignData.recurrence_pattern || undefined,
+          delay_seconds: campaignData.delay_seconds ?? undefined,
+          created_at: campaignData.created_at,
+          updated_at: campaignData.updated_at,
+          template: campaignData.template
             ? {
-                id: data.template.id,
-                name: data.template.name,
-                category: data.template.category,
-                content: data.template.content,
-                variables: Array.isArray(data.template.variables)
-                  ? data.template.variables.filter((v) => typeof v === "string")
+                id: campaignData.template.id,
+                name: campaignData.template.name,
+                category: campaignData.template.category,
+                content: campaignData.template.content,
+                variables: Array.isArray(campaignData.template.variables)
+                  ? campaignData.template.variables.filter((v: any) => typeof v === "string")
                   : [],
-                usage_count: data.template.usage_count || 0,
-                active: data.template.active || false,
-                created_at: data.template.created_at,
-                updated_at: data.template.updated_at,
+                usage_count: campaignData.template.usage_count || 0,
+                active: campaignData.template.active || false,
+                created_at: campaignData.template.created_at,
+                updated_at: campaignData.template.updated_at,
               }
             : undefined,
         },
