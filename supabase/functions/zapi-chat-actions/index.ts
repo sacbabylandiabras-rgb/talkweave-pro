@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
       const withToken = (path: string) => `${apiUrl}${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(apiToken)}`;
       const evolutionHeaders = { 'Content-Type': 'application/json', 'token': apiToken, 'apikey': apiToken };
 
-      if (action === 'get-privacy') {
+      if (action === 'get-privacy' || action === 'get-instance-privacy') {
         const res = await fetch(withToken(`/instance/fetchPrivacy/${inst}`), { headers: evolutionHeaders });
         return new Response(JSON.stringify(await res.json()), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
@@ -345,6 +345,24 @@ Deno.serve(async (req) => {
          return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
+      if (action === 'disconnect' || action === 'logout-instance') {
+        const res = await fetch(withToken(`/instance/logout/${inst}`), { 
+          method: 'DELETE',
+          headers: evolutionHeaders 
+        });
+        const data = await res.json().catch(() => ({}));
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'restart' || action === 'restart-instance') {
+        const res = await fetch(withToken(`/instance/restart/${inst}`), { 
+          method: 'POST',
+          headers: evolutionHeaders 
+        });
+        const data = await res.json().catch(() => ({}));
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
       if (action === 'delete-chat') {
         const res = await fetch(withToken(`/chat/delete/${inst}`), {
           method: 'POST',
@@ -569,7 +587,7 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ data: { value: [] } }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      if (action === 'save-privacy') {
+      if (action === 'save-privacy' || action === 'update-privacy') {
         const privBody: any = {};
         const lc = (v: any) => (v === undefined || v === null || v === '') ? undefined : String(v).toLowerCase();
         if (payload.last !== undefined) privBody.last = lc(payload.last);

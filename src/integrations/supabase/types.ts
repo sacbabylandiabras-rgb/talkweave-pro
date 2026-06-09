@@ -3681,6 +3681,8 @@ export type Database = {
           api_provider: string | null
           client_token: string | null
           created_at: string | null
+          evolution_api_key: string | null
+          evolution_api_url: string | null
           id: string
           instance_id: string | null
           instance_name: string | null
@@ -3701,6 +3703,8 @@ export type Database = {
           api_provider?: string | null
           client_token?: string | null
           created_at?: string | null
+          evolution_api_key?: string | null
+          evolution_api_url?: string | null
           id?: string
           instance_id?: string | null
           instance_name?: string | null
@@ -3721,6 +3725,8 @@ export type Database = {
           api_provider?: string | null
           client_token?: string | null
           created_at?: string | null
+          evolution_api_key?: string | null
+          evolution_api_url?: string | null
           id?: string
           instance_id?: string | null
           instance_name?: string | null

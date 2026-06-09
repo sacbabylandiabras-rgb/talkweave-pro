@@ -14,8 +14,8 @@ const isWhatsAppInstance = (instance: any) => {
   const provider = String(instance?.api_provider || 'zapi').toLowerCase();
   const type = String(instance?.instance_type || '').toLowerCase();
   const name = String(instance?.instance_name || '').toLowerCase();
-  const hasCurrentCredentials = Boolean(instance?.evolution_api_url && instance?.zapi_token);
-  return (provider === 'uazapi' || provider === 'uazapi_warmup') && hasCurrentCredentials && type !== 'mobile' && !name.includes('mobile');
+  const hasCurrentCredentials = Boolean((instance?.evolution_api_url && instance?.evolution_api_key) || (instance?.zapi_instance_id && instance?.zapi_token));
+  return hasCurrentCredentials && type !== 'mobile' && !name.includes('mobile');
 };
 
 export async function getUserZAPICredentials(
@@ -42,10 +42,9 @@ export async function getUserZAPICredentials(
 
   const { data: zapiInstances } = await adminClient
     .from('zapi_instances')
-    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, is_default, evolution_api_url')
+    .select('zapi_instance_id, zapi_token, zapi_client_token, instance_name, api_provider, instance_type, is_default, evolution_api_url, evolution_api_key')
     .eq('user_id', user.id)
     .eq('is_active', true)
-    .in('api_provider', ['uazapi', 'uazapi_warmup'])
     .order('is_default', { ascending: false })
     .order('updated_at', { ascending: false });
 
@@ -61,6 +60,7 @@ export async function getUserZAPICredentials(
       instanceName: zapi.instance_name || 'WhatsApp Instance',
       provider: zapi.api_provider || 'zapi',
       evolutionApiUrl: zapi.evolution_api_url,
+      evolutionApiKey: zapi.evolution_api_key,
     };
   }
 
