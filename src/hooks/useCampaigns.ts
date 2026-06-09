@@ -77,7 +77,7 @@ export const useCampaigns = () => {
       try {
         if (!isSilent) setLoading(true);
         const { data, error } = await supabase
-          .from("campaigns")
+          .from("campaigns" as any)
           .select(
             `
           *,
@@ -88,7 +88,7 @@ export const useCampaigns = () => {
 
         if (error) throw error;
         setCampaigns(
-          (data || []).map((item) => ({
+          (data as any[] || []).map((item) => ({
             id: item.id,
             name: item.name,
             description: item.description || undefined,
