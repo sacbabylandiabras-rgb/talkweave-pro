@@ -437,6 +437,53 @@ export type Database = {
         }
         Relationships: []
       }
+      campaigns: {
+        Row: {
+          created_at: string | null
+          delay_seconds: number | null
+          id: string
+          instance_id: string | null
+          message: string
+          name: string
+          scheduled_at: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          delay_seconds?: number | null
+          id?: string
+          instance_id?: string | null
+          message: string
+          name: string
+          scheduled_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          delay_seconds?: number | null
+          id?: string
+          instance_id?: string | null
+          message?: string
+          name?: string
+          scheduled_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "zapi_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           color: string
@@ -2201,6 +2248,36 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_contacts: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string | null
+          phone: string
+          tags: string[] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name?: string | null
+          phone: string
+          tags?: string[] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string | null
+          phone?: string
+          tags?: string[] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       sent_emails_mapping: {
         Row: {
           created_at: string
@@ -3508,6 +3585,45 @@ export type Database = {
           id?: string
           phone?: string
           sent_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      zapi_instances: {
+        Row: {
+          client_token: string | null
+          created_at: string | null
+          id: string
+          instance_id: string
+          instance_token: string
+          name: string | null
+          provider: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          client_token?: string | null
+          created_at?: string | null
+          id?: string
+          instance_id: string
+          instance_token: string
+          name?: string | null
+          provider?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          client_token?: string | null
+          created_at?: string | null
+          id?: string
+          instance_id?: string
+          instance_token?: string
+          name?: string | null
+          provider?: string | null
+          status?: string | null
+          updated_at?: string | null
           user_id?: string | null
         }
         Relationships: []
