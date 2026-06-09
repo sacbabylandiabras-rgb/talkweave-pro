@@ -70,7 +70,7 @@ const getZAPIConfig = async () => {
   if (!user) throw new Error('Usuário não autenticado. Faça login para continuar.');
 
   const { data: instances, error } = await supabase
-    .from('zapi_instances')
+    .from('zapi_instances' as any)
     .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, instance_name, instance_type, evolution_api_url, evolution_api_key')
     .eq('user_id', user.id)
     .eq('is_active', true)
