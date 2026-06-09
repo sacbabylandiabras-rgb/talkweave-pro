@@ -662,7 +662,7 @@ const EnviarMensagem = () => {
 
              toast({
                title: "Envio pausado",
-               description: `Campanha ${campaignCheck.status === 'cancelled' ? 'cancelada' : 'pausada'}. ${processados} solicitações processadas.`,
+               description: `Campanha ${(campaignCheck as any).status === 'cancelled' ? 'cancelada' : 'pausada'}. ${processados} solicitações processadas.`,
              });
              break;
            }
