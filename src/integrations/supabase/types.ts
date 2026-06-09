@@ -437,6 +437,62 @@ export type Database = {
         }
         Relationships: []
       }
+      campaigns: {
+        Row: {
+          created_at: string | null
+          delay_seconds: number | null
+          description: string | null
+          id: string
+          name: string
+          recurrence_pattern: string | null
+          schedule_type: string | null
+          scheduled_at: string | null
+          status: string | null
+          target_audience: Json | null
+          template_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          delay_seconds?: number | null
+          description?: string | null
+          id?: string
+          name: string
+          recurrence_pattern?: string | null
+          schedule_type?: string | null
+          scheduled_at?: string | null
+          status?: string | null
+          target_audience?: Json | null
+          template_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          delay_seconds?: number | null
+          description?: string | null
+          id?: string
+          name?: string
+          recurrence_pattern?: string | null
+          schedule_type?: string | null
+          scheduled_at?: string | null
+          status?: string | null
+          target_audience?: Json | null
+          template_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "message_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           color: string
@@ -526,6 +582,86 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      flow_automations: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          flow_data: Json | null
+          id: string
+          is_active: boolean | null
+          name: string
+          trigger_config: Json | null
+          trigger_type: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          flow_data?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          trigger_config?: Json | null
+          trigger_type?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          flow_data?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          trigger_config?: Json | null
+          trigger_type?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      flow_captured_data: {
+        Row: {
+          captured_at: string | null
+          contact_phone: string
+          field_name: string
+          field_value: string | null
+          flow_id: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          captured_at?: string | null
+          contact_phone: string
+          field_name: string
+          field_value?: string | null
+          flow_id?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          captured_at?: string | null
+          contact_phone?: string
+          field_name?: string
+          field_value?: string | null
+          flow_id?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_captured_data_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flow_automations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       gateway_affiliates: {
         Row: {
@@ -2201,6 +2337,57 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_contacts: {
+        Row: {
+          agent_stage: string | null
+          closing_date: string | null
+          created_at: string | null
+          deal_metadata: Json | null
+          deal_value: number | null
+          description: string | null
+          id: string
+          name: string | null
+          phone: string
+          priority: string | null
+          profile_picture_url: string | null
+          responsible_ids: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_stage?: string | null
+          closing_date?: string | null
+          created_at?: string | null
+          deal_metadata?: Json | null
+          deal_value?: number | null
+          description?: string | null
+          id?: string
+          name?: string | null
+          phone: string
+          priority?: string | null
+          profile_picture_url?: string | null
+          responsible_ids?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_stage?: string | null
+          closing_date?: string | null
+          created_at?: string | null
+          deal_metadata?: Json | null
+          deal_value?: number | null
+          description?: string | null
+          id?: string
+          name?: string | null
+          phone?: string
+          priority?: string | null
+          profile_picture_url?: string | null
+          responsible_ids?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       sent_emails_mapping: {
         Row: {
           created_at: string
@@ -3509,6 +3696,60 @@ export type Database = {
           phone?: string
           sent_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      zapi_instances: {
+        Row: {
+          api_provider: string | null
+          connected_phone: string | null
+          created_at: string | null
+          evolution_api_key: string | null
+          evolution_api_url: string | null
+          id: string
+          instance_name: string
+          instance_type: string | null
+          is_active: boolean | null
+          is_default: boolean | null
+          updated_at: string | null
+          user_id: string
+          zapi_client_token: string | null
+          zapi_instance_id: string | null
+          zapi_token: string | null
+        }
+        Insert: {
+          api_provider?: string | null
+          connected_phone?: string | null
+          created_at?: string | null
+          evolution_api_key?: string | null
+          evolution_api_url?: string | null
+          id?: string
+          instance_name: string
+          instance_type?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          zapi_client_token?: string | null
+          zapi_instance_id?: string | null
+          zapi_token?: string | null
+        }
+        Update: {
+          api_provider?: string | null
+          connected_phone?: string | null
+          created_at?: string | null
+          evolution_api_key?: string | null
+          evolution_api_url?: string | null
+          id?: string
+          instance_name?: string
+          instance_type?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          zapi_client_token?: string | null
+          zapi_instance_id?: string | null
+          zapi_token?: string | null
         }
         Relationships: []
       }
