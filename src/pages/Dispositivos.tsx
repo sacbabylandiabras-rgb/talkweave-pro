@@ -1079,7 +1079,7 @@ const DeviceCard = ({ instance, onDeleted }: { instance: ZapiInstance; onDeleted
             })()}
             <div className="flex flex-col gap-0.5 mt-1">
               <span className="text-[10px] text-muted-foreground font-mono truncate" title={instance.zapi_instance_id}>
-                ID Sistema: {instance.zapi_instance_id}
+                ID Sistema: {instance.api_provider === 'meta' ? instance.id : (instance.zapi_instance_id || instance.id)}
               </span>
             </div>
           </div>
