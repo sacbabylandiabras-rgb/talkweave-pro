@@ -153,7 +153,7 @@ export const useCampaigns = () => {
       if (!user) throw new Error("Usuário não autenticado");
 
       const { data, error } = await supabase
-        .from("campaigns")
+        .from("campaigns" as any)
         .insert({
           user_id: user.id,
           name: campaignData.name,
