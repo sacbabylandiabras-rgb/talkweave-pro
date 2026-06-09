@@ -435,71 +435,7 @@ export type Database = {
           status?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "campaign_sends_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "campaigns"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      campaigns: {
-        Row: {
-          created_at: string
-          delay_seconds: number | null
-          description: string | null
-          id: string
-          name: string
-          recurrence_pattern: string | null
-          schedule_type: string | null
-          scheduled_at: string | null
-          status: string | null
-          target_audience: Json | null
-          template_id: string | null
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          delay_seconds?: number | null
-          description?: string | null
-          id?: string
-          name: string
-          recurrence_pattern?: string | null
-          schedule_type?: string | null
-          scheduled_at?: string | null
-          status?: string | null
-          target_audience?: Json | null
-          template_id?: string | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          delay_seconds?: number | null
-          description?: string | null
-          id?: string
-          name?: string
-          recurrence_pattern?: string | null
-          schedule_type?: string | null
-          scheduled_at?: string | null
-          status?: string | null
-          target_audience?: Json | null
-          template_id?: string | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "campaigns_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "message_templates"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       departments: {
         Row: {
@@ -586,140 +522,6 @@ export type Database = {
           id?: string
           resend_domain_id?: string | null
           status?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      flow_automations: {
-        Row: {
-          active: boolean
-          bot_id: string | null
-          category: string
-          created_at: string
-          edges: Json
-          id: string
-          keyword: string
-          name: string
-          nodes: Json
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          active?: boolean
-          bot_id?: string | null
-          category?: string
-          created_at?: string
-          edges?: Json
-          id?: string
-          keyword?: string
-          name: string
-          nodes?: Json
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          active?: boolean
-          bot_id?: string | null
-          category?: string
-          created_at?: string
-          edges?: Json
-          id?: string
-          keyword?: string
-          name?: string
-          nodes?: Json
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "flow_automations_bot_id_fkey"
-            columns: ["bot_id"]
-            isOneToOne: false
-            referencedRelation: "telegram_bots"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      flow_captured_data: {
-        Row: {
-          captured_data: Json | null
-          created_at: string
-          email: string | null
-          flow_id: string | null
-          flow_name: string | null
-          id: string
-          last_node_id: string | null
-          nome: string | null
-          phone: string
-          source: string | null
-          updated_at: string
-          user_id: string
-          whatsapp: string | null
-        }
-        Insert: {
-          captured_data?: Json | null
-          created_at?: string
-          email?: string | null
-          flow_id?: string | null
-          flow_name?: string | null
-          id?: string
-          last_node_id?: string | null
-          nome?: string | null
-          phone: string
-          source?: string | null
-          updated_at?: string
-          user_id: string
-          whatsapp?: string | null
-        }
-        Update: {
-          captured_data?: Json | null
-          created_at?: string
-          email?: string | null
-          flow_id?: string | null
-          flow_name?: string | null
-          id?: string
-          last_node_id?: string | null
-          nome?: string | null
-          phone?: string
-          source?: string | null
-          updated_at?: string
-          user_id?: string
-          whatsapp?: string | null
-        }
-        Relationships: []
-      }
-      flow_lead_positions: {
-        Row: {
-          block_id: string
-          contact_name: string | null
-          entered_at: string
-          flow_id: string
-          id: string
-          phone: string
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          block_id: string
-          contact_name?: string | null
-          entered_at?: string
-          flow_id: string
-          id?: string
-          phone: string
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          block_id?: string
-          contact_name?: string | null
-          entered_at?: string
-          flow_id?: string
-          id?: string
-          phone?: string
-          status?: string
           updated_at?: string
           user_id?: string
         }
@@ -1382,51 +1184,6 @@ export type Database = {
           template_id?: string | null
           updated_at?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      hidden_dispatch_instances: {
-        Row: {
-          api_provider: string
-          created_at: string
-          created_by: string | null
-          evolution_api_key: string | null
-          evolution_api_url: string | null
-          id: string
-          is_active: boolean
-          name: string
-          updated_at: string
-          zapi_client_token: string
-          zapi_instance_id: string
-          zapi_token: string
-        }
-        Insert: {
-          api_provider?: string
-          created_at?: string
-          created_by?: string | null
-          evolution_api_key?: string | null
-          evolution_api_url?: string | null
-          id?: string
-          is_active?: boolean
-          name: string
-          updated_at?: string
-          zapi_client_token?: string
-          zapi_instance_id?: string
-          zapi_token?: string
-        }
-        Update: {
-          api_provider?: string
-          created_at?: string
-          created_by?: string | null
-          evolution_api_key?: string | null
-          evolution_api_url?: string | null
-          id?: string
-          is_active?: boolean
-          name?: string
-          updated_at?: string
-          zapi_client_token?: string
-          zapi_instance_id?: string
-          zapi_token?: string
         }
         Relationships: []
       }
@@ -2444,66 +2201,6 @@ export type Database = {
         }
         Relationships: []
       }
-      saved_contacts: {
-        Row: {
-          agent_stage: string | null
-          closing_date: string | null
-          community_id: string | null
-          created_at: string | null
-          deal_metadata: Json | null
-          deal_value: number | null
-          description: string | null
-          id: string
-          is_community: boolean | null
-          name: string
-          phone: string
-          pipeline_id: string | null
-          priority: string | null
-          profile_picture_url: string | null
-          responsible_ids: Json | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          agent_stage?: string | null
-          closing_date?: string | null
-          community_id?: string | null
-          created_at?: string | null
-          deal_metadata?: Json | null
-          deal_value?: number | null
-          description?: string | null
-          id?: string
-          is_community?: boolean | null
-          name?: string
-          phone: string
-          pipeline_id?: string | null
-          priority?: string | null
-          profile_picture_url?: string | null
-          responsible_ids?: Json | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          agent_stage?: string | null
-          closing_date?: string | null
-          community_id?: string | null
-          created_at?: string | null
-          deal_metadata?: Json | null
-          deal_value?: number | null
-          description?: string | null
-          id?: string
-          is_community?: boolean | null
-          name?: string
-          phone?: string
-          pipeline_id?: string | null
-          priority?: string | null
-          profile_picture_url?: string | null
-          responsible_ids?: Json | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       sent_emails_mapping: {
         Row: {
           created_at: string
@@ -3031,13 +2728,6 @@ export type Database = {
             columns: ["bot_id"]
             isOneToOne: false
             referencedRelation: "telegram_bots"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "telegram_flow_sessions_flow_id_fkey"
-            columns: ["flow_id"]
-            isOneToOne: false
-            referencedRelation: "flow_automations"
             referencedColumns: ["id"]
           },
         ]
@@ -3819,57 +3509,6 @@ export type Database = {
           phone?: string
           sent_at?: string
           user_id?: string | null
-        }
-        Relationships: []
-      }
-      zapi_instances: {
-        Row: {
-          api_provider: string
-          created_at: string
-          evolution_api_key: string | null
-          evolution_api_url: string | null
-          id: string
-          instance_name: string
-          instance_type: string
-          is_active: boolean
-          is_default: boolean
-          updated_at: string
-          user_id: string
-          zapi_client_token: string | null
-          zapi_instance_id: string | null
-          zapi_token: string | null
-        }
-        Insert: {
-          api_provider?: string
-          created_at?: string
-          evolution_api_key?: string | null
-          evolution_api_url?: string | null
-          id?: string
-          instance_name?: string
-          instance_type?: string
-          is_active?: boolean
-          is_default?: boolean
-          updated_at?: string
-          user_id: string
-          zapi_client_token?: string | null
-          zapi_instance_id?: string | null
-          zapi_token?: string | null
-        }
-        Update: {
-          api_provider?: string
-          created_at?: string
-          evolution_api_key?: string | null
-          evolution_api_url?: string | null
-          id?: string
-          instance_name?: string
-          instance_type?: string
-          is_active?: boolean
-          is_default?: boolean
-          updated_at?: string
-          user_id?: string
-          zapi_client_token?: string | null
-          zapi_instance_id?: string | null
-          zapi_token?: string | null
         }
         Relationships: []
       }
