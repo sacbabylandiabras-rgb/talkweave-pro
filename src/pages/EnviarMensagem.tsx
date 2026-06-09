@@ -569,8 +569,7 @@ const EnviarMensagem = () => {
 
       // Atualizar status da campanha para 'active' imediatamente
       await supabase
-        .from('campaigns')
-        .update({ status: 'active' })
+        .from('campaigns' as any)
         .update({ status: 'active' } as any)
         .eq('id', (campanha as any).id);
 
