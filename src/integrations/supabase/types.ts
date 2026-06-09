@@ -497,6 +497,13 @@ export type Database = {
             referencedRelation: "zapi_instances"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "campaigns_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "message_templates"
+            referencedColumns: ["id"]
+          },
         ]
       }
       departments: {
@@ -3671,40 +3678,61 @@ export type Database = {
       }
       zapi_instances: {
         Row: {
+          api_provider: string | null
           client_token: string | null
           created_at: string | null
           id: string
-          instance_id: string
-          instance_token: string
+          instance_id: string | null
+          instance_name: string | null
+          instance_token: string | null
+          instance_type: string | null
+          is_default: boolean | null
           name: string | null
           provider: string | null
           status: string | null
           updated_at: string | null
           user_id: string | null
+          zapi_client_token: string | null
+          zapi_instance_id: string | null
+          zapi_token: string | null
         }
         Insert: {
+          api_provider?: string | null
           client_token?: string | null
           created_at?: string | null
           id?: string
-          instance_id: string
-          instance_token: string
+          instance_id?: string | null
+          instance_name?: string | null
+          instance_token?: string | null
+          instance_type?: string | null
+          is_default?: boolean | null
           name?: string | null
           provider?: string | null
           status?: string | null
           updated_at?: string | null
           user_id?: string | null
+          zapi_client_token?: string | null
+          zapi_instance_id?: string | null
+          zapi_token?: string | null
         }
         Update: {
+          api_provider?: string | null
           client_token?: string | null
           created_at?: string | null
           id?: string
-          instance_id?: string
-          instance_token?: string
+          instance_id?: string | null
+          instance_name?: string | null
+          instance_token?: string | null
+          instance_type?: string | null
+          is_default?: boolean | null
           name?: string | null
           provider?: string | null
           status?: string | null
           updated_at?: string | null
           user_id?: string | null
+          zapi_client_token?: string | null
+          zapi_instance_id?: string | null
+          zapi_token?: string | null
         }
         Relationships: []
       }
