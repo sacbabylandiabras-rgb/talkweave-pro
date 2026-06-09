@@ -145,12 +145,12 @@ const EnviarMensagem = () => {
         schedule_type: 'immediate',
       });
 
-      await supabase.from('campaigns').update({ status: 'completed' }).eq('id', campanha.id);
+      await supabase.from('campaigns').update({ status: 'completed' } as any).eq('id', (campanha as any).id);
 
       const isMassaTemplate = modeloSelecionado && modelosDisponiveis.find(m => m.id === modeloSelecionado)?.type === 'multiplos_contatos';
       
       await supabase.from('campaign_sends').insert({
-        campaign_id: campanha.id,
+        campaign_id: (campanha as any).id,
         phone,
         message_content: messageContent,
         status,
@@ -571,7 +571,8 @@ const EnviarMensagem = () => {
       await supabase
         .from('campaigns')
         .update({ status: 'active' })
-        .eq('id', campanha.id);
+        .update({ status: 'active' } as any)
+        .eq('id', (campanha as any).id);
 
       // PRÉ-PERSISTIR todos os contatos como 'pending' em campaign_sends
       // Isso garante que o histórico nunca se perca, mesmo se o dispositivo desconectar
@@ -581,7 +582,7 @@ const EnviarMensagem = () => {
       if (currentUserId) {
         const baseMessage = mensagem || modeloDataValidation?.content || modeloDataValidation?.name || 'Modelo';
         const pendingRecords = contatosProcessados.map((c) => ({
-          campaign_id: campanha.id,
+          campaign_id: (campanha as any).id,
           phone: c.telefone,
           contact_name: c.nome,
           message_content: baseMessage.replace(/\{nome\}/g, c.nome).replace(/\{numero\}/g, c.telefone),
@@ -742,7 +743,7 @@ const EnviarMensagem = () => {
             error_message: errorMessage,
             instance_name: instanceNameUsed,
           })
-          .eq('campaign_id', campanha.id)
+          .eq('campaign_id', (campanha as any).id)
           .eq('phone', contato.telefone)
           .eq('status', 'pending');
         } catch (dbErr) {
@@ -756,7 +757,7 @@ const EnviarMensagem = () => {
         const { count: remainingPending } = await supabase
           .from('campaign_sends')
           .select('id', { count: 'exact', head: true })
-          .eq('campaign_id', campanha.id)
+          .eq('campaign_id', (campanha as any).id)
           .eq('status', 'pending');
 
         const hasPending = (remainingPending ?? 0) > 0;
@@ -765,20 +766,20 @@ const EnviarMensagem = () => {
           // Ainda há contatos não processados — pausar em vez de concluir
           await supabase
             .from('campaigns')
-            .update({ status: 'paused' })
-            .eq('id', campanha.id);
+            .update({ status: 'paused' } as any)
+            .eq('id', (campanha as any).id);
         } else if (erros === contatosProcessados.length && processados === 0) {
           // TODOS falharam (ex.: dispositivo deslogado durante o envio) — pausar
           // para permitir retomar depois de reconectar, em vez de marcar como cancelada.
           await supabase
             .from('campaigns')
-            .update({ status: 'paused' })
-            .eq('id', campanha.id);
+            .update({ status: 'paused' } as any)
+            .eq('id', (campanha as any).id);
         } else {
           await supabase
             .from('campaigns')
-            .update({ status: 'completed' })
-            .eq('id', campanha.id);
+            .update({ status: 'completed' } as any)
+            .eq('id', (campanha as any).id);
         }
 
         toast({
