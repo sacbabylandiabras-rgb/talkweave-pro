@@ -91,7 +91,7 @@ const findUserInstance = async (adminClient: any, userId: string, instanceRef: s
   if (!instanceRef) return null;
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const isUuid = UUID_RE.test(instanceRef);
-  const baseSelect = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, is_default, created_at';
+  const baseSelect = 'id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, is_default, created_at, evolution_api_url, evolution_api_key';
 
   // Build filter safely: only include id.eq when ref is a valid UUID, otherwise Postgres throws 22P02.
   const orFilter = isUuid
@@ -129,7 +129,7 @@ const findUserInstance = async (adminClient: any, userId: string, instanceRef: s
 const findPreferredStandardInstance = async (adminClient: any, userId: string) => {
   const { data, error } = await adminClient
     .from('zapi_instances')
-    .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, is_default, created_at')
+    .select('id, zapi_instance_id, zapi_token, zapi_client_token, api_provider, is_default, created_at, evolution_api_url, evolution_api_key')
     .eq('user_id', userId)
     .eq('is_active', true)
     .or('api_provider.is.null,api_provider.eq.zapi')
@@ -364,7 +364,7 @@ serve(async (req) => {
        throw err;
      }
 
-      let { instanceId, token, clientToken, userId, provider: currentProvider, evolutionApiUrl } = credentials;
+      let { instanceId, token, clientToken, userId, provider: currentProvider, evolutionApiUrl, evolutionApiKey } = credentials;
 
       // Se uma instância específica foi solicitada (via requestedInstanceId),
       // vamos usá-la. Se ela não existir para o usuário, falhamos em vez de usar a padrão.
@@ -385,6 +385,7 @@ serve(async (req) => {
           clientToken = requestedInstance.zapi_client_token;
           currentProvider = requestedInstance.api_provider;
           evolutionApiUrl = requestedInstance.evolution_api_url;
+          evolutionApiKey = requestedInstance.evolution_api_key;
           lockedToRequestedInstance = true;
           
           // ATUALIZAÇÃO CRÍTICA: Se a instância solicitada for UAZAPI, forçamos o provider
@@ -392,6 +393,7 @@ serve(async (req) => {
           if (currentProvider === 'uazapi' || currentProvider === 'uazapi_warmup' || currentProvider === 'evolution') {
             credentials.provider = currentProvider;
             credentials.evolutionApiUrl = evolutionApiUrl;
+            credentials.evolutionApiKey = evolutionApiKey;
             credentials.token = token;
           }
         } else {
