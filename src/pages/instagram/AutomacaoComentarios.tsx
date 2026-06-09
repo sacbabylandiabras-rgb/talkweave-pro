@@ -174,7 +174,7 @@ export default function AutomacaoComentarios() {
       if (!user) return;
       const [{ data: tpl }, { data: flows }, { data: inst }] = await Promise.all([
         supabase.from("message_templates").select("id, name, category, type, content").eq("user_id", user.id).eq("active", true).order("name"),
-        supabase.from("flow_automations").select("id, name, keyword").eq("user_id", user.id).eq("active", true).order("name"),
+        (supabase as any).from("flow_automations").select("id, name, keyword").eq("user_id", user.id).eq("active", true).order("name"),
         (supabase as any)
           .from("zapi_instances")
           .select("id, instance_name, api_provider, instance_type, is_default")

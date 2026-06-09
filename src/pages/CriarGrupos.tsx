@@ -1302,7 +1302,7 @@ function AnalyticsDialog({ linkId, links, onClose }: { linkId: string | null; li
     const loadOptions = async () => {
       const [tplRes, flowRes] = await Promise.all([
         supabase.from('message_templates').select('id, name, category').eq('active', true).order('name'),
-        supabase.from('flow_automations').select('id, name, keyword').eq('active', true).order('name'),
+        (supabase as any).from('flow_automations').select('id, name, keyword').eq('active', true).order('name'),
       ]);
       if (tplRes.data) setTemplates(tplRes.data);
       if (flowRes.data) setFlows(flowRes.data);
